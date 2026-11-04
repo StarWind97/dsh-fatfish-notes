@@ -1,12 +1,12 @@
 # DSH笔记开发入口
 
-当前候选为 `0.5.0-rc.11`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
+当前候选为 `0.5.0-rc.12`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
 
 [产品设计](notes-design.zh.md)是当前功能与存储行为的依据，[使用说明](user-guide.zh.md)面向日常操作，[验证记录](verification-log.zh.md)区分各版本的实际覆盖范围。
 
 ## 首次发布收尾
 
-2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。每步完成后停下、复盘并给出下一步建议，等待用户指示继续。第 1 步文档清理、第 2 步历史重建及第 3 步主分支开发规则已完成。当前停在第 3 步，等待用户指示进入第 4 步功能完善与发布验收；公开发布在第 5 步另行确认。
+2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。每步完成后停下、复盘并给出下一步建议，等待用户指示继续。第 1 至 3 步已完成，第 4 步开发与验收交付 `0.5.0-rc.12`，目前停下等待用户体验确认；公开发布在第 5 步另行确认。交付内容见[候选说明](releases/0.5.0-rc.12.zh.md)和[验证记录](verification-log.zh.md)。
 
 ## 开发验证
 
@@ -19,6 +19,8 @@
 独立资料位于项目内 `.dsh-home/pure-001/`，指定 GitHub 私有测试仓库见[项目协作约定](../AGENTS.md#隔离验收与交付)。安装包位于 `dist/`，操作截图位于 `output/playwright/`，这些本机资料由 Git 忽略。
 
 在已准备好的这台 Windows 开发机上，关闭旧的隔离窗口后，可通过 [Open-DSH-Notebook.cmd](../scripts/Open-DSH-Notebook.cmd) 启动体验。会话选材图册为 `output/playwright/capture9/index.html`，会话导出图册为 `output/playwright/export11/index.html`。
+
+第 4 步的全新桌面体验入口为 `.dsh-home/pure-001/Open-Release12.cmd`，本轮实际截图图册为 `output/playwright/release12/index.html`。图册包含阅读、编辑、首次接入、转存、导出、断网提示及深浅色布局。新实例已从测试私库恢复资料，不含复制的 DSH 账户登录信息。
 
 ## 后续备忘
 

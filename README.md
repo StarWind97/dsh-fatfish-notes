@@ -2,6 +2,20 @@
 
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
+## 安装与升级
+
+当前为 `0.5.0-rc.12` 候选版，适用于 DSH `0.2.1-rc.5`。Windows 为本次验收平台，macOS 尚未实测。请先安装 Git 和 GitHub CLI，并准备自己的 GitHub 账号。
+
+先打开一次 DSH，让桌面资料初始化完成，再完全退出。取得本项目的 `.tgz` 安装包后，在终端执行以下命令，将路径替换成实际文件位置：
+
+```powershell
+dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.0-rc.12.tgz"
+```
+
+重新打开 DSH，在侧栏进入「DSH笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
+
+升级前先保存笔记并确认「已同步」，关闭 DSH 后备份本机笔记资料夹，再用同一命令安装新包。已有绑定会沿用。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。本项目尚未公开发布，候选验收通过后再确认公开分发。
+
 ## 开始使用
 
 首次打开时检查 Git、GitHub CLI 和账号，再选择「接入已有库」或「新建私有库」。新建建议名称为 `dsh-notes`，可以修改。本机默认目录与仓库同名，也可指定空目录。检查通过后，在只读确认页核对账号、仓库和完整位置，再开始同步。
@@ -18,6 +32,6 @@
 
 ## 开发
 
-当前候选为 `0.5.0-rc.11`，已验证 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。macOS 待实测。
+当前候选为 `0.5.0-rc.12`，开发环境为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。实际覆盖范围见[验证记录](docs/verification-log.zh.md)。
 
 开发按改动影响选择验证范围，具体步骤见[开发入口](docs/README.md)与[项目协作约定](AGENTS.md#验证范围)。产品行为见[设计](docs/notes-design.zh.md)，日常操作见[使用说明](docs/user-guide.zh.md)。
