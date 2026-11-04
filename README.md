@@ -1,20 +1,31 @@
-# DSH笔记
+# DSH Notebook · 私人笔记管理
+
+[English](README.en.md)
+
+保存会话、管理图文笔记、导出文件，通过自己的 GitHub 私有仓库跨设备同步。
 
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
+![DSH笔记阅读界面](https://raw.githubusercontent.com/StarWind97/dsh-github-notebook/main/assets/screenshots/01-library.png)
+
+- **原样保存会话**：在回答下方保存当前问答，也可选择多轮、单条消息或整个会话，保留只读原始素材。
+- **Markdown 图文编辑**：原地编辑、语法与预览切换，支持标题、列表、代码块、表格和图片，跟随宿主深浅色。
+- **文件导出**：笔记和会话均可导出 Markdown、图文 ZIP、PDF、长图或分页图片。
+- **自己的私人笔记库**：本机保存，通过自己账号下的专用 GitHub 私有仓库跨设备同步。
+
 ## 安装与升级
 
-当前为 `0.5.0-rc.12` 候选版，适用于 DSH `0.2.1-rc.5`。Windows 为本次验收平台，macOS 尚未实测。请先安装 Git 和 GitHub CLI，并准备自己的 GitHub 账号。
+版本 `0.5.0`，适用于 DSH `0.2.1-rc.5`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
 
-先打开一次 DSH，让桌面资料初始化完成，再完全退出。取得本项目的 `.tgz` 安装包后，在终端执行以下命令，将路径替换成实际文件位置：
+发布状态与安装包以 [GitHub Releases](https://github.com/StarWind97/dsh-github-notebook/releases) 为准。下载其中的 `dsh-github-notebook-0.5.0.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际下载位置：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.0-rc.12.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.0.tgz"
 ```
 
 重新打开 DSH，在侧栏进入「DSH笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-升级前先保存笔记并确认「已同步」，关闭 DSH 后备份本机笔记资料夹，再用同一命令安装新包。已有绑定会沿用。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。本项目尚未公开发布，候选验收通过后再确认公开分发。
+升级前先保存笔记并确认「已同步」，关闭 DSH 后备份本机笔记资料夹，再用同一命令安装新包。已有绑定会沿用。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。
 
 ## 开始使用
 
@@ -40,6 +51,14 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.0-rc.12.t
 
 ## 开发
 
-当前候选为 `0.5.0-rc.12`，开发环境为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。实际覆盖范围见[验证记录](docs/verification-log.zh.md)。
+开发环境为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。实际覆盖范围见[验证记录](docs/verification-log.zh.md)。
 
 开发按改动影响选择验证范围，具体步骤见[开发入口](docs/README.md)与[项目协作约定](AGENTS.md#验证范围)。产品行为见[设计](docs/notes-design.zh.md)，日常操作见[使用说明](docs/user-guide.zh.md)。
+
+## 限制与反馈
+
+本版不提供 Markdown 文件导入或将笔记自动附加到会话。AI 仅在转存会话时可选建议标题、摘要和标签，正文由用户手动整理。macOS 和两台物理设备之间的使用尚待实测。
+
+问题与建议请提交 [Issue](https://github.com/StarWind97/dsh-github-notebook/issues)，附系统、DSH 与插件版本、操作步骤及遮去私人信息的截图，不要上传令牌或完整私人笔记库。
+
+代码使用 [MIT 许可证](LICENSE)。第三方依赖与字体说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。展示截图来自隔离实例，内容为示例。
