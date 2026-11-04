@@ -1,0 +1,307 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { NotesController, noteContent } from '../src/client/notes-controller.js'
+import { NoteMarkdown, resolveNoteImage } from '../src/client/NoteMarkdown.js'
+import { NoteCaptureBridge } from '../src/client/note-capture-bridge.js'
+import { ApiError, createApi, type Api } from '../src/client/api.js'
+import type { NoteContent, NoteView, NoteSaveInput, CaptureRequest } from '../src/contracts/notes.js'
+import { createNoteRevision, materializeNote } from '../src/notes/revisions.js'
+
+const a = '01K00000000000000000000000', b = '01K00000000000000000000001'
+const content = (body = 'original'): NoteContent => ({ title: 'Title', body, summary: '', tags: [], status: 'active', notebookId: null, sourceId: null, assetIds: [] })
+function note(noteId = a, body = 'original') { return materializeNote([createNoteRevision({ version: 1, noteId, parents: [], recordedAt: '2026-11-01T00:00:00.000Z', ...content(body) })], noteId) }
+function saved(input: NoteSaveInput): NoteView {
+  const row = createNoteRevision({ version: 1, noteId: input.noteId!, parents: input.expectedHeads, recordedAt: '2026-11-01T00:00:01.000Z', ...input.content })
+  return { noteId: row.noteId, heads: [row.revision], current: row, conflicts: [], savedAt: row.recordedAt, effectiveNotebookId: row.notebookId }
+}
+function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
+const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0))
+test('navigation never commits a pending pasted image; explicit save waits for it',async()=>{
+  const f=fixture(),c=new NotesController(f.call),gate=deferred<void>()
+  try{
+    await c.open(a)
+    const pending=c.queueImageImport(async()=>{await gate.promise;c.update({body:'imported picture'})})
+    const navigation=c.open(b)
+    await tick();assert.equal(c.getSnapshot().noteId,a)
+    assert.equal(await navigation,false);const saving=c.flush();gate.resolve();await pending;assert.equal(await saving,true);assert.equal(await c.open(b),true)
+    assert.equal(f.writes.at(-1)?.content.body,'imported picture')
+    assert.equal(c.getSnapshot().noteId,b)
+  }finally{c.dispose()}
+})
+function fixture(intercept?: (path: string, input: unknown) => Promise<unknown> | undefined) {
+  const rows = new Map([[a, note(a)], [b, note(b, 'second')]]), writes: Array<NoteSaveInput & { resolve?: boolean }> = []
+  const call: Api = async (path, input) => {
+    const handled = intercept?.(path, input); if (handled) return await handled as never
+    if (path === '/notes/get') return { ok: true, note: rows.get((input as { noteId: string }).noteId) } as never
+    if (path === '/notes/jobs') return { ok: true, jobs: [], cursor: null } as never
+    if (path === '/notes/notebooks') return { ok: true, notebooks: [] } as never
+    if (path === '/notes') return { ok: true, items: [], cursor: null } as never
+    if (path === '/notes/save') { const v = input as NoteSaveInput; writes.push(v); const result = saved(v); rows.set(result.noteId, result); return { ok: true, note: result } as never }
+    throw new Error(`unexpected ${path}`)
+  }
+  return { rows, writes, call }
+}
+
+test('M7 export freezes after pending writes and invalidates ownership on navigation or new persisted revision', async () => {
+  const f = fixture(), c = new NotesController(f.call)
+  try {
+    await c.open(a); c.update({ body: '最新编辑' })
+    assert.equal(await c.freezeExport(),null);assert.equal(f.writes.length,0);await c.flush(); const frozen = await c.freezeExport(); assert.ok(frozen); assert.equal(frozen.note.current.body, '最新编辑'); assert.equal(f.writes.length, 1); assert.equal(frozen.isCurrent(), true)
+    c.update({ body: '后续编辑' }); assert.equal(frozen.note.current.body, '最新编辑'); await c.flush(); assert.equal(frozen.isCurrent(), false)
+    const second = await c.freezeExport(); assert.ok(second); await c.open(b); assert.equal(second.isCurrent(), false)
+    await c.open(a); assert.equal(second.isCurrent(), false, 'returning to A must not revive a stale download')
+  } finally { c.dispose() }
+})
+test('M7 export cannot bypass composition, failed save, conflict or a newer pending selection', async () => {
+  let fail = false, hold = false; const gate = deferred<unknown>()
+  const f = fixture((path, input) => path === '/notes/save' && fail ? Promise.reject(new ApiError('network')) : path === '/notes/get' && hold && (input as { noteId: string }).noteId === b ? gate.promise : undefined), c = new NotesController(f.call)
+  try {
+    await c.open(a); c.composition(true); c.update({ body: '输入中' }); assert.equal(await c.freezeExport(), null)
+    c.composition(false); fail = true; assert.equal(await c.freezeExport(), null); assert.equal(c.getSnapshot().draft!.body, '输入中')
+    fail = false; await c.flush(); const frozen = await c.freezeExport(); assert.ok(frozen)
+    hold = true; const pending = c.open(b); await tick(); assert.equal(frozen.isCurrent(), false); assert.equal(await c.freezeExport(), null)
+    gate.resolve({ ok: true, note: note(b) }); await pending
+  } finally { c.dispose() }
+})
+test('a manual edit changes no revision until Save and Cancel restores all fields',async()=>{
+  const f=fixture(), c=new NotesController(f.call)
+  try {
+    await c.open(a);c.beginEdit()
+    const original=c.getSnapshot().note!
+    const edits={title:'手改标题',summary:'手改摘要',tags:['手工'],body:'新正文'}
+    c.update(edits)
+    assert.equal(await c.open(b),false)
+    assert.equal(await c.freezeExport(),null)
+    assert.equal(f.writes.length,0)
+    c.cancelEdits();assert.deepEqual(c.getSnapshot().draft,noteContent(original))
+    c.beginEdit();c.update(edits);assert.ok(await c.saveEdits())
+    assert.equal(f.writes.length,1);assert.equal(c.getSnapshot().editing,false)
+    assert.deepEqual(f.writes[0]!.content,{...noteContent(original),...edits})
+    await c.create();c.update({body:'放弃这篇新稿'});c.cancelEdits()
+    assert.equal(c.getSnapshot().noteId,null);assert.equal(f.writes.length,1)
+  }finally{c.dispose()}
+})
+test('M5 opening is read-only; exact body and newer typing survive serialized saves', async () => {
+  const gate = deferred<unknown>(); let first: NoteSaveInput | null = null
+  const f = fixture((path, input) => { if (path === '/notes/save' && !first) { first = structuredClone(input as NoteSaveInput); return gate.promise } return undefined })
+  const c = new NotesController(f.call)
+  try {
+    await c.open(a); assert.equal(f.writes.length, 0)
+    c.update({ body: '  中文\r\n\n', title: '  trimmed title  ' }); const flushing = c.flush(); await tick()
+    c.update({ body: '  中文\r\n\nNEW\n' })
+    const result = saved(first!); gate.resolve({ ok: true, note: result })
+    assert.equal(await flushing, true); assert.equal(c.getSnapshot().draft!.body, '  中文\r\n\nNEW\n')
+    assert.equal(c.getSnapshot().draft!.title, 'trimmed title'); assert.equal(f.writes.length, 1)
+    assert.deepEqual(f.writes[0]!.expectedHeads, result.heads); assert.equal(c.getSnapshot().dirty, false)
+  } finally { c.dispose() }
+})
+test('M5 persistent failure blocks navigation and retains the draft until explicit retry succeeds', async () => {
+  let fail = true
+  const f = fixture(path => path === '/notes/save' && fail ? Promise.reject(new ApiError('network')) : undefined), c = new NotesController(f.call)
+  try {
+    await c.open(a); c.update({ body: 'unsaved' })
+    assert.equal(await c.open(b), false); assert.equal(c.getSnapshot().noteId, a); assert.equal(c.getSnapshot().draft!.body, 'unsaved'); assert.equal(c.getSnapshot().dirty, true)
+    assert.equal(await c.navigate('settings'), false); assert.equal(c.getSnapshot().section, 'notes')
+    fail = false; assert.equal(await c.flush(),true); assert.equal(await c.open(b), true); assert.equal(f.rows.get(a)!.current.body, 'unsaved'); assert.equal(c.getSnapshot().draft!.body, 'second')
+  } finally { c.dispose() }
+})
+test('M5 IME composition delays writes and switching; repeated new clicks create one identity', async () => {
+  const f = fixture(), c = new NotesController(f.call)
+  try {
+    await c.open(a); c.composition(true); c.update({ body: '拼音输入' }); await new Promise(resolve => setTimeout(resolve, 10))
+    assert.equal(f.writes.length, 0); assert.equal(await c.open(b), false)
+    c.composition(false); assert.equal(await c.flush(), true); assert.equal(f.writes.length, 1)
+    await Promise.all([c.create(), c.create(), c.create()]); assert.equal(f.writes.length, 1); assert.notEqual(c.getSnapshot().noteId, a); c.cancelEdits();assert.equal(c.getSnapshot().noteId,null)
+  } finally { c.dispose() }
+})
+test('M5 stale reads cannot replace the last selected note; no writes on read or panel switch', async () => {
+  const gate = deferred<unknown>(), f = fixture((path, input) => path === '/notes/get' && (input as { noteId: string }).noteId === a ? gate.promise : undefined), c = new NotesController(f.call)
+  try {
+    const earlier = c.open(a); await tick(); await c.open(b); gate.resolve({ ok: true, note: note(a) }); await earlier
+    assert.equal(c.getSnapshot().noteId, b); await c.navigate('settings'); await c.navigate('notes'); assert.equal(f.writes.length, 0)
+  } finally { c.dispose() }
+})
+test('M5 concurrent edit retains local text and requires explicit heads-aware confirmation', async () => {
+  let concurrent = false
+  const latest = saved({ noteId: a, expectedHeads: note().heads, content: content('external') })
+  const f = fixture((path, input) => {
+    if (path === '/notes/get' && concurrent) return Promise.resolve({ ok: true, note: latest })
+    if (path === '/notes/save' && !(input as { resolve?: boolean }).resolve) return Promise.reject(new ApiError('note_conflict'))
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); c.update({ body: 'my text' }); concurrent = true; assert.equal(await c.flush(), false)
+    assert.equal(c.getSnapshot().draft!.body, 'my text'); assert.equal(c.getSnapshot().conflict!.current.body, 'external')
+    assert.equal(await c.open(b), false); assert.equal(f.writes.length, 0)
+    assert.equal(await c.resolve(), true); assert.deepEqual(f.writes[0]!.expectedHeads, latest.heads); assert.equal(f.writes[0]!.resolve, true); assert.equal(c.getSnapshot().draft!.body, 'my text')
+  } finally { c.dispose() }
+})
+test('M5 deleted notebook effective membership is used without a write on opening', async () => {
+  const v = note(); v.current.notebookId = b; v.effectiveNotebookId = null
+  const f = fixture(path => path === '/notes/get' ? Promise.resolve({ ok: true, note: v }) : undefined), c = new NotesController(f.call)
+  try { await c.open(a); assert.equal(c.getSnapshot().draft!.notebookId, null); assert.equal(f.writes.length, 0); c.update({ body: 'edit' }); await c.flush(); assert.equal(f.writes[0]!.content.notebookId, null) } finally { c.dispose() }
+})
+test('M5 capture passes selected notebook and navigates to the saved library note', async () => {
+  let request: CaptureRequest | undefined, opened: string | undefined
+  const call: Api = async (path, input) => {
+    if (path === '/notes/selection') return { ok: true, defaultMessageIds: ['m1'], messages: [{id:'m1',seq:1,role:'assistant',blocks:[{type:'text',text:'saved answer'}]}], cut: {throughSeq:1,capturedAt:'2026-11-01T00:00:01.000Z',isSeeded:false}, complete: true, issues: [] } as never
+    if (path === '/notes/capture') { request = input as CaptureRequest; return { ok: true, note: note(), enrichmentJobId: null } as never }
+    throw new Error('unexpected')
+  }
+  const bridge = new NoteCaptureBridge(call, undefined, async noteId => { opened = noteId; return true })
+  try { await bridge.open('session'); bridge.notebook(b); await bridge.save(); assert.equal(request!.notebookId, b); await bridge.openNote(); assert.equal(opened, a); assert.equal(bridge.getSnapshot(), null) } finally { bridge.dispose() }
+})
+test('M5 note Markdown renders safe text and verified asset route, never arbitrary media requests', () => {
+  const v = note(), asset = 'a'.repeat(64) + '.png'; v.current.assetIds = [asset]
+  const url = resolveNoteImage(`../assets/${asset}`, v); assert.match(url!, /notes\/asset\?noteId=/); assert.ok(url!.includes(v.current.revision))
+  for (const unsafe of ['../assets/' + 'b'.repeat(64) + '.png', '/notes/asset', 'file:///C:/secret', 'http://127.0.0.1:9000/private.png', 'https://example.com/remote.png']) assert.equal(resolveNoteImage(unsafe, v), null)
+  const html = renderToStaticMarkup(createElement(NoteMarkdown, { note: v, body: `<script>evil()</script>\n\n![local](../assets/${asset})\n![remote](https://example.com/a.png)\n[video](http://127.0.0.1/a.mp4)\n[bad](javascript:alert(1))` }))
+  assert.match(html, /notes\/asset/); assert.doesNotMatch(html, /<script|<video|src="https:|src="http:|href="javascript:/)
+})
+test('M5 client rejects mismatched note and durable task identities', async () => {
+  const call = createApi(async () => new Response(JSON.stringify({ ok: true, note: note(b) }), { status: 200 }))
+  await assert.rejects(call('/notes/get', { noteId: a }), { code: 'invalid_response' })
+  assert.equal(noteContent(note()).body, 'original')
+})
+test('M5 visible AI polling reports completion without overwriting typing started during the request', async () => {
+  const gate = deferred<unknown>(), jobId = 'b'.repeat(64)
+  const f = fixture(path => path === '/notes/jobs' ? Promise.resolve({ ok: true, jobs: [{ jobId, noteId: a, status: 'running', error: null, candidate: null, stages: [{ status: 'waiting' }] }], cursor: null }) : path === '/notes/job' ? gate.promise : undefined), c = new NotesController(f.call)
+  try {
+    await c.open(a); await tick(); const polling = c.pollJobs(); await tick()
+    c.update({ body: 'still typing' }); gate.resolve({ ok: true, job: { jobId, noteId: a, status: 'completed', error: null, candidate: null, stages: [{ status: 'done' }] } }); await polling
+    assert.equal(c.getSnapshot().jobs[0]!.status, 'completed'); assert.equal(c.getSnapshot().draft!.body, 'still typing'); assert.equal(c.getSnapshot().dirty, true)
+  } finally { c.dispose() }
+})
+test('M5 disposal during an admitted save never starts another write or updates the disposed editor', async () => {
+  const gate = deferred<unknown>(); let input: NoteSaveInput | null = null, calls = 0
+  const f = fixture((path, body) => { if (path === '/notes/save') { calls++; input = body as NoteSaveInput; return gate.promise } return undefined }), c = new NotesController(f.call)
+  await c.open(a); c.update({ body: 'admitted' }); const writing = c.flush(); await tick(); c.update({ body: 'later' }); c.dispose()
+  gate.resolve({ ok: true, note: saved(input!) }); assert.equal(await writing, false); assert.equal(calls, 1); assert.equal(await c.flush(), false)
+})
+test('M5 stale list results cannot replace a newer filter and pagination deduplicates repeated items', async () => {
+  const gate = deferred<unknown>()
+  const item = { noteId: b, heads: note(b).heads, title: 'new', summary: '', tags: [], notebookId: null, status: 'active', savedAt: '', conflicted: false }
+  const f = fixture((path, input) => path === '/notes' ? (input as { query?: string }).query === 'older' ? gate.promise : Promise.resolve({ ok: true, items: [item], cursor: b }) : undefined), c = new NotesController(f.call)
+  try {
+    const earlier = c.filter({ query: 'older' }); await c.filter({ query: 'newer' }); gate.resolve({ ok: true, items: [], cursor: null }); await earlier
+    assert.equal(c.getSnapshot().items[0]!.noteId, b); await c.refresh(false); assert.equal(c.getSnapshot().items.length, 1)
+  } finally { c.dispose() }
+})
+test('M5 P2 loading B rejects manual AI actions on A and never reopens A for typing', async () => {
+  const loadingB = deferred<unknown>(); let mutations = 0
+  const f = fixture((path, input) => {
+    if (path === '/notes/get' && (input as { noteId: string }).noteId === b) return loadingB.promise
+    if (path === '/notes/job/cancel') { mutations++; return Promise.resolve({ ok: true, job: {} }) }
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); const opening = c.open(b); await tick(); assert.equal(c.getSnapshot().loadingNote, true)
+    const cancelled = await c.job('b'.repeat(64), 'cancel')
+    c.update({ body: 'UNSAVED HUMAN EDIT' })
+    const during = c.getSnapshot()
+    loadingB.resolve({ ok: true, note: note(b, 'second note') }); await opening
+    assert.equal(cancelled, false); assert.equal(mutations, 0)
+    assert.equal(during.loadingNote, true); assert.equal(during.draft!.body, 'original')
+    assert.equal(c.getSnapshot().noteId, b); c.update({ body: 'B human edit' }); assert.equal(c.getSnapshot().draft!.body, 'B human edit')
+  } finally { c.dispose() }
+})
+test('M5 P2 completed AI poll readback from A cannot clear the pending B load or erase later edits', async () => {
+  const loadingA = deferred<unknown>(), loadingB = deferred<unknown>(), jobId = 'b'.repeat(64); let aReads = 0
+  const f = fixture((path, input) => {
+    if (path === '/notes/jobs') return Promise.resolve({ ok: true, jobs: [{ jobId, noteId: a, status: 'running', error: null, candidate: null, stages: [{ status: 'waiting' }] }], cursor: null })
+    if (path === '/notes/job') return Promise.resolve({ ok: true, job: { jobId, noteId: a, status: 'completed', error: null, candidate: null, stages: [{ status: 'done' }] } })
+    if (path === '/notes/get') {
+      if ((input as { noteId: string }).noteId === b) return loadingB.promise
+      if (++aReads > 1) return loadingA.promise
+    }
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); await tick(); const polling = c.pollJobs(); await tick(); assert.equal(aReads, 2)
+    const opening = c.open(b); await tick()
+    loadingA.resolve({ ok: true, note: note(a, 'AI completed A') }); await polling
+    c.update({ body: 'UNSAVED HUMAN EDIT' }); const during = c.getSnapshot()
+    loadingB.resolve({ ok: true, note: note(b, 'second note') }); await opening
+    assert.equal(during.loadingNote, true); assert.equal(during.draft!.body, 'original')
+    assert.equal(c.getSnapshot().noteId, b); c.update({ body: 'B human edit' }); assert.equal(c.getSnapshot().draft!.body, 'B human edit')
+  } finally { c.dispose() }
+})
+test('M5 P2 an admitted manual AI action owns its readback and blocks a competing open', async () => {
+  const action = deferred<unknown>(); let bReads = 0
+  const f = fixture((path, input) => {
+    if (path === '/notes/job/cancel') return action.promise
+    if (path === '/notes/get' && (input as { noteId: string }).noteId === b) bReads++
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); const cancelling = c.job('b'.repeat(64), 'cancel'); await tick()
+    assert.equal(await c.open(b), false); assert.equal(bReads, 0)
+    action.resolve({ ok: true, job: {} }); assert.equal(await cancelling, true)
+    assert.equal(c.getSnapshot().noteId, a); assert.equal(c.getSnapshot().operation, false)
+    c.update({ body: 'kept after AI action' }); assert.equal(await c.flush(), true); assert.equal(f.rows.get(a)!.current.body, 'kept after AI action')
+  } finally { c.dispose() }
+})
+test('M5 P2 pending open also blocks old trash, conflict selection and resolution paths', async () => {
+  const loadingB = deferred<unknown>(), conflicted = note(); conflicted.heads.push('b'.repeat(64)); let mutations = 0
+  const f = fixture((path, input) => {
+    if (path === '/notes/get') return (input as { noteId: string }).noteId === b ? loadingB.promise : Promise.resolve({ ok: true, note: conflicted })
+    if (path === '/notes/trash' || path === '/notes/save') { mutations++; return Promise.resolve({ ok: true, note: note() }) }
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); const opening = c.open(b); await tick()
+    assert.equal(await c.changeStatus(true), false); assert.equal(await c.resolve(), false)
+    c.chooseRevision(note(a, 'chosen stale revision').current)
+    assert.equal(c.getSnapshot().draft!.body, 'original'); assert.equal(c.getSnapshot().loadingNote, true); assert.equal(mutations, 0)
+    loadingB.resolve({ ok: true, note: note(b) }); assert.equal(await opening, true)
+  } finally { c.dispose() }
+})
+
+// Pull readback uses the same opted-in refresh entry as NotesPage.
+const refreshAfterSync = (controller: NotesController): Promise<void> => controller.refresh(true, true)
+test('M6 fix1 pull refreshes the selected note after settings with no AI tasks', async () => {
+  const f = fixture(), c = new NotesController(f.call)
+  try {
+    await c.open(a); await c.navigate('settings')
+    const updated = saved({ noteId: a, expectedHeads: note().heads, content: content('pulled remote edit') }); f.rows.set(a, updated)
+    await c.navigate('notes'); await refreshAfterSync(c)
+    assert.equal(c.getSnapshot().jobs.length, 0)
+    assert.equal(c.getSnapshot().draft!.body, 'pulled remote edit')
+    assert.deepEqual(c.getSnapshot().note!.heads, updated.heads)
+    assert.equal(c.getSnapshot().dirty, false); assert.equal(f.writes.length, 0)
+  } finally { c.dispose() }
+})
+
+for (const guard of ['dirty', 'composition', 'saving', 'navigation', 'newer-save'] as const) test(`M6 fix1 pull readback preserves ${guard} ownership`, async () => {
+  const reading = deferred<unknown>(), writing = deferred<unknown>(); let readStarted = false, getCount = 0, sent: NoteSaveInput | undefined
+  const f = fixture((path, input) => {
+    if (path === '/notes/get' && (input as { noteId: string }).noteId === a && ++getCount > 1) { readStarted = true; return reading.promise }
+    if (path === '/notes/save') { sent = structuredClone(input as NoteSaveInput); return writing.promise }
+    return undefined
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a)
+    const pulling = refreshAfterSync(c); await tick()
+    assert.equal(readStarted, true, 'sync must actually request selected detail')
+    let saving: Promise<boolean> | undefined
+    if (guard === 'navigation') await c.open(b)
+    else if (guard === 'composition') c.composition(true)
+    else {
+      c.update({ body: 'human edit' })
+      if (guard === 'saving' || guard === 'newer-save') { saving = c.flush(); await tick() }
+      if (guard === 'newer-save') { writing.resolve({ ok: true, note: saved(sent!) }); await saving }
+    }
+    const remote = saved({ noteId: a, expectedHeads: note().heads, content: content('remote edit') })
+    reading.resolve({ ok: true, note: remote }); await pulling
+    if (guard === 'navigation') { assert.equal(c.getSnapshot().noteId, b); assert.equal(c.getSnapshot().draft!.body, 'second') }
+    else if (guard === 'composition') { assert.equal(c.getSnapshot().draft!.body, 'original'); assert.equal(c.getSnapshot().composing, true); assert.equal(c.getSnapshot().conflict, null) }
+    else {
+      assert.equal(c.getSnapshot().draft!.body, 'human edit')
+      if (guard === 'dirty') { assert.equal(c.getSnapshot().dirty, true); assert.equal(c.getSnapshot().conflict, null) }
+      if (guard === 'saving') { assert.equal(c.getSnapshot().saving, true); assert.equal(c.getSnapshot().conflict, null); writing.resolve({ ok: true, note: saved(sent!) }); await saving }
+      if (guard === 'newer-save') { assert.deepEqual(c.getSnapshot().note!.heads, saved(sent!).heads); assert.equal(c.getSnapshot().conflict, null) }
+    }
+  } finally { c.dispose(); writing.resolve({ ok: true, note: note() }); reading.resolve({ ok: true, note: note() }) }
+})

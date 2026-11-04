@@ -1,0 +1,28 @@
+# 本地/测试产物
+node_modules/
+test/.tmp/
+*.log
+
+# 打包产物
+*.tgz
+*.zip
+dist/
+output/playwright/
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地探测文件
+.probe
+
+# 隔离测试用 DSH home、pnpm store 与 npm pack 缓存
+.dsh-home/
+.pnpm-store/
+.npm-cache/
+*.tsbuildinfo
+
+# 任务实施与审查临时材料
+.superpowers/

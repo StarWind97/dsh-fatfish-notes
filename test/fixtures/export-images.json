@@ -1,0 +1,32 @@
+{
+  "gif": {
+    "base64": "R0lGODlhQAAoAIEAAB5k3AAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQAGQAAACwAAAAAQAAoAAAIVAABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRowQDAgAh+QQBGQABACwAAAAAQAAoAIHcMigAAAAAAAAAAAAIVAABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRowQDAgA7",
+    "width": 64,
+    "height": 40,
+    "firstPixel": [
+      30,
+      100,
+      220
+    ],
+    "secondFramePixel": [
+      220,
+      50,
+      40
+    ]
+  },
+  "webp": {
+    "base64": "UklGRogAAABXRUJQVlA4WAoAAAACAAAAPwAAJwAAQU5JTQYAAAAAAAAAAABBTk1GKgAAAAAAAAAAAD8AACcAAPoAAAJWUDhMEQAAAC8/wAkAB1CyepS7/4GI6H8AAEFOTUYqAAAAAAAAAAAAPwAAJwAA+gAAAFZQOEwRAAAALz/ACQAHUJlyF6X/gYjofwAA",
+    "width": 64,
+    "height": 40,
+    "firstPixel": [
+      30,
+      100,
+      220
+    ],
+    "secondFramePixel": [
+      220,
+      50,
+      40
+    ]
+  }
+}

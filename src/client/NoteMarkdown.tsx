@@ -1,0 +1,24 @@
+import * as React from 'react'
+import Markdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import type { NoteView } from '../contracts/notes.js'
+import { safePublicUrl } from './safe-url.js'
+
+export function noteAssetUrl(note: NoteView, assetId: string, sourceId?: string): string {
+  const query = new URLSearchParams({ noteId: note.noteId, revision: note.current.revision, assetId, ...(sourceId ? { sourceId } : {}) })
+  return `/dsh-github-notebook/notes/asset?${query}`
+}
+export function resolveNoteImage(url: string, note: NoteView): string | null {
+  const match = /^\.\.\/assets\/([a-f0-9]{64}\.(?:png|jpg|webp|gif))$/.exec(url)
+  return match?.[1] && note.current.assetIds.includes(match[1]) ? noteAssetUrl(note, match[1]) : null
+}
+const components: Components = {
+  ...Object.fromEntries((['p','h1','h2','h3','h4','h5','h6','li','blockquote','table'] as const).map(tag=>[tag,({node,children}:{node?:{position?:{start:{offset?:number}}};children?:React.ReactNode})=>React.createElement(tag,{'data-md-pos':node?.position?.start.offset},children)])),
+  a: ({ href, children }) => href ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> : <span>{children}</span>,
+  img: ({ src, alt }) => src ? <img src={src} alt={alt ?? ''} loading="lazy" style={{ maxWidth: '100%', maxHeight: 560, objectFit: 'contain' }} /> : <span role="img" aria-label={alt ?? ''}>[{alt || 'Image'}]</span>,
+  pre: ({ node, children }) => <pre data-md-pos={node?.position?.start.offset} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', padding: 14, borderRadius: 8, background: 'var(--dsw-alias-bg-layer-2)' }}>{children}</pre>,
+}
+/** Never fetch an arbitrary Markdown image, even when it is host-relative. */
+export function NoteMarkdown({ body, note }: { body: string; note: NoteView }) {
+  return <div className="note-markdown" style={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}><Markdown skipHtml remarkPlugins={[remarkGfm]} components={components} urlTransform={(url, key) => key === 'src' ? resolveNoteImage(url, note) ?? '' : safePublicUrl(url) ?? ''}>{body}</Markdown></div>
+}
