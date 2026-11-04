@@ -1,6 +1,6 @@
 # DSH Notebook 开发入口
 
-产品展示名称为 **DSH Notebook · 私人笔记管理**，中文简称仍为 DSH笔记。用户已确认名称并批准进入正式发布流程。
+产品展示名称为 **DSH Notebook · 私人笔记管理**，中文简称仍为 DSH笔记。[0.5.0 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。
 
 当前版本为 `0.5.0`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
 
@@ -8,7 +8,7 @@
 
 ## 首次发布收尾
 
-2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。第 1 至 4 步已完成，第 5 步材料审阅后，用户明确指示进入正式发布流程，执行 GitHub Release 与市场收录申请。发布与收录分别以实际结果为准，见[发布审核清单](releases/0.5.0/review.zh.md)和[验证记录](verification-log.zh.md)。
+2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。第 1 至 4 步已完成，第 5 步已发布 GitHub Release 0.5.0；匿名下载与隔离安装核验通过。[市场收录申请 #11960](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/11960)已提交，等待维护者审核，尚未上架。发布与收录分别记录，见[发布审核清单](releases/0.5.0/review.zh.md)和[验证记录](verification-log.zh.md)。
 
 ## 开发验证
 

@@ -50,6 +50,8 @@
 
 采用 GitHub Release 分发。npm 发布需另行决定。收录规则见[贡献指南](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/contributing.md)。
 
+已发布 [0.5.0 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)，公开下载和隔离安装检查通过。[市场收录申请 #11960](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/11960)已提交，目前等待维护者审核。第 5 步的发布与申请操作已完成，市场收录结果仍待外部审核；不将已提交申请记作已上架。具体校验见[验证记录](../verification-log.zh.md#第-5-步正式发布)。
+
 ## 分工与检查
 
 Agent 负责文档、Git 操作、修复、测试、打包、发布材料及获准后的对外操作。用户负责每步复盘后的继续指示、必要的人工认证、候选体验及最终公开决定。
