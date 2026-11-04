@@ -22,7 +22,9 @@
 
 第 4 步的全新桌面体验入口为 `.dsh-home/pure-001/Open-Release12.cmd`，本轮实际截图图册为 `output/playwright/release12/index.html`。图册包含阅读、编辑、首次接入、转存、导出、断网提示及深浅色布局。新实例已从测试私库恢复资料，不含复制的 DSH 账户登录信息。
 
-体验反馈中的顶部留白与吸顶遮挡已修复，两个桌面体验入口均已更新。样式修补截图位于 `output/playwright/sticky12/`，当前包哈希与专项检查范围见[验证记录](verification-log.zh.md#体验反馈吸顶区域留白)。
+体验反馈中的顶部留白与吸顶遮挡已修复，两个桌面体验入口均已更新。样式修补截图位于 `output/playwright/sticky12/`，该次修补的专项检查范围见[验证记录](verification-log.zh.md#体验反馈吸顶区域留白)。
+
+首次设置已补齐面向新手的三步引导，操作见[首次设置说明](user-guide.zh.md#首次设置)。各阶段实际页面图册为 `output/playwright/guide12/index.html`；当前体验包的安装与验证范围见[新手引导验收](verification-log.zh.md#体验反馈新手初始化引导)。
 
 ## 后续备忘
 
