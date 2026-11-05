@@ -18,11 +18,13 @@
 
 当前 `main` 已按[已批准的章节目录方案](plans/2026-11-05-chapter-outline.zh.md)加入阅读与编辑导航：宽窗右栏、窄窗浮层、章节跳转和标题自动更新。此项为 `0.5.1` 发布后的开发改进，正式 Release 安装包保持不变。实际截图见本机 `output/playwright/outline/index.html`，覆盖范围见[章节目录验收](verification-log.zh.md#章节目录开发版验收)。
 
+按体验反馈继续完成[目录边距与独立滚动调整](plans/2026-11-05-outline-scroll-layout.zh.md)：正文滚动条回到正文右侧、目录靠近右边缘，三处原生滚动条扩大操作区域；完成编辑保留当前章节位置。最新图册为本机 `output/playwright/scroll-layout/index.html`。
+
 当前 `main` 按[已批准规划](plans/2026-11-05-autosave-and-sync.zh.md)实现自动保存和双向同步状态：完成编辑或离开后返回阅读态，前台每五分钟检查远端。另新增顶栏「问题与建议」入口，初始化页和独立设置页同样可用；点击打开 GitHub 新建反馈页面。这些改进已包含在 `0.5.1`；旧版 `0.5.0` 安装包保持不变。操作见[问题反馈](user-guide.zh.md#限制与问题反馈)。
 
 本轮进一步按[同步提示与回收站确认规划](plans/2026-11-05-sync-feedback.zh.md)完善状态浮层、设置页实时状态和图标删除确认，修正账号检查误分类并减少同步中的 Git 进程开销。
 
-隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，当前 Desktop 已安装含章节目录的开发体验包；Web 保留公开正式包 `0.5.1`。目录图册为 `output/playwright/outline/index.html`；此前正式版图册仍保留在 `output/playwright/release051/index.html`，正式版验证范围见[候选包验收](verification-log.zh.md#051-候选包验收)与[正式发布核验](verification-log.zh.md#051-正式发布)。
+隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，当前 Desktop 已安装含章节目录及独立滚动调整的开发体验包；Web 保留公开正式包 `0.5.1`。最新图册为 `output/playwright/scroll-layout/index.html`，此前目录图册保留在 `output/playwright/outline/index.html`；正式版图册保留在 `output/playwright/release051/index.html`，正式版验证范围见[候选包验收](verification-log.zh.md#051-候选包验收)与[正式发布核验](verification-log.zh.md#051-正式发布)。
 
 本机普通启动的账号问题已[现场复查并恢复同步](verification-log.zh.md#后续复查普通启动时-github-账号不可见)：Codex 的 GitHub 登录资料被应用目录重定向，普通 DSH 看不到该配置。现已在用户正常启动的隔离 Desktop 内完成 GitHub 授权；以后验收需在实际宿主确认账号，不能仅依据 Codex 命令环境。
 

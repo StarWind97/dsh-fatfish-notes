@@ -145,7 +145,7 @@ export function PaperWriting(props:Props){
   const ctx=React.useMemo(()=>editor.current?selectionFormat(editor.current.state):{active:new Set<Format>(),heading:undefined},[formatTick])
   function done(){
     const v=editor.current, pane=mount.current?.closest<HTMLElement>('.paper-pane');if(!v||!pane)return
-    const rect=v.contentDOM.getBoundingClientRect(),y=Math.max(rect.top+4,pane.getBoundingClientRect().top+60)
+    const rect=v.contentDOM.getBoundingClientRect(),y=Math.max(rect.top+4,writingEdge(pane)+2)
     const pos=v.posAtCoords({x:rect.left+6,y},false)
     props.done(sourceOffset(raw.current,pos),v.coordsAtPos(pos)?.top??y)
   }

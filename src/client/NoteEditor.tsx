@@ -73,14 +73,16 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   function edit(target?:HTMLElement){
     if(!root.current||!editable)return
     const pane=root.current.closest<HTMLElement>('.paper-pane')!
-    const block=target?.closest<HTMLElement>('[data-md-pos]')??Array.from(root.current.querySelectorAll<HTMLElement>('[data-md-pos]')).find(el=>el.getBoundingClientRect().bottom>pane.getBoundingClientRect().top+45)
+    const edge=(root.current.querySelector('.paper-doc-head')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top)+12
+    const block=target?.closest<HTMLElement>('[data-md-pos]')??Array.from(root.current.querySelectorAll<HTMLElement>('[data-md-pos]')).find(el=>el.getBoundingClientRect().bottom>edge)
     anchor.current=block&&pane.scrollTop>5?{pos:Number(block.dataset.mdPos),y:block.getBoundingClientRect().top}:target&&block?{pos:Number(block.dataset.mdPos),y:block.getBoundingClientRect().top}:null
     setPanel(null);controller.beginEdit()
   }
   async function finish(pos:number,y:number){
     if(tag.trim()) addTag()
-    if(!await controller.saveEdits())return
+    // saveEdits publishes read mode before its promise resolves; set the anchor first.
     anchor.current=root.current?.closest<HTMLElement>('.paper-pane')?.scrollTop?{pos,y}:null
+    if(!await controller.saveEdits()){anchor.current=null;return}
     setPanel(null);setTag('')
   }
   function addTag() {
@@ -110,8 +112,9 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   if(note && !sourceOpen && !state.editing) actions.push(
     {label:t('notesExport'),icon:Download,run:()=>setPanel('export')},
     ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
-  return <div className="paper-document" data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'} style={{'--outline-height':`${Math.max(180,outline.height-80)}px`} as React.CSSProperties}
+  return <div className="paper-document" data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'}
     onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
+    <div className="paper-pane">
     <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
       <NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
@@ -156,6 +159,7 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
     </div>
     {sourceVisited&&note&&<div hidden={!sourceOpen} className="paper-source"><h1>{draft.title||t('notesUntitled')}</h1><Source note={note} t={t}/></div>}
   </section>
+  </div>
   {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} onClose={outline.close} busy={outline.busy} t={t}/>}
   </div>
 }

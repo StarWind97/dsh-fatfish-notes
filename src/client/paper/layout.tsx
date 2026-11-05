@@ -29,6 +29,6 @@ export function PaperColumns({list,children,selected,t}:{list:React.ReactNode;ch
       onPointerMove={e=>{if(drag.current && e.currentTarget.hasPointerCapture(e.pointerId))resize(drag.current.width+e.clientX-drag.current.x)}}
       onLostPointerCapture={()=>{drag.current=null}}
       onKeyDown={e=>{const target=({ArrowLeft:width-8,ArrowRight:width+8,Home:200,End:max} as Record<string,number>)[e.key];if(target!==undefined){e.preventDefault();resize(target)}}}/>
-    <div className="paper-pane">{children}</div>
+    <div className="paper-detail">{children}</div>
   </div>
 }

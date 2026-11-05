@@ -9,7 +9,7 @@ function readingEdge(pane:HTMLElement,leaf:HTMLElement){
 
 export function useOutline({root,body,editing,composing,sourceOpen,writing}:{root:RefObject<HTMLElement>;body:string;editing:boolean;composing:boolean;sourceOpen:boolean;writing:RefObject<WritingNavigation>}) {
   const [open,setOpen]=useState(()=>readPreference('outline')==='open')
-  const [wide,setWide]=useState(false),[height,setHeight]=useState(600)
+  const [wide,setWide]=useState(false)
   const [parsedBody,setParsedBody]=useState(body),[active,setActive]=useState<number|null>(null)
   const trigger=useRef<HTMLButtonElement>(null)
   useEffect(()=>{
@@ -20,9 +20,10 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing}:{roo
   },[body,editing,composing])
   const headings=useMemo(()=>outlineHeadings(parsedBody),[parsedBody])
   useLayoutEffect(()=>{
-    const pane=root.current?.closest<HTMLElement>('.paper-pane');if(!pane)return
-    const measure=()=>{const css=getComputedStyle(pane);setWide(pane.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)>=860);setHeight(pane.clientHeight)}
-    measure();const observer=new ResizeObserver(measure);observer.observe(pane)
+    // Measure the whole detail area, which does not shrink when the outline opens.
+    const detail=root.current?.closest<HTMLElement>('.paper-detail');if(!detail)return
+    const measure=()=>setWide(detail.clientWidth>=900)
+    measure();const observer=new ResizeObserver(measure);observer.observe(detail)
     return ()=>observer.disconnect()
   },[root])
   useEffect(()=>{
@@ -59,5 +60,5 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing}:{roo
     setActive(position)
     if(!wide)setOpen(false)
   }
-  return {open,wide,height,headings,active,trigger,toggle,close,jump,busy:editing&&(parsedBody!==body||composing)}
+  return {open,wide,headings,active,trigger,toggle,close,jump,busy:editing&&(parsedBody!==body||composing)}
 }
