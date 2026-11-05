@@ -1,12 +1,22 @@
 # DSH笔记验证记录
 
-2026-11-05 更新。当前正式版为 `0.5.0`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。下方分别记录尚未发布的开发版变更与既有发布核验，区分本轮实测、既有证据和未覆盖边界。
+2026-11-05 更新。当前正式版为 `0.5.1`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)已发布。下方保留开发、候选包及正式发布的逐次记录，区分当时状态、本轮实测、既有证据和未覆盖边界。
 
 ## 验证环境
 
 已验证 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 0.5.1 正式发布
+
+2026-11-05 用户审核候选包后明确回复「继续」，授权正式发布并更新市场条目。北京时间 **17:26:43** 发布 `v0.5.1`，为正式版，非草稿、非预发布；标签固定到 `8b34e84e3c0be7581c0b88d6e6fc1988b2886813`。未发布 npm，旧版 0.5.0 保留。
+
+- 上传 `dsh-github-notebook-0.5.1.tgz` 与 `SHA256SUMS-0.5.1.txt`，GitHub 返回的包摘要与已审核 SHA-256 一致：`c36081c19495781639b307e12d7cbb0b4e55efa4b9a18c309d3d7a4a58c60b3d`，包大小 14,227,289 字节。
+- 无认证下载正式安装包、校验文件、图标和 4 张截图，7 个文件与本机审核来源逐项一致。证据：`.dsh-home/pure-001/release051-public.json`；下载副本位于 `release051-public/`。
+- 使用匿名下载的包通过宿主 CLI 安装到既有隔离 `release12-web`，126 个文件哈希全部一致。证据：`release051-public-installed.json`、`release051-public-install.log`。未启动或改动日常 DSH。
+- [市场更新 PR #12283](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12283)只修改 `data/plugins/StarWind97__dsh-github-notebook.yml` 的安装包地址，增加一行、删除一行；基于上游 `fa94055bbfacbcbcbc911aa6dba906e54cc17848`，更新提交为 `b8136cb3829f2f5627522ac18eaa29b4266773c1`。不改生成 README。提交后无合并冲突，自动检查正在运行，维护者尚未合并；不宣称市场客户端已经显示 0.5.1。证据：`release051-market-submit.json`。
+- 发布使用上一轮已通过第三档验证的同一安装包，没有变更运行代码、依赖或包内容。本轮核对哈希、公开下载、实际安装与文档差异及链接，不因上传发布重复全量回归。
 
 ## 0.5.1 候选包验收
 

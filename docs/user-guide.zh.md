@@ -1,6 +1,6 @@
 # DSH笔记使用说明
 
-本文对应 `0.5.1`，候选包正在审核，正式发布状态以 GitHub Releases 为准。`0.5.0` 仍使用保存／取消按钮。
+本文对应已发布的 [0.5.1 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)。旧版 `0.5.0` 仍使用保存／取消按钮。
 
 ## 安装、升级与卸载
 

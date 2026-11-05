@@ -1,6 +1,6 @@
 # 0.5.1 发布审核
 
-状态：**候选包已准备，等待用户审核；尚未创建标签、GitHub Release 或市场更新 PR。** 当前公开正式版仍为 0.5.0。
+状态：**用户已确认，[0.5.1 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)于 2026-11-05 17:26（北京时间）发布。** [市场更新 #12283](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12283)已提交，等待上游检查与合并。本页保留已审核材料；实际执行见[发布记录](../../verification-log.zh.md#051-正式发布)。
 
 ## 本次发布内容
 
@@ -15,8 +15,8 @@
 
 本机打开 `dist/release-0.5.1-review.html` 可查看安装包、效果截图及验证摘要。完整实际操作图册为 `output/playwright/release051/index.html`；标有「模拟」的授权异常截图仅表示受控场景。
 
-- [待发布说明](release-notes.md)
-- [待提交的市场更新正文](marketplace-pr.md)及[待采用的 YAML](marketplace-entry.yml)
+- [已发布说明](release-notes.md)
+- [市场更新正文](marketplace-pr.md)及[已提交的 YAML](marketplace-entry.yml)
 - [升级与回退指引](../../user-guide.zh.md#安装升级与卸载)
 - [验证记录与边界](../../verification-log.zh.md#051-候选包验收)
 
@@ -30,11 +30,11 @@ c36081c19495781639b307e12d7cbb0b4e55efa4b9a18c309d3d7a4a58c60b3d
 
 ## 发布决定
 
-建议采用 `v0.5.1` 正式版，标题 **DSH Notebook 0.5.1 · 自动保存与同步体验更新**。分发继续使用 GitHub Release 安装包，不发布 npm。
+已采用 `v0.5.1` 正式版，标题 **DSH Notebook 0.5.1 · 自动保存与同步体验更新**，标签固定到 `8b34e84e3c0be7581c0b88d6e6fc1988b2886813`。分发继续使用 GitHub Release 安装包，未发布 npm。
 
-用户确认后，由 Agent 创建标签和正式 Release、上传已审核包及校验文件，核验匿名下载，再更新已收录的市场条目。此时更新现有条目，不重复申请新插件。条目 PR 合并、市场客户端实际展示分别核对，不把提交等同于上架完成。
+已由 Agent 创建标签和正式 Release、上传审核包及校验文件，核验匿名下载并用下载包完成隔离安装，再更新已收录的市场条目。PR 仅改现有条目的一行安装包地址，没有重复申请新插件。条目 PR 合并、市场客户端实际展示分别核对，不把提交等同于市场更新完成。
 
-用户只需审核本页、确认正式发布；如 GitHub 临时要求人工登录或验证码，再在明确展示的页面完成。普通构建、上传和 PR 操作由 Agent 执行。
+本轮 GitHub 认证有效，无需用户再次登录或输入验证码。普通上传、公开下载验证和 PR 操作均已由 Agent 执行。
 
 ## 实测范围
 

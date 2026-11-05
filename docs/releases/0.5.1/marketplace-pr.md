@@ -9,4 +9,4 @@ Version 0.5.1 adds automatic local saving, clearer two-way sync status, GitHub s
 - Validation: 207 regression tests, isolated Desktop/Web installation, upgrade from 0.5.0, restart recovery, private GitHub two-way sync and image exports
 - Platform: Windows tested; macOS not yet tested
 
-This file is prepared for submission after the release is approved and publicly downloadable.
+The release tarball, checksum file, icon and screenshots were downloaded without authentication and matched the reviewed artifacts.
