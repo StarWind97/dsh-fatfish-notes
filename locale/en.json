@@ -1,4 +1,8 @@
 {
+  "paperOutline": "Contents",
+  "paperOutlineClose": "Close contents",
+  "paperOutlineEmpty": "No headings in this note yet",
+  "paperOutlineUntitled": "Untitled section",
   "feedback": "Issues & suggestions",
   "feedbackShort": "Feedback",
   "feedbackHint": "Report an issue or suggest an improvement on GitHub (opens a new page)",

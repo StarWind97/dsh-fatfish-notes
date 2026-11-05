@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree } from 'lucide-react'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { api } from './api.js'
@@ -13,6 +13,8 @@ import { NoteActions, type NoteAction } from './paper/NoteActions.js'
 import { TrashAction } from './paper/TrashAction.js'
 import { NoteExport } from './NoteExport.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
+import { ChapterOutline } from './paper/ChapterOutline.js'
+import { useOutline, type WritingNavigation } from './paper/use-outline.js'
 
 function Source({ note, t }: { note: NoteView; t: T }) {
   const [source, setSource] = useState<CaptureSource | null>(null), [failed, setFailed] = useState(false)
@@ -39,6 +41,8 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   const [moved,setMoved]=useState(false)
   const scroll=useRef({body:0,source:0}), switching=useRef(false)
   const complete=useRef<(()=>void)|null>(null)
+  const writing=useRef<WritingNavigation|null>(null)
+  const outline=useOutline({root,body:state.draft?.body??'',editing:state.editing,composing:state.composing,sourceOpen,writing})
   useLayoutEffect(()=>{
     if(!switching.current)return
     const pane=root.current?.closest<HTMLElement>('.paper-pane')
@@ -106,9 +110,13 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   if(note && !sourceOpen && !state.editing) actions.push(
     {label:t('notesExport'),icon:Download,run:()=>setPanel('export')},
     ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
-  return <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
+  return <div className="paper-document" data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'} style={{'--outline-height':`${Math.max(180,outline.height-80)}px`} as React.CSSProperties}
+    onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
+    <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
-      <NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}</NoteActions></div>
+      <NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
+        {!sourceOpen&&<button ref={outline.trigger} type="button" className="paper-outline-toggle" aria-label={t('paperOutline')} title={t('paperOutline')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.toggle}><ListTree size={17}/></button>}
+      </NoteActions></div>
       {note?.current.sourceId&&<nav className="paper-views" aria-label={t('paperViews')}>
         <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
         <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}
@@ -141,11 +149,13 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
     {moved&&draft.status==='trashed'&&<div role="status" className="paper-notice">{t('paperMoved')} <button onClick={()=>void move(false)}>{t('paperUndoMove')}</button></div>}
     {state.error&&<p role="alert" style={s.error}>{t(state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}
-    {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} done={(pos,y)=>void finish(pos,y)}/>
+    {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} done={(pos,y)=>void finish(pos,y)}/>
       :<article className="paper-reading" onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('a,button,input'))edit(e.target as HTMLElement)}}>
       {note?<NoteMarkdown body={draft.body} note={note}/>:<p>{draft.body}</p>}
       {editable&&<button onClick={()=>edit()}><Pencil size={14}/> {t('notesEdit')}</button>}</article>}
     </div>
     {sourceVisited&&note&&<div hidden={!sourceOpen} className="paper-source"><h1>{draft.title||t('notesUntitled')}</h1><Source note={note} t={t}/></div>}
   </section>
+  {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} onClose={outline.close} busy={outline.busy} t={t}/>}
+  </div>
 }

@@ -14,11 +14,17 @@ import { ancestor,format,selectionFormat,type Format } from './format.js'
 import { FormatBar,type Action } from './FormatBar.js'
 import { archiveInput,clipboardImages,type ImageInput } from './image-input.js'
 import { applyEditorChanges,editorOffset,editorText,sourceOffset } from './line-endings.js'
+import type { WritingNavigation } from './use-outline.js'
 
 const undoHistory=(state:EditorState)=>state.field(historyField)
 export interface UndoSnapshot{body:string;history:ReturnType<typeof undoHistory>}
-interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;done:(pos:number,y:number)=>void}
+interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;navigation?:React.Ref<WritingNavigation>;done:(pos:number,y:number)=>void}
 interface LinkFields{from:number;to:number;label:string;url:string}
+function writingEdge(pane:HTMLElement){
+  return pane.getBoundingClientRect().top+parseFloat(getComputedStyle(pane).paddingTop)
+    +(pane.querySelector('.paper-doc-head')?.getBoundingClientRect().height??0)
+    +(pane.querySelector('.paper-formatbar')?.getBoundingClientRect().height??0)+16
+}
 export function PaperWriting(props:Props){
   const {controller,state,t}=props, mount=useRef<HTMLDivElement>(null),editor=useRef<EditorView|null>(null),picker=useRef<HTMLInputElement>(null)
   const latest=useRef(props);latest.current=props
@@ -144,6 +150,25 @@ export function PaperWriting(props:Props){
     props.done(sourceOffset(raw.current,pos),v.coordsAtPos(pos)?.top??y)
   }
   React.useImperativeHandle(props.complete,()=>()=>{if(!state.composing)done()})
+  React.useImperativeHandle(props.navigation,()=>({
+    jump(position){
+      const v=editor.current,pane=mount.current?.closest<HTMLElement>('.paper-pane');if(!v||!pane)return
+      const pos=editorOffset(raw.current,Math.min(position,raw.current.length))
+      const margin=writingEdge(pane)-pane.getBoundingClientRect().top
+      v.dispatch({selection:{anchor:pos},effects:EditorView.scrollIntoView(pos,{y:'start',yMargin:margin})})
+      v.focus()
+      // Re-measure after live preview reveals the selected heading's Markdown.
+      v.requestMeasure({read:view=>view.documentTop+view.lineBlockAt(pos).top,write:top=>{pane.scrollTop+=top-pane.getBoundingClientRect().top-margin}})
+    },
+    topPosition(){
+      const v=editor.current,pane=mount.current?.closest<HTMLElement>('.paper-pane');if(!v||!pane)return null
+      const rect=v.contentDOM.getBoundingClientRect()
+      const y=writingEdge(pane)+2
+      if(y<rect.top)return -1
+      const pos=v.posAtCoords({x:rect.left+4,y:Math.min(y,rect.bottom-1)},false)
+      return sourceOffset(raw.current,pos)
+    }
+  }))
   return <><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
     <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{controller.imagePickerOpen=false;const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
     {info&&<p className="paper-hint" role="status">{info}</p>}

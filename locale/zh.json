@@ -1,4 +1,8 @@
 {
+  "paperOutline": "章节目录",
+  "paperOutlineClose": "收起章节目录",
+  "paperOutlineEmpty": "正文尚无章节标题",
+  "paperOutlineUntitled": "未命名章节",
   "feedback": "问题与建议",
   "feedbackShort": "反馈",
   "feedbackHint": "前往 GitHub 反馈问题或提出建议（打开新页面）",
