@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, Trash2, RotateCcw, Check } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check } from 'lucide-react'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { api } from './api.js'
@@ -10,6 +10,7 @@ import { validCaptureSource } from './notes-validation.js'
 import { notesStyles as s } from './notes-style.js'
 import type { T } from './locale.js'
 import { NoteActions, type NoteAction } from './paper/NoteActions.js'
+import { TrashAction } from './paper/TrashAction.js'
 import { NoteExport } from './NoteExport.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
 
@@ -104,10 +105,10 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   }
   if(note && !sourceOpen && !state.editing) actions.push(
     {label:t('notesExport'),icon:Download,run:()=>setPanel('export')},
-    {label:t(draft.status==='active'?'notesTrashAction':'notesRestore'),icon:draft.status==='active'?Trash2:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(draft.status==='active')})
+    ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
   return <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
-      <NoteActions actions={actions} t={t}/></div>
+      <NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}</NoteActions></div>
       {note?.current.sourceId&&<nav className="paper-views" aria-label={t('paperViews')}>
         <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
         <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}

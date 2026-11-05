@@ -48,6 +48,8 @@ export declare class GitBackend {
     readFile(snapshot: GitSnapshot, path: string, signal?: AbortSignal): Promise<string>;
     /** Explicit byte path for bounded private objects; text reads keep a separate size limit. */
     readBytes(snapshot: GitSnapshot, path: string, limit: number, signal?: AbortSignal): Promise<Buffer>;
+    /** One bounded Git process for immutable objects, including binary attachments. */
+    readBatch(snapshot: GitSnapshot, requests: ReadonlyMap<string, number>, limit: number, signal?: AbortSignal): Promise<Map<string, Buffer>>;
     commit(snapshot: GitSnapshot, change: ChangeSet, _operationId: string, signal?: AbortSignal): Promise<string>;
     push(commitSha: string, parent: string | null, signal?: AbortSignal): Promise<void>;
     reconcile(commitSha: string, signal?: AbortSignal): Promise<Reconciliation>;

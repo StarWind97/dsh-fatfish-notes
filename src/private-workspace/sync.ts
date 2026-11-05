@@ -22,6 +22,7 @@ interface Config {
     enabled: boolean;
     binding: PersonalBinding | null;
     lastSuccessAt: string | null;
+    lastFailure?: { at: string; code: string };
     initializing: boolean;
     paused: {
         code: string;
@@ -69,6 +70,7 @@ function remember(locations:NotebookLocation[] = [], current:NotebookLocation):N
 function validateConfig(input: unknown, home: string): Config {
     if (!isRecord(input) || input.version !== 1 || typeof input.enabled !== 'boolean' || typeof input.initializing !== 'boolean' || (input.binding !== null && !binding(input.binding)) || (input.lastSuccessAt !== null && (typeof input.lastSuccessAt !== 'string' || !Number.isFinite(Date.parse(input.lastSuccessAt)))) || !Object.hasOwn(input, 'preview'))
         fail('personal_config_invalid', '笔记同步设置损坏；原文件已保留', 500);
+    if (input.lastFailure !== undefined && (!isRecord(input.lastFailure) || typeof input.lastFailure.at!=='string' || !Number.isFinite(Date.parse(input.lastFailure.at)) || typeof input.lastFailure.code!=='string' || !/^[a-z_]{1,60}$/.test(input.lastFailure.code))) fail('personal_config_invalid','本机同步诊断无效',500);
     if (input.preview !== null) {
         const p = input.preview;
         if (isRecord(p)) p.folder = folderPath(home,p.folder ?? home);
@@ -237,6 +239,7 @@ export class PrivateWorkspaceSync {
             status,
             binding: structuredClone(this.config.binding),
             lastSuccessAt: this.config.lastSuccessAt,
+            ...(this.config.lastFailure?{lastFailure:{...this.config.lastFailure}}:{}),
             errorCode: this.error?.code ?? null,
             error: this.error?.message ?? null,
             pending,
@@ -569,6 +572,7 @@ export class PrivateWorkspaceSync {
                 // Failure replaces that deadline with backoff, or removes it on pause.
                 this.clearTimer();
                 this.error = failure;
+                this.config.lastFailure = {at:new Date(this.now()).toISOString(),code:failure.code};
                 this.failures++;
                 this.config.paused = this.errorPaused() ? { code: failure.code, message: failure.message } : null;
                 await this.persist();

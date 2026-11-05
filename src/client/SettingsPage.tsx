@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { BookOpen, CheckCircle2, Folder, GitBranch } from 'lucide-react'
 import { api, ApiError } from './api.js'
-import { noteDateTime } from '../notes/date.js'
+import { notebookSync } from './notebook-sync.js'
+import { SyncDetails, syncCss } from './SyncDetails.js'
 import { CaptureAppearance } from './CaptureAppearance.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { DEFAULT_PRIVATE_REPO_NAME, type PersonalState, type PersonalPreview, type PersonalApiContract } from '../contracts/personal.js'
@@ -25,7 +26,9 @@ const setupChanged = 'dsh-notebook-connected'
 
 type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'
 export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React.ReactNode;showFeedback?:boolean}) {
-  const [data,setData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
+  const [data,setStoredData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
+  const liveSync=useSyncExternalStore(notebookSync.subscribe,notebookSync.getSnapshot,notebookSync.getSnapshot)
+  function setData(value:PersonalState){setStoredData(value);notebookSync.update(value.sync)}
   const [manage,setManage]=useState<'bound'|'move'|'reset'>('bound')
   const [mode,setMode]=useState<'existing'|'create'>('create'),[repo,setRepo]=useState<string>(DEFAULT_PRIVATE_REPO_NAME)
   const [custom,setCustom]=useState<string|null>(null),[editingFolder,setEditingFolder]=useState(false)
@@ -35,7 +38,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   const request=React.useRef<AbortController|null>(null)
   const errorMessage=React.useRef<HTMLParagraphElement|null>(null)
   const modeGroup=React.useId()
-  const sync=data?.sync, resetting=manage==='reset', wizard=!!sync && (resetting || !sync.binding)
+  const sync=liveSync&&liveSync.binding?.repositoryId===data?.sync.binding?.repositoryId?liveSync:data?.sync, resetting=manage==='reset', wizard=!!sync && (resetting || !sync.binding)
   const repoLabel=sync?.binding ? sync.binding.account.login+'/'+sync.binding.repo : ''
   const suggested=sync?.defaultFolder.replace(/[^/\\]+$/,()=>repo.trim()||DEFAULT_PRIVATE_REPO_NAME)??''
   function failed(e:unknown){
@@ -64,11 +67,10 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
     return()=>{clearTimeout(timer);job.abort()}
   },[tools])
   useEffect(()=>{
-    if(!sync?.binding || !sync.enabled || (sync.ready && !sync.pending && sync.status!=='syncing'))return
-    const job=new AbortController()
-    const timer=setInterval(()=>void api('/personal',undefined,job.signal).then(setData).catch(()=>{}),3000)
-    return()=>{job.abort();clearInterval(timer)}
-  },[!!sync?.binding,sync?.enabled,sync?.ready,sync?.pending,sync?.status])
+    if(children||!sync?.binding)return
+    return notebookSync.watch()
+  },[!!children,!!sync?.binding])
+  useEffect(()=>{if(notice!=='setupFirstSyncDone')return;const timer=setTimeout(()=>setNotice(null),5000);return()=>clearTimeout(timer)},[notice])
   useEffect(()=>{if(error)errorMessage.current?.scrollIntoView({block:'nearest'})},[error])
   function leave(){request.current?.abort();setPreview(null);setCustom(null);setRecovery(null);setEditingFolder(false);setManage('bound');setError(null)}
   function changeTarget(){if(recovery){setRecovery(null);setCustom(null);setEditingFolder(false)}setError(null)}
@@ -95,6 +97,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
           ? await api('/personal/sync/reset',{...confirm,repositoryId:sync.binding.repositoryId},job.signal)
           : await api('/personal/sync/connect',confirm,job.signal)
         setData(result);setManage('bound');setPreview(null)
+        if(!resetting)setNotice('setupFirstSyncDone')
         if(resetting)window.dispatchEvent(new Event('dsh-notebook-switched'))
         window.dispatchEvent(new Event(setupChanged))
       }else if(action==='move' && sync?.binding && custom?.trim()){
@@ -106,12 +109,12 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
         setData(await api('/personal/sync/connect',{previewId:checked.preview.id,confirmPrivate:true},job.signal))
         window.dispatchEvent(new Event(setupChanged))
       }else if(action==='sync'){
-        setData(await api('/personal/sync',{},job.signal));window.dispatchEvent(new Event(setupChanged))
+        await notebookSync.request(true);window.dispatchEvent(new Event(setupChanged))
       }
     }catch(e){if(!job.signal.aborted)failed(e);void api('/personal',undefined).then(setData).catch(()=>{})}
     finally{request.current=null;setBusy(false)}
   }
-  if(sync?.ready && children)return <>{children}</>
+  if(sync?.ready && children)return <>{notice==='setupFirstSyncDone'&&<div role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:80,padding:'10px 18px',borderRadius:8,background:'var(--dsw-alias-bg-layer-2)',color:'var(--dsw-alias-label-primary)'}}>{t(notice)}</div>}{children}</>
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
   return <main className="notes-setup" aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
@@ -172,13 +175,12 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
       <p>{t('moveHint')}</p><small>{t('moveSource')}</small><code>{sync.folder}</code>
       <label>{t('moveTarget')}<input autoFocus value={custom??''} disabled={busy} onChange={e=>setCustom(e.target.value)}/></label>
       <div className="setup-modes"><button disabled={busy} onClick={leave}>{t('cancel')}</button><button className="setup-primary" disabled={busy||!custom?.trim()} onClick={()=>void run('move')}>{t('moveConfirm')}</button></div>
-    </section>:<>{sync.ready&&<div className="setup-complete"><CheckCircle2 size={16}/>{t('setupFirstSyncDone')}</div>}<p>{t(sync.ready?'setupConnectedHint':sync.enabled?'setupInitializing':'resumeBoundHint')}</p>
+    </section>:<><p>{t(sync.ready?'setupConnectedHint':sync.enabled?'setupInitializing':'resumeBoundHint')}</p>
       <section className="setup-section"><strong><GitBranch size={16}/>{repoLabel}</strong><small>{t('personalPrivate')}</small></section>
       <section className="setup-section"><strong><Folder size={16}/>{t('setupFolder')}</strong><code>{sync.folder}</code>{sync.ready&&<button disabled={busy} onClick={()=>{setManage('move');setCustom('');setNotice(null);setError(null)}}>{t('moveTitle')}</button>}</section>
-      {sync.lastSuccessAt&&<p>{t('personalLastSync')} · {noteDateTime(sync.lastSuccessAt)}</p>}
-      {sync.pending&&<p role="status">{t('notesBackupPending')}</p>}
+      <style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
       {sync.error&&<p role="alert">{sync.errorCode&&setupErrors[sync.errorCode]?t(setupErrors[sync.errorCode]!):sync.error}</p>}
-      <button disabled={busy} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.enabled?'personalSyncNow':'resumeBound')}</button>
+      <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button>
       <CaptureAppearance t={t}/>
       {sync.ready&&<footer className="setup-reset"><button disabled={busy||sync.pending} onClick={()=>{setManage('reset');setRepo(DEFAULT_PRIVATE_REPO_NAME);setMode('create');setCustom(null);setRecovery(null);setEditingFolder(false);setPreview(null);setError(null);setNotice(null)}}>{t('resetTitle')}</button><small>{t(sync.pending?'resetPending':'resetFoot')}</small></footer>}
     </>)}

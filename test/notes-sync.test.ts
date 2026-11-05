@@ -124,6 +124,8 @@ test('lost push receipt reconciles identities and edits during a blocked push st
     f.runner = async (args, options) => { if (args[0] === 'push') throw new NotebookError('git_failed', 'offline', 502); return runGit(args, options) }
     await a.notes.save({ expectedHeads: [], content: content('saved offline') })
     await assert.rejects(a.sync.sync(), { code: 'git_failed' }); assert.equal(a.sync.state().status, 'error')
+    assert.equal(a.sync.state().lastFailure?.code,'git_failed')
+    assert.ok(Number.isFinite(Date.parse(a.sync.state().lastFailure!.at)))
     assert.equal((await a.notes.list()).items.length, 2)
     f.runner = runGit; await a.sync.sync(); assert.equal(a.sync.state().notesPending, false)
   } finally { await f.close() }

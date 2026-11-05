@@ -15,6 +15,7 @@ export interface PersonalSyncState {
     status: 'local' | 'idle' | 'syncing' | 'pending' | 'error' | 'paused' | 'disabled';
     binding: PersonalBinding | null;
     lastSuccessAt: string | null;
+    lastFailure?: { at: string; code: string };
     errorCode: string | null;
     error: string | null;
     pending: boolean;

@@ -10,12 +10,15 @@ export class NotebookSync {
   private lastCheck=0
   private timer:ReturnType<typeof setInterval>|undefined
   private visible=false
+  private observers=0
   private closed=false
   constructor(private readonly call:Api=api,private readonly now=Date.now){}
   start(){this.closed=false;this.lastCheck=0;this.value=null}
   getSnapshot=()=>this.value
   subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>{this.listeners.delete(fn)}}
   private accept(value:PersonalSyncState){if(this.closed)return;this.value=value;this.listeners.forEach(fn=>fn())}
+  update(value:PersonalSyncState){this.accept(value)}
+  watch(){this.observers++;void this.read();this.timer??=setInterval(()=>this.tick(),3000);return()=>{this.observers--;if(!this.observers&&!this.visible){clearInterval(this.timer);this.timer=undefined}}}
   localChanged(){if(this.value)this.accept({...this.value,pending:true})}
   read():Promise<void>{
     if(this.reading)return this.reading
@@ -33,9 +36,9 @@ export class NotebookSync {
   foreground(visible:boolean){
     this.visible=visible
     if(visible){void this.request();this.timer??=setInterval(()=>this.tick(),3000)}
-    else{clearInterval(this.timer);this.timer=undefined}
+    else if(!this.observers){clearInterval(this.timer);this.timer=undefined}
   }
-  tick(){if(!this.visible||this.closed)return;void this.read();if(this.now()-this.lastCheck>=300_000)void this.request()}
+  tick(){if(this.closed||(!this.visible&&!this.observers))return;void this.read();if(this.visible&&this.now()-this.lastCheck>=300_000)void this.request()}
   dispose(){this.closed=true;clearInterval(this.timer);this.timer=undefined;this.visible=false;this.listeners.clear()}
 }
 export const notebookSync=new NotebookSync()

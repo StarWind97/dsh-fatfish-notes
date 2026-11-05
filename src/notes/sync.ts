@@ -48,8 +48,12 @@ export class NotesSyncModule {
   async readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot> {
     const files = new Map<string, Buffer>(), objects: NoteObjects = { version: 1, revisions: [], notebooks: [] }
     let total = 0
+    const prefetch = async (paths: string[], limit: number) => {
+      const batch=await backend.readBatch(snapshot,new Map(paths.filter(p=>!files.has(p)).map(p=>[p,limit])),NOTE_LIMITS.scan-total,signal)
+      for(const [path,bytes] of batch){total+=bytes.length;files.set(path,bytes)}
+    }
     const read = async (path: string, limit: number) => {
-      const existing = files.get(path); if (existing) return existing
+      const existing = files.get(path); if (existing) {if(existing.length>limit)fail('note_limit');return existing}
       const bytes = await backend.readBytes(snapshot, path, Math.min(limit, NOTE_LIMITS.scan - total), signal)
       total += bytes.length; if (total > NOTE_LIMITS.scan) fail('note_limit')
       files.set(path, bytes); return bytes
@@ -62,6 +66,7 @@ export class NotesSyncModule {
     }
     const remoteManifest = object(JSON.parse(utf8(await read('notes/manifest.json', NOTE_LIMITS.scan))) as unknown)
     this.validateVersion(remoteManifest.version)
+    await prefetch(paths,NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)
     for (const path of paths) {
       const raw: unknown = JSON.parse(utf8(await read(path, NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)))
       if (path.startsWith('notes/revisions/')) { const row = validateNoteRevision(raw); if (revisionPath(row) !== path) fail('note_path'); objects.revisions.push(row) }
@@ -70,12 +75,14 @@ export class NotesSyncModule {
     objects.revisions = mergeNoteRevisions(objects.revisions, []); objects.notebooks = mergeNotebookRevisions(objects.notebooks, [])
     if (new Set(objects.revisions.map(r => r.noteId)).size > NOTE_LIMITS.notes || canonical(remoteManifest) !== manifest(objects, Number(remoteManifest.version))) fail('note_manifest', '远端笔记清单与修订集合不一致；已暂停备份')
     const sources = new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : [])), assets = new Set(objects.revisions.flatMap(r => r.assetIds))
+    await prefetch([...sources].map(id=>`notes/sources/${id}.json`),NOTE_LIMITS.source)
     for (const source of sources) {
       const bytes = await read(`notes/sources/${source}.json`, NOTE_LIMITS.source)
       const parsed: unknown = JSON.parse(utf8(bytes))
       if (digest(bytes) !== source || !sourceBytes(parsed).equals(bytes)) fail('note_hash')
       sourceAssets(parsed).forEach(id => assets.add(id))
     }
+    await prefetch([...assets].map(id=>`notes/assets/${id}`),NOTE_LIMITS.image)
     for (const asset of assets) { const bytes = await read(`notes/assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash') }
     for (const row of objects.revisions) {
       validateBodyAssets(row.body, row.assetIds)
@@ -83,6 +90,7 @@ export class NotesSyncModule {
       if (row.notebookId !== null && !objects.notebooks.some(book => book.notebookId === row.notebookId)) fail('note_parent')
     }
     const external: NoteObjects['revisions'] = []
+    await prefetch([...new Set(objects.revisions.map(r=>`notes/documents/${r.noteId}.md`))],NOTE_LIMITS.body + NOTE_METADATA_BYTES)
     for (const noteId of new Set(objects.revisions.map(r => r.noteId))) {
       const path = `notes/documents/${noteId}.md`, markdown = utf8(await read(path, NOTE_LIMITS.body + NOTE_METADATA_BYTES)), parsed = parseNoteMarkdown(markdown)
       const base = objects.revisions.find(r => r.noteId === noteId && r.revision === parsed.declaredRevision)

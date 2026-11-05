@@ -187,6 +187,35 @@ export class GitBackend {
     if (!result.bytes || result.bytes.length !== size) throw new NotebookError('note_corrupt', '同步对象字节读取不完整')
     return result.bytes
   }
+  /** One bounded Git process for immutable objects, including binary attachments. */
+  async readBatch(snapshot: GitSnapshot, requests: ReadonlyMap<string, number>, limit: number, signal?: AbortSignal): Promise<Map<string, Buffer>> {
+    const rows = [...requests].map(([path, max]) => {
+      const entry = snapshot.entries.get(path)
+      if (!entry || entry.type !== 'blob' || !['100644','100755'].includes(entry.mode)) throw new NotebookError('unsafe_path','同步对象缺失或不是普通文件')
+      if (!Number.isSafeInteger(max) || max < 0 || max > 512 * 1024 * 1024) throw new NotebookError('note_limit','同步对象读取上限无效')
+      return {path,max,sha:this.sha(entry.sha)}
+    })
+    if (!Number.isSafeInteger(limit) || limit < 0 || limit > 512 * 1024 * 1024) throw new NotebookError('note_limit','同步对象读取上限无效')
+    const files = new Map<string,Buffer>()
+    if (!rows.length) return files
+    const result = await this.git(['cat-file','--batch'],signal,{input:rows.map(r=>r.sha+'\n').join(''),outputBytes:true,maxOutputBytes:Math.min(limit,rows.reduce((n,r)=>n+r.max,0))+rows.length*100})
+    const bytes = result.bytes
+    if (!bytes) throw new NotebookError('note_corrupt','同步对象读取不完整')
+    let offset=0,total=0
+    for (const row of rows) {
+      const end=bytes.indexOf(10,offset)
+      if (end<offset || end-offset>98) throw new NotebookError('note_corrupt','同步对象头无效')
+      const header=/^([a-f0-9]{40,64}) blob (\d+)$/.exec(bytes.toString('ascii',offset,end)),size=Number(header?.[2])
+      if (!header || header[1]!==row.sha || !Number.isSafeInteger(size)) throw new NotebookError('note_corrupt','同步对象头无效')
+      total+=size
+      if (size>row.max || total>limit) throw new NotebookError('note_limit','同步对象超过读取上限')
+      offset=end+1
+      if (offset+size>=bytes.length || bytes[offset+size]!==10) throw new NotebookError('note_corrupt','同步对象读取不完整')
+      files.set(row.path,bytes.subarray(offset,offset+size));offset+=size+1
+    }
+    if (offset!==bytes.length) throw new NotebookError('note_corrupt','同步对象包含多余数据')
+    return files
+  }
   async commit(snapshot: GitSnapshot, change: ChangeSet, _operationId: string, signal?: AbortSignal): Promise<string> {
     const index = join(this.directory, '.git', `dsh-index-${randomUUID()}`)
     const extra: GitRunOptions = { env: { GIT_INDEX_FILE: index } }

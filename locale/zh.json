@@ -351,5 +351,20 @@
   "resumeBoundHint": "这台设备曾关闭同步。可以恢复原仓库与资料夹的绑定。",
   "notesBackupNetwork": "网络问题，稍后重试",
   "notesBackupAccount": "请检查同步账号",
-  "notesBackupDetails": "查看同步详情"
+  "notesBackupDetails": "查看同步详情",
+  "syncToolMissing": "请检查同步工具",
+  "syncLocalSaving": "正在将修改保存到本机。",
+  "syncLocalSafe": "本机内容已保存，恢复连接后可继续同步。",
+  "syncChecking": "检查同步状态",
+  "syncCheckingHint": "正在读取本机的同步状态。",
+  "syncBothDirections": "正在上传本机更新，并获取其他设备的更新。",
+  "syncLocalSaved": "已保存",
+  "syncWaiting": "内容已保存在本机，等待同步到你的私有笔记库。",
+  "syncUpToDate": "本机内容已与私有笔记库同步。",
+  "syncLastAttempt": "最近同步失败",
+  "syncDetails": "同步详情",
+  "syncRetry": "立即重试",
+  "trashConfirmTitle": "移到回收站？",
+  "trashConfirmHint": "之后可以在回收站恢复。",
+  "trashConfirmAction": "确认移入"
 }

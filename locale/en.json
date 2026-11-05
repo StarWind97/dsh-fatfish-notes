@@ -351,5 +351,20 @@
   "resumeBoundHint": "Sync was disabled on this device. Resume using the original repository and folder.",
   "notesBackupNetwork": "Connection problem. Retrying later",
   "notesBackupAccount": "Check your sync account",
-  "notesBackupDetails": "View sync details"
+  "notesBackupDetails": "View sync details",
+  "syncToolMissing": "Check sync tools",
+  "syncLocalSaving": "Saving your changes on this device.",
+  "syncLocalSafe": "Your local content is saved. Sync can resume when the connection is restored.",
+  "syncChecking": "Checking status",
+  "syncCheckingHint": "Reading the current sync status.",
+  "syncBothDirections": "Uploading local changes and receiving updates from your other devices.",
+  "syncLocalSaved": "Saved locally",
+  "syncWaiting": "Saved on this device, waiting to sync to your private notebook repository.",
+  "syncUpToDate": "This device is in sync with your private notebook repository.",
+  "syncLastAttempt": "Last failed attempt",
+  "syncDetails": "Sync details",
+  "syncRetry": "Retry now",
+  "trashConfirmTitle": "Move to trash?",
+  "trashConfirmHint": "You can restore it from the trash later.",
+  "trashConfirmAction": "Move to trash"
 }

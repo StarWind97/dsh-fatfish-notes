@@ -2,7 +2,7 @@
 
 产品展示名称为 **DSH Notebook · 私人笔记管理**，中文简称仍为 DSH笔记。[0.5.0 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。
 
-当前开发版本为 `0.5.1-dev.3`（未发布），正式版为 `0.5.0`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
+当前开发版本为 `0.5.1-dev.5`（未发布），正式版为 `0.5.0`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
 
 [产品设计](notes-design.zh.md)是当前功能与存储行为的依据，[使用说明](user-guide.zh.md)面向日常操作，[验证记录](verification-log.zh.md)区分各版本的实际覆盖范围。
 
@@ -14,7 +14,9 @@
 
 当前 `main` 按[已批准规划](plans/2026-11-05-autosave-and-sync.zh.md)实现自动保存和双向同步状态：完成编辑或离开后返回阅读态，前台每五分钟检查远端。另新增顶栏「问题与建议」入口，初始化页和独立设置页同样可用；点击打开 GitHub 新建反馈页面。此项为尚未发布的开发版改动，已发布的 `0.5.0` 安装包保持不变。操作见[问题反馈](user-guide.zh.md#限制与问题反馈)。
 
-本轮隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，最新图册位于 `output/playwright/autosave/index.html`，自动保存与同步的验证范围见[本轮验收](verification-log.zh.md#开发版自动保存与双向同步)。反馈入口的旧图册仍保留。
+本轮进一步按[同步提示与回收站确认规划](plans/2026-11-05-sync-feedback.zh.md)完善状态浮层、设置页实时状态和图标删除确认，修正账号检查误分类并减少同步中的 Git 进程开销。
+
+隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，最新图册位于 `output/playwright/sync-feedback/index.html`，本轮验证范围见[同步提示与回收站验收](verification-log.zh.md#开发版同步提示与回收站确认)。自动保存和反馈入口的旧图册仍保留。
 
 按[项目协作约定中的验证范围](../AGENTS.md#验证范围)选择档位。文档检查差异与链接；局部功能检查类型、构建及专项用例；涉及数据安全或对外发布的候选包进行全量回归和实际安装验收。
 
