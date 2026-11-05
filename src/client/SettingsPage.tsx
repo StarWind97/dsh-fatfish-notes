@@ -6,6 +6,7 @@ import { notebookSync } from './notebook-sync.js'
 import { SyncDetails, syncCss } from './SyncDetails.js'
 import { CaptureAppearance } from './CaptureAppearance.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
+import { BoundGitHubLogin } from './BoundGitHubLogin.js'
 import { DEFAULT_PRIVATE_REPO_NAME, type PersonalState, type PersonalPreview, type PersonalApiContract } from '../contracts/personal.js'
 import type { LocaleKey, T } from './locale.js'
 
@@ -177,6 +178,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
       <div className="setup-modes"><button disabled={busy} onClick={leave}>{t('cancel')}</button><button className="setup-primary" disabled={busy||!custom?.trim()} onClick={()=>void run('move')}>{t('moveConfirm')}</button></div>
     </section>:<><p>{t(sync.ready?'setupConnectedHint':sync.enabled?'setupInitializing':'resumeBoundHint')}</p>
       <section className="setup-section"><strong><GitBranch size={16}/>{repoLabel}</strong><small>{t('personalPrivate')}</small></section>
+      <BoundGitHubLogin key={sync.binding.repositoryId} sync={sync} t={t}/>
       <section className="setup-section"><strong><Folder size={16}/>{t('setupFolder')}</strong><code>{sync.folder}</code>{sync.ready&&<button disabled={busy} onClick={()=>{setManage('move');setCustom('');setNotice(null);setError(null)}}>{t('moveTitle')}</button>}</section>
       <style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
       {sync.error&&<p role="alert">{sync.errorCode&&setupErrors[sync.errorCode]?t(setupErrors[sync.errorCode]!):sync.error}</p>}

@@ -366,5 +366,13 @@
   "syncRetry": "立即重试",
   "trashConfirmTitle": "移到回收站？",
   "trashConfirmHint": "之后可以在回收站恢复。",
-  "trashConfirmAction": "确认移入"
+  "trashConfirmAction": "确认移入",
+  "boundLoginTitle": "同步账号",
+  "boundLoginHint": "请登录 {account}。授权完成后会恢复同步。",
+  "boundLoginAgain": "重新登录 GitHub",
+  "boundLoginMismatch": "当前账号与笔记库不符，请登录 {account}。原笔记库和本机位置保持不变。",
+  "boundLoginChecking": "正在检查登录状态…",
+  "boundLoginMissing": "尚未登录 GitHub",
+  "boundLoginCheckFailed": "暂时无法确认登录状态",
+  "boundLoginReadyHint": "此账号用于同步当前私人笔记库。"
 }

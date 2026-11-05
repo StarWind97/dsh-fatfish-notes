@@ -2,13 +2,17 @@
 
 产品展示名称为 **DSH Notebook · 私人笔记管理**，中文简称仍为 DSH笔记。[0.5.0 正式版](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。
 
-当前开发版本为 `0.5.1-dev.5`（未发布），正式版为 `0.5.0`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
+当前候选版本为 `0.5.1`（待审核，未发布），正式版为 `0.5.0`，产品面向会话原样转存、Markdown 图文编辑、文件导出和私有仓库跨设备同步。日常在 `main` 开发，临时分支通过相应验证后及时合并；具体见[分支与提交规则](../AGENTS.md#分支与提交)。
 
 [产品设计](notes-design.zh.md)是当前功能与存储行为的依据，[使用说明](user-guide.zh.md)面向日常操作，[验证记录](verification-log.zh.md)区分各版本的实际覆盖范围。
 
 ## 首次发布收尾
 
-2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。第 1 至 4 步已完成，第 5 步已发布 GitHub Release 0.5.0；匿名下载与隔离安装核验通过。[市场收录申请 #11960](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/11960)已提交，等待维护者审核，尚未上架。发布与收录分别记录，见[发布审核清单](releases/0.5.0/review.zh.md)和[验证记录](verification-log.zh.md)。
+2026-11-04 已批准[五步规划](plans/2026-11-04-first-release.zh.md)。第 1 至 4 步已完成，第 5 步已发布 GitHub Release 0.5.0；匿名下载与隔离安装核验通过。[市场收录申请 #11960](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/11960)已于 UTC 2026-11-04 17:22 合并，条目已收录到上游仓库；本机市场界面刷新后的搜索展示另行确认。发布与收录分别记录，见[发布审核清单](releases/0.5.0/review.zh.md)和[验证记录](verification-log.zh.md)。
+
+## 0.5.1 发布审核
+
+按[本轮已批准范围](plans/2026-11-05-release-0.5.1.zh.md)补齐已连接笔记库的 GitHub 登录恢复入口，准备自动保存与同步体验更新。安装包、升级说明和待发布正文见[0.5.1 审核清单](releases/0.5.1/review.zh.md)，本机总览为 `dist/release-0.5.1-review.html`。此轮只准备候选包，正式标签、GitHub Release 和市场条目更新需用户确认。
 
 ## 开发验证
 
@@ -16,7 +20,7 @@
 
 本轮进一步按[同步提示与回收站确认规划](plans/2026-11-05-sync-feedback.zh.md)完善状态浮层、设置页实时状态和图标删除确认，修正账号检查误分类并减少同步中的 Git 进程开销。
 
-隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，最新图册位于 `output/playwright/sync-feedback/index.html`，本轮验证范围见[同步提示与回收站验收](verification-log.zh.md#开发版同步提示与回收站确认)。自动保存和反馈入口的旧图册仍保留。
+隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，已安装 `0.5.1` 候选包，最新图册位于 `output/playwright/release051/index.html`，本轮验证范围见[候选包验收](verification-log.zh.md#051-候选包验收)。自动保存、同步提示和反馈入口的旧图册仍保留。
 
 本机普通启动的账号问题已[现场复查并恢复同步](verification-log.zh.md#后续复查普通启动时-github-账号不可见)：Codex 的 GitHub 登录资料被应用目录重定向，普通 DSH 看不到该配置。现已在用户正常启动的隔离 Desktop 内完成 GitHub 授权；以后验收需在实际宿主确认账号，不能仅依据 Codex 命令环境。
 

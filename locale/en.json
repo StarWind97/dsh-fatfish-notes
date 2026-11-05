@@ -366,5 +366,13 @@
   "syncRetry": "Retry now",
   "trashConfirmTitle": "Move to trash?",
   "trashConfirmHint": "You can restore it from the trash later.",
-  "trashConfirmAction": "Move to trash"
+  "trashConfirmAction": "Move to trash",
+  "boundLoginTitle": "Sync account",
+  "boundLoginHint": "Sign in as {account}. Sync resumes after authorization.",
+  "boundLoginAgain": "Sign in to GitHub again",
+  "boundLoginMismatch": "This account does not match the notebook. Sign in as {account}. Your notebook and local folder stay unchanged.",
+  "boundLoginChecking": "Checking sign-in status…",
+  "boundLoginMissing": "Not signed in to GitHub",
+  "boundLoginCheckFailed": "Unable to check sign-in status right now",
+  "boundLoginReadyHint": "This account syncs the current private notebook."
 }
