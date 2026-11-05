@@ -1,7 +1,7 @@
 {
   "paperOutline": "Contents",
-  "paperOutlineClose": "Close contents",
-  "paperOutlineOpen": "Open contents",
+  "paperOutlineClose": "Collapse contents",
+  "paperOutlineOpen": "Expand contents",
   "paperOutlineEmpty": "No headings in this note yet",
   "paperOutlineUntitled": "Untitled section",
   "feedback": "Issues & suggestions",

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree } from 'lucide-react'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { api } from './api.js'
@@ -154,7 +154,9 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession}:{contr
   </section>
   </div>
   {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} panel={outline.panel} busy={outline.busy} t={t}/>}
-  {!sourceOpen&&<button ref={outline.edge} type="button" className="paper-outline-edge" aria-label={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} title={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.open?outline.close:outline.toggle}>{outline.open?<ChevronRight size={18}/>:<ChevronLeft size={18}/>}</button>}
+  {!sourceOpen&&<button ref={outline.edge} type="button" className="paper-outline-edge" aria-label={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} title={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.open?outline.close:outline.toggle}>
+    <svg width="16" height="44" viewBox="0 0 16 44" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M1 1 7 22 1 43 M9 1 15 22 9 43"/></svg>
+  </button>}
   </div>
   </div>
 }

@@ -1,12 +1,22 @@
 # DSH笔记验证记录
 
-2026-11-05 更新。当前正式版为 `0.5.1`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)已发布。下方保留开发、候选包及正式发布的逐次记录，区分当时状态、本轮实测、既有证据和未覆盖边界。
+2026-11-06 更新。当前正式版为 `0.5.1`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)已发布。下方保留开发、候选包及正式发布的逐次记录，区分当时状态、本轮实测、既有证据和未覆盖边界。
 
 ## 验证环境
 
 已验证 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 目录双箭头与留白细化验收
+
+2026-11-06 按[已批准的样式细化](plans/2026-11-05-outline-interaction.zh.md#2026-11-06-箭头样式细化)调整 SVG、样式和悬停文案，既有交互逻辑不变。按第一档构建并查看实际页面，不运行全量回归。
+
+- 构建通过，开发体验包安装到既有隔离 `release12-desktop`，126 个安装文件与构建逐项一致。
+- 原生 Desktop 的宽窄窗口、深浅色、展开/收起及悬停共 8 个状态检查通过，无页面异常。双箭头实测 16px × 44px，点击区 24px × 56px；位于正文可视区域垂直中点，展开时水平中心与目录 1px 左边框中心重合，避开正文滚动条。
+- 默认透明度 0.45，悬停为 1；两种状态均无边框、无底色。左右方向与开关状态对应，原生悬停提示及无障碍名称分别为「收起目录」「展开目录」。目录左内边距由 28px 减至 8px。
+- 证据：`.dsh-home/pure-001/outline-arrow-ui.cjs`、`outline-arrow-ui.json`；9 张实际界面截图和两个箭头局部截图见 `output/playwright/outline-arrow/index.html`。原生系统提示框不保证被页面截图捕获，提示文案另核对实际按钮的 `title` 与无障碍名称。
+- 测试自建桌面进程已正常关闭，日常资料未改动。体验入口仍为 `.dsh-home/pure-001/Open-Release12.cmd`。没有升级 DSH、发布新版或另测 macOS；正式包保持 `0.5.1`。
 
 ## 目录默认状态、居中开关与滚动跟随验收
 

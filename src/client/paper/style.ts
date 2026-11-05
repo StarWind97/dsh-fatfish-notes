@@ -74,7 +74,7 @@ export const paperCss = `
 .paper-document[data-outline=pinned]>.paper-document-body{grid-template-columns:minmax(0,1fr) var(--outline-size);gap:12px;padding-right:var(--outline-right)}
 .paper-actions .paper-outline-toggle{margin-left:5px;border-left:1px solid var(--rule);border-radius:0 5px 5px 0;padding-left:10px}
 .paper-outline-toggle[aria-expanded=true]{color:var(--accent);background:var(--shelf)}
-.paper-outline{grid-area:1/2;min-width:0;min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--rule);padding:8px 0 12px 28px;color:var(--muted);font:13px/1.6 "Segoe UI","Microsoft YaHei UI",sans-serif;overflow:hidden}
+.paper-outline{grid-area:1/2;min-width:0;min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--rule);padding:8px 0 12px 8px;color:var(--muted);font:13px/1.6 "Segoe UI","Microsoft YaHei UI",sans-serif;overflow:hidden}
 .paper-outline header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 3px 10px 10px;flex:none}
 .paper-outline header>span{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;letter-spacing:.04em}.paper-outline header button{padding:4px}
 .paper-outline-scroll{overflow:auto;min-height:0;flex:1;overscroll-behavior:contain;padding:2px 0 8px}
@@ -84,10 +84,11 @@ export const paperCss = `
 .paper-outline nav button[aria-current=location]{color:var(--accent);background:var(--shelf);box-shadow:inset 2px 0 0 var(--accent);font-weight:600}
 .paper-outline nav button:disabled{opacity:1}.paper-outline-empty{margin:4px 10px 12px;font-size:13px}
 .paper-document[data-outline=floating]>.paper-document-body{--outline-size:min(260px,calc(100% - 56px));--outline-right:26px}
-.paper-document[data-outline=floating] .paper-outline{grid-area:1/1;position:absolute;z-index:8;top:8px;bottom:8px;right:var(--outline-right);width:var(--outline-size);border:1px solid var(--rule);border-radius:10px;padding:10px 8px 10px 28px;background:var(--base);box-shadow:0 8px 28px #0002}
-.paper-detail .paper-outline-edge{position:absolute;top:50%;right:26px;transform:translateY(-50%);z-index:9;width:28px;height:48px;padding:0;border:1px solid var(--rule);border-radius:8px;background:var(--base);color:var(--muted);opacity:.45;transition:opacity .15s,background .15s}
-.paper-detail .paper-outline-edge:hover,.paper-detail .paper-outline-edge:focus-visible{opacity:1;background:var(--shelf);color:var(--ink)}
-.paper-document:not([data-outline=closed]) .paper-outline-edge{right:calc(var(--outline-size) + var(--outline-right) - 28px)}
+.paper-document[data-outline=floating] .paper-outline{grid-area:1/1;position:absolute;z-index:8;top:8px;bottom:8px;right:var(--outline-right);width:var(--outline-size);border:1px solid var(--rule);border-radius:10px;padding:10px 8px 10px 8px;background:var(--base);box-shadow:0 8px 28px #0002}
+.paper-detail .paper-outline-edge{position:absolute;top:50%;right:26px;transform:translateY(-50%);z-index:9;width:24px;height:56px;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);opacity:.45;transition:opacity .15s}
+.paper-app .paper-detail .paper-outline-edge:hover,.paper-app .paper-detail .paper-outline-edge:focus-visible{opacity:1;background:transparent}
+.paper-outline-edge svg{flex:none}.paper-outline-edge[aria-expanded=false] svg{transform:scaleX(-1)}
+.paper-document:not([data-outline=closed]) .paper-outline-edge{right:calc(var(--outline-size) + var(--outline-right) - 12.5px)}
 /* Keep the native 14px hit area fixed; only the thumb's visible inset changes. */
 .paper-app :is(.paper-pane,.paper-list-scroll,.paper-outline-scroll){scrollbar-width:auto;scrollbar-color:auto;scrollbar-gutter:stable;overscroll-behavior:contain}
 .paper-app :is(.paper-pane,.paper-list-scroll,.paper-outline-scroll)::-webkit-scrollbar{width:14px;height:14px}
