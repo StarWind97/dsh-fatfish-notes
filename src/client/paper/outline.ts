@@ -26,7 +26,8 @@ export function outlineHeadings(body:string):OutlineHeading[] {
   return headings
 }
 
-export function chapterAt(headings:OutlineHeading[],position:number):number|null {
+export function chapterAt(headings:OutlineHeading[],position:number,atEnd=false):number|null {
+  if(atEnd)return headings.at(-1)?.position??null
   let current:number|null=null
   for(const heading of headings){if(heading.position>position)break;current=heading.position}
   return current

@@ -10,6 +10,7 @@ import { notesStyles as s, notesCss } from './notes-style.js'
 import { BookOpen, ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X } from 'lucide-react'
 import { PaperColumns,readPreference,writePreference } from './paper/layout.js'
 import { paperCss } from './paper/style.js'
+import type { OutlineSession } from './paper/use-outline.js'
 import type { T } from './locale.js'
 
 export function NotesPage({ controller, t }: { controller: NotesController; t: T }) {
@@ -18,6 +19,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
   const [booksOpen,setBooksOpen]=useState(false),[bookName,setBookName]=useState(''),[editingBook,setEditingBook]=useState<string|null>(null)
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
+  const outlineSession=useRef<OutlineSession>({wide:null,open:false})
   const choose=(filter:NotesState['filter'])=>controller.selectFilter(filter,(app.current?.clientWidth??560)>=560)
   const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
   useEffect(()=>{void controller.initialize(readPreference('last'),readPreference('order')==='oldest'?'oldest':'recent');return()=>{clearTimeout(timer.current);void controller.leave()}},[controller])
@@ -75,7 +77,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
     {state.section==='settings'?<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>:
     <PaperColumns t={t} selected={!!state.draft} list={list}>
-      {state.draft?<NoteEditor onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
+      {state.draft?<NoteEditor outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':'notesOpenFailed')}</p>}
     </PaperColumns>}
   </div>

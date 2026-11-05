@@ -27,3 +27,13 @@ test('outline offsets and labels follow edited text without persisting anything 
   assert.notEqual(outlineHeadings(before).at(-1)?.position,outlineHeadings(after).at(-1)?.position)
   assert.equal(after.slice(outlineHeadings(after).at(-1)!.position),'## 终点')
 })
+
+test('scroll tracking keeps a long chapter active and reaches the final short chapter at document end',()=>{
+  const body='# 开始\n\n'+('长章节内容\n'.repeat(100))+'\n## 结尾\n\n短结语'
+  const headings=outlineHeadings(body),last=headings[1]!.position
+  assert.equal(chapterAt(headings,-1),null)
+  assert.equal(chapterAt(headings,last-1),0)
+  // A short final chapter may never reach the viewport's top edge.
+  assert.equal(chapterAt(headings,last-1,true),last)
+  assert.equal(chapterAt([],0,true),null)
+})

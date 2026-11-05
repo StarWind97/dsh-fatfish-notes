@@ -22,7 +22,6 @@ interface Props{controller:NotesController;state:NotesState;t:T;start:number;anc
 interface LinkFields{from:number;to:number;label:string;url:string}
 function writingEdge(pane:HTMLElement){
   return pane.getBoundingClientRect().top+parseFloat(getComputedStyle(pane).paddingTop)
-    +(pane.querySelector('.paper-doc-head')?.getBoundingClientRect().height??0)
     +(pane.querySelector('.paper-formatbar')?.getBoundingClientRect().height??0)+16
 }
 export function PaperWriting(props:Props){

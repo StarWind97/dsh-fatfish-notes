@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { api } from './api.js'
@@ -14,7 +14,7 @@ import { TrashAction } from './paper/TrashAction.js'
 import { NoteExport } from './NoteExport.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
 import { ChapterOutline } from './paper/ChapterOutline.js'
-import { useOutline, type WritingNavigation } from './paper/use-outline.js'
+import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
 
 function Source({ note, t }: { note: NoteView; t: T }) {
   const [source, setSource] = useState<CaptureSource | null>(null), [failed, setFailed] = useState(false)
@@ -32,7 +32,7 @@ function Source({ note, t }: { note: NoteView; t: T }) {
   return <section aria-label={t('notesSource')}><p style={s.muted}>{t(source.complete ? 'notesSourceComplete' : 'notePartialSource')}</p>{source.messages.map(message => <article key={message.id} style={s.card}><strong>{message.role === 'user' ? t('messageUser') : 'AI'}</strong>{message.blocks.map((block, index) => block.type === 'text' ? <pre key={index} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', font: 'inherit' }}>{block.text}</pre> : source.assets[block.attachmentId] ? <img key={index} alt={t('noteImage')} src={noteAssetUrl(note, source.assets[block.attachmentId]!, note.current.sourceId!)} style={{ display: 'block', maxWidth: '100%', maxHeight: 500 }} /> : <p key={index}>{t('notesMissingImage')}</p>)}</article>)}</section>
 }
 
-export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void}) {
+export function NoteEditor({controller,state,t,onTagClick,outlineSession}:{controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read'
   const [panel,setPanel]=useState<'export'|null>(null),[tag,setTag]=useState('')
   const [allTags,setAllTags]=useState(false)
@@ -42,21 +42,13 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   const scroll=useRef({body:0,source:0}), switching=useRef(false)
   const complete=useRef<(()=>void)|null>(null)
   const writing=useRef<WritingNavigation|null>(null)
-  const outline=useOutline({root,body:state.draft?.body??'',editing:state.editing,composing:state.composing,sourceOpen,writing})
+  const outline=useOutline({root,body:state.draft?.body??'',editing:state.editing,composing:state.composing,sourceOpen,writing,session:outlineSession})
   useLayoutEffect(()=>{
     if(!switching.current)return
     const pane=root.current?.closest<HTMLElement>('.paper-pane')
     if(pane)pane.scrollTop=sourceOpen?scroll.current.source:scroll.current.body
     switching.current=false
   },[sourceOpen])
-  useLayoutEffect(()=>{
-    const leaf=root.current, head=leaf?.querySelector<HTMLElement>('.paper-doc-head')
-    if(!leaf||!head)return
-    const measure=()=>leaf.style.setProperty('--paper-head-size',head.offsetHeight+'px')
-    measure()
-    const observer=new ResizeObserver(measure);observer.observe(head)
-    return ()=>observer.disconnect()
-  },[])
   const undo=useRef<UndoSnapshot|null>(null)
   const {draft,note}=state
   useLayoutEffect(()=>{
@@ -73,7 +65,7 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   function edit(target?:HTMLElement){
     if(!root.current||!editable)return
     const pane=root.current.closest<HTMLElement>('.paper-pane')!
-    const edge=(root.current.querySelector('.paper-doc-head')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top)+12
+    const edge=pane.getBoundingClientRect().top+12
     const block=target?.closest<HTMLElement>('[data-md-pos]')??Array.from(root.current.querySelectorAll<HTMLElement>('[data-md-pos]')).find(el=>el.getBoundingClientRect().bottom>edge)
     anchor.current=block&&pane.scrollTop>5?{pos:Number(block.dataset.mdPos),y:block.getBoundingClientRect().top}:target&&block?{pos:Number(block.dataset.mdPos),y:block.getBoundingClientRect().top}:null
     setPanel(null);controller.beginEdit()
@@ -114,8 +106,6 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
     ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
   return <div className="paper-document" data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'}
     onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
-    <div className="paper-pane">
-    <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
       <NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
         {!sourceOpen&&<button ref={outline.trigger} type="button" className="paper-outline-toggle" aria-label={t('paperOutline')} title={t('paperOutline')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.toggle}><ListTree size={17}/></button>}
@@ -124,6 +114,9 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
         <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
         <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}
     </header>
+    <div className="paper-document-body">
+    <div className="paper-pane">
+    <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     {panel==='export'&&note&&<NoteExport controller={controller} state={state} t={t} onClose={()=>setPanel(null)}/>}
     <div hidden={sourceOpen}>
     {mode==='edit'?<input className="paper-title-input" aria-label={t('notesTitle')} placeholder={t('notesUntitled')} value={draft.title} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({title:e.target.value})}/>:<h1>{draft.title||t('notesUntitled')}</h1>}
@@ -160,6 +153,8 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
     {sourceVisited&&note&&<div hidden={!sourceOpen} className="paper-source"><h1>{draft.title||t('notesUntitled')}</h1><Source note={note} t={t}/></div>}
   </section>
   </div>
-  {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} onClose={outline.close} busy={outline.busy} t={t}/>}
+  {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} panel={outline.panel} busy={outline.busy} t={t}/>}
+  {!sourceOpen&&<button ref={outline.edge} type="button" className="paper-outline-edge" aria-label={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} title={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.open?outline.close:outline.toggle}>{outline.open?<ChevronRight size={18}/>:<ChevronLeft size={18}/>}</button>}
+  </div>
   </div>
 }
