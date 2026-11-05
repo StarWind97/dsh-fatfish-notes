@@ -8,6 +8,15 @@
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
 
+## 后续复查：普通启动时 GitHub 账号不可见
+
+2026-11-05 用户正常打开 `Open-Release12.cmd` 后再次报错，最近失败为北京时间 16:05 的 `personal_auth_required`。保留窗口现场，通过本机接口确认 Git 与 GitHub CLI 均可用，但账号为空；从 Codex 命令环境检查同一个 CLI 则已登录。
+
+- 在当前普通 Desktop 后台临时开启仅本机 Node 调试，确认使用同一 Windows 用户、同一 GitHub CLI 2.103.3，配置相关环境变量一致。普通进程看不到默认 GitHub CLI 配置目录；Codex 中对相同路径执行实际路径解析，结果位于 `OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Roaming/GitHub CLI`。这是 Codex 应用资料虚拟化导致的两套文件视图。没有读取或复制凭据文件，也没有更改系统权限。
+- [GitHub CLI 文档](https://cli.github.com/manual/gh_help_environment)说明 Windows 默认配置目录为 AppData 下的 GitHub CLI；[微软文档](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes)说明打包桌面应用的 AppData 重定向机制。本次路径解析和普通进程内文件存在性检查共同确认了启动环境差异。上轮测试确实成功，但继承了 Codex 环境，没有覆盖用户普通启动的账号可见性；上轮账号误分类修正不是这次现场错误的根因。
+- 用户明确同意后，在原先报错的普通 Desktop 实例内发起 GitHub 授权，成功检测到原绑定的 StarWind97 账号。随后实际双向同步约 15 秒完成，北京时间 **16:21** 状态为 idle、pending=false、errorCode=null。没有重建或重新绑定笔记库。临时调试端口已关闭，用户原窗口保留。
+- 本轮只补充诊断与验收记录，无产品代码、依赖或安装包变更，不重跑回归。证据为 `.dsh-home/pure-001/sync-auth-context.json` 和 `sync-auth-recovered.json`。后续普通启动验收应核对实际宿主中的账号检测，不能以 Codex 命令环境的检测替代。已绑定设置页缺少直接重新登录入口，作为待规划改进，不在本轮擅自实现。
+
 ## 开发版：同步提示与回收站确认
 
 2026-11-05 按[已批准规划](plans/2026-11-05-sync-feedback.zh.md)完成 `0.5.1-dev.5`，尚未发布。状态点击改为提示浮层，设置页共享实时状态；首次完成通知短暂显示，垃圾桶图标先展开轻量确认并保留撤销。同步批量读取 Git 对象，账号检查区分明确认证失败与连接失败，本机保留最近失败的时间及分类。

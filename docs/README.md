@@ -18,6 +18,8 @@
 
 隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，最新图册位于 `output/playwright/sync-feedback/index.html`，本轮验证范围见[同步提示与回收站验收](verification-log.zh.md#开发版同步提示与回收站确认)。自动保存和反馈入口的旧图册仍保留。
 
+本机普通启动的账号问题已[现场复查并恢复同步](verification-log.zh.md#后续复查普通启动时-github-账号不可见)：Codex 的 GitHub 登录资料被应用目录重定向，普通 DSH 看不到该配置。现已在用户正常启动的隔离 Desktop 内完成 GitHub 授权；以后验收需在实际宿主确认账号，不能仅依据 Codex 命令环境。
+
 按[项目协作约定中的验证范围](../AGENTS.md#验证范围)选择档位。文档检查差异与链接；局部功能检查类型、构建及专项用例；涉及数据安全或对外发布的候选包进行全量回归和实际安装验收。
 
 `src/` 为 TypeScript 源码，`lib/` 由构建生成。包信息与命令以 [package.json](../package.json) 为准。已验证组合为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5，macOS 待实测。
