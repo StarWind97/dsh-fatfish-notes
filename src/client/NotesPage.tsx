@@ -5,6 +5,7 @@ import { NoteBackupStatus } from './NoteBackupStatus.js'
 import { noteDateTime } from '../notes/date.js'
 import { NoteEditor } from './NoteEditor.js'
 import { SettingsPage } from './SettingsPage.js'
+import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
 import { BookOpen, ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X } from 'lucide-react'
 import { PaperColumns,readPreference,writePreference } from './paper/layout.js'
@@ -69,10 +70,10 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
         <strong>{item.title||t('notesUntitled')}</strong>{(item.excerpt||item.summary)&&<span>{item.excerpt||item.summary}</span>}<small>{item.conflicted?t('notesConflict'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesUnfiled')}</small>
       </button></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot"><button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button></footer></>
-  return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss}</style>
+  return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss}</style>
     <header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','settings'] as const).map(section=><button key={section} aria-pressed={state.section===section} onClick={()=>{clearTimeout(timer.current);void controller.navigate(section)}}>{t(section==='notes'?'notesLibrary':'notesSettings')}</button>)}</nav>
-    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}</header>
-    {state.section==='settings'?<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t}/></div>:
+    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
+    {state.section==='settings'?<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>:
     <PaperColumns t={t} selected={!!state.draft} list={list}>
       {state.draft?<NoteEditor onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':'notesOpenFailed')}</p>}

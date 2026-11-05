@@ -1,12 +1,22 @@
 # DSH笔记验证记录
 
-2026-11-04 更新。当前正式版为 `0.5.0`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。第 5 步发布核验、第 5 步材料准备及第 4 步候选记录分别保留在下方，区分本轮实测、既有证据和未覆盖边界。
+2026-11-05 更新。当前正式版为 `0.5.0`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布。下方分别记录尚未发布的开发版变更与既有发布核验，区分本轮实测、既有证据和未覆盖边界。
 
 ## 验证环境
 
 已验证 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 开发版：问题与建议入口
+
+2026-11-05 按已批准方案增加顶栏反馈入口，首次初始化和独立插件设置页同样提供。属于第二档局部界面行为：类型检查、构建及现有 9 项客户端专项测试通过，不重复全量回归。未新增依赖或改变保存、同步逻辑；本轮不打包、不替换已发布的 `0.5.0`。
+
+- 隔离 Web 实际点击进入 GitHub 新建 Issue 的登录页面，核对返回地址指向本项目；原页面和未保存标题均保留。笔记库、同步设置及未初始化页面各自只显示一个反馈入口。
+- 检查深浅色、常规及窄窗口（笔记库 800 px、初始化 520 px），窄区域显示「反馈」，按钮可见且页面没有新增横向溢出。
+- 原生 Desktop 验证键盘激活和独立设置入口。仅在测试实例中拦截 `shell.openExternal`，确认宿主接收到完整 GitHub 目标地址，避免启动日常浏览器；真实网站跳转由上述 Web 测试覆盖。未提交 Issue。
+- 三份隔离安装只替换构建后的客户端和中英文文案，旧文件备份于 `.dsh-home/pure-001/feedback-before/`。采用新文件替换方式，未覆盖安装缓存的共享硬链接。未访问日常 DSH 资料，测试进程已关闭。
+- 证据为 `.dsh-home/pure-001/feedback-ui.json` 与 `feedback-native.json`。10 张实际截图见 `output/playwright/feedback/index.html`；`.dsh-home/pure-001/Open-Release12.cmd` 可体验本轮开发版界面。
 
 ## 第 5 步：正式发布
 

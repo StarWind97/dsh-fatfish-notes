@@ -12,6 +12,10 @@
 
 ## 开发验证
 
+当前 `main` 新增顶栏「问题与建议」入口，初始化页和独立设置页同样可用；点击打开 GitHub 新建反馈页面。此项为尚未发布的开发版改动，已发布的 `0.5.0` 安装包保持不变。操作见[问题反馈](user-guide.zh.md#限制与问题反馈)。
+
+本轮隔离体验使用 `.dsh-home/pure-001/Open-Release12.cmd`，截图图册位于 `output/playwright/feedback/index.html`，验证范围见[反馈入口验收](verification-log.zh.md#开发版问题与建议入口)。
+
 按[项目协作约定中的验证范围](../AGENTS.md#验证范围)选择档位。文档检查差异与链接；局部功能检查类型、构建及专项用例；涉及数据安全或对外发布的候选包进行全量回归和实际安装验收。
 
 `src/` 为 TypeScript 源码，`lib/` 由构建生成。包信息与命令以 [package.json](../package.json) 为准。已验证组合为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5，macOS 待实测。

@@ -1,4 +1,7 @@
 {
+  "feedback": "问题与建议",
+  "feedbackShort": "反馈",
+  "feedbackHint": "前往 GitHub 反馈问题或提出建议（打开新页面）",
   "chatExportRange": "导出范围",
   "chatExportOverflow": "整段内容超出单张长图的大小限制，请改选分页图片。",
   "chatExport": "导出",

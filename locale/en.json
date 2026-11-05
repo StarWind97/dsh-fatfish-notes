@@ -1,4 +1,7 @@
 {
+  "feedback": "Issues & suggestions",
+  "feedbackShort": "Feedback",
+  "feedbackHint": "Report an issue or suggest an improvement on GitHub (opens a new page)",
   "chatExportRange": "Export range",
   "chatExportOverflow": "This conversation exceeds the single-image limit. Choose paginated images.",
   "chatExport": "Export",

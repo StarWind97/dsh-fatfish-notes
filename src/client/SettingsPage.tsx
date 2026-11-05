@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle2, Folder, GitBranch } from 'lucide-react'
 import { api, ApiError } from './api.js'
 import { noteDateTime } from '../notes/date.js'
 import { CaptureAppearance } from './CaptureAppearance.js'
+import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { DEFAULT_PRIVATE_REPO_NAME, type PersonalState, type PersonalPreview, type PersonalApiContract } from '../contracts/personal.js'
 import type { LocaleKey, T } from './locale.js'
 
@@ -23,7 +24,7 @@ const setupErrors: Record<string, LocaleKey> = {
 const setupChanged = 'dsh-notebook-connected'
 
 type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'
-export function SettingsPage({t,children}:{t:T;children?:React.ReactNode}) {
+export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React.ReactNode;showFeedback?:boolean}) {
   const [data,setData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
   const [manage,setManage]=useState<'bound'|'move'|'reset'>('bound')
   const [mode,setMode]=useState<'existing'|'create'>('create'),[repo,setRepo]=useState<string>(DEFAULT_PRIVATE_REPO_NAME)
@@ -113,8 +114,8 @@ export function SettingsPage({t,children}:{t:T;children?:React.ReactNode}) {
   if(sync?.ready && children)return <>{children}</>
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
-  return <main className="notes-setup" aria-busy={busy}><style>{setupCss}</style><div className="notes-setup-inner">
-    <header><span className="setup-icon"><BookOpen size={22}/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div></header>
+  return <main className="notes-setup" aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
+    <header><span className="setup-icon"><BookOpen size={22}/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}
     {wizard && (preview?<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupReview')}</strong>
@@ -189,8 +190,8 @@ export function SettingsPage({t,children}:{t:T;children?:React.ReactNode}) {
 }
 const setupCss = `
 .notes-setup{box-sizing:border-box;min-height:0;width:100%;overflow:auto;padding:clamp(16px,4vw,48px);font:14px/1.55 'Segoe UI','Microsoft YaHei',sans-serif;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1)}
-.notes-setup-inner{max-width:640px;margin:auto}.notes-setup header,.notes-setup strong{display:flex;align-items:center;gap:10px}.notes-setup header{gap:14px;margin-bottom:18px}
-.setup-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}.notes-setup h2{font-size:24px;margin:0}
+.notes-setup-inner{max-width:640px;margin:auto;container:notebook-setup / inline-size}.notes-setup header,.notes-setup strong{display:flex;align-items:center;gap:10px}.notes-setup header{gap:14px;margin-bottom:18px}.notes-setup header>div{min-width:0}
+.setup-icon{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:12px;background:var(--dsw-alias-bg-layer-2)}.notes-setup h2{font-size:24px;margin:0}
 .notes-setup small,.notes-setup p,.notes-setup code{color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}.notes-setup small{display:block}.notes-setup [role=alert]{color:var(--dsw-alias-label-primary);border-inline-start:3px solid currentColor;padding-inline-start:10px}
 .notes-setup .setup-section,.notes-setup fieldset{border:1px solid var(--dsw-alias-border-l2);border-radius:12px;margin:14px 0;padding:16px;display:grid;gap:9px;min-width:0}.notes-setup legend{padding:0 6px}.notes-setup p{margin:8px 0 14px}
 .notes-setup button,.notes-setup input{font:inherit;line-height:1.45;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;padding:7px 12px;color:inherit;background:var(--dsw-alias-bg-layer-1)}
