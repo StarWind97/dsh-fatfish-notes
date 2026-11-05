@@ -85,7 +85,7 @@ export const paperCss = `
 .paper-outline nav button:disabled{opacity:1}.paper-outline-empty{margin:4px 10px 12px;font-size:13px}
 .paper-document[data-outline=floating]>.paper-document-body{--outline-size:min(260px,calc(100% - 56px));--outline-right:26px}
 .paper-document[data-outline=floating] .paper-outline{grid-area:1/1;position:absolute;z-index:8;top:8px;bottom:8px;right:var(--outline-right);width:var(--outline-size);border:1px solid var(--rule);border-radius:10px;padding:10px 8px 10px 8px;background:var(--base);box-shadow:0 8px 28px #0002}
-.paper-detail .paper-outline-edge{position:absolute;top:50%;right:26px;transform:translateY(-50%);z-index:9;width:24px;height:56px;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);opacity:.45;transition:opacity .15s}
+.paper-detail .paper-outline-edge{position:absolute;top:50%;right:13px;transform:translateY(-50%);z-index:9;width:24px;height:56px;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink);opacity:.45;transition:opacity .15s}
 .paper-app .paper-detail .paper-outline-edge:hover,.paper-app .paper-detail .paper-outline-edge:focus-visible{opacity:1;background:transparent}
 .paper-outline-edge svg{flex:none}.paper-outline-edge[aria-expanded=false] svg{transform:scaleX(-1)}
 .paper-document:not([data-outline=closed]) .paper-outline-edge{right:calc(var(--outline-size) + var(--outline-right) - 12.5px)}
