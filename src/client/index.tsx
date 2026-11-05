@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { NotesPage } from './NotesPage.js'
+import { notebookSync } from './notebook-sync.js'
 import { NotesController } from './notes-controller.js'
 import { SettingsPage } from './SettingsPage.js'
 import { Boundary } from './Boundary.js'
@@ -21,16 +22,17 @@ import { captureCss } from './capture-style.js'
 export const name = NS
 export const inject = ['slots','locale','layout']
 export function apply(ctx:Context): void {
+  notebookSync.start()
   ctx.effect(()=>ctx.locale.register(NS,dictionaries),'notebook dictionaries')
   const t = ctx.locale.bind(NS)
   let storage: Storage | undefined
   try { storage = globalThis.localStorage } catch { /* browser policy may disable persistence */ }
-  const library = new NotesController()
+  const library = new NotesController(undefined,{...(storage?{storage}:{}),onSettled:()=>{void notebookSync.request(true)}})
   const notes = new NoteCaptureBridge(undefined, storage, async noteId => {
     ctx.layout.selectPanel(NS as MainPanelId)
     return library.open(noteId)
   })
-  const warnUnsaved = (event: BeforeUnloadEvent) => { if (library.getSnapshot().dirty||library.importing) { event.preventDefault(); event.returnValue = '' } }
+  const warnUnsaved = (event: BeforeUnloadEvent) => { if (library.needsExitWarning) { event.preventDefault(); event.returnValue = '' } }
   ctx.effect(()=>{
     const check=(event:Event)=>{const s=library.getSnapshot();if(s.dirty||s.saving||s.operation||library.importing)event.preventDefault()}
     const switched=()=>{notes.switched();library.switched()}
@@ -38,7 +40,19 @@ export function apply(ctx:Context): void {
     window.addEventListener('dsh-notebook-switched',switched)
     return()=>{window.removeEventListener('dsh-notebook-before-reset',check);window.removeEventListener('dsh-notebook-switched',switched)}
   },'notebook changes')
-  ctx.effect(() => { globalThis.addEventListener('beforeunload', warnUnsaved); return () => { globalThis.removeEventListener('beforeunload', warnUnsaved); library.dispose() } }, 'notes library')
+  ctx.effect(() => {
+    let away=false,focusTimer:ReturnType<typeof setTimeout>|undefined
+    const blur=()=>{away=!library.imagePickerOpen;void library.flush()}
+    const focus=()=>{if(away){away=false;focusTimer=setTimeout(()=>{void library.leave()},100)}}
+    const hide=()=>{void library.leave()}
+    const visibility=()=>{if(document.visibilityState==='hidden'&&!library.imagePickerOpen)hide()}
+    document.addEventListener('visibilitychange',visibility)
+    globalThis.addEventListener('beforeunload',warnUnsaved)
+    globalThis.addEventListener('pagehide',hide)
+    globalThis.addEventListener('blur',blur)
+    globalThis.addEventListener('focus',focus)
+    return()=>{clearTimeout(focusTimer);document.removeEventListener('visibilitychange',visibility);globalThis.removeEventListener('beforeunload',warnUnsaved);globalThis.removeEventListener('pagehide',hide);globalThis.removeEventListener('blur',blur);globalThis.removeEventListener('focus',focus);library.dispose();notebookSync.dispose()}
+  },'notes library')
   ctx.effect(()=>()=>notes.dispose(),'note capture bridge')
   ctx.effect(()=>{
     const sheet=document.createElement('style')

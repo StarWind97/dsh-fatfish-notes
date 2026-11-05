@@ -18,14 +18,14 @@ function saved(input: NoteSaveInput): NoteView {
 }
 function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
 const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0))
-test('navigation never commits a pending pasted image; explicit save waits for it',async()=>{
+test('navigation waits for a pending pasted image and automatically saves it',async()=>{
   const f=fixture(),c=new NotesController(f.call),gate=deferred<void>()
   try{
     await c.open(a)
     const pending=c.queueImageImport(async()=>{await gate.promise;c.update({body:'imported picture'})})
     const navigation=c.open(b)
     await tick();assert.equal(c.getSnapshot().noteId,a)
-    assert.equal(await navigation,false);const saving=c.flush();gate.resolve();await pending;assert.equal(await saving,true);assert.equal(await c.open(b),true)
+    gate.resolve();await pending;assert.equal(await navigation,true)
     assert.equal(f.writes.at(-1)?.content.body,'imported picture')
     assert.equal(c.getSnapshot().noteId,b)
   }finally{c.dispose()}
@@ -48,7 +48,7 @@ test('M7 export freezes after pending writes and invalidates ownership on naviga
   const f = fixture(), c = new NotesController(f.call)
   try {
     await c.open(a); c.update({ body: '最新编辑' })
-    assert.equal(await c.freezeExport(),null);assert.equal(f.writes.length,0);await c.flush(); const frozen = await c.freezeExport(); assert.ok(frozen); assert.equal(frozen.note.current.body, '最新编辑'); assert.equal(f.writes.length, 1); assert.equal(frozen.isCurrent(), true)
+    const frozen = await c.freezeExport(); assert.ok(frozen); assert.equal(frozen.note.current.body, '最新编辑'); assert.equal(f.writes.length, 1); assert.equal(frozen.isCurrent(), true)
     c.update({ body: '后续编辑' }); assert.equal(frozen.note.current.body, '最新编辑'); await c.flush(); assert.equal(frozen.isCurrent(), false)
     const second = await c.freezeExport(); assert.ok(second); await c.open(b); assert.equal(second.isCurrent(), false)
     await c.open(a); assert.equal(second.isCurrent(), false, 'returning to A must not revive a stale download')
@@ -65,24 +65,20 @@ test('M7 export cannot bypass composition, failed save, conflict or a newer pend
     gate.resolve({ ok: true, note: note(b) }); await pending
   } finally { c.dispose() }
 })
-test('a manual edit changes no revision until Save and Cancel restores all fields',async()=>{
-  const f=fixture(), c=new NotesController(f.call)
-  try {
+test('editing automatically saves all fields and navigation returns to reading',async()=>{
+  const f=fixture(),c=new NotesController(f.call,{autosaveMs:10,maxWaitMs:25})
+  try{
     await c.open(a);c.beginEdit()
-    const original=c.getSnapshot().note!
     const edits={title:'手改标题',summary:'手改摘要',tags:['手工'],body:'新正文'}
-    c.update(edits)
-    assert.equal(await c.open(b),false)
-    assert.equal(await c.freezeExport(),null)
-    assert.equal(f.writes.length,0)
-    c.cancelEdits();assert.deepEqual(c.getSnapshot().draft,noteContent(original))
-    c.beginEdit();c.update(edits);assert.ok(await c.saveEdits())
-    assert.equal(f.writes.length,1);assert.equal(c.getSnapshot().editing,false)
-    assert.deepEqual(f.writes[0]!.content,{...noteContent(original),...edits})
-    await c.create();c.update({body:'放弃这篇新稿'});c.cancelEdits()
-    assert.equal(c.getSnapshot().noteId,null);assert.equal(f.writes.length,1)
+    c.update(edits);await new Promise(r=>setTimeout(r,40))
+    assert.equal(c.getSnapshot().editing,true);assert.equal(c.getSnapshot().dirty,false)
+    assert.equal(f.writes.length,1);assert.equal(f.rows.get(a)!.current.summary,edits.summary)
+    c.update({body:'离开前的最后输入'});await c.open(b)
+    assert.equal(f.rows.get(a)!.current.body,'离开前的最后输入');assert.equal(c.getSnapshot().editing,false)
+    await c.create();await c.back();assert.equal(f.writes.length,2,'empty new notes do not create revisions')
   }finally{c.dispose()}
 })
+
 test('M5 opening is read-only; exact body and newer typing survive serialized saves', async () => {
   const gate = deferred<unknown>(); let first: NoteSaveInput | null = null
   const f = fixture((path, input) => { if (path === '/notes/save' && !first) { first = structuredClone(input as NoteSaveInput); return gate.promise } return undefined })
@@ -113,7 +109,7 @@ test('M5 IME composition delays writes and switching; repeated new clicks create
     await c.open(a); c.composition(true); c.update({ body: '拼音输入' }); await new Promise(resolve => setTimeout(resolve, 10))
     assert.equal(f.writes.length, 0); assert.equal(await c.open(b), false)
     c.composition(false); assert.equal(await c.flush(), true); assert.equal(f.writes.length, 1)
-    await Promise.all([c.create(), c.create(), c.create()]); assert.equal(f.writes.length, 1); assert.notEqual(c.getSnapshot().noteId, a); c.cancelEdits();assert.equal(c.getSnapshot().noteId,null)
+    await Promise.all([c.create(), c.create(), c.create()]); assert.equal(f.writes.length, 1); assert.notEqual(c.getSnapshot().noteId, a); await c.back();assert.equal(c.getSnapshot().noteId,null)
   } finally { c.dispose() }
 })
 test('M5 stale reads cannot replace the last selected note; no writes on read or panel switch', async () => {
@@ -304,4 +300,55 @@ for (const guard of ['dirty', 'composition', 'saving', 'navigation', 'newer-save
       if (guard === 'newer-save') { assert.deepEqual(c.getSnapshot().note!.heads, saved(sent!).heads); assert.equal(c.getSnapshot().conflict, null) }
     }
   } finally { c.dispose(); writing.resolve({ ok: true, note: note() }); reading.resolve({ ok: true, note: note() }) }
+})
+
+function memoryStorage(){
+  const rows=new Map<string,string>()
+  return {getItem:(k:string)=>rows.get(k)??null,setItem:(k:string,v:string)=>{rows.set(k,v)},removeItem:(k:string)=>{rows.delete(k)},rows}
+}
+test('autosave recovery survives immediate disposal and restores latest text in reading mode',async()=>{
+  const f=fixture(),storage=memoryStorage(),options={storage,repository:()=>123,autosaveMs:5000}
+  const first=new NotesController(f.call,options)
+  await first.open(a);first.beginEdit();first.update({body:'最后一个字',summary:'摘要',tags:['标签']})
+  assert.equal(first.needsExitWarning,false);first.dispose();assert.equal(f.writes.length,0)
+  const restored=new NotesController(f.call,options)
+  try{await restored.initialize(a);assert.equal(restored.getSnapshot().draft!.body,'最后一个字');assert.equal(restored.getSnapshot().editing,false);assert.equal(storage.rows.size,0);assert.equal(f.writes.length,1)}finally{restored.dispose()}
+})
+test('recovery is isolated by repository and reconciles a lost save receipt',async()=>{
+  const f=fixture(),storage=memoryStorage(),options={storage,repository:()=>123}
+  const first=new NotesController(f.call,options)
+  await first.open(a);first.update({body:'最后修改'});first.dispose()
+  const other=new NotesController(f.call,{storage,repository:()=>456})
+  try{await other.initialize(a);assert.equal(f.writes.length,0);assert.equal(storage.rows.size,1)}finally{other.dispose()}
+  const record=JSON.parse([...storage.rows.values()][0]!) as {request:NoteSaveInput}
+  f.rows.set(a,saved(record.request))
+  const next=new NotesController(f.call,options)
+  try{await next.initialize(a);assert.equal(next.getSnapshot().draft!.body,'最后修改');assert.equal(f.writes.length,0);assert.equal(storage.rows.size,0)}finally{next.dispose()}
+})
+test('continuous typing is saved within the maximum interval; IME and metadata whitespace are preserved',async()=>{
+  const f=fixture(),c=new NotesController(f.call,{autosaveMs:50,maxWaitMs:65})
+  try{
+    await c.open(a);c.beginEdit()
+    for(let i=0;i<6;i++){c.update({body:'typing '+i,title:'title '});await new Promise(r=>setTimeout(r,20))}
+    assert.ok(f.writes.length>=1);assert.equal(c.getSnapshot().draft!.title,'title ')
+    await c.flush();const count=f.writes.length;c.composition(true);c.update({body:'中文输入'})
+    await new Promise(r=>setTimeout(r,90));assert.equal(f.writes.length,count)
+    const leaving=c.leave();assert.equal(await leaving,false);c.composition(false)
+    await new Promise(r=>setTimeout(r,10));assert.equal(c.getSnapshot().editing,false);assert.equal(f.rows.get(a)!.current.body,'中文输入')
+  }finally{c.dispose()}
+})
+test('a synced clean editor is not replaced by a remote pull, and storage failure warns on exit',async()=>{
+  const f=fixture(),c=new NotesController(f.call,{storage:{getItem:()=>null,setItem:()=>{throw Error('quota')},removeItem:()=>{}},repository:()=>123})
+  try{
+    await c.open(a);c.beginEdit();f.rows.set(a,note(a,'remote'))
+    await c.refresh(true,true);assert.equal(c.getSnapshot().draft!.body,'original')
+    c.update({body:'my edit'});assert.equal(c.needsExitWarning,true)
+    await c.flush();assert.equal(c.needsExitWarning,false)
+  }finally{c.dispose()}
+})
+
+test('autosave preserves the conflict-copy title and does not create a follow-up revision to strip it',async()=>{
+  const f=fixture(path=>path==='/notes/save'?Promise.resolve({ok:true,note:saved({noteId:b,expectedHeads:[],content:{...content('my edit'),title:'Title（冲突版本）'}}),forkedFrom:a}):undefined)
+  const c=new NotesController(f.call)
+  try{await c.open(a);c.beginEdit();c.update({body:'my edit'});assert.equal(await c.flush(),true);assert.equal(c.getSnapshot().draft!.title,'Title（冲突版本）');assert.equal(c.getSnapshot().dirty,false)}finally{c.dispose()}
 })

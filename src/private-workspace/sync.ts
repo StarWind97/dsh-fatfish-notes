@@ -157,7 +157,7 @@ export class PrivateWorkspaceSync {
             this.error = new NotebookError(this.config.paused.code, this.config.paused.message, 409);
         }
         if (this.config.enabled && this.isPending() && this.canSchedule())
-            this.schedule(this.options.batchMs ?? 30000);
+            this.schedule(this.options.batchMs ?? 5000);
     }
     private persist(config = this.config): Promise<void> {
         const result = this.writing.then(async () => {
@@ -244,7 +244,7 @@ export class PrivateWorkspaceSync {
     }
     changed(): void {
         if (this.loaded && !this.closed && this.config.enabled && this.canSchedule())
-            this.schedule(this.options.batchMs ?? 30000);
+            this.schedule(this.options.batchMs ?? 5000);
     }
     private canSchedule(): boolean {
         return !this.errorPaused();
@@ -281,7 +281,7 @@ export class PrivateWorkspaceSync {
             return await action();
         } finally {
             this.changing=false;
-            if(this.canSchedule())this.schedule(this.options.batchMs ?? 30000);
+            if(this.canSchedule())this.schedule(this.options.batchMs ?? 5000);
         }
     }
     private async activate(next:Config,signal:AbortSignal):Promise<void> {
@@ -583,7 +583,7 @@ export class PrivateWorkspaceSync {
             if (!this.isPending() && !this.error)
                 this.clearTimer();
             else if (!this.error && this.config.enabled)
-                this.schedule(this.options.batchMs ?? 30000);
+                this.schedule(this.options.batchMs ?? 5000);
         });
         this.pending = result;
         return result;

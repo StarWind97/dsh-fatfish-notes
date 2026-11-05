@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, X, Trash2, RotateCcw, Check } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, Trash2, RotateCcw, Check } from 'lucide-react'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { api } from './api.js'
@@ -99,8 +99,7 @@ export function NoteEditor({controller,state,t,onTagClick}:{controller:NotesCont
   const actions:NoteAction[]=[]
   if(!sourceOpen && editable) {
     if(state.editing) actions.push(
-      {label:t('paperSave'),icon:Check,disabled:state.composing||state.saving,run:()=>complete.current?.()},
-      {label:t('cancel'),icon:X,disabled:state.saving,run:()=>{controller.cancelEdits();setTag('');undo.current=null}})
+      {label:t('paperSave'),icon:Check,disabled:state.composing,run:()=>complete.current?.()})
     else actions.push({label:t('notesEdit'),icon:Pencil,run:()=>edit()})
   }
   if(note && !sourceOpen && !state.editing) actions.push(

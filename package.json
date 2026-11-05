@@ -1,6 +1,6 @@
 {
   "name": "dsh-github-notebook",
-  "version": "0.5.0",
+  "version": "0.5.1-dev.4",
   "description": "DSH笔记：保存会话、编辑 Markdown、导出图文，通过专用 GitHub 私有仓库跨设备同步。",
   "type": "module",
   "main": "lib/index.js",

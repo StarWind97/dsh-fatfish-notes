@@ -34,6 +34,10 @@ export interface PersonalPreview {
     dataScope: string[];
 }
 export interface PersonalApiContract {
+    '/personal/sync/start': {
+        request: Record<string, never>;
+        response: PersonalState;
+    };
     '/personal/sync/move': {
         request: {
             repositoryId: number;

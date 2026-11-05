@@ -77,7 +77,7 @@ export function PaperWriting(props:Props){
   }
   function run(action:Action){
     const v=editor.current;if(!v)return
-    if(action==='picture'){picker.current?.click();return}
+    if(action==='picture'){controller.imagePickerOpen=true;picker.current?.click();return}
     if(action==='link'){openLink();return}
     format(v,action,t('paperText'));if(action!=='find')v.focus()
   }
@@ -113,7 +113,9 @@ export function PaperWriting(props:Props){
         void importPictures(files.map(file=>({file,label:file.name})),v);return true
       }}),
       EditorView.updateListener.of(u=>{
-        if(u.selectionSet||u.docChanged)refreshTools()
+        // React may flush layout effects synchronously after an async image import.
+        // Finish the CodeMirror transaction (and capture its text) before rerendering tools.
+        if(u.selectionSet||u.docChanged)queueMicrotask(()=>{if(editor.current===u.view)refreshTools()})
         if(!u.docChanged)return
         for(const p of pending.current){p.from=u.changes.mapPos(p.from,1);p.to=Math.max(p.from,u.changes.mapPos(p.to,-1))}
         const r=linkRange.current;if(r){r.from=u.changes.mapPos(r.from,1);r.to=Math.max(r.from,u.changes.mapPos(r.to,-1))}
@@ -125,7 +127,7 @@ export function PaperWriting(props:Props){
     ]})});editor.current=view;view.focus();refreshTools()
     const pane=el.closest<HTMLElement>('.paper-pane'),y=props.anchorY
     const frame=requestAnimationFrame(()=>{if(pane&&y!==undefined){const coords=view.coordsAtPos(start);if(coords)pane.scrollTop+=coords.top-y}})
-    return ()=>{cancelAnimationFrame(frame);abort.abort();props.undo.current={body:raw.current,history:undoHistory(view.state)};view.destroy();editor.current=null;if(controller.getSnapshot().composing)controller.composition(false)}
+    return ()=>{controller.imagePickerOpen=false;cancelAnimationFrame(frame);abort.abort();props.undo.current={body:raw.current,history:undoHistory(view.state)};view.destroy();editor.current=null;if(controller.getSnapshot().composing)controller.composition(false)}
   },[controller,noteId])
   useLayoutEffect(()=>{const disabled=state.loadingNote||state.operation;editor.current?.dispatch({effects:editability.current.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)])})},[state.loadingNote,state.operation])
   useLayoutEffect(()=>{
@@ -133,6 +135,7 @@ export function PaperWriting(props:Props){
     if(body!==raw.current && !state.composing){raw.current=body;state.draft?.assetIds.forEach(id=>known.current.add(id));v.dispatch({changes:{from:0,to:v.state.doc.length,insert:editorText(body)},annotations:[Transaction.remote.of(true),Transaction.addToHistory.of(false)]})}
   },[body,state.composing,state.draft?.assetIds])
   useEffect(()=>{editor.current?.dispatch({effects:refreshMedia.of()})},[state.note?.current.revision])
+  useEffect(()=>{const input=picker.current;if(!input)return;const cancel=()=>{controller.imagePickerOpen=false};input.addEventListener('cancel',cancel);return()=>input.removeEventListener('cancel',cancel)},[controller])
   const ctx=React.useMemo(()=>editor.current?selectionFormat(editor.current.state):{active:new Set<Format>(),heading:undefined},[formatTick])
   function done(){
     const v=editor.current, pane=mount.current?.closest<HTMLElement>('.paper-pane');if(!v||!pane)return
@@ -142,7 +145,7 @@ export function PaperWriting(props:Props){
   }
   React.useImperativeHandle(props.complete,()=>()=>{if(!state.composing)done()})
   return <><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
-    <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
+    <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{controller.imagePickerOpen=false;const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
     {info&&<p className="paper-hint" role="status">{info}</p>}
     {remote&&<button type="button" onClick={()=>{const v=editor.current;if(!v)return;const range=v.state.selection.main,at=range.head-remote.length;if(at>=0&&v.state.sliceDoc(at,range.head)===remote)v.dispatch({selection:{anchor:at,head:range.head}});void importPictures([{url:remote,label:''}],v);setRemote('')}}>{t('paperImportUrl')}</button>}
     {link&&<form className="paper-link-form" onSubmit={e=>{e.preventDefault();const url=safePublicUrl(link.url),v=editor.current;if(!url||!v){setInfo(t('paperBadUrl'));return}

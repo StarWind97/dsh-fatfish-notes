@@ -1,7 +1,10 @@
-import { api, type Api } from './api.js'
+import { api, currentRepository, type Api } from './api.js'
+import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision } from '../contracts/notes.js'
 
 export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds] })
+const comparable=(c:NoteContent)=>({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()})
+const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const errorCode = (e: unknown) => e instanceof Error && 'code' in e ? String(e.code) : 'request_failed'
 interface DetailRequest { navigation: number; noteId: string; kind: 'open' | 'operation' | 'poll' | 'sync'; baseNote: NoteView | null }
@@ -19,12 +22,11 @@ export interface NotesState {
   editing: boolean; saving: boolean; composing: boolean; operation: boolean; error: string | null; conflict: NoteView | null
   jobs: NoteJobOverview[]; jobsError: boolean; jobsCursor: string | null
 }
-/** Lives with the plugin, not the mounted panel: changing DSH panels never drops
- * an active draft. Only explicit save writes it; navigation never commits edits. */
+/** Plugin-owned editor: local autosave continues across panel transitions. */
 export class NotesController {
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){++this.navigation;++this.listing;++this.jobGeneration;this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
+  switched(){++this.navigation;++this.listing;++this.jobGeneration;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
@@ -51,7 +53,53 @@ export class NotesController {
     this.imageImports.add(job)
     return job
   }
-  constructor(private readonly call: Api = api) {}
+  private timer:ReturnType<typeof setTimeout>|undefined
+  private deadline:ReturnType<typeof setTimeout>|undefined
+  private finishPending=false
+  private recoveryProtected=false
+  private recoveredHeads:string[]=[]
+  private creating=false
+  imagePickerOpen=false
+  private inFlight:RecoveryRecord['inFlight']
+  private readonly recovery:NoteRecovery
+  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void}={}){
+    this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository)
+  }
+  private journal(){
+    const {noteId,note,draft,dirty}=this.state
+    if(!dirty||!noteId||!draft){if(noteId)this.recovery.clear();this.recoveryProtected=false;return}
+    this.recoveryProtected=this.recovery.write({request:{noteId,expectedHeads:note?.heads??this.recoveredHeads,content:draft},...(this.inFlight?{inFlight:this.inFlight}:{})})
+  }
+  get needsExitWarning(){return this.importing||(this.state.dirty&&!this.recoveryProtected)}
+  private clearTimers(){clearTimeout(this.timer);clearTimeout(this.deadline);this.timer=undefined;this.deadline=undefined}
+  private schedule(){
+    if(this.disposed||!this.state.dirty||this.state.composing)return
+    clearTimeout(this.timer)
+    const save=()=>{this.clearTimers();void this.flush()}
+    this.timer=setTimeout(save,this.options.autosaveMs??800)
+    this.deadline??=setTimeout(save,this.options.maxWaitMs??2500)
+  }
+  async leave(){this.finishPending=true;if(this.state.composing)return false;return this.saveEdits()}
+  private async recover():Promise<string|null>{
+    let record:RecoveryRecord|null
+    try{record=this.recovery.read()}catch{this.emit({error:'note_recovery_failed'});return null}
+    if(!record)return null
+    const {request,inFlight}=record
+    this.emit({loadingNote:true})
+    try{
+      let latest:NoteView|null=null
+      try{latest=(await this.call('/notes/get',{noteId:request.noteId})).note}catch(e){if(errorCode(e)!=='note_not_found')throw e}
+      if(latest&&sameContent(noteContent(latest),request.content)){this.recovery.clear();return latest.noteId}
+      if(latest&&inFlight&&sameContent(noteContent(latest),inFlight.content))request.expectedHeads=latest.heads
+      const result=await this.call('/notes/save',{...request,keepBoth:true})
+      this.recovery.clear();return result.note.noteId
+    }catch(e){
+      this.emit({noteId:request.noteId,note:null,draft:request.content,editing:true,dirty:true,error:errorCode(e)})
+      this.recoveredHeads=request.expectedHeads
+      this.recoveryProtected=true
+      return null
+    }finally{this.emit({loadingNote:false})}
+  }
   getSnapshot = () => this.state
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
   private emit(patch: Partial<NotesState>) { if (this.disposed) return; this.state = { ...this.state, ...patch }; this.listeners.forEach(fn => fn()) }
@@ -67,10 +115,10 @@ export class NotesController {
     } catch { if (generation === this.listing) this.emit({ loadingList: false, listError: true }) }
     finally { await selected }
   }
-  /** A pull may refresh a clean editor or expose a conflict, but never replace local work. */
+  /** Pulls refresh reading mode; an active editor keeps its original revision base. */
   private async refreshSelected(): Promise<void> {
     const noteId = this.state.noteId
-    if (!noteId || !this.state.note || this.state.section !== 'notes' || this.state.loadingNote || this.state.operation || this.state.saving) return
+    if (this.state.editing || !noteId || !this.state.note || this.state.section !== 'notes' || this.state.loadingNote || this.state.operation || this.state.saving) return
     const request = this.detailRequest('sync', noteId)
     try {
       const latest = (await this.call('/notes/get', { noteId })).note
@@ -83,7 +131,7 @@ export class NotesController {
   }
   filter(filter: NoteListOptions) { this.emit({ filter }); return this.refresh() }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
-    if(!this.canLeave())return
+    if(!await this.prepareLeave())return
     const navigation=this.navigation
     await this.filter(filter)
     if(this.state.section!=='notes'||this.state.filter!==filter||this.navigation!==navigation||this.state.listError||this.state.loadingList)return
@@ -94,8 +142,10 @@ export class NotesController {
   private initialized=false
   async initialize(lastId:string|null, order:NoteListOptions['order']='recent') {
     if (!this.initialized) this.emit({filter:{...this.state.filter,order}})
-    const restore=!this.initialized && !this.state.noteId
+    const firstLoad=!this.initialized
     this.initialized=true
+    if(firstLoad){const recovered=await this.recover();if(recovered)lastId=recovered;else if(this.state.error==='note_recovery_failed')return}
+    const restore=firstLoad && !this.state.noteId
     const navigation=this.navigation
     await this.refresh()
     if(!restore||navigation!==this.navigation||this.state.noteId||this.state.listError||this.disposed)return
@@ -109,46 +159,41 @@ export class NotesController {
   update(patch: Partial<NoteContent>) {
     if (!this.state.draft || this.state.loadingNote || this.state.operation || this.state.draft.status === 'trashed') return
     this.emit({ draft: { ...this.state.draft, ...patch }, dirty: true, error: this.state.conflict ? 'note_conflict' : null })
-
+    this.journal();this.schedule()
   }
-  composition(active: boolean) { this.emit({ composing: active }) }
-  beginEdit() { this.emit({editing: true, error:null}) }
+  composition(active: boolean) { this.emit({ composing: active });if(!active){this.journal();this.schedule();if(this.finishPending)void this.leave()} }
+  beginEdit() { this.finishPending=false;this.emit({editing: true, error:null}) }
   async saveEdits() {
+    const changed=this.state.editing||this.state.dirty
     if (!await this.flush()) return false
+    this.finishPending=false
     this.clearDraftImages()
-    this.emit({editing:false,error:null})
+    this.emit({editing:false,error:null,...(this.state.note?{draft:noteContent(this.state.note)}:{})})
+    if(changed)this.options.onSettled?.()
     return true
   }
-  cancelEdits() {
-    if (this.state.saving || this.state.operation || this.state.loadingNote) return
-    this.imageAbort.abort()
-    this.clearDraftImages()
-    this.imageAbort = new AbortController()
-    const note = this.state.conflict ?? this.state.note
-    this.emit({editing:false, dirty:false, composing:false, error:null, conflict:note && note.heads.length > 1 ? note : null,
-      note, noteId:note?.noteId ?? null, draft:note ? noteContent(note) : null})
-  }
-  private canLeave() {
-    if (this.state.saving || this.state.operation || this.state.composing) return false
-    if (!this.state.dirty && !this.importing) return true
-    this.emit({error:'note_unsaved'})
-    return false
+  private async prepareLeave(){
+    if(this.state.operation||this.state.composing)return false
+    const changed=this.state.editing||this.state.dirty
+    if(!await this.flush())return false
+    this.emit({editing:false});if(changed)this.options.onSettled?.();return true
   }
   flush(): Promise<boolean> {
+    this.clearTimers()
     if (this.disposed) return Promise.resolve(false)
     if(this.imageImports.size)return Promise.allSettled([...this.imageImports]).then(()=>this.flush())
     if (this.saving) return this.saving
     if (this.state.composing || this.state.operation) return Promise.resolve(false)
     if (!this.state.dirty) return Promise.resolve(true)
     if (this.state.conflict) return Promise.resolve(false)
-    this.saving = this.write().finally(() => { this.saving = null })
+    this.saving = this.write().finally(() => { this.saving = null;if(!this.disposed){this.inFlight=undefined;this.journal()} })
     return this.saving
   }
   /** Flush the exact selection and retain a navigation lease through asynchronous export. */
   async freezeExport(): Promise<{ note: NoteView; isCurrent: () => boolean } | null> {
     const navigation = this.navigation, noteId = this.state.noteId
     if (this.state.loadingNote || this.state.operation || this.state.conflict || !noteId) return null
-    if (!this.canLeave() || navigation !== this.navigation || noteId !== this.state.noteId || this.state.loadingNote || this.state.operation || this.state.conflict || this.state.dirty || !this.state.note) return null
+    if (!await this.prepareLeave() || navigation !== this.navigation || noteId !== this.state.noteId || this.state.loadingNote || this.state.operation || this.state.conflict || this.state.dirty || !this.state.note) return null
     const note = structuredClone(this.state.note)
     return { note, isCurrent: () => !this.disposed && navigation === this.navigation && this.state.section === 'notes' && !this.state.loadingNote && noteId === this.state.noteId && note.current.revision === this.state.note?.current.revision }
   }
@@ -157,15 +202,18 @@ export class NotesController {
       const { noteId, note, draft } = this.state
       if (!noteId || !draft) return false
       const sent = structuredClone(draft)
+      this.inFlight={noteId,expectedHeads:note?.heads??this.recoveredHeads,content:sent}
+      this.journal()
       this.emit({ saving: true, error: null })
       try {
-        const result = await this.call('/notes/save', { noteId, expectedHeads: note?.heads ?? [], content: sent, keepBoth:true })
+        const result = await this.call('/notes/save', { noteId, expectedHeads: note?.heads ?? this.recoveredHeads, content: sent, keepBoth:true })
         if (this.disposed || this.state.noteId !== noteId) return false
         const canonical = noteContent(result.note), current = this.state.draft!
         // Reconcile only fields unchanged since dispatch. Later typing survives.
         const merged = { ...current }
-        for (const key of Object.keys(sent) as Array<keyof NoteContent>) if (equal(current[key], sent[key])) Object.assign(merged, { [key]: canonical[key] })
-        this.emit({ noteId:result.note.noteId,note: result.note, draft: merged, dirty: !equal(merged, canonical), saving: false })
+        for (const key of Object.keys(sent) as Array<keyof NoteContent>) if ((!this.state.editing||!['title','summary','tags'].includes(key)||(key==='title'&&result.note.noteId!==noteId))&&equal(current[key], sent[key])) Object.assign(merged, { [key]: canonical[key] })
+        this.emit({ noteId:result.note.noteId,note: result.note, draft: merged, dirty: !sameContent(merged, canonical), saving: false })
+        this.inFlight=undefined;this.recoveredHeads=[];this.journal()
       } catch (error) {
         if (this.disposed) return false
         this.emit({ saving: false, error: errorCode(error) })
@@ -173,7 +221,7 @@ export class NotesController {
           try {
             const latest = (await this.call('/notes/get', { noteId })).note
             // A lost create/save receipt may be reconciled without creating a second note.
-            if (equal(noteContent(latest), sent) && equal(this.state.draft, sent)) this.emit({ note: latest, draft: noteContent(latest), dirty: false, error: null })
+            if (sameContent(noteContent(latest), sent) && equal(this.state.draft, sent)) this.emit({ note: latest, draft: noteContent(latest), dirty: false, error: null })
             else this.emit({ conflict: latest })
           } catch { /* Keep text and original failure. */ }
         }
@@ -194,12 +242,12 @@ export class NotesController {
    * started it. An old A readback must never finish a pending open of B. */
   private accept(note: NoteView, request: DetailRequest): boolean {
     if (note.noteId !== request.noteId || !this.ownsDetail(request)) return false
-    if (request.kind !== 'operation' && (this.state.dirty || this.state.composing || this.state.saving)) return false
+    if (request.kind !== 'operation' && ((request.kind!=='open'&&this.state.editing) || this.state.dirty || this.state.composing || this.state.saving)) return false
     this.emit({ editing:request.kind === 'open' ? false : this.state.editing, noteId: note.noteId, note, draft: noteContent(note), dirty: false, error: null, conflict: note.heads.length > 1 ? note : null, loadingNote: false, jobs: [], jobsError: false, jobsCursor: null }); void this.refreshJobs()
     return true
   }
   async open(noteId: string): Promise<boolean> {
-    if (this.disposed || !this.canLeave()) return false
+    if (this.disposed || !await this.prepareLeave()) return false
     const generation = ++this.navigation
     this.emit({ section: 'notes', loadingNote: true, error: null })
     const request = this.detailRequest('open', noteId)
@@ -210,15 +258,19 @@ export class NotesController {
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
   async create(): Promise<boolean> {
-    if (this.state.loadingNote || !this.canLeave()) return false
+    if(this.creating)return false
+    this.creating=true
+    try {
+    if (this.state.loadingNote || !await this.prepareLeave()) return false
     ++this.navigation
-    this.emit({ section: 'notes', editing:true, noteId: newId(), note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: true, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId: newId(), note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
     return true
+    }finally{this.creating=false}
   }
-  async navigate(section: NotesState['section']): Promise<boolean> { if (!this.canLeave() || this.state.operation) return false; ++this.navigation; this.emit({ section, editing:false, loadingNote: false }); return true }
-  async back(): Promise<boolean> { if (!this.canLeave() || this.state.operation) return false; ++this.navigation; this.emit({ editing:false, noteId: null, note: null, draft: null, loadingNote: false, jobs: [], error: null }); return true }
+  async navigate(section: NotesState['section']): Promise<boolean> { if (!await this.prepareLeave() || this.state.operation) return false; ++this.navigation; this.emit({ section, editing:false, loadingNote: false }); return true }
+  async back(): Promise<boolean> { if (!await this.prepareLeave() || this.state.operation) return false; ++this.navigation; this.emit({ editing:false, noteId: null, note: null, draft: null, loadingNote: false, jobs: [], error: null }); return true }
   async changeStatus(trashed: boolean) {
-    if (this.state.loadingNote || !this.canLeave() || !this.state.note || this.state.operation || this.state.loadingNote) return false
+    if (this.state.loadingNote || !await this.prepareLeave() || !this.state.note || this.state.operation || this.state.loadingNote) return false
     const note = this.state.note; this.emit({ operation: true })
     const request = this.detailRequest('operation', note.noteId)
     try { const accepted = this.accept((await this.call(trashed ? '/notes/trash' : '/notes/restore', { noteId: note.noteId, expectedHeads: note.heads })).note, request); if (accepted) void this.refresh(); return accepted }
@@ -245,7 +297,7 @@ export class NotesController {
     this.bookSaving = true
     let started = false
     try {
-      if (!this.canLeave() || this.state.operation || this.state.loadingNote) return false
+      if (!await this.prepareLeave() || this.state.operation || this.state.loadingNote) return false
       started = true
       this.emit({ operation: true })
       const result = await this.call('/notes/notebook', { title, expectedHeads: book?.heads ?? [], ...(book ? { notebookId: book.notebookId } : {}), remove })
@@ -288,7 +340,7 @@ export class NotesController {
     finally { this.polling = false }
   }
   async job(jobId: string, action: 'retry' | 'cancel' | 'adopt') {
-    if (this.state.loadingNote || !this.canLeave() || !this.state.note || this.state.operation || this.state.loadingNote) return false
+    if (this.state.loadingNote || !await this.prepareLeave() || !this.state.note || this.state.operation || this.state.loadingNote) return false
     const note = this.state.note; ++this.jobGeneration; this.emit({ operation: true })
     const request = this.detailRequest('operation', note.noteId)
     try {
@@ -299,5 +351,5 @@ export class NotesController {
     } catch (e) { if (this.ownsDetail(request)) { this.emit({ error: errorCode(e) }); if (errorCode(e) === 'note_conflict' || errorCode(e) === 'ai_stale') await this.loadConflict(request) }; return false }
     finally { if (this.ownsDetail(request)) { this.emit({ operation: false }); void this.refreshJobs() } }
   }
-  dispose() { this.clearDraftImages(); this.disposed = true; this.imageAbort.abort(); ++this.navigation; ++this.listing; this.listeners.clear() }
+  dispose() { this.clearTimers();if(this.state.dirty)this.journal();this.clearDraftImages(); this.disposed = true; this.imageAbort.abort(); ++this.navigation; ++this.listing; this.listeners.clear() }
 }

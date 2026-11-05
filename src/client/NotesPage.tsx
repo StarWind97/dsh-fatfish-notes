@@ -20,7 +20,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
   const app=useRef<HTMLDivElement>(null)
   const choose=(filter:NotesState['filter'])=>controller.selectFilter(filter,(app.current?.clientWidth??560)>=560)
   const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
-  useEffect(()=>{void controller.initialize(readPreference('last'),readPreference('order')==='oldest'?'oldest':'recent');return()=>clearTimeout(timer.current)},[controller])
+  useEffect(()=>{void controller.initialize(readPreference('last'),readPreference('order')==='oldest'?'oldest':'recent');return()=>{clearTimeout(timer.current);void controller.leave()}},[controller])
   useEffect(()=>{if(state.note?.current.status==='active')writePreference('last',state.note.noteId)},[state.note?.noteId,state.note?.current.status])
   useEffect(()=>{setQuery(state.filter.query??'');setTag(state.filter.tag??'')},[state.filter.query,state.filter.tag])
   useEffect(()=>{
@@ -72,7 +72,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot"><button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss}</style>
     <header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','settings'] as const).map(section=><button key={section} aria-pressed={state.section===section} onClick={()=>{clearTimeout(timer.current);void controller.navigate(section)}}>{t(section==='notes'?'notesLibrary':'notesSettings')}</button>)}</nav>
-    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
+    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
     {state.section==='settings'?<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>:
     <PaperColumns t={t} selected={!!state.draft} list={list}>
       {state.draft?<NoteEditor onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}

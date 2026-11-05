@@ -6,6 +6,8 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 ![DSH Notebook library](https://raw.githubusercontent.com/StarWind97/dsh-github-notebook/main/assets/screenshots/01-library.png)
 
+The unreleased `0.5.1-dev.4` development build adds automatic local saving, recovery on reopening, and foreground two-way checks every five minutes. Published `0.5.0` still uses Save/Cancel.
+
 ## Features
 
 - Save the current exchange, selected turns or messages, or a whole conversation. Keep the original conversation material separately from the editable note.
