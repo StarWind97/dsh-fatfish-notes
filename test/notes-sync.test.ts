@@ -189,17 +189,18 @@ test('setup requires explicit repository intent and refuses ordinary private rep
   }finally{await f.close()}
 })
 
-test('chosen folder holds old and new documents and offline saves retry automatically after restarting',async()=>{
+test('fresh folder excludes old unbound documents and offline saves retry automatically after restarting',async()=>{
   const f=await fixture()
   try{
-    const initial=await f.instance('first'), folder=join(f.dir,'我的笔记'), mode='create',repo='private-data'
+    const initial=await f.instance('first'), folder=join(f.dir,'我的笔记','private-data'), mode='create',repo='private-data'
     const legacy=await initial.notes.save({expectedHeads:[],content:content('before upgrade')})
     await assert.rejects(initial.sync.preview({repo,mode,folder:f.dir}),{code:'notebook_folder_invalid'})
     await assert.rejects(initial.sync.preview({repo,mode,folder:f.remote}),{code:'notebook_folder_invalid'})
     const p=await initial.sync.preview({repo,mode,folder})
     await initial.sync.connect({previewId:p.preview.id,confirmPrivate:true});assert.equal(initial.sync.ready,true)
     assert.equal(initial.notes.files.root,join(folder,'notes'))
-    assert.match(await readFile(join(folder,'notes','documents',legacy.noteId+'.md'),'utf8'),/before upgrade/)
+    assert.match(await readFile(join(initial.root,'notes','documents',legacy.noteId+'.md'),'utf8'),/before upgrade/)
+    assert.equal((await initial.notes.list()).items.length,0)
     const asset=await initial.notes.putAsset(png,'image/png')
     f.runner=async(args,options)=>{if(args.includes('ls-remote'))throw new NotebookError('git_failed','offline',502);return runGit(args,options)}
     const offline=await initial.notes.save({expectedHeads:[],content:{...content('saved offline'),assetIds:[asset.id]}})
@@ -215,7 +216,7 @@ test('chosen folder holds old and new documents and offline saves retry automati
     f.runner=runGit
     await until(()=>!b.sync.state().pending)
     assert.match(await f.show('notes/documents/'+offline.noteId+'.md'),/saved offline/)
-    const other=await f.instance('other');await assert.rejects(other.sync.preview({repo,mode:'existing',folder}),{code:'notebook_folder_invalid'})
+    const other=await f.instance('other');await assert.rejects(other.sync.preview({repo,mode:'existing',folder}),{code:'notebook_folder_occupied'})
     await f.connect(other.sync);assert.equal((await other.notes.get(offline.noteId)).current.title,'saved offline')
   }finally{await f.close()}
 })

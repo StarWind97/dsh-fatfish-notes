@@ -7,11 +7,13 @@ import { SyncDetails, syncCss } from './SyncDetails.js'
 import { CaptureAppearance } from './CaptureAppearance.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { BoundGitHubLogin } from './BoundGitHubLogin.js'
+import { pickSetupParent, setupFolder } from './setup-folder.js'
 import { DEFAULT_PRIVATE_REPO_NAME, type PersonalState, type PersonalPreview, type PersonalApiContract } from '../contracts/personal.js'
 import type { LocaleKey, T } from './locale.js'
 
 type Tools = PersonalApiContract['/personal/sync/tools']['response']
 const setupErrors: Record<string, LocaleKey> = {
+  notebook_picker_failed:'setupPickerFailed',notebook_picker_unavailable:'setupPickerUnavailable',notebook_folder_occupied:'setupFolderOccupied',
   notebook_previous_folder_unavailable:'resetLostFolder',
   notebook_move_changed:'moveChanged',notebook_move_failed:'moveChanged',notebook_unsynced:'resetPending',notebook_reset_target:'resetDifferent',notebook_dirty:'resetDirty',notebook_already_bound:'setupConnected',
   notebook_folder_invalid:'setupBadFolder', notebook_folder_bound:'setupBadFolder', note_path:'setupBadFolder',
@@ -25,7 +27,7 @@ const setupErrors: Record<string, LocaleKey> = {
 }
 const setupChanged = 'dsh-notebook-connected'
 
-type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'
+type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'|'pick'
 export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React.ReactNode;showFeedback?:boolean}) {
   const [data,setStoredData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
   const liveSync=useSyncExternalStore(notebookSync.subscribe,notebookSync.getSnapshot,notebookSync.getSnapshot)
@@ -33,6 +35,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   const [manage,setManage]=useState<'bound'|'move'|'reset'>('bound')
   const [mode,setMode]=useState<'existing'|'create'>('create'),[repo,setRepo]=useState<string>(DEFAULT_PRIVATE_REPO_NAME)
   const [custom,setCustom]=useState<string|null>(null),[editingFolder,setEditingFolder]=useState(false)
+  const [parent,setParent]=useState<string|null>(null)
   const [preview,setPreview]=useState<PersonalPreview|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<LocaleKey|null>(null)
   const [recovery,setRecovery]=useState<{folder:string;intent?:'locate'|'new'}|null>(null)
   const [notice,setNotice]=useState<LocaleKey|null>(null)
@@ -42,6 +45,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   const sync=liveSync&&liveSync.binding?.repositoryId===data?.sync.binding?.repositoryId?liveSync:data?.sync, resetting=manage==='reset', wizard=!!sync && (resetting || !sync.binding)
   const repoLabel=sync?.binding ? sync.binding.account.login+'/'+sync.binding.repo : ''
   const suggested=sync?.defaultFolder.replace(/[^/\\]+$/,()=>repo.trim()||DEFAULT_PRIVATE_REPO_NAME)??''
+  const initialFolder=parent===null?suggested:setupFolder(parent,repo.trim()||DEFAULT_PRIVATE_REPO_NAME)
   function failed(e:unknown){
     if(resetting && e instanceof ApiError && e.previousFolder){
       const folder=e.previousFolder
@@ -73,7 +77,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   },[!!children,!!sync?.binding])
   useEffect(()=>{if(notice!=='setupFirstSyncDone')return;const timer=setTimeout(()=>setNotice(null),5000);return()=>clearTimeout(timer)},[notice])
   useEffect(()=>{if(error)errorMessage.current?.scrollIntoView({block:'nearest'})},[error])
-  function leave(){request.current?.abort();setPreview(null);setCustom(null);setRecovery(null);setEditingFolder(false);setManage('bound');setError(null)}
+  function leave(){request.current?.abort();setPreview(null);setCustom(null);setParent(null);setRecovery(null);setEditingFolder(false);setManage('bound');setError(null)}
   function changeTarget(){if(recovery){setRecovery(null);setCustom(null);setEditingFolder(false)}setError(null)}
   function chooseRecovery(intent:'locate'|'new'){
     if(!recovery)return
@@ -84,9 +88,10 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
     const job=new AbortController();request.current=job;setBusy(true);setError(null);setNotice(null)
     try{
       if(action==='check'){setData(await api('/personal',undefined,job.signal));setTools(await api('/personal/sync/tools',{},job.signal))}
+      else if(action==='pick'){const folder=await pickSetupParent(job.signal);if(folder!==null)setParent(folder)}
       else if(action==='login'){await api('/personal/sync/login',{},job.signal);setTools(await api('/personal/sync/tools',{},job.signal))}
       else if(action==='preview' && sync){
-        const form={mode,repo:repo.trim(),folder:custom?.trim()||''}
+        const form={mode,repo:repo.trim(),folder:resetting?custom?.trim()||'':initialFolder}
         const result=resetting && sync.binding
           ? await api('/personal/sync/reset-preview',{...form,repositoryId:sync.binding.repositoryId,...(recovery?.intent?{folderIntent:recovery.intent}:{})},job.signal)
           : await api('/personal/sync/preview',form,job.signal)
@@ -163,7 +168,13 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
       <section className="setup-section"><strong><span className="setup-step">3</span>{t('setupLocationTitle')}</strong>
         <small>{t('setupLocalHint')}</small>
         <fieldset className="setup-fields" disabled={busy||!prerequisites}><legend>{t('setupFolder')}</legend>
-        {recovery?<div className="setup-folder"><strong>{t('resetLastFolder')}</strong><code>{recovery.folder}</code>
+        {!resetting?<div className="setup-folder">
+          <small>{t('setupFinalLocation')}</small><code data-setup-location>{initialFolder}</code>
+          <small>{t('setupParentHint')}</small>
+          <div className="setup-modes"><button type="button" onClick={()=>void run('pick')}><Folder size={15}/>{t('setupChange')}</button>
+            {parent!==null&&<button type="button" onClick={()=>{setParent(null);setError(null)}}>{t('setupDefaultLocation')}</button>}</div>
+          {error==='setupFolderOccupied'&&<p className="setup-note">{t(mode==='create'?'setupOccupiedCreate':'setupOccupiedExisting')}</p>}
+        </div>:recovery?<div className="setup-folder"><strong>{t('resetLastFolder')}</strong><code>{recovery.folder}</code>
           <p>{t('resetLostFolder')}</p><div className="setup-modes">{(['locate','new'] as const).map(intent=><button type="button" key={intent} aria-pressed={recovery.intent===intent} onClick={()=>chooseRecovery(intent)}>{t(intent==='locate'?'resetLocate':'resetNewFolder')}</button>)}</div>
           {recovery.intent&&<label>{t(recovery.intent==='locate'?'resetLocatePath':'resetNewPath')}<input autoFocus value={custom??''} onChange={e=>setCustom(e.target.value)}/></label>}
         </div>:<div className="setup-folder">

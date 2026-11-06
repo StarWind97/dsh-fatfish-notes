@@ -7,7 +7,7 @@ import type { ApiResponse, ErrorResponse } from '../contracts/api.js'
 import type { NotebookApplication } from './application.js'
 import { ROUTE_PREFIXES } from './plugin-identity.js'
 
-export const routePaths=['/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
+export const routePaths=['/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/folder/pick','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
 const READ_ONLY=new Set<string>(['/notes/export-font','/notes','/notes/notebooks','/notes/jobs','/notes/asset','/notes/job','/notes/get','/notes/source','/personal'])
 function loopback(value:string):boolean{if(value==='::1'||value==='::ffff:127.0.0.1')return true;const v=value.replace(/^::ffff:/,'');return isIP(v)===4&&v.split('.')[0]==='127'}
 function fence(req:IncomingMessage,origin:string):void{
@@ -69,6 +69,7 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
       }
       let value:ApiResponse
       switch(path){
+        case '/personal/folder/pick':value=await app.pickFolder(signal);break
         case '/notes':value=await app.notes.list(body,signal);break
         // Once the complete request has arrived, a page closing must not cancel its local write.
         case '/notes/save':value=await app.notes.save(body);break

@@ -3,9 +3,11 @@ import { GitHubCli } from '../onboarding/cli.js'
 import { PrivateWorkspaceSync, type PrivateWorkspaceSyncOptions } from '../private-workspace/sync.js'
 import type { NoteModelController } from './note-model.js'
 import type { PersonalState } from '../contracts/personal.js'
+import { NotebookError } from '../domain/errors.js'
 export interface ApplicationOptions {
   dir: string
   conversation?: () => NoteModelController | undefined
+  pickFolder?: (signal?:AbortSignal)=>Promise<string|null>
   personal?: Pick<PrivateWorkspaceSyncOptions,'gateway'|'gitRunner'|'remoteForTest'|'batchMs'|'retryMs'>
 }
 export class NotebookApplication {
@@ -16,6 +18,10 @@ export class NotebookApplication {
     this.backup=new PrivateWorkspaceSync({dir:options.dir,notes:this.notes.repository,drainNotes:()=>this.notes.drain(),gateway:options.personal?.gateway??new GitHubCli(),...options.personal})
   }
   personalState():PersonalState { return {ok:true,sync:this.backup.state()} }
+  async pickFolder(signal?:AbortSignal) {
+    if(!this.options.pickFolder)throw new NotebookError('notebook_picker_unavailable','当前宿主无法打开目录选择窗口',409)
+    return {ok:true as const,folder:await this.options.pickFolder(signal)}
+  }
   async close() { await Promise.all([this.notes.close(),this.backup.close()]) }
 }
 export async function createApplication(options:ApplicationOptions) {

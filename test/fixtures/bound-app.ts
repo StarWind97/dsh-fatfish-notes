@@ -15,7 +15,7 @@ export async function createBoundApplication(options:ApplicationOptions) {
       createPrivate:async()=>repo={id:2,name:'test',owner:account.login,ownerId:account.id,visibility:'private'}}
   }})
   try {
-    const {preview}=await app.backup.preview({mode:'create',repo:'test',folder:options.dir})
+    const {preview}=await app.backup.preview({mode:'create',repo:'test'})
     await app.backup.connect({previewId:preview.id,confirmPrivate:true})
     return app
   }catch(e){await app.close();throw e}

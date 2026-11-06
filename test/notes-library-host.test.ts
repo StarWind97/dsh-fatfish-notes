@@ -64,7 +64,7 @@ test('M5 real HTTP local library CRUD, notebooks, source assets and route-specif
     query.delete('sourceId'); query.set('noteId', note.noteId); query.set('revision', note.current.revision); assert.equal((await get(`/notes/asset?${query}`)).status, 404)
     query.set('assetId', '../../secret'); assert.notEqual((await get(`/notes/asset?${query}`)).status, 200)
     assert.equal((await fetch(`${origin}/dsh-github-notebook/notes/asset?${query}`, { headers: { 'sec-fetch-site': 'cross-site' } })).status, 403)
-    const restarted = new NotesApplication(dir, () => undefined)
+    const restarted = new NotesApplication(app.personalState().sync.folder, () => undefined)
     try { assert.equal((await restarted.get({ noteId: note.noteId })).note.current.body, bigBody) } finally { await restarted.close() }
   } finally { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); await app.close(); await rm(dir, { recursive: true, force: true }) }
 })

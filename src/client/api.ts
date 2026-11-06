@@ -5,6 +5,7 @@ const text=(x:unknown):x is string=>typeof x==='string'
 function assertResponse<P extends ApiPath>(path:P,value:unknown):asserts value is ApiContract[P]['response'] {
   const valid=validNotesResponse(path,value)
   if(valid === true)return
+  if(path==='/personal/folder/pick' && record(value) && value.ok===true && (value.folder===null||text(value.folder)))return
   if(path==='/personal/sync/login' && record(value) && value.ok===true)return
   if(path==='/personal/sync/tools' && record(value) && value.ok===true && typeof value.git==='boolean' && typeof value.gh==='boolean' && (value.account===null || (record(value.account) && text(value.account.login))) && ['idle','waiting','failed'].includes(String(value.login)))return
   if(valid === undefined && record(value) && value.ok===true &&

@@ -16,6 +16,8 @@
 
 ## 开发验证
 
+2026-11-06 按[首次初始化目录规划](plans/2026-11-06-setup-folder-picker.zh.md)调整第三步：系统弹窗选择父目录，本地末级与云端库同名，支持取消和恢复默认。首次接入只使用新目录或空目录，已有云端库可下载到新的本地副本；已有绑定及切库位置记忆继续沿用。[验证范围](verification-log.zh.md#首次初始化目录选择)与实际图册 `output/playwright/setup-picker/index.html` 已更新。此项为开发版改进，正式包仍为 `0.5.1`。
+
 当前 `main` 已按[已批准的章节目录方案](plans/2026-11-05-chapter-outline.zh.md)加入阅读与编辑导航：宽窗右栏、窄窗浮层、章节跳转和标题自动更新。此项为 `0.5.1` 发布后的开发改进，正式 Release 安装包保持不变。实际截图见本机 `output/playwright/outline/index.html`，覆盖范围见[章节目录验收](verification-log.zh.md#章节目录开发版验收)。
 
 按体验反馈完成[目录边距与独立滚动调整](plans/2026-11-05-outline-scroll-layout.zh.md)，继续实施[目录默认状态与居中开关](plans/2026-11-05-outline-interaction.zh.md)：宽窗默认展开、窄窗默认收起，窄窗选章节后保持显示直到离开，居中半透明箭头控制开关，顶部操作栏固定，目录随阅读/编辑位置高亮。列表滚动条外侧留白进一步缩小。2026-11-06 细化为跨在目录边界上的无边框双箭头，缩小目录左侧留白，悬停显示「展开目录」「收起目录」。最新图册为本机 `output/playwright/outline-arrow/index.html`。

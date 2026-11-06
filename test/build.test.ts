@@ -98,7 +98,7 @@ test('declared package entries resolve to existing Host, Client, and type artifa
 
 test('the shipped HTTP and tool entry points belong to notes and private backup only',async()=>{
   const {routePaths}=await import('../src/host/routes.js')
-  assert.ok(routePaths.every(p=>p==='/notes'||p.startsWith('/notes/')||p==='/personal'||p.startsWith('/personal/sync')))
+  assert.ok(routePaths.every(p=>p==='/notes'||p.startsWith('/notes/')||p==='/personal'||p==='/personal/folder/pick'||p.startsWith('/personal/sync')))
   const source=await readFile(new URL('../src/index.ts',import.meta.url),'utf8')
   assert.match(source,/registerNoteTools\(ctx.tools,app.notes\)/)
   const tools=await readFile(new URL('../src/host/note-tools.ts',import.meta.url),'utf8')

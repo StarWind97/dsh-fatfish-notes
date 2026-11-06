@@ -38,6 +38,13 @@ export interface PersonalPreview {
     dataScope: string[];
 }
 export interface PersonalApiContract {
+    '/personal/folder/pick': {
+        request: Record<string, never>;
+        response: {
+            ok: true;
+            folder: string | null;
+        };
+    };
     '/personal/sync/start': {
         request: Record<string, never>;
         response: PersonalState;

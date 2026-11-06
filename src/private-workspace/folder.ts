@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { NotebookError } from '../domain/errors.js'
 import { missing, readBytes, replaceFile, safePath } from '../notes/files.js'
 import type { NoteRepository } from '../notes/repository.js'
@@ -57,6 +57,20 @@ export function distinctFolder(home:string, source:string, target:string):void {
 export async function emptyFolder(path:string):Promise<void> {
   await safePath(path)
   if ((await readdir(path).catch(e=>{if(missing(e))return [];throw invalid()})).length) throw invalid()
+}
+export async function checkInitialFolder(home:string,path:string,repo:string,resuming=false):Promise<void> {
+  // Fresh setup cannot adopt the control folder or a differently named local copy.
+  if(!relative(home,path)||basename(path)!==repo)throw invalid()
+  await safePath(path)
+  const files=await readdir(path).catch(e=>{if(missing(e))return [];throw invalid()})
+  if(!files.length)return
+  if(resuming && files.length===1 && files[0]===marker && await owned(home,path))return
+  throw new NotebookError('notebook_folder_occupied','此文件夹已有内容，请修改新建云端库名称或更换父目录',409)
+}
+export async function prepareInitialFolder(home:string,path:string,repo:string):Promise<void> {
+  await checkInitialFolder(home,path,repo,true)
+  await mkdir(path,{recursive:true})
+  if(!await owned(home,path))await writeFile(join(path,marker),resolve(home),{flag:'wx',mode:0o600})
 }
 export async function claimFolder(home:string,path:string):Promise<void> {
   await emptyFolder(path)

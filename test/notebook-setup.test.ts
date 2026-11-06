@@ -10,7 +10,8 @@ import { GitHubCli } from '../src/onboarding/cli.js'
 
 test('fresh host gates HTTP, capture and tool writes, and reports missing tools independently',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-onboard-'))
-  const app=await createApplication({dir,personal:{gateway:{available:async()=>false,account:async()=>null,repository:async()=>null,createPrivate:async()=>assert.fail()},gitRunner:async()=>{throw Error('no git')}}})
+  let picks=0
+  const app=await createApplication({dir,pickFolder:async()=>{picks++;return null},personal:{gateway:{available:async()=>false,account:async()=>null,repository:async()=>null,createPrivate:async()=>assert.fail()},gitRunner:async()=>{throw Error('no git')}}})
   let origin=''
   const server=createServer((req,res)=>void createHttpHandler({app,getOrigin:()=>origin})(req,res))
   try {
@@ -25,6 +26,10 @@ test('fresh host gates HTTP, capture and tool writes, and reports missing tools 
     assert.equal((await (await post('/personal')).json()).sync.ready,false)
     const tools=await (await post('/personal/sync/tools')).json()
     assert.equal(tools.git,false);assert.equal(tools.gh,false);assert.equal(tools.account,null)
+    assert.equal((await fetch(origin+'/dsh-github-notebook/personal/folder/pick')).status,405)
+    assert.equal((await fetch(origin+'/dsh-github-notebook/personal/folder/pick',{method:'POST',headers:{'content-type':'application/json',origin:'https://elsewhere.example'},body:'{}'})).status,403)
+    assert.equal(picks,0)
+    assert.deepEqual(await (await post('/personal/folder/pick')).json(),{ok:true,folder:null});assert.equal(picks,1)
   } finally {server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));await app.close();await rm(dir,{recursive:true,force:true})}
 })
 

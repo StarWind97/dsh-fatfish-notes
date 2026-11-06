@@ -6,12 +6,13 @@ import { createHttpHandler, routePaths } from './host/routes.js'
 import { registerNoteTools } from './host/note-tools.js'
 import { dataDirectory } from './storage/paths.js'
 import { ownApplication, PLUGIN_NAME } from './host/plugin-identity.js'
+import { pickHostFolder } from './host/folder-picker.js'
 
 export const name=PLUGIN_NAME
 export const inject=['tools']
 export async function apply(ctx:Context):Promise<void>{
   const dir=dataDirectory()
-  const app=await ownApplication(ctx,dir,()=>createApplication({dir,conversation:()=>ctx.get('sessionController')}))
+  const app=await ownApplication(ctx,dir,()=>createApplication({dir,conversation:()=>ctx.get('sessionController'),pickFolder:signal=>pickHostFolder(ctx.get('directoryPicker'),signal)}))
   ctx.effect(()=>registerNoteTools(ctx.tools,app.notes),'notes tools')
   ctx.inject(['webServer'],injected=>{
     const handler=createHttpHandler({app,getOrigin:()=>injected.webServer.getOrigin()})

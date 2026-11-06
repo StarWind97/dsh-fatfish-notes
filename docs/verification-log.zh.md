@@ -8,6 +8,19 @@
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
 
+## 首次初始化目录选择
+
+2026-11-06 按[已批准规划](plans/2026-11-06-setup-folder-picker.zh.md)实现父目录弹窗选择、与云端库同名、取消和恢复默认、首次拒绝非空本地资料。首次接入涉及目录与数据边界，按第三档验证。
+
+- 类型检查与构建通过。全量执行 217 项，初次 213 项通过；4 项沿用旧目录初始化方式或旧接口白名单的用例未通过。修订测试准备方式及白名单后，这 4 项分别专项复测通过，没有放宽生产校验。记录为 `.dsh-home/pure-001/setup-folder-tests.log`、`setup-picker-legacy-test.log`、`setup-picker-legacy-upgrade.log`、`setup-picker-focused.log`。
+- 新用例验证同名约束、非空拒绝、旧目录标记不能直接接管、预检不创建云端库、确认时再次检查目录以及失败后重启重试。旧未绑定笔记保持原件，不被导入新库；原有绑定、搬迁和 A → B → A 继续工作。
+- 隔离 Web 实测取消保留默认或此前自选路径、恢复默认、第二步改名联动、非空目录拒绝和原文件保持不变。自动界面检查中的选目录返回值为模拟，避免操作系统窗口干扰可重复检查；没有把模拟当作原生选择证据。
+- 另在当前 DSH 0.2.1-rc.5 的真实 Host 打开系统目录选择窗口，由用户点击「取消」，实际接口返回 `200 / folder: null`。当前桌面控制通道不可用，因此未自动完成系统窗口中的目录确认操作；选择结果后的联动由上述自动检查覆盖。记录为 `setup-picker-native.json`。
+- 通过真实 GitHub 指定测试私库预检、确认接入和首次同步，新副本位于 `.dsh-home/pure-001/setup-picker-parent/dsh-community-private-test`，云端笔记可读取。新建远端库的分支由本地 Git 和模拟 GitHub 网关验证，没有另建远端测试库。
+- 开发包分别安装到 `release12-desktop` 和 `setup-picker-web`，各 128 个包文件逐项一致。Desktop 实测保留原库与笔记，原生目录选择桥可用。无 Web 页面异常，自建窗口和后台测试进程已关闭。
+- 截图图册为 `output/playwright/setup-picker/index.html`，界面记录为 `setup-picker-ui.json`、`setup-picker-desktop.json`。已有 Desktop 体验入口 `.dsh-home/pure-001/Open-Release12.cmd` 已更新；正式发布仍为 `0.5.1`，未发布新包。
+- 默认路径及本机系统弹窗已覆盖 Windows。宿主未提供原生选择能力时保留默认位置，并提示在本机 Desktop 选择；macOS 与远程浏览环境未实测。
+
 ## 收起目录的箭头右侧间距
 
 2026-11-06 用户决定暂时保留现有双折线样式，将收起状态按钮的右侧定位间距由 26px 减半至 13px；玻璃材质预览未并入插件。

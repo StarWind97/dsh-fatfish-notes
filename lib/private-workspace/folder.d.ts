@@ -17,6 +17,8 @@ export declare function folderPath(home: string, input: unknown): string;
 export declare function suggestedFolder(home: string, repo: string): string;
 export declare function distinctFolder(home: string, source: string, target: string): void;
 export declare function emptyFolder(path: string): Promise<void>;
+export declare function checkInitialFolder(home: string, path: string, repo: string, resuming?: boolean): Promise<void>;
+export declare function prepareInitialFolder(home: string, path: string, repo: string): Promise<void>;
 export declare function claimFolder(home: string, path: string): Promise<void>;
 export declare const folderMarker = ".dsh-notebook-folder";
 export declare function checkFolder(home: string, path: string, bound?: boolean): Promise<void>;

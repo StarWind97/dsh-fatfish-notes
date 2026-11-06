@@ -12,6 +12,7 @@ import type {GitHubGateway,GitHubRepository} from '../src/onboarding/types.js'
 import {NotebookError} from '../src/domain/errors.js'
 import {copyForMove} from '../src/private-workspace/move.js'
 import {replaceFile} from '../src/notes/files.js'
+import {claimFolder} from '../src/private-workspace/folder.js'
 
 const content=(title:string)=>({title,body:title,summary:'',tags:[],notebookId:null,status:'active',sourceId:null,assetIds:[]})
 test('an atomic replacement waits out a real Windows sharing lock',{skip:process.platform!=='win32'},async()=>{
@@ -51,6 +52,51 @@ async function fixture(){
     async connect(folder?:string){const {preview}=await app.backup.preview({repo:'alpha',mode:'create',folder:folder??''});await app.backup.connect({previewId:preview.id,confirmPrivate:true});return app.personalState().sync},
     async close(){await app.close();await rm(root,{recursive:true,force:true})}}
 }
+
+test('fresh setup only uses a same-named empty folder and does not create a cloud repository during preview',async()=>{
+  const f=await fixture(),folder=join(f.root,'自选父目录','alpha')
+  try{
+    await mkdir(folder,{recursive:true})
+    await assert.rejects(f.app.backup.preview({mode:'create',repo:'alpha',folder:join(f.root,'different')}),{code:'notebook_folder_invalid'})
+    await writeFile(join(folder,'old.md'),'keep original')
+    await assert.rejects(f.app.backup.preview({mode:'create',repo:'alpha',folder}),{code:'notebook_folder_occupied'})
+    assert.equal(f.repos.size,0);assert.equal(await readFile(join(folder,'old.md'),'utf8'),'keep original')
+    const other=join(f.root,'other','alpha');await mkdir(other,{recursive:true})
+    const {preview}=await f.app.backup.preview({mode:'create',repo:'alpha',folder:other})
+    assert.equal(preview.folder,other);assert.equal(f.repos.size,0);assert.deepEqual(await readdir(other),[])
+    // Recheck immediately before creation: a folder may have gained files since preview.
+    await writeFile(join(other,'later.txt'),'new occupant')
+    await assert.rejects(f.app.backup.connect({previewId:preview.id,confirmPrivate:true}),{code:'notebook_folder_occupied'})
+    assert.equal(f.repos.size,0);assert.equal(await readFile(join(other,'later.txt'),'utf8'),'new occupant')
+    const renamed=await f.app.backup.preview({mode:'create',repo:'renamed'})
+    assert.equal(renamed.preview.folder,join(f.home,'libraries','renamed'));assert.equal(f.repos.size,0)
+  }finally{await f.close()}
+})
+
+test('an old folder marker alone does not authorize a fresh installation to adopt local data',async()=>{
+  const f=await fixture(),folder=join(f.root,'alpha')
+  try{
+    await claimFolder(f.home,folder)
+    await assert.rejects(f.app.backup.preview({mode:'create',repo:'alpha',folder}),{code:'notebook_folder_occupied'})
+    assert.deepEqual(await readdir(folder),['.dsh-notebook-folder']);assert.equal(f.repos.size,0)
+  }finally{await f.close()}
+})
+
+test('a failed first creation resumes its own claimed empty folder after restart',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'setup-retry-')),dir=join(root,'control'),folder=join(root,'alpha'),owner={id:1,login:'Alice'}
+  let attempts=0
+  const gateway:GitHubGateway={available:async()=>true,account:async()=>owner,repository:async()=>null,createPrivate:async()=>{attempts++;throw new Error('offline')}}
+  let app=await createApplication({dir,personal:{gateway}})
+  try{
+    let checked=await app.backup.preview({mode:'create',repo:'alpha',folder})
+    await assert.rejects(app.backup.connect({previewId:checked.preview.id,confirmPrivate:true}))
+    assert.equal(attempts,1);assert.deepEqual(await readdir(folder),['.dsh-notebook-folder'])
+    await app.close();app=await createApplication({dir,personal:{gateway}})
+    checked=await app.backup.preview({mode:'create',repo:'alpha',folder})
+    await assert.rejects(app.backup.connect({previewId:checked.preview.id,confirmPrivate:true}))
+    assert.equal(attempts,2);assert.equal(app.personalState().sync.binding,null)
+  }finally{await app.close();await rm(root,{recursive:true,force:true})}
+})
 
 test('new libraries default to dsh-notes and keep an explicitly named library on restart',async()=>{
   const f=await fixture()
@@ -114,7 +160,14 @@ test('offline move copies the verified notebook and Git cache, preserves pending
 test('moving a legacy bound home preserves control records and ignores unowned files; interrupted copies can retry',async()=>{
   const f=await fixture()
   try{
-    const s=await f.connect(f.home),repoId=s.binding!.repositoryId,dest=join(f.home,'libraries','alpha')
+    const s=await f.connect(),repoId=s.binding!.repositoryId,dest=s.folder
+    // Model a previously bound legacy installation, not a new setup into a nonempty home.
+    await f.app.close()
+    await rename(join(dest,'notes'),join(f.home,'notes'))
+    await rm(dest,{recursive:true,force:true})
+    const config=JSON.parse(await readFile(join(f.home,'backup','sync.json'),'utf8'))
+    config.folder=f.home;config.locations=[]
+    await writeFile(join(f.home,'backup','sync.json'),JSON.stringify(config));await f.restart()
     const note=(await f.app.notes.save({expectedHeads:[],content:content('legacy')})).note
     const foreign=join(f.root,'foreign');await mkdir(foreign);await writeFile(join(foreign,'user.txt'),'keep')
     await assert.rejects(f.app.backup.move({repositoryId:repoId,folder:foreign}),{code:'notebook_folder_invalid'})
@@ -242,10 +295,12 @@ test('return by stable identity finds the last moved folder after restart and co
 test('upgrade remembers the active legacy control folder and allows returning to it',async()=>{
   const f=await fixture()
   try{
-    const a=await f.connect(f.home),id=a.binding!.repositoryId
+    const a=await f.connect(),id=a.binding!.repositoryId
     await f.app.close()
+    await rename(join(a.folder,'notes'),join(f.home,'notes'))
+    await rm(a.folder,{recursive:true,force:true})
     const cfg=join(f.home,'backup','sync.json'), legacy=JSON.parse(await readFile(cfg,'utf8'))
-    delete legacy.locations;await writeFile(cfg,JSON.stringify(legacy))
+    legacy.folder=f.home;delete legacy.locations;await writeFile(cfg,JSON.stringify(legacy))
     await rm(join(f.home,'notes','.dsh-local-repository'))
     await f.restart()
     const b=await f.app.backup.resetPreview({repositoryId:id,repo:'beta',mode:'create',folder:''})

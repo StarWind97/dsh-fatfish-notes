@@ -5,7 +5,7 @@ import { NotebookError } from '../domain/errors.js';
 import { isRecord } from '../domain/record.js';
 import { cancelled } from '../git/common.js';
 import { createGitBackend, runGit, type GitBackend, type GitRunner } from '../git/backend.js';
-import { checkFolder, distinctFolder, emptyFolder, folderMarker, folderPath, markFolder, prepareFolder, readFolderIdentity, suggestedFolder, verifyRememberedFolder, type NotebookLocation } from './folder.js';
+import { checkFolder, checkInitialFolder, prepareInitialFolder, distinctFolder, emptyFolder, folderMarker, folderPath, markFolder, prepareFolder, readFolderIdentity, suggestedFolder, verifyRememberedFolder, type NotebookLocation } from './folder.js';
 import { missing, replaceFile } from '../notes/files.js';
 import { copyForMove } from './move.js';
 import type { GitHubGateway, GitHubRepository } from '../onboarding/types.js';
@@ -30,6 +30,7 @@ interface Config {
     } | null;
     preview: (PersonalPreview & {
         creationAttempted: boolean;
+        folderPrepared?: boolean;
     }) | null;
 }
 export interface PrivateWorkspaceSyncOptions {
@@ -73,6 +74,7 @@ function validateConfig(input: unknown, home: string): Config {
     if (input.lastFailure !== undefined && (!isRecord(input.lastFailure) || typeof input.lastFailure.at!=='string' || !Number.isFinite(Date.parse(input.lastFailure.at)) || typeof input.lastFailure.code!=='string' || !/^[a-z_]{1,60}$/.test(input.lastFailure.code))) fail('personal_config_invalid','本机同步诊断无效',500);
     if (input.preview !== null) {
         const p = input.preview;
+        if(isRecord(p) && p.folderPrepared!==undefined && typeof p.folderPrepared!=='boolean')fail('personal_config_invalid','本机初始化记录无效',500);
         if (isRecord(p)) p.folder = folderPath(home,p.folder ?? home);
         if (!isRecord(p) || typeof p.id !== 'string' || !account(p.account) || typeof p.repo !== 'string' || !/^[a-zA-Z0-9_.-]{1,100}$/.test(p.repo) || typeof p.exists !== 'boolean' || (p.repositoryId !== null && (!Number.isSafeInteger(p.repositoryId) || Number(p.repositoryId) <= 0)) || typeof p.creationAttempted !== 'boolean' || !Array.isArray(p.dataScope) || JSON.stringify(p.dataScope) !== JSON.stringify(SCOPE))
             fail('personal_config_invalid', '笔记同步预览损坏；原文件已保留', 500);
@@ -415,7 +417,8 @@ export class PrivateWorkspaceSync {
                 fail('invalid_request','私有仓库名称无效',400);
             const folder = value.folder ? folderPath(this.options.dir,value.folder) : suggestedFolder(this.options.dir,repo);
             if (this.config.binding && folder !== (this.config.folder ?? this.options.dir)) fail('notebook_folder_bound','该笔记库已经绑定本机资料夹');
-            await checkFolder(this.options.dir,folder,!!this.config.binding);
+            if(!this.stagingFile && !this.config.binding)await checkInitialFolder(this.options.dir,folder,repo,this.config.preview?.repo===repo&&this.config.preview.folder===folder&&this.config.preview.folderPrepared===true);
+            else await checkFolder(this.options.dir,folder,!!this.config.binding);
             const owner = await this.options.gateway.account(active);
             if (!owner)
                 fail('personal_auth_required', '请先登录 GitHub 个人账号');
@@ -438,10 +441,10 @@ export class PrivateWorkspaceSync {
                 await this.checkTarget({account:owner,repo,repositoryId},!!(same && prior.creationAttempted && prior.repositoryId===remote.id),active);
             }
             cancelled(active);
-            const preview = { id: randomUUID(), account: structuredClone(owner), repo, folder, exists: remote !== null, repositoryId: knownRepositoryId ?? remote?.id ?? null, dataScope: [...SCOPE], creationAttempted: same ? prior.creationAttempted : false, ...(this.returning?{reuseFolder:true}:{}) };
+            const preview = { id: randomUUID(), account: structuredClone(owner), repo, folder, exists: remote !== null, repositoryId: knownRepositoryId ?? remote?.id ?? null, dataScope: [...SCOPE], creationAttempted: same ? prior.creationAttempted : false, ...(same && prior.folder===folder && prior.folderPrepared?{folderPrepared:true}:{}), ...(this.returning?{reuseFolder:true}:{}) };
             this.config.preview = preview;
             await this.persist();
-            const { creationAttempted: _, ...wire } = preview;
+            const { creationAttempted: _, folderPrepared: _prepared, ...wire } = preview;
             return { ok: true, preview: structuredClone(wire) };
         });
     }
@@ -458,7 +461,15 @@ export class PrivateWorkspaceSync {
             let remote = await this.options.gateway.repository(current.login, preview.repo, active);
             let confirmedNew = !!(remote && preview.creationAttempted && preview.repositoryId===remote.id);
             if (remote && !preview.exists && !preview.creationAttempted) fail('notebook_repo_exists','该名称已被使用，请重新检查仓库');
-            if(!this.returning && !this.config.binding)await prepareFolder(this.options.dir,preview.folder,this.options.notes);
+            if(!this.returning && !this.config.binding){
+                if(this.stagingFile)await prepareFolder(this.options.dir,preview.folder,this.options.notes);
+                else {
+                    await checkInitialFolder(this.options.dir,preview.folder,preview.repo,preview.folderPrepared===true);
+                    // Record this attempt before claiming the empty folder, so interruption can retry it.
+                    preview.folderPrepared=true;await this.persist();
+                    await prepareInitialFolder(this.options.dir,preview.folder,preview.repo);
+                }
+            }
             if (!remote) {
                 if (preview.exists || preview.repositoryId !== null || this.config.binding)
                     fail('personal_repository_changed', '已确认的私人笔记仓库不存在；未重新创建');
