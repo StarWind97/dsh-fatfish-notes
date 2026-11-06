@@ -8,15 +8,18 @@ import { createNoteRevision, materializeNote, validateNoteRevision } from './rev
 import { ulid } from '../domain/id.js'
 import { validateBodyAssets } from './assets.js'
 import { NotebookError } from '../domain/errors.js'
+import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 
 interface CaptureJournal {
   version: 1; request: CaptureRequest; noteId: string; recordedAt: string
   cut: CaptureCut | null; sourceId: string | null; revision: NoteRevision | null; finished: boolean
 }
+/** Host image references travel with a frozen read, but are not archived or sent to the UI. */
+export interface CaptureRead extends CaptureTranscript { imageReferences?: ReadonlyMap<string, ImageAttachmentRef> }
 export interface CaptureConversation {
   open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>
-  read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureTranscript>
-  attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal): Promise<{ bytes: Buffer; mediaType: ImageMediaType }>
+  read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>
+  attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{ bytes: Buffer; mediaType: ImageMediaType }>
 }
 const identifier = (v: unknown): string => { const s = text(v, 512); if (!s || /[\u0000-\u001f]/.test(s)) fail('capture_request'); return s }
 export function validateCaptureRequest(input: unknown): CaptureRequest {
@@ -73,7 +76,7 @@ export class NoteCaptureService {
     const sessionId = identifier(input.sessionId), cut = await this.conversation.open(sessionId, signal)
     const transcript = await this.conversation.read(sessionId, cut, signal)
     const selected = input.anchorMessageId ? selectMessages(transcript.messages, { scope: 'turn', anchorMessageId: identifier(input.anchorMessageId) }) : transcript.messages
-    return { ...transcript, cut, defaultMessageIds: selected.map(m => m.id) }
+    return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, cut, defaultMessageIds: selected.map(m => m.id) }
   }
   private async perform(request: CaptureRequest, signal: AbortSignal): Promise<CaptureResult> {
     signal.throwIfAborted()
@@ -117,7 +120,7 @@ export class NoteCaptureService {
         signal.throwIfAborted()
         let asset: Awaited<ReturnType<CaptureConversation['attachment']>>
         try {
-          asset = await this.conversation.attachment(request.sessionId, attachmentId, image.mediaType, signal)
+          asset = await this.conversation.attachment(request.sessionId, attachmentId, image.mediaType, signal, transcript.imageReferences?.get(attachmentId))
         } catch (e) {
           signal.throwIfAborted()
           missingAssetIds.push(attachmentId); continue

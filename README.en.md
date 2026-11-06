@@ -18,7 +18,7 @@ Version `0.6.0` is a release candidate, not a published release. It introduces t
 
 ## Install
 
-This guide covers the **0.6.0 candidate**. Supported host: **DSH 0.2.1-rc.5**. Verified on **Windows**; macOS has not been tested.
+This guide covers the **0.6.0 candidate**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
 
 Check [GitHub Releases](https://github.com/StarWind97/dsh-fatfish-notes/releases) for publication status. After release, use `dsh-fatfish-notes-0.6.0.tgz`, not the automatically generated Source code archive. For now, the candidate is available locally to the developer. Start DSH once to initialize its profile, then quit it before installing:
 

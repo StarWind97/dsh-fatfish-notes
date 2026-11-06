@@ -8,6 +8,21 @@ import { fixture, request } from './fixtures/notes-capture.js'
 import type { CaptureMessage, CaptureSelection } from '../src/contracts/notes.js'
 
 const signal=new AbortController().signal
+test('DSH 0.2.2 chat export reads images with the complete reference from the frozen history',async()=>{
+  const f=fixture(), pixels=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')
+  const reference={attachmentId:'test-image',mediaType:'image/png',bytes:pixels.length,width:1,height:1}
+  f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:reference}]}}
+  let reads=0
+  f.controller.attachment=async input=>{
+    reads++;assert.deepEqual(input,{sessionId:request.sessionId,attachment:reference})
+    return {attachment:input.attachment,data:pixels.toString('base64')}
+  }
+  const file=await createConversationExport(new NoteConversation(()=>f.controller),{sessionId:request.sessionId,throughSeq:1,messageIds:['m0','m1'],format:'markdown'},signal)
+  const files=unzipSync(file.bytes),image=Object.keys(files).find(p=>p.startsWith('assets/'))!
+  assert.equal(reads,1);assert.deepEqual(Buffer.from(files[image]!),pixels)
+  assert.deepEqual(JSON.parse(file.warnings),{partial:false,missing:0,linked:0})
+})
+
 test('chat export reads only selected visible messages at the selected cutoff in conversation order',async()=>{
   const f=fixture(), history=new NoteConversation(()=>f.controller)
   const form={sessionId:request.sessionId,throughSeq:41,messageIds:['m41','m2'],format:'markdown'}

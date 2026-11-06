@@ -15,7 +15,7 @@
 
 ## 安装与升级
 
-当前为 `0.6.0` 候选版，尚未正式发布。产品定位为私人笔记管理。适用于 DSH `0.2.1-rc.5`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
+当前为 `0.6.0` 候选版，尚未正式发布。产品定位为私人笔记管理。适用于 DSH `0.2.2-rc.1`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
 
 发布状态与安装包以 [GitHub Releases](https://github.com/StarWind97/dsh-fatfish-notes/releases) 为准。新版发布后使用 `dsh-fatfish-notes-0.6.0.tgz`，不要下载自动生成的 Source code 压缩包。目前开发者可使用本机候选包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
 
@@ -51,7 +51,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.6.0.tgz"
 
 ## 开发
 
-开发环境为 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。实际覆盖范围见[验证记录](docs/verification-log.zh.md)。
+开发环境为 Windows / Node 24.21.0 / DSH 0.2.2-rc.1。实际覆盖范围见[验证记录](docs/verification-log.zh.md)。
 
 开发按改动影响选择验证范围，具体步骤见[开发入口](docs/README.md)与[项目协作约定](AGENTS.md#验证范围)。产品行为见[设计](docs/notes-design.zh.md)，日常操作见[使用说明](docs/user-guide.zh.md)。
 

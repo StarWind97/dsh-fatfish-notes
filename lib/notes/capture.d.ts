@@ -1,10 +1,15 @@
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript } from '../contracts/notes.js';
 import type { ImageMediaType } from '../contracts/media.js';
 import { NoteRepository } from './repository.js';
+import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
+/** Host image references travel with a frozen read, but are not archived or sent to the UI. */
+export interface CaptureRead extends CaptureTranscript {
+    imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;
+}
 export interface CaptureConversation {
     open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>;
-    read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureTranscript>;
-    attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal): Promise<{
+    read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>;
+    attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{
         bytes: Buffer;
         mediaType: ImageMediaType;
     }>;

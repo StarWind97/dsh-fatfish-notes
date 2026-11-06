@@ -25,7 +25,7 @@ export async function readNoteHistory(controller: Pick<SessionController, 'page'
     beforeSeq = earliest
   }
   const ordered = [...events.values()].sort((a, b) => a.seq - b.seq)
-  // rc.5 inherited prefixes also start at zero. Exhaustion is not completeness.
+  // Inherited prefixes also start at zero. Exhaustion is not completeness.
   if (ordered.length !== throughSeq + 1 || ordered.some((e, i) => e.seq !== i)) fail('capture_gap', '会话历史存在缺页，可用原请求重试')
   return ordered
 }

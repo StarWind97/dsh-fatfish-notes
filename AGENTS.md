@@ -1,6 +1,6 @@
 # 肥鱼笔记项目协作约定
 
-接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。当前执行[肥鱼笔记改名与迁移规划](docs/plans/2026-11-06-fatfish-notes-rename.zh.md)，完成后停在候选版本发布审核。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
+接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。当前执行[DSH 0.2.2 适配规划](docs/plans/2026-11-06-dsh-022-compatibility.zh.md)，完成后停在候选版本发布审核。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
 
 ## 0. 第一规则：先规划、经批准、再实施（必须遵守）
 
@@ -28,7 +28,7 @@
 
 当前产品面向个人笔记，提供原地 Markdown 图文编辑、原样转存会话、文件导出与单一私有 GitHub 仓库同步。首次使用必须接入专用私有仓库并完成首次同步，之后可断网编辑和保存，联网后自动同步。标题、标签、摘要和正文可手动修改。模型建议仅在会话转存时由用户选择生成标题、摘要和标签。仓库身份与可见性必须校验，不读取或打印凭据。HTTP 接口保留 loopback、Origin 和 sec-fetch-site 栅栏。
 
-Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改。结构见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/` 与 `src/client/`。当前兼容版本为 DSH 0.2.1-rc.5，Windows / Node 24.21.0。
+Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改。结构见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/` 与 `src/client/`。当前兼容版本为 DSH 0.2.2-rc.1，Windows / Node 24.21.0。
 
 ## 分支与提交
 

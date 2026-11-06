@@ -73,7 +73,7 @@ test('M4 facade close drains its admitted prompt operation without cancelling th
 test('M3 facade close aborts and drains in-flight paging, refuses new writes',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-drain-')),f=fixture()
   let entered!:()=>void;const waiting=new Promise<void>(resolve=>{entered=resolve});let finished=false
-  f.controller.page=async(_request,signal)=>{entered();await new Promise<void>((resolve,reject)=>{signal.addEventListener('abort',()=>{setTimeout(()=>{finished=true;reject(signal.reason)},15)},{once:true})});return{records:[],hasMore:false}}
+  f.controller.page=async(_request,signal)=>{entered();await new Promise<void>((resolve,reject)=>{signal.addEventListener('abort',()=>{setTimeout(()=>{finished=true;reject(signal.reason)},15)},{once:true})});return{records:[],hasMore:false,cursor:-1}}
   const app=new NotesApplication(dir,()=>f.controller)
   try {
     const capture=app.capture(request);void capture.catch(()=>{})

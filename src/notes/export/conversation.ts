@@ -76,7 +76,7 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
         if(attachments.size>=NOTE_LIMITS.images)fail('note_limit')
         entry={type:block.mediaType,id:null}
         try{
-          const image=await conversation.attachment(sessionId,block.attachmentId,block.mediaType,signal)
+          const image=await conversation.attachment(sessionId,block.attachmentId,block.mediaType,signal,transcript.imageReferences?.get(block.attachmentId))
           entry.id=digest(image.bytes)+'.'+IMAGE_EXTENSIONS[image.mediaType]
           images[entry.id]=image.bytes
           total+=image.bytes.length

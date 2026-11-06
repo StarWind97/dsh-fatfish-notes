@@ -51,9 +51,9 @@ test('M3 no-progress, missing-page, inconsistent overlap and beyond-cut response
     const f=fixture(),page=f.controller.page,adapter=new NoteConversation(()=>f.controller),signal=new AbortController().signal,cut=await adapter.open(request.sessionId,signal)
     f.controller.page=async(input,active)=>{
       const result=await page(input,active)
-      if(kind==='stalled')return {records:[],hasMore:true}
+      if(kind==='stalled')return {records:[],hasMore:true,cursor:input.throughSeq??-1}
       if(kind==='gap')return {...result,hasMore:false}
-      if(kind==='future')return{records:[{type:'event',event:{...f.events[0]!,seq:112}}],hasMore:false}
+      if(kind==='future')return{records:[{type:'event',event:{...f.events[0]!,seq:112}}],hasMore:false,cursor:112}
       if(input.beforeSeq!==undefined)return {...result,records:result.records.map(r=>r.event.seq===input.beforeSeq?{...r,event:{...r.event,time:999}}:r)}
       return result
     }
@@ -77,12 +77,12 @@ test('M3 authorized image bytes persist before source/note and preserve image-be
   const dir=await mkdtemp(join(tmpdir(),'notes-image-'))
   try {
     const f=fixture(),writes:string[]=[],repo=new NoteRepository(dir,{beforeWrite:path=>{writes.push(path)}})
-    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png'}},{type:'text',text:'  after image\r\n'}]}}
-    f.controller.attachment=async input=>{assert.equal(input.sessionId,request.sessionId);assert.equal(input.attachmentId,'img');return{attachment:{attachmentId:'img' as AttachmentId,mediaType:'image/png',bytes:png.length,width:1,height:1},data:png.toString('base64')}}
+    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png',bytes:png.length,width:1,height:1}},{type:'text',text:'  after image\r\n'}]}}
+    f.controller.attachment=async input=>{assert.equal(input.sessionId,request.sessionId);assert.deepEqual(input.attachment,{attachmentId:'img',mediaType:'image/png',bytes:png.length,width:1,height:1});return{attachment:{attachmentId:'img' as AttachmentId,mediaType:'image/png',bytes:png.length,width:1,height:1},data:png.toString('base64')}}
     const result=await new NoteCaptureService(repo,new NoteConversation(()=>f.controller)).capture(request),source=await repo.getSource(result.sourceId) as unknown as CaptureSource
     assert.equal(result.complete,true);assert.equal(result.note.current.assetIds.length,1);assert.deepEqual(await repo.getAsset(result.note.current.assetIds[0]!),png)
     assert.ok(result.note.current.body.indexOf('![会话图片]')<result.note.current.body.indexOf('  after image\r\n'))
-    assert.equal(source.messages[0]?.blocks[0]?.type,'image');assert.ok(writes.findIndex(p=>p.startsWith('assets/'))<writes.findIndex(p=>p.startsWith('sources/')));assert.ok(writes.findIndex(p=>p.startsWith('sources/'))<writes.findIndex(p=>p.startsWith('revisions/')))
+    assert.deepEqual(source.messages[0]?.blocks[0],{type:'image',attachmentId:'img',mediaType:'image/png'});assert.equal('imageReferences' in source,false);assert.ok(writes.findIndex(p=>p.startsWith('assets/'))<writes.findIndex(p=>p.startsWith('sources/')));assert.ok(writes.findIndex(p=>p.startsWith('sources/'))<writes.findIndex(p=>p.startsWith('revisions/')))
   } finally { await rm(dir,{recursive:true,force:true}) }
 })
 
@@ -102,7 +102,7 @@ test('M3 unsafe inline image links stay byte-exact literal text alongside author
   const dir=await mkdtemp(join(tmpdir(),'notes-literal-'))
   try {
     const f=fixture(),repo=new NoteRepository(dir),raw='  ![local](file:///C:/private.png)\r\n![data](data:image/png;base64,abc)\n![relative](../unknown.png)\n\n````ts\nconst tick = `hi`\n````\n  '
-    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png'}},{type:'text',text:raw}]}}
+    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png',bytes:png.length,width:1,height:1}},{type:'text',text:raw}]}}
     f.controller.attachment=async()=>({attachment:{attachmentId:'img' as AttachmentId,mediaType:'image/png',bytes:png.length,width:1,height:1},data:png.toString('base64')})
     const result=await new NoteCaptureService(repo,new NoteConversation(()=>f.controller)).capture(request),source=await repo.getSource(result.sourceId) as unknown as CaptureSource
     assert.equal(result.complete,false);assert.ok(result.issues.includes('image_links_kept_as_text'));assert.equal(result.missingAssetIds.length,0)
@@ -172,7 +172,7 @@ test('M3 receipt retry after repeated image-note edits retains original revision
   const dir=await mkdtemp(join(tmpdir(),'notes-edited-capture-'))
   try{
     const f=fixture(),repo=new NoteRepository(dir),service=new NoteCaptureService(repo,new NoteConversation(()=>f.controller))
-    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png'}},{type:'text',text:'original'}]}}
+    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[{type:'image',attachment:{attachmentId:'img',mediaType:'image/png',bytes:png.length,width:1,height:1}},{type:'text',text:'original'}]}}
     f.controller.attachment=async()=>({attachment:{attachmentId:'img' as AttachmentId,mediaType:'image/png',bytes:png.length,width:1,height:1},data:png.toString('base64')})
     const first=await service.capture(request);let view=first.note
     const start=performance.now()
