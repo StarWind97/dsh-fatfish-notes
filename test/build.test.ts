@@ -26,7 +26,7 @@ test('client artifact defers module body, materializes apply, and uses host Reac
       console: { info: (message: string) => bodyMessages.push(message) },
     })
     assert.equal(registrations.length, 1)
-    assert.equal(registrations[0]?.id, 'dsh-github-notebook')
+    assert.equal(registrations[0]?.id, 'dsh-fatfish-notes')
     assert.deepEqual(bodyMessages, [], 'registration must not execute the client module')
     const require = createRequire(import.meta.url)
     const required: string[] = []

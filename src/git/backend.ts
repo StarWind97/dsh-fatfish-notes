@@ -230,7 +230,7 @@ export class GitBackend {
       }
       const tree = this.sha((await this.git(['write-tree'], signal, extra)).stdout.trim())
       const identity: string[] = []
-      for (const [key, fallback] of [['user.name', 'dsh-github-notebook'], ['user.email', 'dsh-github-notebook@users.noreply.github.com']]) {
+      for (const [key, fallback] of [['user.name', 'dsh-fatfish-notes'], ['user.email', 'dsh-fatfish-notes@users.noreply.github.com']]) {
         if (!key || !fallback) continue
         const configured = await this.git(['config', '--get', key], signal, { allowFailure: true })
         if (configured.exitCode !== 0 && configured.exitCode !== 1) throw new NotebookError('git_identity_failed', '无法读取本机 Git 提交身份配置')

@@ -30,7 +30,7 @@
 - [中文首页](../../../README.md)与[英文首页](../../../README.en.md)：介绍、安装、首次设置、限制与反馈。
 - [Release 正文](release-notes.md)：确认后原文用于 GitHub Release。
 - [市场申请正文](marketplace-pr.md)：确认后用于收录 PR；该文案中的 Release 地址在发布后才可访问。
-- [市场 YAML 条目](../../marketplace/StarWind97__dsh-github-notebook.yml)：提交到收录项目的 `data/plugins/`，不修改它生成的 README。
+- [市场 YAML 条目](marketplace.yml)：提交到收录项目的 `data/plugins/`，不修改它生成的 README。
 - [图标](../../../assets/icon-180.png)与[截图声明](../../../screenshots.json)：公开仓库中的展示资源。
 
 截图来自隔离 DSH 实际界面，使用合成阅读计划和项目制作的说明图；未包含账户登录信息或日常笔记内容。前三张截取笔记插件区域，第四张展示宿主会话选材。它们来自与本版功能一致的 rc.12；本轮源码与运行构建产物无差异。

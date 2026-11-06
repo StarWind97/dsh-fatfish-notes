@@ -158,9 +158,9 @@ test('M3 P2 unknown receipt and cancellation allow explicit reselection without 
   await restarted.save();assert.deepEqual(requests[4],cancelled);assert.equal(data.size,0);restarted.dispose()
 })
 
-test('M3 P2 legacy single pending request migrates without dropping its recovery identity',async()=>{
-  const original:CaptureRequest={requestId:'legacy-request',sessionId:'session',scope:'session',mode:'raw',autoMetadata:false,notebookId:null}
-  const data=new Map([['dsh-notebook-private:capture:session',JSON.stringify(original)]]),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
+test('pending capture keeps its recovery identity after restarting',async()=>{
+  const original:CaptureRequest={requestId:'pending-request',sessionId:'session',scope:'session',mode:'raw',autoMetadata:false,notebookId:null}
+  const data=new Map([['fatfish-notes-private:capture:unbound:session',JSON.stringify({version:1,requests:[{request:original,error:null}]})]]),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const requests:CaptureRequest[]=[]
   const call:Api=async(path,body)=>{if(path==='/notes/selection')return selection as never;requests.push(body as CaptureRequest);return{ok:true,messageCount:2} as never}
   const bridge=new NoteCaptureBridge(call,storage);await bridge.open('session','m111');assert.deepEqual(bridge.getSnapshot()?.request,original)

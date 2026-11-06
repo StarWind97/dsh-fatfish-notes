@@ -36,9 +36,9 @@ export function apply(ctx:Context): void {
   ctx.effect(()=>{
     const check=(event:Event)=>{const s=library.getSnapshot();if(s.dirty||s.saving||s.operation||library.importing)event.preventDefault()}
     const switched=()=>{notes.switched();library.switched()}
-    window.addEventListener('dsh-notebook-before-reset',check)
-    window.addEventListener('dsh-notebook-switched',switched)
-    return()=>{window.removeEventListener('dsh-notebook-before-reset',check);window.removeEventListener('dsh-notebook-switched',switched)}
+    window.addEventListener('fatfish-notes-before-reset',check)
+    window.addEventListener('fatfish-notes-switched',switched)
+    return()=>{window.removeEventListener('fatfish-notes-before-reset',check);window.removeEventListener('fatfish-notes-switched',switched)}
   },'notebook changes')
   ctx.effect(() => {
     let away=false,focusTimer:ReturnType<typeof setTimeout>|undefined

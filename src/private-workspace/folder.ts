@@ -6,9 +6,9 @@ import { missing, readBytes, replaceFile, safePath } from '../notes/files.js'
 import type { NoteRepository } from '../notes/repository.js'
 
 const invalid = () => new NotebookError('notebook_folder_invalid', '请选择一个空的本机资料夹，或使用默认位置', 409)
-const marker = '.dsh-notebook-folder'
+const marker = '.fatfish-notes-folder'
 export interface NotebookLocation { ownerId:number; repositoryId:number; folder:string }
-const identityFile='.dsh-local-repository'
+const identityFile='.fatfish-notes-repository'
 export class PreviousFolderUnavailable extends NotebookError {
   constructor(readonly folder:string){super('notebook_previous_folder_unavailable','无法核对原资料夹，请选择已有位置或新建本机资料夹',409)}
 }

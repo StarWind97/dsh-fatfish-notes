@@ -1,4 +1,4 @@
-# DSH Notebook · 私人笔记管理
+# 肥鱼笔记 · Fatfish Notes
 
 [English](README.en.md)
 
@@ -6,7 +6,7 @@
 
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
-![DSH笔记阅读界面](https://raw.githubusercontent.com/StarWind97/dsh-github-notebook/main/assets/screenshots/01-library.png)
+![肥鱼笔记阅读界面](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)
 
 - **原样保存会话**：在回答下方保存当前问答，也可选择多轮、单条消息或整个会话，保留只读原始素材。
 - **Markdown 图文编辑**：原地编辑、语法与预览切换，支持标题、列表、代码块、表格和图片，跟随宿主深浅色。
@@ -15,17 +15,17 @@
 
 ## 安装与升级
 
-本文对应 `0.5.1`，正式发布状态以 GitHub Releases 为准。适用于 DSH `0.2.1-rc.5`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
+当前为 `0.6.0` 候选版，尚未正式发布。产品定位为私人笔记管理。适用于 DSH `0.2.1-rc.5`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
 
-发布状态与安装包以 [GitHub Releases](https://github.com/StarWind97/dsh-github-notebook/releases) 为准。下载其中的 `dsh-github-notebook-0.5.1.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际下载位置：
+发布状态与安装包以 [GitHub Releases](https://github.com/StarWind97/dsh-fatfish-notes/releases) 为准。新版发布后使用 `dsh-fatfish-notes-0.6.0.tgz`，不要下载自动生成的 Source code 压缩包。目前开发者可使用本机候选包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.1.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.6.0.tgz"
 ```
 
-重新打开 DSH，在侧栏进入「DSH笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
+重新打开 DSH，在侧栏进入「肥鱼笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-升级前先保存笔记并确认「已同步」，关闭 DSH 后备份本机笔记资料夹，再用同一命令安装新包。已有绑定会沿用。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。
+本次更名采用一次性迁移，旧安装标识和旧资料格式不由新版自动兼容。历史 `0.5.x` 包保留原名；开发者隔离资料的转换见[改名规划](docs/plans/2026-11-06-fatfish-notes-rename.zh.md)。后续同名包升级前确认「已同步」，关闭 DSH 并备份本机资料，再用同一命令安装新包。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。
 
 ## 开始使用
 
@@ -34,12 +34,12 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.1.tgz"
 首次打开时，按页面上的三步完成设置：
 
 1. **准备同步工具**：Git 负责文件同步，GitHub CLI 负责账号授权。缺少时点击官网安装链接，安装后点「重新检测」；仍检测不到时完全退出并重新打开 DSH。安装完成后由插件自动使用，无需学习命令。
-2. **登录并选择云端笔记库**：没有 GitHub 账号可先注册，再点击「登录 GitHub」完成浏览器授权。首次使用默认推荐「新建私人笔记库」，建议名称为 `dsh-notes`；换电脑或恢复资料选择「连接已有笔记库」。
+2. **登录并选择云端笔记库**：没有 GitHub 账号可先注册，再点击「登录 GitHub」完成浏览器授权。首次使用默认推荐「新建私人笔记库」，建议名称为 `fatfish-notes`；换电脑或恢复资料选择「连接已有笔记库」。
 3. **确认保存位置并同步**：本机默认资料夹与云端笔记库同名，也可指定新的空资料夹。点「检查并继续」，核对账号、笔记库和本机位置，再确认首次同步。
 
 「已安装」「已登录」只表示完成对应准备，首次同步成功后才能开始使用。完成设置后临时断网仍可在本机保存，联网后自动继续同步。详细操作见[首次设置说明](docs/user-guide.zh.md#首次设置)。
 
-在任意回答下方点击「保存到笔记」，默认在当前会话勾选该轮。在其他回答下方可继续勾选整轮，底部可保存、选择整个会话或取消。「按消息细选」可单独选择问题和回答、设置笔记本或启用 AI 建议，返回会话后保留勾选。按钮默认显示图标和文字，在「DSH笔记设置 → 外观」可改为仅图标。默认原样转存文字和图片，勾选「AI 建议标题、摘要和标签」才会调用当前会话的模型。原始素材可随时切回对照。
+在任意回答下方点击「保存到笔记」，默认在当前会话勾选该轮。在其他回答下方可继续勾选整轮，底部可保存、选择整个会话或取消。「按消息细选」可单独选择问题和回答、设置笔记本或启用 AI 建议，返回会话后保留勾选。按钮默认显示图标和文字，在「肥鱼笔记设置 → 外观」可改为仅图标。默认原样转存文字和图片，勾选「AI 建议标题、摘要和标签」才会调用当前会话的模型。原始素材可随时切回对照。
 
 在回答下方点「导出」，可以直接下载当前问答、整个会话或自选消息。纯文本 Markdown 下载单个文件，有会话图片时打包为 ZIP；也可选 PDF、长图或分页图片。导出不会在笔记库里生成副本。
 
@@ -59,6 +59,6 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-github-notebook-0.5.1.tgz"
 
 本版不提供 Markdown 文件导入或将笔记自动附加到会话。AI 仅在转存会话时可选建议标题、摘要和标签，正文由用户手动整理。macOS 和两台物理设备之间的使用尚待实测。
 
-问题与建议请提交 [Issue](https://github.com/StarWind97/dsh-github-notebook/issues)，附系统、DSH 与插件版本、操作步骤及遮去私人信息的截图，不要上传令牌或完整私人笔记库。
+问题与建议请提交 [Issue](https://github.com/StarWind97/dsh-fatfish-notes/issues)，附系统、DSH 与插件版本、操作步骤及遮去私人信息的截图，不要上传令牌或完整私人笔记库。
 
 代码使用 [MIT 许可证](LICENSE)。第三方依赖与字体说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。展示截图来自隔离实例，内容为示例。

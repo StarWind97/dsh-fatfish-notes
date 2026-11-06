@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { T } from '../locale.js'
 
-const prefix='dsh-github-notebook.private.paper.'
+const prefix='dsh-fatfish-notes.private.paper.'
 export function readPreference(key:string){try{return localStorage.getItem(prefix+key)}catch{return null}}
 export function writePreference(key:string,value:string){try{localStorage.setItem(prefix+key,value)}catch{/* The current view still works. */}}
 

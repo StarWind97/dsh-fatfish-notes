@@ -12,7 +12,7 @@ export interface DownloadFile { blob: Blob; filename: string }
 interface Frozen { noteId: string; revision: string }
 export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<Response> {
   signal.throwIfAborted()
-  const response = await fetcher('/dsh-github-notebook/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...identity, ...body }), signal })
+  const response = await fetcher('/dsh-fatfish-notes/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...identity, ...body }), signal })
   signal.throwIfAborted()
   if (!response.ok) {
     const error: unknown = await response.json().catch(() => null)
@@ -75,7 +75,7 @@ interface ImageDecoderConstructor { new(options: { data: Uint8Array; type: strin
 let fontPromise: Promise<{ css: string }> | undefined
 async function loadFont(signal: AbortSignal): Promise<{ css: string }> {
   if (!fontPromise) fontPromise = (async () => {
-    const response = await fetch('/dsh-github-notebook/notes/export-font', { credentials: 'same-origin' })
+    const response = await fetch('/dsh-fatfish-notes/notes/export-font', { credentials: 'same-origin' })
     if (!response.ok) throw new ExportError('export_font')
     const bytes = await response.arrayBuffer(), font = new FontFace('DSHExportNoto', bytes)
     await font.load(); document.fonts.add(font)

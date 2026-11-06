@@ -16,10 +16,10 @@ test('M5 real HTTP local library CRUD, notebooks, source assets and route-specif
   const app = await createApplication({ dir,  })
   let origin = ''; const server = createServer((req, res) => { void createHttpHandler({ app, getOrigin: () => origin })(req, res) })
   await new Promise<void>(done => server.listen(0, '127.0.0.1', done)); const address = server.address(); assert.ok(address && typeof address !== 'string'); origin = `http://127.0.0.1:${address.port}`
-  const post = (path: string, body: unknown, headers: Record<string, string> = {}, prefix = 'dsh-github-notebook') => fetch(`${origin}/${prefix}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) })
-  const get = (path: string) => fetch(`${origin}/dsh-github-notebook${path}`)
+  const post = (path: string, body: unknown, headers: Record<string, string> = {}, prefix = 'dsh-fatfish-notes') => fetch(`${origin}/${prefix}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) })
+  const get = (path: string) => fetch(`${origin}/dsh-fatfish-notes${path}`)
   try {
-    for (const prefix of ['dsh-github-notebook']) {
+    for (const prefix of ['dsh-fatfish-notes']) {
       for (const path of ['/notes','/notes/save','/notes/trash','/notes/restore','/notes/resolve','/notes/notebook','/notes/notebooks','/notes/jobs','/notes/asset']) {
         assert.equal((await post(path, {}, { origin: 'https://evil.example' }, prefix)).status, 403)
         assert.equal((await post(path, {}, { 'sec-fetch-site': 'cross-site' }, prefix)).status, 403)
@@ -63,7 +63,7 @@ test('M5 real HTTP local library CRUD, notebooks, source assets and route-specif
     query.set('sourceId', 'a'.repeat(64)); assert.equal((await get(`/notes/asset?${query}`)).status, 404)
     query.delete('sourceId'); query.set('noteId', note.noteId); query.set('revision', note.current.revision); assert.equal((await get(`/notes/asset?${query}`)).status, 404)
     query.set('assetId', '../../secret'); assert.notEqual((await get(`/notes/asset?${query}`)).status, 200)
-    assert.equal((await fetch(`${origin}/dsh-github-notebook/notes/asset?${query}`, { headers: { 'sec-fetch-site': 'cross-site' } })).status, 403)
+    assert.equal((await fetch(`${origin}/dsh-fatfish-notes/notes/asset?${query}`, { headers: { 'sec-fetch-site': 'cross-site' } })).status, 403)
     const restarted = new NotesApplication(app.personalState().sync.folder, () => undefined)
     try { assert.equal((await restarted.get({ noteId: note.noteId })).note.current.body, bigBody) } finally { await restarted.close() }
   } finally { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); await app.close(); await rm(dir, { recursive: true, force: true }) }

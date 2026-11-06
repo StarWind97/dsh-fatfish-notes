@@ -1,5 +1,5 @@
 import type { OnboardingAccount } from './onboarding.js';
-export const DEFAULT_PRIVATE_REPO_NAME = 'dsh-notes';
+export const DEFAULT_PRIVATE_REPO_NAME = 'fatfish-notes';
 export interface PersonalBinding {
     account: OnboardingAccount;
     repo: string;

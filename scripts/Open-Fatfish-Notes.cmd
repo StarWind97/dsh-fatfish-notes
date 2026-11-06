@@ -2,12 +2,12 @@
 setlocal EnableExtensions DisableDelayedExpansion
 for %%I in ("%~dp0..\.dsh-home\pure-001") do set "qa_root=%%~fI"
 set "desktop_exe=D:\ProgramFiles\DeepSeek Harness\DeepSeek Harness.exe"
-set "DSH_HOME=%qa_root%\desktop-home"
-set "desktop_shell=%qa_root%\desktop-shell"
+set "DSH_HOME=%qa_root%\release12-desktop"
+set "desktop_shell=%qa_root%\release12-shell"
 
 if not exist "%desktop_exe%" goto missing_app
 if not exist "%desktop_shell%\." goto missing_profile
-if not exist "%DSH_HOME%\profiles\desktop\node_modules\dsh-github-notebook\package.json" goto missing_profile
+if not exist "%DSH_HOME%\profiles\desktop\node_modules\dsh-fatfish-notes\package.json" goto missing_profile
 
 set "ELECTRON_RUN_AS_NODE="
 set "PATH=C:\Program Files\GitHub CLI;%PATH%"

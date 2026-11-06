@@ -1,12 +1,28 @@
-# DSH笔记验证记录
+# 肥鱼笔记验证记录
 
-2026-11-06 更新。当前正式版为 `0.5.1`，[GitHub Release](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.1)已发布。下方保留开发、候选包及正式发布的逐次记录，区分当时状态、本轮实测、既有证据和未覆盖边界。
+2026-11-06 更新。当前候选版为 `0.6.0`，产品已更名为肥鱼笔记；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
 
 ## 验证环境
 
 已验证 Windows / Node 24.21.0 / DSH 0.2.1-rc.5。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 0.6.0 改名候选版
+
+按[批准规划](plans/2026-11-06-fatfish-notes-rename.zh.md)实施。涉及插件身份、控制目录与私库格式，采用第三档验证。
+
+- 类型检查、构建通过；完整 `npm test` 为 217/217，通过时长约 13 分钟。之后仅完善测试自定义库名用例与英文文案，补跑默认命名专项 1/1，不重复全量。日志：`.dsh-home/pure-001/rename060-tests.log`。
+- `dsh-fatfish-notes@0.6.0` 安装到四套既有隔离资料及一套新初始化资料，每套逐文件校验 128 个包文件。旧包已通过宿主 CLI 移除，实际桌面只显示一个「肥鱼笔记」入口，旧接口不再提供服务。
+- 本机 `release12-desktop`、`release12-web`、`setup-picker-web`、`desktop-home` 控制目录一次性改为 `fatfish-notes`，更新绑定路径、位置记忆与资料夹归属标记。迁移前后 796 个笔记资料文件摘要一致；两个已退出进程残留的锁在备份和核对后移除。备份及逐文件摘要见 `rename060-backup/`。主要桌面体验的布局偏好已转换为新键。
+- 指定私有测试库身份为 `1440762952`，转换提交 `b207598` 仅改 `notebook.json` 的品牌格式和测试 README；笔记、图片、历史修订不变。现有库名和本机资料夹名未强制修改。日常 DSH 资料未修改。
+- 普通用户环境下的隔离 Desktop 成功同步，原有 41 篇活动笔记可读取，归档图片加载正常。新笔记自动保存，关闭重开后回到阅读态。Web 拉取桌面修订后修改摘要并推送，Desktop 再次拉取到完全相同的修订；不是仅凭 Codex 终端账号判断。证据：`rename060-desktop.json`、`rename060-web.json`、`rename060-return.json`。
+- 全新隔离 Web 默认显示 `fatfish-notes` 与同名本地子目录；取消保留原选择，恢复默认、名称联动、非空目录拒绝及现有私库初始化通过。自动化 UI 的目录返回值由测试控制；另由用户实际选择系统目录，真实接口返回所选路径。该次只读取路径，没有在所选位置创建或移动文件。证据：`rename060-setup-ui.json`、`rename060-native-picker.json`。
+- 图文笔记实际导出 ZIP（正文与 JPG）、PDF 和 PNG 长图；PNG 为 1080×1791，文件内容与签名核对通过。输出及截图：`output/playwright/rename060/`。
+- 在真实 Web 会话界面选中两轮合成问答，转存 4 条消息及 1 张图片，核对原始文本、消息顺序与图片正常显示；回答下方的独立导出入口下载当前问答 Markdown，正文一致。未调用模型，未消耗模型额度。证据：`rename060-capture.json`，图册 `20-capture-selection.png`、`21-captured-image.png`、`22-conversation-export.png`。
+- GitHub 代码仓库更名为 `StarWind97/dsh-fatfish-notes`，仓库 ID 仍为 `1436917088`，origin 已更新，历史版本与 Git 历史保留。0.5.1 市场更新 PR #12283 已于 UTC 2026-11-05 18:07:27 合并；本轮新名称与 0.6.0 市场材料仅准备，未提交。
+
+未覆盖：macOS、两台物理设备、正式下载与市场客户端更新。候选包审核见[发布清单](releases/0.6.0/review.zh.md)；正式发布需要另行确认。
 
 ## 首次初始化目录选择
 

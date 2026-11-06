@@ -20,19 +20,19 @@ test('M3 host serves raw capture without model/GitHub behind the notebook HTTP f
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();assert.ok(address&&typeof address!=='string');origin=`http://127.0.0.1:${address.port}`
   const post=(prefix:string,path:string,body:unknown,headers:Record<string,string>={})=>fetch(`${origin}/${prefix}${path}`,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body)})
   try {
-    for(const prefix of ['dsh-github-notebook']){
+    for(const prefix of ['dsh-fatfish-notes']){
       assert.equal((await post(prefix,'/notes/capture',request,{origin:'https://evil.example'})).status,403)
       assert.equal((await post(prefix,'/notes/capture',request,{'sec-fetch-site':'cross-site'})).status,403)
       assert.equal((await fetch(`${origin}/${prefix}/notes/capture`)).status,405)
       assert.equal((await post(prefix,'/notes/capture',{...request,padding:'x'.repeat(2*1024*1024)})).status,413)
       assert.equal((await post(prefix,'/config',{padding:'x'.repeat(2*1024*1024)})).status,404)
     }
-    const first=await post('dsh-github-notebook','/notes/capture',request);assert.equal(first.status,200)
+    const first=await post('dsh-fatfish-notes','/notes/capture',request);assert.equal(first.status,200)
     const a=await first.json() as CaptureResult
-    const second=await post('dsh-github-notebook','/notes/capture',request);assert.equal(second.status,200)
+    const second=await post('dsh-fatfish-notes','/notes/capture',request);assert.equal(second.status,200)
     const b=await second.json() as CaptureResult;assert.equal(a.note.noteId,b.note.noteId);assert.equal(a.messageCount,112)
-    const source=await post('dsh-github-notebook','/notes/source',{sourceId:a.sourceId});assert.equal(source.status,200)
-    const get=await fetch(`${origin}/dsh-github-notebook/notes/get?noteId=${a.note.noteId}`);assert.equal(get.status,200)
+    const source=await post('dsh-fatfish-notes','/notes/source',{sourceId:a.sourceId});assert.equal(source.status,200)
+    const get=await fetch(`${origin}/dsh-fatfish-notes/notes/get?noteId=${a.note.noteId}`);assert.equal(get.status,200)
     assert.equal(f.follows,1)
   }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
 })
@@ -44,15 +44,15 @@ test('M4 host raw save succeeds without a model; task routes retain fences and c
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();assert.ok(address&&typeof address!=='string');origin=`http://127.0.0.1:${address.port}`
   const post=(prefix:string,path:string,body:unknown,headers:Record<string,string>={})=>fetch(`${origin}/${prefix}${path}`,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body)})
   try {
-    const captured=await (await post('dsh-github-notebook','/notes/capture',{...request,autoMetadata:true})).json() as CaptureResult
+    const captured=await (await post('dsh-fatfish-notes','/notes/capture',{...request,autoMetadata:true})).json() as CaptureResult
     assert.equal(captured.messageCount,112);assert.ok(captured.enrichmentJobId)
-    for(const prefix of ['dsh-github-notebook']) {
+    for(const prefix of ['dsh-fatfish-notes']) {
       for(const path of ['/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate']) assert.equal((await post(prefix,path,{jobId:captured.enrichmentJobId},{origin:'https://evil.example'})).status,403)
       const response:Response=await fetch(`${origin}/${prefix}/notes/job?jobId=${captured.enrichmentJobId}`);assert.equal(response.status,200)
       const result=await response.json() as {job:{error:string;status:string}};assert.equal(result.job.error,'ai_unavailable');assert.equal(result.job.status,'running')
     }
     assert.equal((await app.notes.repository.list()).items.length,1)
-    const cancelled=await post('dsh-github-notebook','/notes/job/cancel',{jobId:captured.enrichmentJobId});assert.equal(cancelled.status,200);assert.equal(((await cancelled.json()) as {job:{status:string}}).job.status,'cancelled')
+    const cancelled=await post('dsh-fatfish-notes','/notes/job/cancel',{jobId:captured.enrichmentJobId});assert.equal(cancelled.status,200);assert.equal(((await cancelled.json()) as {job:{status:string}}).job.status,'cancelled')
     const replay=await app.notes.capture({...request,autoMetadata:true});assert.equal(replay.enrichmentJobId,captured.enrichmentJobId);assert.equal(replay.note.noteId,captured.note.noteId)
   } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
 })

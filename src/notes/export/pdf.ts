@@ -10,7 +10,7 @@ export function exportFont(): Promise<Buffer> { return readFile(exportFontPath) 
 
 export async function exportPdf(model: ExportModel, images: Record<string, Buffer>, signal?: AbortSignal): Promise<Buffer> {
   signal?.throwIfAborted()
-  const font = await exportFont(), doc = new PDFDocument({ autoFirstPage: false, compress: true, info: { Title: model.title, Creator: 'DSH笔记' } })
+  const font = await exportFont(), doc = new PDFDocument({ autoFirstPage: false, compress: true, info: { Title: model.title, Creator: '肥鱼笔记' } })
   const chunks: Buffer[] = []
   const result = new Promise<Buffer>((resolve, reject) => { doc.on('data', chunk => chunks.push(chunk as Buffer)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject) })
   // Prevent an early stream failure becoming an unhandled rejection during layout.

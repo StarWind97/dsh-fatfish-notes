@@ -4,10 +4,10 @@ import { setupFolder, pickSetupParent } from '../src/client/setup-folder.js'
 import { pickHostFolder } from '../src/host/folder-picker.js'
 
 test('parent choice appends the current cloud name on Windows and POSIX',()=>{
-  assert.equal(setupFolder('E:\\CacheLogDownload\\','dsh-notes'),'E:\\CacheLogDownload\\dsh-notes')
+  assert.equal(setupFolder('E:\\CacheLogDownload\\','fatfish-notes'),'E:\\CacheLogDownload\\fatfish-notes')
   assert.equal(setupFolder('E:\\CacheLogDownload','renamed'),'E:\\CacheLogDownload\\renamed')
-  assert.equal(setupFolder('/Users/person/Notes/','dsh-notes'),'/Users/person/Notes/dsh-notes')
-  assert.equal(setupFolder('/','dsh-notes'),'/dsh-notes')
+  assert.equal(setupFolder('/Users/person/Notes/','fatfish-notes'),'/Users/person/Notes/fatfish-notes')
+  assert.equal(setupFolder('/','fatfish-notes'),'/fatfish-notes')
 })
 
 test('Desktop picker cancel and failure do not retry through the Host or mutate a path',async()=>{

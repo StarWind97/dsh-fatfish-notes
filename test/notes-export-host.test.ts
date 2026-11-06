@@ -15,7 +15,7 @@ test('M7 real HTTP exports/font retain both-prefix fences, private headers, POST
   const post = (prefix: string, path: string, body: unknown, headers: Record<string,string> = {}) => fetch(`${origin}/${prefix}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) })
   try {
     const note = (await app.notes.save({ expectedHeads: [], content: { title: '下载 (中文)', body: '离线正文', summary: '', tags: [], notebookId: null, status: 'active', sourceId: null, assetIds: [] } })).note
-    for (const prefix of ['dsh-github-notebook']) {
+    for (const prefix of ['dsh-fatfish-notes']) {
       for (const path of ['/notes/export','/notes/export-font']) {
         assert.equal((await post(prefix, path, {}, { origin: 'https://evil.example' })).status, 403)
         assert.equal((await post(prefix, path, {}, { 'sec-fetch-site': 'cross-site' })).status, 403)
@@ -25,9 +25,9 @@ test('M7 real HTTP exports/font retain both-prefix fences, private headers, POST
       const result = await post(prefix, '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'markdown' })
       assert.equal(result.status, 200); assert.equal(result.headers.get('cache-control'), 'no-store'); assert.equal(result.headers.get('x-content-type-options'), 'nosniff'); assert.ok(result.headers.get('content-disposition')?.startsWith("attachment; filename*=UTF-8''")); assert.ok((await result.text()).includes('离线正文'))
     }
-    const font = await fetch(`${origin}/dsh-github-notebook/notes/export-font`)
+    const font = await fetch(`${origin}/dsh-fatfish-notes/notes/export-font`)
     assert.equal(font.status, 200); assert.equal(font.headers.get('content-type'), 'font/otf'); assert.equal((await font.arrayBuffer()).byteLength, 16437364)
-    const invalid = await post('dsh-github-notebook', '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'original', assetId: 'C:/secret.png' }), text = await invalid.text()
+    const invalid = await post('dsh-fatfish-notes', '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'original', assetId: 'C:/secret.png' }), text = await invalid.text()
     assert.equal(invalid.status, 400); assert.ok(text.includes('export_image_missing')); assert.ok(!text.includes(dir)); assert.ok(!text.includes('C:/secret'))
   } finally { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); await app.close(); await rm(dir, { recursive: true, force: true }) }
 })

@@ -6,7 +6,7 @@ import { safePublicUrl } from './safe-url.js'
 
 export function noteAssetUrl(note: NoteView, assetId: string, sourceId?: string): string {
   const query = new URLSearchParams({ noteId: note.noteId, revision: note.current.revision, assetId, ...(sourceId ? { sourceId } : {}) })
-  return `/dsh-github-notebook/notes/asset?${query}`
+  return `/dsh-fatfish-notes/notes/asset?${query}`
 }
 export function resolveNoteImage(url: string, note: NoteView): string | null {
   const match = /^\.\.\/assets\/([a-f0-9]{64}\.(?:png|jpg|webp|gif))$/.exec(url)

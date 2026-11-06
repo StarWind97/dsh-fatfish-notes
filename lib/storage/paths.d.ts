@@ -1,2 +1,2 @@
-/** Package identity is independent of the existing user-data identity, including for new installs. */
+/** Plugin control data; the selected library can live in a different directory. */
 export declare function dataDirectory(home?: string): string;

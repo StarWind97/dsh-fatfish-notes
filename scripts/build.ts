@@ -13,7 +13,7 @@ export async function buildClient(entry: string, outfile: string): Promise<void>
     // Its browser shortcut creates a document element during module loading.
     alias: {'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')},
     external: ['react', 'react/*', 'react-dom', 'react-dom/*', '@deepseek-ai/*'],
-    banner: { js: 'window.__ModuleLoader__.load({ id: "dsh-github-notebook", factory: (require) => {\nconst module = { exports: {} }; const exports = module.exports;' },
+    banner: { js: 'window.__ModuleLoader__.load({ id: "dsh-fatfish-notes", factory: (require) => {\nconst module = { exports: {} }; const exports = module.exports;' },
     footer: { js: '\nreturn module.exports;\n} });' },
   })
 }
@@ -56,7 +56,7 @@ export async function buildProject(root = process.cwd()): Promise<void> {
   buildHost(root)
   const client = join(root, 'src/client/index.tsx')
   await buildClient(client, join(root, 'lib/client.js'))
-  console.info('Built DSH notebook host and client')
+  console.info('Built Fatfish Notes host and client')
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

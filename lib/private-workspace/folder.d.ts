@@ -20,6 +20,6 @@ export declare function emptyFolder(path: string): Promise<void>;
 export declare function checkInitialFolder(home: string, path: string, repo: string, resuming?: boolean): Promise<void>;
 export declare function prepareInitialFolder(home: string, path: string, repo: string): Promise<void>;
 export declare function claimFolder(home: string, path: string): Promise<void>;
-export declare const folderMarker = ".dsh-notebook-folder";
+export declare const folderMarker = ".fatfish-notes-folder";
 export declare function checkFolder(home: string, path: string, bound?: boolean): Promise<void>;
 export declare function prepareFolder(home: string, path: string, notes: NoteRepository): Promise<void>;

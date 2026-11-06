@@ -25,7 +25,7 @@ const setupErrors: Record<string, LocaleKey> = {
   network:'setupNetwork', github_account_unavailable:'setupNetwork', github_repository_unavailable:'setupNetwork', gh_timeout:'setupNetwork',
   git_timeout:'setupSyncFailed', git_failed:'setupSyncFailed', personal_sync_unconfirmed:'setupSyncFailed'
 }
-const setupChanged = 'dsh-notebook-connected'
+const setupChanged = 'fatfish-notes-connected'
 
 type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'|'pick'
 export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React.ReactNode;showFeedback?:boolean}) {
@@ -98,13 +98,13 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
         setPreview(result.preview)
       }else if(action==='connect' && preview){
         const confirm={previewId:preview.id,confirmPrivate:true as const}
-        if(resetting && sync?.binding && !window.dispatchEvent(new Event('dsh-notebook-before-reset',{cancelable:true})))throw new ApiError('notebook_dirty')
+        if(resetting && sync?.binding && !window.dispatchEvent(new Event('fatfish-notes-before-reset',{cancelable:true})))throw new ApiError('notebook_dirty')
         const result=resetting && sync?.binding
           ? await api('/personal/sync/reset',{...confirm,repositoryId:sync.binding.repositoryId},job.signal)
           : await api('/personal/sync/connect',confirm,job.signal)
         setData(result);setManage('bound');setPreview(null)
         if(!resetting)setNotice('setupFirstSyncDone')
-        if(resetting)window.dispatchEvent(new Event('dsh-notebook-switched'))
+        if(resetting)window.dispatchEvent(new Event('fatfish-notes-switched'))
         window.dispatchEvent(new Event(setupChanged))
       }else if(action==='move' && sync?.binding && custom?.trim()){
         const result=await api('/personal/sync/move',{repositoryId:sync.binding.repositoryId,folder:custom.trim()},job.signal)

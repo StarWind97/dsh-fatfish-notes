@@ -2,5 +2,5 @@
 # 用法（PowerShell）：
 #   & "D:\ProgramFiles\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" --profile headless --patch .\scripts\real-host-smoke.patch.yml --dump-config-schema
 - insert:
-    - id: github-notebook
+    - id: fatfish-notes
       name: ../lib/index.js

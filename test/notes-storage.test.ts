@@ -15,7 +15,7 @@ const content: NoteContent = { title: '中文 / CON: 标题?', body: '\r\n原文
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64')
 const code = (wanted: string) => (e: unknown): boolean => e instanceof Error && 'code' in e && e.code === wanted
 async function fixture(t: { after(fn: () => Promise<void>): void }): Promise<{ dir: string; repo: NoteRepository }> {
-  const dir = await mkdtemp(join(tmpdir(), 'dsh-notes-中文 ')); t.after(() => rm(dir, { recursive: true, force: true })); return { dir, repo: new NoteRepository(dir) }
+  const dir = await mkdtemp(join(tmpdir(), 'fatfish-notes-中文 ')); t.after(() => rm(dir, { recursive: true, force: true })); return { dir, repo: new NoteRepository(dir) }
 }
 function child(base: NoteRevision, body: string, patch: Partial<NoteRevision> = {}): NoteRevision {
   const { revision, ...data } = base

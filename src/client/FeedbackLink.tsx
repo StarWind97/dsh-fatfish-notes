@@ -3,7 +3,7 @@ import { MessageSquare } from 'lucide-react'
 import type { T } from './locale.js'
 
 export function FeedbackLink({ t }: { t: T }) {
-  return <a className="notebook-feedback" href="https://github.com/StarWind97/dsh-github-notebook/issues/new" target="_blank" rel="noopener noreferrer" aria-label={t('feedback')} title={t('feedbackHint')}>
+  return <a className="notebook-feedback" href="https://github.com/StarWind97/dsh-fatfish-notes/issues/new" target="_blank" rel="noopener noreferrer" aria-label={t('feedback')} title={t('feedbackHint')}>
     <MessageSquare size={16} aria-hidden="true" />
     <span className="notebook-feedback-full">{t('feedback')}</span>
     <span className="notebook-feedback-short" aria-hidden="true">{t('feedbackShort')}</span>

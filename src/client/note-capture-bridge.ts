@@ -27,8 +27,7 @@ export class NoteCaptureBridge {
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private emit(state: NoteCaptureState | null) { this.state = state; for (const listener of this.listeners) listener() }
   private key(sessionId: string) {
-    const repo=currentRepository(),legacy=this.storage?.getItem('dsh-notebook-private:legacy-repository')
-    return repo===undefined || legacy===String(repo) ? `dsh-notebook-private:capture:${sessionId}` : `dsh-notebook-private:capture:${repo}:${sessionId}`
+    return `fatfish-notes-private:capture:${currentRepository() ?? 'unbound'}:${sessionId}`
   }
   switched(){this.close();this.recoveries.clear()}
   private pending(sessionId: string): CaptureRecovery[] {
@@ -39,8 +38,7 @@ export class NoteCaptureBridge {
       const raw = this.storage?.getItem(this.key(sessionId))
       if (raw) {
         const value = JSON.parse(raw) as { version?: number; requests?: CaptureRecovery[] } & CaptureRequest
-        // Read the first M3 single-request format without discarding its identity.
-        const entries = value.version === 1 && Array.isArray(value.requests) ? value.requests : [{ request: value, error: null }]
+        const entries = value.version === 1 && Array.isArray(value.requests) ? value.requests : []
         for (const entry of entries) {
           const request = entry?.request
           if (request?.sessionId === sessionId && typeof request.requestId === 'string' && ['session','selection','turn'].includes(request.scope) && request.mode === 'raw' && typeof request.autoMetadata === 'boolean' && !records.some(r => r.request.requestId === request.requestId)) records.push({ request, error: typeof entry.error === 'string' ? entry.error : null })

@@ -20,9 +20,6 @@ export type Api = <P extends ApiPath>(path: P, body: ApiContract[P]['request'], 
 let clientRepository:number|undefined
 export function currentRepository(){return clientRepository}
 function pinRepository(id:number,switched=false){
-  if(clientRepository===undefined){
-    try{const key='dsh-notebook-private:legacy-repository';if(localStorage.getItem(key)===null)localStorage.setItem(key,String(id))}catch{/* optional browser persistence */}
-  }
   if(switched||clientRepository===undefined)clientRepository=id
 }
 export function createApi(fetcher: typeof fetch = globalThis.fetch): Api {
@@ -33,7 +30,7 @@ export function createApi(fetcher: typeof fetch = globalThis.fetch): Api {
     const headers:Record<string,string>={}
     if(path.startsWith('/notes') && clientRepository!==undefined)headers['x-notebook-repository']=String(clientRepository)
     if(body!==undefined)headers['Content-Type']='application/json'
-    try { response = await fetcher(`/dsh-github-notebook${path}`, {method:body === undefined ? 'GET' : 'POST',credentials:'same-origin',headers, ...(body === undefined ? {} : {body:JSON.stringify(body)}), ...(signal ? {signal} : {})}) }
+    try { response = await fetcher(`/dsh-fatfish-notes${path}`, {method:body === undefined ? 'GET' : 'POST',credentials:'same-origin',headers, ...(body === undefined ? {} : {body:JSON.stringify(body)}), ...(signal ? {signal} : {})}) }
     catch (error) { if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw new DOMException('Request cancelled','AbortError'); throw new ApiError('network') }
     signal?.throwIfAborted()
     let value: unknown

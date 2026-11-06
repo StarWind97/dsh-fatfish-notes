@@ -1,7 +1,7 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-/** Package identity is independent of the existing user-data identity, including for new installs. */
+/** Plugin control data; the selected library can live in a different directory. */
 export function dataDirectory(home=process.env.DSH_HOME||join(homedir(),'.dsh')):string {
-  return join(home,'github-notebook')
+  return join(home,'fatfish-notes')
 }

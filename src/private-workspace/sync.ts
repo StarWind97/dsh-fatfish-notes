@@ -520,7 +520,7 @@ export class PrivateWorkspaceSync {
         return backend.exclusive(async () => {
             const snapshot = await backend.snapshot(signal);
             if (allowNew && !snapshot.revision) return;
-            if (!snapshot.entries.has(MANIFEST)) fail('personal_repository_unrelated','此仓库没有 DSH笔记标识，请选择专用私有笔记库');
+            if (!snapshot.entries.has(MANIFEST)) fail('personal_repository_unrelated','此仓库没有 肥鱼笔记标识，请选择专用私有笔记库');
             const manifest = await this.remoteManifest(backend,snapshot,bound,signal);
             this.notes.validateVersion(manifest.modules.notes);
             if (manifest.modules.notes !== this.notes.version || !snapshot.entries.has('notes/manifest.json')) fail('note_sync_invalid','仓库缺少有效的笔记清单');
@@ -550,13 +550,13 @@ export class PrivateWorkspaceSync {
     }
     private async remoteManifest(backend: GitBackend, snapshot: Awaited<ReturnType<GitBackend['snapshot']>>, bound: PersonalBinding, signal: AbortSignal): Promise<Record<string, unknown> & { modules: Record<string, unknown> }> {
         if (!snapshot.entries.has(MANIFEST)) {
-            if (this.config.initializing && this.config.preview?.creationAttempted && !snapshot.revision) return { format: 'dsh-github-notebook', version: 1, owner: bound.account, repositoryId: bound.repositoryId, modules: {} };
+            if (this.config.initializing && this.config.preview?.creationAttempted && !snapshot.revision) return { format: 'dsh-fatfish-notes', version: 1, owner: bound.account, repositoryId: bound.repositoryId, modules: {} };
             fail('personal_repository_unrelated', '远端缺少私人笔记标识；未覆盖任何内容');
         }
         let manifest: unknown;
         try { manifest = JSON.parse(await backend.readFile(snapshot, MANIFEST, signal)); }
         catch (error) { if (error instanceof NotebookError) throw error; fail('invalid_personal_manifest', '私人笔记仓库标识不是有效 JSON'); }
-        if (!isRecord(manifest) || manifest.format !== 'dsh-github-notebook' || manifest.version !== 1 || !isRecord(manifest.owner) || manifest.owner.id !== bound.account.id || manifest.repositoryId !== bound.repositoryId || !isRecord(manifest.modules)) fail('invalid_personal_manifest', '私人笔记仓库标识或拥有者无效；同步已停止');
+        if (!isRecord(manifest) || manifest.format !== 'dsh-fatfish-notes' || manifest.version !== 1 || !isRecord(manifest.owner) || manifest.owner.id !== bound.account.id || manifest.repositoryId !== bound.repositoryId || !isRecord(manifest.modules)) fail('invalid_personal_manifest', '私人笔记仓库标识或拥有者无效；同步已停止');
         return manifest as Record<string, unknown> & { modules: Record<string, unknown> };
     }
     sync(signal?: AbortSignal): Promise<void> {
@@ -622,7 +622,7 @@ export class PrivateWorkspaceSync {
                     manifest.modules.notes = this.notes.version;
                     files.set(MANIFEST, JSON.stringify(manifest));
                 }
-                if (!snapshot.entries.has('README.md')) files.set('README.md', '# 私有笔记\n\n由 DSH笔记同步。请保持仓库私有。\n');
+                if (!snapshot.entries.has('README.md')) files.set('README.md', '# 私有笔记\n\n由 肥鱼笔记同步。请保持仓库私有。\n');
                 let synchronizedRevision=snapshot.revision;
                 if (files.size) {
                     const commit = await backend.commit(snapshot, { files }, randomUUID(), signal);

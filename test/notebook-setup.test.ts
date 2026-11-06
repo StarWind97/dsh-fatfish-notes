@@ -18,7 +18,7 @@ test('fresh host gates HTTP, capture and tool writes, and reports missing tools 
     await new Promise<void>(done=>server.listen(0,'127.0.0.1',done))
     const address=server.address();assert.ok(address && typeof address!=='string')
     origin='http://127.0.0.1:'+address.port
-    const post=(path:string)=>fetch(origin+'/dsh-github-notebook'+path,{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
+    const post=(path:string)=>fetch(origin+'/dsh-fatfish-notes'+path,{method:'POST',headers:{'content-type':'application/json'},body:'{}'})
     for(const route of ['/notes','/notes/save','/notes/capture','/notes/notebook','/notes/image']){
       assert.equal((await (await post(route)).json()).code,'notebook_setup_required')
     }
@@ -26,8 +26,8 @@ test('fresh host gates HTTP, capture and tool writes, and reports missing tools 
     assert.equal((await (await post('/personal')).json()).sync.ready,false)
     const tools=await (await post('/personal/sync/tools')).json()
     assert.equal(tools.git,false);assert.equal(tools.gh,false);assert.equal(tools.account,null)
-    assert.equal((await fetch(origin+'/dsh-github-notebook/personal/folder/pick')).status,405)
-    assert.equal((await fetch(origin+'/dsh-github-notebook/personal/folder/pick',{method:'POST',headers:{'content-type':'application/json',origin:'https://elsewhere.example'},body:'{}'})).status,403)
+    assert.equal((await fetch(origin+'/dsh-fatfish-notes/personal/folder/pick')).status,405)
+    assert.equal((await fetch(origin+'/dsh-fatfish-notes/personal/folder/pick',{method:'POST',headers:{'content-type':'application/json',origin:'https://elsewhere.example'},body:'{}'})).status,403)
     assert.equal(picks,0)
     assert.deepEqual(await (await post('/personal/folder/pick')).json(),{ok:true,folder:null});assert.equal(picks,1)
   } finally {server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));await app.close();await rm(dir,{recursive:true,force:true})}

@@ -6,7 +6,7 @@ export function browserStorage(): RecoveryStorage|undefined { try{return globalT
 /** Private browser data, never part of the synced notebook or an export. */
 export class NoteRecovery {
   constructor(private readonly storage:RecoveryStorage|undefined, private readonly repository:()=>number|undefined){}
-  private key(){const id=this.repository();return id===undefined?null:`dsh-notebook-recovery:1:${id}`}
+  private key(){const id=this.repository();return id===undefined?null:`fatfish-notes-recovery:1:${id}`}
   read():RecoveryRecord|null {
     const key=this.key();if(!key||!this.storage)return null
     const value=this.storage.getItem(key);if(!value)return null

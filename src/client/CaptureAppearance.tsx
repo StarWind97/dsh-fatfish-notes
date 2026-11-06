@@ -5,7 +5,7 @@ import type { T } from './locale.js'
 import { readPreference, writePreference } from './paper/layout.js'
 
 type Appearance = 'label' | 'icon'
-const changed = 'dsh-notebook-capture-appearance'
+const changed = 'fatfish-notes-capture-appearance'
 const preference = 'captureAppearance'
 const getAppearance = (): Appearance => readPreference(preference) === 'icon' ? 'icon' : 'label'
 function subscribe(update: () => void) {

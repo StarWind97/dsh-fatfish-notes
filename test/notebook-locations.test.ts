@@ -78,7 +78,7 @@ test('an old folder marker alone does not authorize a fresh installation to adop
   try{
     await claimFolder(f.home,folder)
     await assert.rejects(f.app.backup.preview({mode:'create',repo:'alpha',folder}),{code:'notebook_folder_occupied'})
-    assert.deepEqual(await readdir(folder),['.dsh-notebook-folder']);assert.equal(f.repos.size,0)
+    assert.deepEqual(await readdir(folder),['.fatfish-notes-folder']);assert.equal(f.repos.size,0)
   }finally{await f.close()}
 })
 
@@ -90,7 +90,7 @@ test('a failed first creation resumes its own claimed empty folder after restart
   try{
     let checked=await app.backup.preview({mode:'create',repo:'alpha',folder})
     await assert.rejects(app.backup.connect({previewId:checked.preview.id,confirmPrivate:true}))
-    assert.equal(attempts,1);assert.deepEqual(await readdir(folder),['.dsh-notebook-folder'])
+    assert.equal(attempts,1);assert.deepEqual(await readdir(folder),['.fatfish-notes-folder'])
     await app.close();app=await createApplication({dir,personal:{gateway}})
     checked=await app.backup.preview({mode:'create',repo:'alpha',folder})
     await assert.rejects(app.backup.connect({previewId:checked.preview.id,confirmPrivate:true}))
@@ -98,21 +98,21 @@ test('a failed first creation resumes its own claimed empty folder after restart
   }finally{await app.close();await rm(root,{recursive:true,force:true})}
 })
 
-test('new libraries default to dsh-notes and keep an explicitly named library on restart',async()=>{
+test('new libraries default to fatfish-notes and keep an explicitly named library on restart',async()=>{
   const f=await fixture()
   try{
-    const defaultFolder=join(f.home,'libraries','dsh-notes')
+    const defaultFolder=join(f.home,'libraries','fatfish-notes')
     const fresh=f.app.personalState().sync
     assert.equal(fresh.folder,defaultFolder)
     assert.equal(fresh.defaultFolder,defaultFolder)
     const {preview}=await f.app.backup.preview({mode:'create'})
-    assert.equal(preview.repo,'dsh-notes')
+    assert.equal(preview.repo,'fatfish-notes')
     assert.equal(preview.folder,defaultFolder)
     await f.app.backup.connect({previewId:preview.id,confirmPrivate:true})
-    assert.equal(f.app.personalState().sync.binding?.repo,'dsh-notes')
-    assert.ok(f.repos.has('dsh-notes'))
+    assert.equal(f.app.personalState().sync.binding?.repo,'fatfish-notes')
+    assert.ok(f.repos.has('fatfish-notes'))
 
-    const oldName='dsh-github-notebook'
+    const oldName='my-personal-notes'
     const otherHome=join(f.root,'other-home')
     let other=await f.open(otherHome)
     try{
@@ -264,7 +264,7 @@ test('return by stable identity finds the last moved folder after restart and co
     const {preview}=await f.app.backup.resetPreview(form)
     assert.equal(preview.reuseFolder,true);assert.equal(preview.folder,moved)
     assert.equal(f.app.personalState().sync.folder,b.preview.folder)
-    const proof=join(moved,'notes','.dsh-local-repository'), saved=await readFile(proof)
+    const proof=join(moved,'notes','.fatfish-notes-repository'), saved=await readFile(proof)
     await writeFile(proof,'5/'+bId)
     await assert.rejects(f.app.backup.reset({repositoryId:bId,previewId:preview.id,confirmPrivate:true}),{code:'notebook_previous_folder_unavailable'})
     assert.equal(f.app.personalState().sync.binding?.repo,'beta');assert.equal(await tip(),before)
@@ -288,7 +288,7 @@ test('return by stable identity finds the last moved folder after restart and co
     const config=JSON.parse(await readFile(join(f.home,'backup','sync.json'),'utf8'))
     assert.deepEqual(config.locations.filter((l:{repositoryId:number})=>l.repositoryId===id).map((l:{folder:string})=>l.folder),[elsewhere])
     const tree=(await runGit(['--git-dir',join(f.root,'renamed.git'),'ls-tree','-r','--name-only','main'])).stdout
-    assert.doesNotMatch(tree,/dsh-local-repository|backup\/sync\.json/)
+    assert.doesNotMatch(tree,/fatfish-notes-repository|backup\/sync\.json/)
   }finally{await f.close()}
 })
 
@@ -301,7 +301,7 @@ test('upgrade remembers the active legacy control folder and allows returning to
     await rm(a.folder,{recursive:true,force:true})
     const cfg=join(f.home,'backup','sync.json'), legacy=JSON.parse(await readFile(cfg,'utf8'))
     legacy.folder=f.home;delete legacy.locations;await writeFile(cfg,JSON.stringify(legacy))
-    await rm(join(f.home,'notes','.dsh-local-repository'))
+    await rm(join(f.home,'notes','.fatfish-notes-repository'))
     await f.restart()
     const b=await f.app.backup.resetPreview({repositoryId:id,repo:'beta',mode:'create',folder:''})
     await f.app.backup.reset({repositoryId:id,previewId:b.preview.id,confirmPrivate:true})
