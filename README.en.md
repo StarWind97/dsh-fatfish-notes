@@ -6,7 +6,7 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 ![Fatfish Notes library](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)
 
-Version `0.6.0` is a release candidate, not a published release. It introduces the Fatfish Notes identity and includes chapter navigation and a native folder picker, alongside automatic saving and two-way sync.
+Version `0.6.0` introduces the Fatfish Notes identity and includes chapter navigation and a native folder picker, alongside automatic saving and two-way sync.
 
 ## Features
 
@@ -18,9 +18,9 @@ Version `0.6.0` is a release candidate, not a published release. It introduces t
 
 ## Install
 
-This guide covers the **0.6.0 candidate**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
+This guide covers **0.6.0**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
 
-Check [GitHub Releases](https://github.com/StarWind97/dsh-fatfish-notes/releases) for publication status. After release, use `dsh-fatfish-notes-0.6.0.tgz`, not the automatically generated Source code archive. For now, the candidate is available locally to the developer. Start DSH once to initialize its profile, then quit it before installing:
+Download `dsh-fatfish-notes-0.6.0.tgz` from the [0.6.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
 
 ```powershell
 dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.6.0.tgz"
