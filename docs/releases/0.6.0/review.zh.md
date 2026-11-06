@@ -1,6 +1,6 @@
 # 0.6.0 肥鱼笔记发布审核
 
-状态：用户已确认发布，正在完成正式发布与市场更名更新。产品更名为「肥鱼笔记 / Fatfish Notes」，定位仍是私人笔记管理。
+状态：[0.6.0 已正式发布](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，北京时间 2026-11-06 23:35:54。产品更名为「肥鱼笔记 / Fatfish Notes」，定位仍是私人笔记管理。
 
 ## 本次范围
 
@@ -20,12 +20,12 @@ SHA-256：`d77bff6697bb3e05325edc078b1f46f9f59fd68a2d80b9d0b46ae2772a718b00`。
 
 类型检查、构建、全量回归 218/218 通过。新版宿主验证见[适配记录](../../verification-log.zh.md#dsh-022-适配候选版)，此前的身份迁移见[改名记录](../../verification-log.zh.md#060-改名候选版)。当前覆盖 Windows / DSH 0.2.2-rc.1；macOS、两台物理电脑未实测。会话验收使用合成测试消息，不代表本轮调用模型质量验证。新版初始化界面的目录返回值由测试控制，未将它当作新版系统弹窗实测。
 
-## 审核材料与下一步
+## 发布与收录
 
-1. 查看新名称、[首页](../../../README.md)、[使用说明](../../user-guide.zh.md)、[Release 正文](release-notes.md)和实际截图。
-2. 用户确认发布后，创建 `v0.6.0` 标签及 GitHub Release，上传候选包和校验文件，再匿名下载核验。
-3. 公开下载验证成功后，以[市场 YAML](../../marketplace/StarWind97__dsh-fatfish-notes.yml)更名并更新上游原有条目，使用[市场 PR 草稿](marketplace-pr.md)。不保留新旧重复条目，不修改市场生成的 README。
-4. 市场收录以维护者合并及客户端刷新后展示分别报告。现阶段市场仍指向历史版本，不宣称已更新。
+1. `v0.6.0` 固定到提交 `4a5013d3906a553959e4cd0a804db8fba5a7c52a`，GitHub Release 为正式版、非草稿，已设为最新版本。[发布正文](release-notes.md)与[安装说明](../../../README.md)已同步。
+2. 安装包、校验文件、图标和 4 张截图均匿名下载，7 个文件逐项与本机发布来源一致；下载的安装包通过宿主 CLI 安装到隔离 Web，128 个文件核对通过。证据为 `.dsh-home/pure-001/release060-publication.json`、`release060-public.json` 和 `release060-public-installed.json`。
+3. [市场 PR #12722](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12722)已提交，以[市场 YAML](../../marketplace/StarWind97__dsh-fatfish-notes.yml)替换旧名称条目：删除旧文件并加入新文件，各 8 行，只涉及这一插件。当前无合并冲突，自动检查运行中，等待维护者审核；[提交正文](marketplace-pr.md)已留档。没有修改市场生成的 README。
+4. 市场收录以维护者合并及客户端刷新后展示分别报告；正式发布不等于市场已经更新。
 
 本次不发布 npm。0.5.x 历史 Release、安装包和提交记录保留。GitHub 仓库重命名保留原仓库身份；不能将再次创建旧名仓库作为后续步骤。
 

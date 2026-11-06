@@ -1,12 +1,25 @@
 # 肥鱼笔记验证记录
 
-2026-11-06 更新。当前候选版为 `0.6.0`，产品已更名为肥鱼笔记；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+2026-11-06 更新。当前正式版为 [0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，产品已更名为肥鱼笔记；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
 
 ## 验证环境
 
 当前已验证 Windows / Node 24.21.0 / DSH 0.2.2-rc.1；下方历史验证以各条记录中的宿主版本为准。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 0.6.0 正式发布
+
+2026-11-06 用户明确回复「发布」，授权正式发布并提交插件市场更名更新。北京时间 **23:35:54** 发布 `v0.6.0`，为正式版、非草稿及非预发布，已设为最新版本。标签固定到 `4a5013d3906a553959e4cd0a804db8fba5a7c52a`。
+
+- 发布前将中英文 README 的候选版说明改为正式安装指引。与已通过 218 项回归及真实宿主验收的候选包逐文件比较，只有这两份 README 改变，其他 126 个文件字节一致；未改变运行代码或依赖，未重复全量回归。
+- 正式安装包为 `dsh-fatfish-notes-0.6.0.tgz`，14,234,122 字节，SHA-256 为 `d77bff6697bb3e05325edc078b1f46f9f59fd68a2d80b9d0b46ae2772a718b00`。发布前安装到隔离 Desktop，128 个文件与构建核对一致；GitHub 上传后返回的包摘要及校验文件摘要也一致。
+- 安装包、校验文件、图标和 4 张截图共 7 个公开文件均匿名下载，逐项匹配本机来源。Windows 下载器首次遇到证书吊销查询不可用，改用保持正常 HTTPS 证书验证的 Node 下载成功，没有关闭证书检查或调整系统网络设置。
+- 使用匿名下载的正式包通过宿主 CLI 安装到既有隔离 `release12-web`，128 个文件逐项一致。公开下载副本和证据位于 `.dsh-home/pure-001/release060-public/`、`release060-public.json`、`release060-public-installed.json`；发布与包差异证据为 `release060-publication.json`、`release060-package-diff.json`。
+- [市场 PR #12722](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12722)将 `StarWind97__dsh-github-notebook.yml` 替换为 `StarWind97__dsh-fatfish-notes.yml`，更新名称、仓库/图标链接与 0.6.0 安装包。基于上游 `51d50de9c8243deba503e3e074d670666731c13c`，更新提交 `8e60a9960c779d1c1449a20f74c4f015fbec0a43`；只删除和新增本插件条目，各 8 行。没有新旧重复条目，也没有修改生成 README。证据为 `release060-market-submit.json`。
+- 提交后 PR 无合并冲突，自动检查正在运行，维护者尚未合并；不宣称市场客户端已显示新名称或 0.6.0。后续按 PR 合并及客户端刷新结果分别确认。
+
+未发布 npm，历史 0.5.x Release 和 Git 历史保持原样，未修改日常 DSH 资料。体验入口为 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，已安装正式包。macOS、两台物理设备等未覆盖边界沿用下方候选版记录。
 
 ## DSH 0.2.2 适配候选版
 
