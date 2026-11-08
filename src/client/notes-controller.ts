@@ -263,7 +263,7 @@ export class NotesController {
     try {
     if (this.state.loadingNote || !await this.prepareLeave()) return false
     ++this.navigation
-    this.emit({ section: 'notes', editing:true, noteId: newId(), note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId: newId(), note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}
   }
@@ -292,7 +292,7 @@ export class NotesController {
     const note = this.state.conflict
     this.emit({ draft: noteContent({ ...note, current: revision, effectiveNotebookId: this.state.notebooks.some(b => b.notebookId === revision.notebookId && b.current.status === 'active') ? revision.notebookId : null }), dirty: true })
   }
-  async notebook(title: string, book?: NotebookView, remove = false) {
+  async notebook(title: string, book?: NotebookView, remove = false, options: { makeDefault?: boolean; removal?: 'move' | 'trash'; expectedNoteCount?: number } = {}) {
     if (this.bookSaving || this.state.loadingNote) return false
     this.bookSaving = true
     let started = false
@@ -300,10 +300,13 @@ export class NotesController {
       if (!await this.prepareLeave() || this.state.operation || this.state.loadingNote) return false
       started = true
       this.emit({ operation: true })
-      const result = await this.call('/notes/notebook', { title, expectedHeads: book?.heads ?? [], ...(book ? { notebookId: book.notebookId } : {}), remove })
+      const result = await this.call('/notes/notebook', { title, expectedHeads: book?.heads ?? [], ...(book ? { notebookId: book.notebookId } : {}), remove, ...options })
       this.emit({ notebooks: result.notebooks, operation: false, error: null })
       if (remove && this.state.noteId) await this.open(this.state.noteId)
-      if (remove && this.state.filter.notebookId === book?.notebookId) await this.filter({ ...this.state.filter, notebookId: null })
+      if (remove && this.state.filter.notebookId === book?.notebookId) {
+        const { notebookId: _notebookId, ...rest } = this.state.filter
+        await this.filter(rest)
+      }
       else await this.refresh()
       return true
     } catch (e) { this.emit({ error: errorCode(e) }); return false }

@@ -1,5 +1,5 @@
 import type { ImageMediaType } from '../contracts/media.js';
-import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
+import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
 import { NoteFiles } from './files.js';
 export interface NoteRepositoryOptions {
     now?: () => number;
@@ -19,6 +19,9 @@ export declare class NoteRepository {
     private run;
     private view;
     private notebook;
+    private books;
+    private defaultBook;
+    private ensureNotebooks;
     private load;
     private limits;
     private writable;
@@ -59,7 +62,11 @@ export declare class NoteRepository {
         notebookId?: string;
         expectedHeads: string[];
         title: string;
+        makeDefault?: boolean;
     }, signal?: AbortSignal): Promise<NotebookView>;
-    deleteNotebook(notebookId: string, expectedHeads: string[], signal?: AbortSignal): Promise<void>;
+    deleteNotebook(notebookId: string, expectedHeads: string[], signal?: AbortSignal, options?: {
+        removal?: NotebookRemoval;
+        expectedNoteCount?: number;
+    }): Promise<void>;
     recover(signal?: AbortSignal): Promise<RecoveryIssue[]>;
 }

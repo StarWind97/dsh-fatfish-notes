@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile, readFile, mkdir, symlink, link, readdir, truncate } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DEFAULT_NOTEBOOK_ID } from '../src/notes/notebooks.js'
 import { NoteRepository } from '../src/notes/repository.js'
 import { createNoteRevision, createNotebookRevision } from '../src/notes/revisions.js'
 import { serializeNoteMarkdown } from '../src/notes/markdown.js'
@@ -119,7 +120,7 @@ test('concurrent edits become separate notes that preserve each branch status, a
 
 })
 
-test('notes notebook deletion unassigns projection only and sync preserves concurrent note versions', async t => {
+test('notes notebook deletion moves notes to default and sync preserves concurrent note versions', async t => {
   const first = await fixture(t), second = await fixture(t)
   const book = await first.repo.saveNotebook({ title: '我的笔记本', expectedHeads: [] })
   const base = await first.repo.save({ expectedHeads: [], content: { ...content, notebookId: book.notebookId } })
@@ -132,36 +133,38 @@ test('notes notebook deletion unassigns projection only and sync preserves concu
   await first.repo.importObjects(await second.repo.exportObjects())
   await second.repo.importObjects(await first.repo.exportObjects())
   const view = await second.repo.get(base.noteId)
-  assert.equal(view.effectiveNotebookId, null); assert.equal(view.current.notebookId, book.notebookId)
-  assert.equal(view.current.body, '另一端编辑')
-  assert.equal((await second.repo.list({ notebookId: null })).items.length, 1)
+  assert.equal(view.effectiveNotebookId, DEFAULT_NOTEBOOK_ID)
+  const bodies = await Promise.all((await second.repo.list()).items.map(n => second.repo.get(n.noteId)))
+  assert.ok(bodies.some(n => n.current.body === '另一端编辑'))
+  assert.equal((await second.repo.list({ notebookId: DEFAULT_NOTEBOOK_ID })).items.length, 2)
   assert.equal((await second.repo.list({ notebookId: book.notebookId })).items.length, 0)
   await second.repo.save({ noteId: base.noteId, expectedHeads: view.heads, content: { ...content, notebookId: null, body: view.current.body } })
-  assert.equal((await second.repo.get(base.noteId)).current.notebookId, null)
+  assert.equal((await second.repo.get(base.noteId)).current.notebookId, DEFAULT_NOTEBOOK_ID)
 })
 
-test('notes notebook rename/delete concurrency remains unassigned without resolving note conflicts', async t => {
+test('notes notebook rename/delete concurrency falls back to default while preserving note conflicts', async t => {
   const { repo } = await fixture(t), book = await repo.saveNotebook({ title: '原名', expectedHeads: [] })
   const base = await repo.save({ expectedHeads: [], content: { ...content, notebookId: book.notebookId } })
   const renamed = createNotebookRevision({ version: 1, notebookId: book.notebookId, parents: book.heads, title: '新名', status: 'active', recordedAt: book.current.recordedAt })
   await repo.deleteNotebook(book.notebookId, book.heads)
   await repo.importObjects({ version: 1, notebooks: [renamed], revisions: [child(base.current, 'A'), child(base.current, 'B')] })
   const view = await repo.get(base.noteId)
-  assert.equal(view.effectiveNotebookId, null); assert.equal(view.conflicts.length, 0); assert.equal((await repo.list()).items.length,2)
-  assert.equal((await repo.listNotebooks())[0]?.conflicts.length, 1)
+  assert.equal(view.effectiveNotebookId, DEFAULT_NOTEBOOK_ID); assert.equal(view.conflicts.length, 0); assert.equal((await repo.list()).items.length,3)
+  assert.equal((await repo.listNotebooks()).find(b => b.notebookId === book.notebookId)?.conflicts.length, 1)
 })
 
 test('notes deleted notebook allows external editing, normal save, trash and restore without stale membership', async t => {
   const { dir, repo } = await fixture(t), book = await repo.saveNotebook({ title: '将删除', expectedHeads: [] })
   const base = await repo.save({ expectedHeads: [], content: { ...content, notebookId: book.notebookId } })
   await repo.deleteNotebook(book.notebookId, book.heads)
-  await writeFile(join(dir, 'notes', 'documents', `${base.noteId}.md`), serializeNoteMarkdown(base.current) + '外部改正文')
+  const moved = await repo.get(base.noteId)
+  await writeFile(join(dir, 'notes', 'documents', `${base.noteId}.md`), serializeNoteMarkdown(moved.current) + '外部改正文')
   const edited = await repo.get(base.noteId)
-  assert.equal(edited.current.notebookId, null); assert.ok(edited.current.body.endsWith('外部改正文'))
+  assert.equal(edited.current.notebookId, DEFAULT_NOTEBOOK_ID); assert.ok(edited.current.body.endsWith('外部改正文'))
   const saved = await repo.save({ noteId: base.noteId, expectedHeads: edited.heads, content: { ...content, notebookId: book.notebookId } })
-  assert.equal(saved.current.notebookId, null)
+  assert.equal(saved.current.notebookId, DEFAULT_NOTEBOOK_ID)
   const trashed = await repo.trash(base.noteId, saved.heads), restored = await repo.restore(base.noteId, trashed.heads)
-  assert.equal(restored.current.status, 'active'); assert.equal(restored.current.notebookId, null)
+  assert.equal(restored.current.status, 'active'); assert.equal(restored.current.notebookId, DEFAULT_NOTEBOOK_ID)
   assert.equal((await repo.getRevision(base.noteId, base.current.revision)).notebookId, book.notebookId)
   const unknown = ulid()
   await assert.rejects(repo.save({ noteId: base.noteId, expectedHeads: restored.heads, content: { ...content, notebookId: unknown } }), code('notebook_not_found'))
@@ -349,7 +352,7 @@ for (const kind of ['note', 'notebook'] as const) {
     else await assert.rejects(reopened.saveNotebook({ notebookId: identity, expectedHeads: [], title: '不能覆盖' }), code('note_corrupt'))
     await reopened.importObjects({ version: 1, revisions: kind === 'note' ? [row] as NoteRevision[] : [], notebooks: kind === 'notebook' ? [row] as import('../src/notes/types.js').NotebookRevision[] : [] })
     assert.deepEqual(await reopened.recover(), [])
-    assert.equal((await reopened.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].length, 1)
+    assert.equal((await reopened.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].filter(r => ('noteId' in r ? r.noteId : r.notebookId) === identity).length, 1)
   })
 
   test(`notes R2 ${kind} reversed import interrupted before parent can be retried after restart`, async t => {
@@ -359,10 +362,10 @@ for (const kind of ['note', 'notebook'] as const) {
     const input: NoteObjects = { version: 1, revisions: kind === 'note' ? [tip, base] as NoteRevision[] : [], notebooks: kind === 'notebook' ? [tip, base] as import('../src/notes/types.js').NotebookRevision[] : [] }
     const failing = new NoteRepository(dir, { beforeWrite(path) { if (path.endsWith(`${base.revision}.json`)) throw new Error('parent write interrupted') } })
     await assert.rejects(failing.importObjects(input), /parent write interrupted/)
-    assert.equal((await new NoteRepository(dir).exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].length, 0)
+    assert.equal((await new NoteRepository(dir).exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].filter(r => ('noteId' in r ? r.noteId : r.notebookId) === identity).length, 0)
     const reopened = new NoteRepository(dir)
     await reopened.importObjects(input)
-    assert.equal((await reopened.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].length, 2)
+    assert.equal((await reopened.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].filter(r => ('noteId' in r ? r.noteId : r.notebookId) === identity).length, kind === 'note' ? 3 : 2)
     assert.deepEqual(await reopened.recover(), [])
   })
 
@@ -375,7 +378,7 @@ for (const kind of ['note', 'notebook'] as const) {
     const input: NoteObjects = { version: 1, revisions: kind === 'note' ? [base] as NoteRevision[] : [], notebooks: kind === 'notebook' ? [base] as import('../src/notes/types.js').NotebookRevision[] : [] }
     await repo.importObjects(input)
     assert.equal(await readFile(path, 'utf8'), canonical(tip))
-    assert.equal((await repo.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].length, 2)
+    assert.equal((await repo.exportObjects())[kind === 'note' ? 'revisions' : 'notebooks'].filter(r => ('noteId' in r ? r.noteId : r.notebookId) === identity).length, kind === 'note' ? 3 : 2)
   })
 
   test(`notes R2 ${kind} import repair never overwrites genuinely corrupt immutable bytes`, async t => {

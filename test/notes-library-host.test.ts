@@ -31,12 +31,12 @@ test('M5 real HTTP local library CRUD, notebooks, source assets and route-specif
     }
     const created = await post('/notes/save', { expectedHeads: [], content: content() }); assert.equal(created.status, 200)
     let note = (await created.json() as { note: NoteView }).note; assert.equal(note.current.body, content().body)
-    const books = await (await post('/notes/notebook', { expectedHeads: [], title: '工作笔记' })).json() as { notebooks: NotebookView[] }, book = books.notebooks[0]!
+    const books = await (await post('/notes/notebook', { expectedHeads: [], title: '工作笔记' })).json() as { notebooks: NotebookView[] }, book = books.notebooks.find(b => b.current.title === '工作笔记')!
     const moved = await post('/notes/save', { noteId: note.noteId, expectedHeads: note.heads, content: { ...content(), notebookId: book.notebookId } }); assert.equal(moved.status, 200); note = (await moved.json() as { note: NoteView }).note
     const list = await (await get(`/notes?query=${encodeURIComponent('原文')}&tag=${encodeURIComponent('中文')}&notebookId=${book.notebookId}&limit=1`)).json() as NoteListResult; assert.equal(list.items.length, 1)
     assert.equal((await post('/notes/save', { noteId: note.noteId, expectedHeads: [], content: content('stale') })).status, 409)
-    await post('/notes/notebook', { notebookId: book.notebookId, expectedHeads: book.heads, title: book.current.title, remove: true })
-    note = (await (await get(`/notes/get?noteId=${note.noteId}`)).json() as { note: NoteView }).note; assert.equal(note.effectiveNotebookId, null)
+    await post('/notes/notebook', { notebookId: book.notebookId, expectedHeads: book.heads, title: book.current.title, remove: true, removal: 'move', expectedNoteCount: 1 })
+    note = (await (await get(`/notes/get?noteId=${note.noteId}`)).json() as { note: NoteView }).note; assert.equal(note.effectiveNotebookId, books.notebooks.find(b => b.isDefault)!.notebookId)
     const bigBody = 'a'.repeat(3 * 1024 * 1024), large = await post('/notes/save', { noteId: note.noteId, expectedHeads: note.heads, content: content(bigBody), resolve: true }); assert.equal(large.status, 200)
     note = (await large.json() as { note: NoteView }).note; assert.equal(note.current.body, bigBody)
     const trashed = await post('/notes/trash', { noteId: note.noteId, expectedHeads: note.heads }); assert.equal(trashed.status, 200); note = (await trashed.json() as { note: NoteView }).note

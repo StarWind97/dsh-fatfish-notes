@@ -137,7 +137,8 @@ export class NoteCaptureService {
     }
     const source = await this.repository.getSource(journal.sourceId, signal) as unknown as CaptureSource
     if (!journal.revision) {
-      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.scope === 'session' ? '会话笔记' : '问答笔记', body: rawBody(source), summary: '', tags: [], notebookId: request.notebookId, status: 'active', sourceId: journal.sourceId, assetIds: Object.values(source.assets) })
+      const notebookId = request.notebookId ?? (await this.repository.listNotebooks(signal)).find(book => book.isDefault)!.notebookId
+      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.scope === 'session' ? '会话笔记' : '问答笔记', body: rawBody(source), summary: '', tags: [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: Object.values(source.assets) })
       await write(journal)
     }
     signal.throwIfAborted()

@@ -78,13 +78,17 @@ export interface NotebookRevision {
     recordedAt: string;
     title: string;
     status: NoteStatus;
+    defaultSelectedAt?: string;
 }
 export interface NotebookView {
     notebookId: string;
     heads: string[];
     current: NotebookRevision;
     conflicts: NotebookRevision[];
+    isDefault?: boolean;
+    noteCount?: number;
 }
+export type NotebookRemoval = 'move' | 'trash';
 export interface CaptureRequest {
     requestId: string;
     sessionId: string;
@@ -241,6 +245,9 @@ export interface NotesApiContract {
             expectedHeads: string[];
             title: string;
             remove?: boolean;
+            makeDefault?: boolean;
+            removal?: NotebookRemoval;
+            expectedNoteCount?: number;
         };
         response: {
             ok: true;

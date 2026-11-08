@@ -107,8 +107,13 @@ export class NotesApplication {
   notebooks(signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, notebooks: await this.repository.listNotebooks(active) }), signal) }
   notebook(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), heads = sortedStrings(v.expectedHeads, 100_000, hash)
-    if (v.remove === true) await this.repository.deleteNotebook(id(v.notebookId), heads, active)
-    else await this.repository.saveNotebook({ ...(v.notebookId === undefined ? {} : { notebookId: id(v.notebookId) }), expectedHeads: heads, title: text(v.title, 1200) }, active)
+    if (v.remove === true) {
+      if (!['move', 'trash'].includes(String(v.removal)) || !Number.isSafeInteger(v.expectedNoteCount) || Number(v.expectedNoteCount) < 0) throw new NotebookError('note_schema', '请确认移除方式和笔记数量')
+      await this.repository.deleteNotebook(id(v.notebookId), heads, active, { removal: v.removal as 'move' | 'trash', expectedNoteCount: Number(v.expectedNoteCount) })
+    } else {
+      if (v.makeDefault !== undefined && typeof v.makeDefault !== 'boolean') throw new NotebookError('note_schema', '默认笔记本选项无效')
+      await this.repository.saveNotebook({ ...(v.notebookId === undefined ? {} : { notebookId: id(v.notebookId) }), expectedHeads: heads, title: text(v.title, 1200), ...(v.makeDefault === true ? { makeDefault: true } : {}) }, active)
+    }
     return { ok: true as const, notebooks: await this.repository.listNotebooks(active) }
   }, signal) }
   jobs(input: unknown, signal?: AbortSignal) { return this.run(async active => {

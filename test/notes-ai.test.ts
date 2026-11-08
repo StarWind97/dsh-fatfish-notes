@@ -207,14 +207,15 @@ for (const timing of ['before-candidate','during-adoption'] as const) test(`M4 P
       return view
     }
     const service = new NoteEnrichment(repository, f.model), job = await service.drive(f.job!.jobId, signal())
-    await assert.rejects(service.submit(payload(job), request.sessionId, signal()), /post-revision failure/)
-    assert.equal(deleted, true)
+    const candidate = await service.submit(payload(job), request.sessionId, signal())
+    assert.equal(candidate.status, 'candidate'); assert.equal(deleted, true)
+    await assert.rejects(service.adopt(job.jobId, (await f.repo.get(job.noteId)).heads, signal()), /post-revision failure/)
     const journal = await service.get(job.jobId), actual = await f.repo.get(job.noteId)
     assert.ok(journal.adoption); assert.equal(journal.adoption.revision, actual.current.revision)
-    assert.equal(journal.adoption.notebookId, null)
+    assert.equal(journal.adoption.notebookId, (await f.repo.listNotebooks()).find(b => b.isDefault)!.notebookId)
     const restarted = new NoteEnrichment(new NoteRepository(f.dir), f.model)
     assert.equal((await restarted.drive(job.jobId, signal())).status, 'completed')
-    assert.equal((await f.repo.files.scan()).paths.filter(p => p.startsWith('revisions/')).length, 2)
+    assert.equal((await f.repo.files.scan()).paths.filter(p => p.startsWith('revisions/')).length, 3)
     assert.equal((await f.repo.get(job.noteId)).current.revision, journal.adoption.revision)
   } finally { await f.close() }
 })

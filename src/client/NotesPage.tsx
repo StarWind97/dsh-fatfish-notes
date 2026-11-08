@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import type { NotesController, NotesState } from './notes-controller.js'
 import { NoteBackupStatus } from './NoteBackupStatus.js'
 import { noteDateTime } from '../notes/date.js'
+import { NotebookManager, notebookManagerCss } from './NotebookManager.js'
+import { activeNotebook } from '../notes/notebooks.js'
 import { NoteEditor } from './NoteEditor.js'
 import { SettingsPage } from './SettingsPage.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
@@ -16,7 +18,7 @@ import type { T } from './locale.js'
 export function NotesPage({ controller, t }: { controller: NotesController; t: T }) {
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const [query,setQuery]=useState(state.filter.query??''),[tag,setTag]=useState(state.filter.tag??'')
-  const [booksOpen,setBooksOpen]=useState(false),[bookName,setBookName]=useState(''),[editingBook,setEditingBook]=useState<string|null>(null)
+  const [booksOpen,setBooksOpen]=useState(false),[managerOpen,setManagerOpen]=useState(false)
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
   const outlineSession=useRef<OutlineSession>({wide:null,open:false})
@@ -31,7 +33,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
     return()=>clearInterval(id)
   },[controller,state.noteId,state.section])
   const pulled=useCallback(()=>{void controller.refresh(true,true)},[controller])
-  const activeBooks=state.notebooks.filter(b=>b.current.status==='active')
+  const activeBooks=state.notebooks.filter(activeNotebook)
   function search(value:string){setQuery(value);clearTimeout(timer.current);timer.current=setTimeout(()=>void choose({...controller.getSnapshot().filter,query:value}),220)}
   function filterTag(value?:string) {
     clearTimeout(timer.current)
@@ -49,8 +51,9 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
   }
   const list=<><div className="paper-list-scroll"><div className="paper-list-head">{inTrash?<strong className="paper-trash-title">{t('notesTrash')}</strong>:<label className="paper-picker"><select aria-label={t('notesNotebook')} value={state.filter.notebookId===undefined?'all':state.filter.notebookId??''} onChange={e=>{
     clearTimeout(timer.current);const option=e.target.value,{notebookId:ignored,...rest}=state.filter
+    if(option==='manage'){setManagerOpen(true);void controller.refresh();return}
     void choose(option==='all'?{...rest,query}:{...rest,query,notebookId:option||null})
-  }}><option value="all">{t('paperAll')}</option><option value="">{t('notesUnfiled')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}</option>)}</select><ChevronDown size={14}/></label>}
+  }}><option value="all">{t('paperAll')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}<option value="manage">{t('notesManageBooks')}…</option></select><ChevronDown size={14}/></label>}
       {!inTrash&&<button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button>}</div>
     <div className="paper-search"><Search size={16}/><input aria-label={t('notesSearch')} type="search" placeholder={t('notesSearch')} value={query} onChange={e=>search(e.target.value)}/>
       <button aria-label={t('paperFilter')} title={t('paperFilter')} aria-expanded={booksOpen} onClick={()=>setBooksOpen(!booksOpen)}><SlidersHorizontal size={15}/></button></div>
@@ -63,16 +66,15 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
     }}><option value="recent">{t('paperRecent')}</option><option value="oldest">{t('paperOldest')}</option></select></label>
     {booksOpen&&<div className="paper-controls"><form onSubmit={e=>{e.preventDefault();void choose({...state.filter,query,tag})}}><label>{t('notesTag')}<input value={tag} onChange={e=>setTag(e.target.value)}/></label><button>{t('notesSearchAction')}</button></form>
       <button onClick={()=>void controller.refresh(true,true)}>{t('refresh')}</button></div>}
-        {booksOpen && !inTrash && <section style={s.card}><form onSubmit={e => { e.preventDefault(); void controller.notebook(bookName, state.notebooks.find(b => b.notebookId === editingBook)).then(ok => { if (ok) { setBookName(''); setEditingBook(null) } }) }}><label style={s.label}>{t('notesBookName')}<input style={s.input} value={bookName} onChange={e => setBookName(e.target.value)} /></label><button type="submit" style={s.button} disabled={!bookName.trim()}>{t(editingBook ? 'notesRenameBook' : 'notesNewBook')}</button>{editingBook && <button type="button" style={s.button} onClick={() => { setEditingBook(null); setBookName('') }}>{t('cancel')}</button>}</form>{activeBooks.map(book => <div key={book.notebookId} style={{ ...s.row, marginTop: 8 }}><span>{book.current.title}</span><button type="button" style={s.button} onClick={() => { setEditingBook(book.notebookId); setBookName(book.current.title) }}>{t('notesRenameBook')}</button><button type="button" style={s.button} onClick={() => void controller.notebook(book.current.title, book, true)}>{t('notesRemoveBook')}</button></div>)}<p style={s.muted}>{t('notesRemoveBookHint')}</p></section>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
     <div className="paper-rows">{state.items.map((item,i)=>{
       const date=noteDateTime(item.savedAt).slice(0,10),showDate=!i||noteDateTime(state.items[i-1]!.savedAt).slice(0,10)!==date
       return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);void controller.open(item.noteId)}}>
-        <strong>{item.title||t('notesUntitled')}</strong>{(item.excerpt||item.summary)&&<span>{item.excerpt||item.summary}</span>}<small>{item.conflicted?t('notesConflict'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesUnfiled')}</small>
+        <strong>{item.title||t('notesUntitled')}</strong>{(item.excerpt||item.summary)&&<span>{item.excerpt||item.summary}</span>}<small>{item.conflicted?t('notesConflict'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')}</small>
       </button></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot"><button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button></footer></>
-  return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss}</style>
+  return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss}</style>
     <header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','settings'] as const).map(section=><button key={section} aria-pressed={state.section===section} onClick={()=>{clearTimeout(timer.current);void controller.navigate(section)}}>{t(section==='notes'?'notesLibrary':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
     {state.section==='settings'?<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>:
@@ -80,5 +82,6 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
       {state.draft?<NoteEditor outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':'notesOpenFailed')}</p>}
     </PaperColumns>}
+    {managerOpen&&<NotebookManager controller={controller} state={state} t={t} onClose={()=>setManagerOpen(false)}/>}
   </div>
 }

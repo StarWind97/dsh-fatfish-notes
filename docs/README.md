@@ -18,6 +18,8 @@
 
 ## 开发与验证
 
+当前开发版已完成[默认笔记本与移除规则](plans/2026-11-08-default-notebook.zh.md)：默认归属、默认本设置同步及移除时保留/移入回收站。类型检查、构建和 227 项全量回归通过，已在隔离 DSH 完成实际安装、操作、指定私库同步和重启读回。该功能纳入 0.6.1 开发候选包，尚未对外发布，正式安装入口仍为 0.6.0。
+
 `src/` 为 TypeScript 源码，`lib/` 由构建生成。命令以 [package.json](../package.json)为准；依照[三档验证范围](../AGENTS.md#验证范围)选择检查。涉及存储身份或发布候选包时，执行类型检查、构建、全量回归和实际安装验收。
 
 已验证宿主组合为 Windows / Node 24.21.0 / DSH 0.2.2-rc.1。macOS、两台物理设备仍待实测。体验入口不自动更新宿主；DSH 侧栏的「新版本」是宿主更新提示，与插件包版本分别核对。
@@ -26,10 +28,10 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开已安装 0.6.1 候选包的 `release12-desktop` 体验资料；普通安装用户仍使用 0.6.0 正式版。包位于 `dist/`，0.6.0 公开下载核验文件位于 `.dsh-home/pure-001/release060-public/`。本轮证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，迁移前备份位于 `.dsh-home/pure-001/rename060-backup/`，均由 Git 忽略。Web 的跨实例同步证据仍为 0.6.0，未改写为新版本验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开已安装 0.6.1 候选包的 `release12-desktop` 体验资料；普通安装用户仍使用 0.6.0 正式版。包位于 `dist/`，当前包摘要见[候选记录](releases/0.6.1/review.zh.md)。默认笔记本的实际截图位于 `output/playwright/default-books/`，测试记录及升级前备份位于 `.dsh-home/pure-001/default-books-*`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；本轮另验证了两个本地 Git 副本的默认本同步，不将其称为两个真实宿主或两台物理设备验收。
 
 历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
 ## 后续备忘
 
-优先安排本地 Markdown 文件导入。阅读区右侧操作面板及 AI 选项留待后续规划。宿主具备合适接口后再考虑将笔记直接附加到指定会话。
+现有常用功能稳定后，再讨论后续开发：本地 Markdown 文件导入；会话侧栏及笔记关联；围绕具体场景调用宿主 AI 整理、分析、输出。当前只将后两项记录为[备忘](plans/2026-11-08-default-notebook.zh.md#后续备忘未进入详细规划)，不展开详细方案、不启动开发。阅读区操作面板和直接附加到会话按需要及宿主接口能力再决定。

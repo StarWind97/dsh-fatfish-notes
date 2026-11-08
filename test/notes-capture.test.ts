@@ -135,6 +135,7 @@ test('M3 completed tool result archives only structured visible images; uncertai
 for(const stage of ['sources/','revisions/','manifest.json','receipt']) test(`M3 interrupted ${stage} retries one frozen note after process restart`,async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-interruption-'))
   try {
+    await new NoteRepository(dir).listNotebooks()
     const f=fixture();let fail=true,revisionWritten=false
     const repo=new NoteRepository(dir,{beforeWrite:path=>{
       if(path.startsWith('revisions/'))revisionWritten=true

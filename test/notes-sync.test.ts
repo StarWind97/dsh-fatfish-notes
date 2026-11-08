@@ -35,6 +35,32 @@ async function fixture() {
   return { dir, remote, gateway, account, backend, instance, connect, edit, show, set runner(value: GitRunner) { runner = value }, get repository() { return repository }, set repository(value: GitHubRepository | null) { repository = value }, async close() { await Promise.all(services.map(s => s.close())); await rm(dir, { recursive: true, force: true }) } }
 }
 
+test('default notebook, chosen destination and notebook removal synchronize across real clones', async () => {
+  const f = await fixture()
+  try {
+    const a = await f.instance('default-a'); await f.connect(a.sync)
+    const seed = (await a.notes.listNotebooks()).find(b => b.isDefault)!
+    const book = await a.notes.saveNotebook({ title: '工作资料', expectedHeads: [], makeDefault: true })
+    const note = await a.notes.save({ expectedHeads: [], content: content('跨端保留的正文') })
+    await a.sync.sync()
+    const b = await f.instance('default-b'); await f.connect(b.sync)
+    assert.equal((await b.notes.listNotebooks()).find(b => b.isDefault)?.notebookId, book.notebookId)
+    assert.equal((await b.notes.listNotebooks()).length, 2)
+    assert.equal((await b.notes.get(note.noteId)).current.notebookId, book.notebookId)
+    await a.notes.saveNotebook({ notebookId: seed.notebookId, title: '收件箱', expectedHeads: seed.heads, makeDefault: true })
+    await a.sync.sync(); await b.sync.sync()
+    await b.notes.deleteNotebook(book.notebookId, (await b.notes.listNotebooks()).find(v => v.notebookId === book.notebookId)!.heads, undefined, { removal: 'trash', expectedNoteCount: 1 })
+    await b.sync.sync(); await a.sync.sync()
+    const trashed = await a.notes.get(note.noteId)
+    assert.equal(trashed.current.status, 'trashed'); assert.equal(trashed.current.notebookId, seed.notebookId)
+    await a.notes.restore(note.noteId, trashed.heads); await a.sync.sync(); await b.sync.sync()
+    assert.equal((await b.notes.get(note.noteId)).current.status, 'active')
+    assert.equal((await b.notes.listNotebooks()).find(v => v.isDefault)?.current.title, '收件箱')
+    const before = await f.show('notes/manifest.json')
+    await b.sync.sync(); assert.equal(await f.show('notes/manifest.json'), before)
+  } finally { await f.close() }
+})
+
 test('two real clones merge independent notes, binary/source objects, concurrent edits, trash and external Markdown', async () => {
   const f = await fixture()
   try {

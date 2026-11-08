@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { NotebookError } from '../domain/errors.js'
 import { ulid } from '../domain/id.js'
 import type { ImageMediaType } from '../contracts/media.js'
-import type { NoteObjects, NoteRevision, NotebookRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js'
+import type { NoteObjects, NoteRevision, NotebookRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js'
 import { NOTE_LIMITS } from './types.js'
 import { canonical, digest, fail, hash, id, normalizeContent, object, keys, sortedStrings, assetId } from './validation.js'
 import { createNoteRevision, validateNoteRevision, mergeNoteRevisions, materializeNote, createNotebookRevision, validateNotebookRevision, mergeNotebookRevisions, materializeNotebook, topologicalOrder } from './revisions.js'
@@ -13,6 +13,7 @@ import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from '.
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
 import { checkReferences, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
 import { searchNotes } from './search.js'
+import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME } from './notebooks.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -55,9 +56,32 @@ export class NoteRepository {
       if (!rows.length || state.blocked.has(notebookId)) view.effectiveNotebookId = null
       else { const book = materializeNotebook(rows, notebookId); if ([book.current, ...book.conflicts].some(r => r.status === 'trashed')) view.effectiveNotebookId = null }
     }
+    if (view.effectiveNotebookId === null) view.effectiveNotebookId = this.defaultBook(state)?.notebookId ?? null
     return view
   }
   private notebook(state: State, notebookId: string): NotebookView { return materializeNotebook(state.notebooks.filter(r => r.notebookId === notebookId), notebookId) }
+  private books(state: State): NotebookView[] { return [...new Set(state.notebooks.map(r => r.notebookId))].sort().map(n => this.notebook(state, n)) }
+  private defaultBook(state: State): NotebookView | undefined { return defaultNotebook(this.books(state)) }
+  private async ensureNotebooks(state: State): Promise<void> {
+    if (state.issues.length) return
+    const books = this.books(state), seed = books.find(b => b.notebookId === DEFAULT_NOTEBOOK_ID)
+    if ((!seed && !books.some(b => b.current.defaultSelectedAt)) || !this.defaultBook(state)) {
+      const row = createNotebookRevision({ version: 1, notebookId: DEFAULT_NOTEBOOK_ID, title: seed?.current.title ?? '默认笔记本', status: 'active',
+        parents: seed?.heads ?? [], recordedAt: seed?.current.recordedAt ?? DEFAULT_NOTEBOOK_TIME, defaultSelectedAt: DEFAULT_NOTEBOOK_TIME })
+      state.notebooks = mergeNotebookRevisions(state.notebooks, [row])
+      await this.files.write(notebookPath(row), canonical(row), true); await this.manifest(state)
+    }
+    // Assign legacy unfiled notes once, retaining their order and all original content.
+    for (const noteId of new Set(state.revisions.map(r => r.noteId))) {
+      const view = this.view(state, noteId)
+      if (view.heads.length !== 1 || view.current.notebookId !== null) continue
+      await this.external(state, noteId)
+      const latest = this.view(state, noteId)
+      if (latest.heads.length !== 1 || latest.current.notebookId !== null) continue
+      const { revision: _revision, ...data } = latest.current
+      await this.append(state, createNoteRevision({ ...data, parents: latest.heads, notebookId: this.defaultBook(state)!.notebookId }))
+    }
+  }
   private async load(): Promise<State> {
     const state: State = { version: 1, revisions: [], notebooks: [], issues: [], blocked: new Set(), detachedRevisions: [], detachedNotebooks: [], acknowledgedPaths: [] }
     const paths = (await this.files.scan()).paths
@@ -128,6 +152,7 @@ export class NoteRepository {
       state.issues.push({ path, code: 'note_missing' }); state.blocked.add(path.split('/')[1]!)
     }
     this.limits(state)
+    await this.ensureNotebooks(state)
     return state
   }
   private limits(state: NoteObjects): void {
@@ -138,10 +163,10 @@ export class NoteRepository {
     if (state.issues.some(issue => issue.code === 'note_missing')) fail('note_corrupt', '已确认保存的修订缺失或不可用，原清单已保留，请先恢复')
   }
   private localMembership<T extends NoteContent>(state: State, content: T): T {
-    if (content.notebookId === null) return content
+    if (content.notebookId === null) return { ...content, notebookId: this.defaultBook(state)?.notebookId ?? null }
     this.writable(state, content.notebookId)
     const book = this.notebook(state, content.notebookId)
-    return [book.current, ...book.conflicts].some(r => r.status === 'trashed') ? { ...content, notebookId: null } : content
+    return !activeNotebook(book) ? { ...content, notebookId: this.defaultBook(state)?.notebookId ?? null } : content
   }
   private async verifyNotebook(state: State, content: NoteContent): Promise<void> {
     if (content.notebookId !== null) {
@@ -214,9 +239,10 @@ export class NoteRepository {
   }
   async save(input: NoteSaveInput, signal?: AbortSignal, keepBoth = false): Promise<NoteView> {
     const v = object(input); if (Object.keys(v).some(k => !['noteId', 'expectedHeads', 'content'].includes(k))) fail('note_schema')
-    const noteId = input.noteId === undefined ? ulid(this.now()) : id(input.noteId), content = normalizeContent(input.content), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash)
+    const noteId = input.noteId === undefined ? ulid(this.now()) : id(input.noteId), rawContent = normalizeContent(input.content), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId)
+      const content = this.localMembership(s, rawContent)
       const exists = s.revisions.some(r => r.noteId === noteId), heads = exists ? this.view(s, noteId).heads : []
       if (!same(expected, heads) || heads.length > 1) {
         const base=expected.length===1 && s.revisions.find(r=>r.noteId===noteId&&r.revision===expected[0])
@@ -300,9 +326,10 @@ export class NoteRepository {
   async importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void> {
     const v = object(input); keys(v, ['version', 'revisions', 'notebooks']); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
     const copy = structuredClone(input)
+    const incoming = copy.revisions.map(validateNoteRevision), incomingBooks = copy.notebooks.map(validateNotebookRevision)
+    this.limits(copy)
     return this.run(async () => {
       const s = await this.load()
-      const incoming = copy.revisions.map(validateNoteRevision), incomingBooks = copy.notebooks.map(validateNotebookRevision)
       // Individually valid orphan objects can be completed by this validated input.
       // Truly damaged files never enter these sets and remain write-protected.
       const revisions = mergeNoteRevisions([...s.revisions, ...s.detachedRevisions], incoming)
@@ -319,6 +346,7 @@ export class NoteRepository {
       for (const r of topologicalOrder(revisions, r => r.noteId)) if (noteHashes.has(r.revision)) await this.files.write(notePath(r), canonical(r), true)
       for (const noteId of new Set([...incoming, ...s.detachedRevisions].map(r => r.noteId))) { await this.external(next, noteId); await this.document(next, noteId) }
       await this.splitConflicts(next)
+      await this.ensureNotebooks(next)
       await this.manifest(next)
     }, signal)
   }
@@ -327,29 +355,56 @@ export class NoteRepository {
     for(const row of conflictRevisions(state.revisions))await this.append(state,row)
   }
   async listNotebooks(signal?: AbortSignal): Promise<NotebookView[]> {
-    return this.run(async () => { const s = await this.load(); return [...new Set(s.notebooks.map(r => r.notebookId))].sort().map(n => this.notebook(s, n)) }, signal)
+    return this.run(async () => {
+      const s = await this.load(), selected = this.defaultBook(s)?.notebookId, counts = new Map<string, number>()
+      for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
+        const note = this.view(s, noteId)
+        if (note.current.status === 'active' && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
+      }
+      return this.books(s).map(book => ({ ...book, isDefault: book.notebookId === selected, noteCount: counts.get(book.notebookId) ?? 0 }))
+    }, signal)
   }
-  async saveNotebook(input: { notebookId?: string; expectedHeads: string[]; title: string }, signal?: AbortSignal): Promise<NotebookView> {
+  async saveNotebook(input: { notebookId?: string; expectedHeads: string[]; title: string; makeDefault?: boolean }, signal?: AbortSignal): Promise<NotebookView> {
     const notebookId = input.notebookId === undefined ? ulid(this.now()) : id(input.notebookId), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash), title = input.title
     return this.run(async () => {
       const s = await this.load(); this.writable(s, notebookId)
       this.complete(s)
       const heads = s.notebooks.some(r => r.notebookId === notebookId) ? this.notebook(s, notebookId).heads : []
       if (!same(heads, expected)) conflict()
-      const row = createNotebookRevision({ version: 1, notebookId, title, status: 'active', parents: heads, recordedAt: new Date(this.now()).toISOString() })
+      const previous = s.notebooks.filter(r => r.notebookId === notebookId).map(r => r.defaultSelectedAt ?? '').sort().at(-1)
+      const selected = input.makeDefault ? new Date(Math.max(this.now(), ...s.notebooks.map(r => r.defaultSelectedAt ? Date.parse(r.defaultSelectedAt) + 1 : 0))).toISOString() : previous
+      const row = createNotebookRevision({ version: 1, notebookId, title, status: 'active', parents: heads, recordedAt: new Date(this.now()).toISOString(), ...(selected ? { defaultSelectedAt: selected } : {}) })
       s.notebooks = mergeNotebookRevisions(s.notebooks, [row]); this.limits(s)
       await this.files.write(notebookPath(row), canonical(row), true); await this.manifest(s); return this.notebook(s, notebookId)
     }, signal)
   }
-  async deleteNotebook(notebookId: string, expectedHeads: string[], signal?: AbortSignal): Promise<void> {
+  async deleteNotebook(notebookId: string, expectedHeads: string[], signal?: AbortSignal, options: { removal?: NotebookRemoval; expectedNoteCount?: number } = {}): Promise<void> {
     id(notebookId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       const s = await this.load(); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
       this.complete(s)
       if (!same(book.heads, expected)) conflict()
+      const destination = this.defaultBook(s)!
+      if (destination.notebookId === notebookId) fail('notebook_default', '请先把另一个笔记本设为默认，再移除此笔记本')
+      if (!activeNotebook(book)) fail('notebook_trashed')
+      const members: NoteView[] = []
+      for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
+        if (this.view(s, noteId).effectiveNotebookId !== notebookId) continue
+        this.writable(s, noteId); await this.external(s, noteId)
+        const note = this.view(s, noteId)
+        if (note.effectiveNotebookId !== notebookId) continue
+        if (note.heads.length > 1) conflict()
+        members.push(note)
+      }
+      const count = members.filter(note => note.current.status === 'active').length
+      if (options.expectedNoteCount !== undefined && options.expectedNoteCount !== count) fail('notebook_contents_changed', '笔记数量已变化，请重新确认移除范围')
+      for (const note of members) {
+        const { revision: _revision, ...data } = note.current
+        await this.append(s, createNoteRevision({ ...data, parents: note.heads, notebookId: destination.notebookId,
+          status: options.removal === 'trash' ? 'trashed' : data.status, recordedAt: new Date(this.now()).toISOString() }))
+      }
       const row = createNotebookRevision({ version: 1, notebookId, title: book.current.title, status: 'trashed', parents: book.heads, recordedAt: new Date(this.now()).toISOString() })
-      // A deleted notebook is a tombstone. Membership is projected as unassigned;
-      // revisions and concurrent note alternatives are never rewritten or deleted.
+      // Publish the notebook tombstone only after every selected note is safely retained.
       s.notebooks = mergeNotebookRevisions(s.notebooks, [row]); this.limits(s)
       await this.files.write(notebookPath(row), canonical(row), true); await this.manifest(s)
     }, signal)

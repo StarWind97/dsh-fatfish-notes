@@ -27,9 +27,10 @@ export interface NoteListOptions { cursor?: string; limit?: number; query?: stri
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
 export interface NotebookRevision {
   version: 1; notebookId: string; revision: string; parents: string[]; recordedAt: string
-  title: string; status: NoteStatus
+  title: string; status: NoteStatus; defaultSelectedAt?: string
 }
-export interface NotebookView { notebookId: string; heads: string[]; current: NotebookRevision; conflicts: NotebookRevision[] }
+export interface NotebookView { notebookId: string; heads: string[]; current: NotebookRevision; conflicts: NotebookRevision[]; isDefault?: boolean; noteCount?: number }
+export type NotebookRemoval = 'move' | 'trash'
 
 export interface CaptureRequest {
   requestId: string; sessionId: string; scope: 'turn' | 'selection' | 'session'
@@ -65,7 +66,7 @@ export interface NotesApiContract {
   '/notes/restore': { request: { noteId: string; expectedHeads: string[] }; response: { ok: true; note: NoteView } }
   '/notes/resolve': { request: NoteSaveInput & { noteId: string }; response: { ok: true; note: NoteView } }
   '/notes/notebooks': { request: undefined; response: { ok: true; notebooks: NotebookView[] } }
-  '/notes/notebook': { request: { notebookId?: string; expectedHeads: string[]; title: string; remove?: boolean }; response: { ok: true; notebooks: NotebookView[] } }
+  '/notes/notebook': { request: { notebookId?: string; expectedHeads: string[]; title: string; remove?: boolean; makeDefault?: boolean; removal?: NotebookRemoval; expectedNoteCount?: number }; response: { ok: true; notebooks: NotebookView[] } }
   '/notes/jobs': { request: { noteId: string; cursor?: string }; response: { ok: true; jobs: NoteJobOverview[]; cursor: string | null } }
   '/notes/job': { request: { jobId: string }; response: { ok: true; job: NoteJob } }
   '/notes/job/retry': { request: { jobId: string }; response: { ok: true; job: NoteJob } }

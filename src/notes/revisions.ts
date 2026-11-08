@@ -15,10 +15,11 @@ export function validateNoteRevision(value: unknown): NoteRevision {
   return result
 }
 export function createNotebookRevision(input: Omit<NotebookRevision, 'revision'>): NotebookRevision {
-  const v = object(input); keys(v, ['version', 'notebookId', 'parents', 'recordedAt', 'title', 'status'])
+  const v = object(input); keys(v, ['version', 'notebookId', 'parents', 'recordedAt', 'title', 'status', ...('defaultSelectedAt' in v ? ['defaultSelectedAt'] : [])])
   if (v.version !== 1) fail('note_version')
   const data = { version: 1 as const, notebookId: id(v.notebookId), parents: sortedStrings(v.parents, NOTE_LIMITS.revisions, hash), recordedAt: date(v.recordedAt), title: text(v.title, 1200).trim() || '未命名笔记本', status: status(v.status) }
-  return { ...data, revision: digest(canonical(data)) }
+  const selected = v.defaultSelectedAt === undefined ? data : { ...data, defaultSelectedAt: date(v.defaultSelectedAt) }
+  return { ...selected, revision: digest(canonical(selected)) }
 }
 export function validateNotebookRevision(value: unknown): NotebookRevision {
   const { revision, ...rest } = object(value), result = createNotebookRevision(rest as Omit<NotebookRevision, 'revision'>)

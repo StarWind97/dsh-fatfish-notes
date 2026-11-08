@@ -1,3 +1,4 @@
+import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree } from 'lucide-react'
@@ -61,7 +62,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession}:{contr
   if(!draft)return null
   const editable=draft.status==='active'&&!state.loadingNote&&!state.operation
   const status=state.error&&state.error!=='note_unsaved'?'notesSaveFailed':state.saving?'notesSaving':state.dirty?'notesPending':'paperSaved'
-  const book=state.notebooks.find(b=>b.notebookId===draft.notebookId)?.current.title??t('notesUnfiled')
+  const book=state.notebooks.find(b=>b.notebookId===draft.notebookId)?.current.title??state.notebooks.find(b=>b.isDefault)?.current.title??t('notesDefaultBook')
   function edit(target?:HTMLElement){
     if(!root.current||!editable)return
     const pane=root.current.closest<HTMLElement>('.paper-pane')!
@@ -131,7 +132,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession}:{contr
       </div>}
     </div>
     {state.editing&&<aside className="paper-metadata" onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}>
-      <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}><option value="">{t('notesUnfiled')}</option>{state.notebooks.filter(b => b.current.status === 'active').map(book => <option key={book.notebookId} value={book.notebookId}>{book.current.title}</option>)}</select></label>
+      <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? state.notebooks.find(b=>b.isDefault)?.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}>{state.notebooks.filter(activeNotebook).map(book => <option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
       <div className="paper-tag-editor"><span>{t('notesTag')}</span><div className="paper-tag-items">
         {draft.tags.map(value=><button type="button" disabled={!editable} key={value} aria-label={t('notesRemoveTag',{tag:value})} onClick={()=>controller.update({tags:draft.tags.filter(tag=>tag!==value)})}>#{value} ×</button>)}
         <form onSubmit={event=>{event.preventDefault();if(!state.composing)addTag()}}>

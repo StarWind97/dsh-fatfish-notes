@@ -1,3 +1,4 @@
+import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
 import { useSyncExternalStore, useEffect, useRef, useState } from 'react'
 import { BookPlus, CheckCircle2, LoaderCircle, X } from 'lucide-react'
@@ -39,7 +40,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
   useEffect(() => {
     if (state?.status !== 'selecting' || !state.detail || state.exporting || state.sessionId !== sessionId) return
     const controller = new AbortController(); setBooksFailed(false)
-    void api('/notes/notebooks', undefined, controller.signal).then(result => setNotebooks(result.notebooks.filter(book => book.current.status === 'active'))).catch(() => { if (!controller.signal.aborted) setBooksFailed(true) })
+    void api('/notes/notebooks', undefined, controller.signal).then(result => setNotebooks(result.notebooks.filter(activeNotebook))).catch(() => { if (!controller.signal.aborted) setBooksFailed(true) })
     return () => controller.abort()
   }, [state?.status, state?.detail, state?.sessionId, !!state?.exporting, sessionId])
   const inline=inChatSelection(state,sessionId)
@@ -78,8 +79,8 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
     {state.status==='selecting' && state.selection && <>
       <CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/>
       {state.recoveries.length>0 && <p role="note">{t('noteNewSaveWarning')}</p>}
-      {!state.exporting && <div className="capture-options"><label>{t('notesNotebook')}<select value={state.notebookId??''} onChange={e=>bridge.notebook(e.target.value||null)}>
-        <option value="">{t('notesUnfiled')}</option>{notebooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}</option>)}
+      {!state.exporting && <div className="capture-options"><label>{t('notesNotebook')}<select value={state.notebookId??notebooks.find(b=>b.isDefault)?.notebookId??''} onChange={e=>bridge.notebook(e.target.value||null)}>
+        <option value="" disabled hidden>{t('notesDefaultBook')}</option>{notebooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}
       </select>{booksFailed && <small role="alert">{t('notesBooksFailed')}</small>}</label>
       <label><input type="checkbox" checked={state.autoMetadata} onChange={e=>bridge.options(e.target.checked)}/>{t('noteAutoMetadata')}</label>
       {state.autoMetadata && <small>{t('noteAiDisclosure')}</small>}</div>}
