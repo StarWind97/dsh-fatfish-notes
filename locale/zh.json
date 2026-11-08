@@ -389,6 +389,8 @@
   "boundLoginCheckFailed": "暂时无法确认登录状态",
   "boundLoginReadyHint": "此账号用于同步当前私人笔记库。",
   "notesManageBooks": "管理笔记本",
+  "notesNotebooks": "笔记本",
+  "notesBooksHint": "按主题收集笔记，点击笔记本即可浏览内容。",
   "notesDefaultBook": "默认笔记本",
   "notesDefaultBadge": "默认",
   "notesMakeDefault": "设为默认笔记本",

@@ -7,7 +7,7 @@ import { NoteMarkdown, resolveNoteImage } from '../src/client/NoteMarkdown.js'
 import { NoteCaptureBridge } from '../src/client/note-capture-bridge.js'
 import { ApiError, createApi, type Api } from '../src/client/api.js'
 import type { NoteContent, NoteView, NoteSaveInput, CaptureRequest } from '../src/contracts/notes.js'
-import { createNoteRevision, materializeNote } from '../src/notes/revisions.js'
+import { createNoteRevision, createNotebookRevision, materializeNote } from '../src/notes/revisions.js'
 
 const a = '01K00000000000000000000000', b = '01K00000000000000000000001'
 const content = (body = 'original'): NoteContent => ({ title: 'Title', body, summary: '', tags: [], status: 'active', notebookId: null, sourceId: null, assetIds: [] })
@@ -43,6 +43,42 @@ function fixture(intercept?: (path: string, input: unknown) => Promise<unknown> 
   }
   return { rows, writes, call }
 }
+
+test('notebooks tab keeps filters and selection, flushes edits and blocks switching when saving fails', async () => {
+  let fail = true
+  const f = fixture(path => path === '/notes/save' && fail ? Promise.reject(new ApiError('network')) : undefined), c = new NotesController(f.call)
+  try {
+    const filter = { notebookId: b, query: '资料', tag: '标签', order: 'oldest' as const }
+    await c.filter(filter); await c.open(a); c.beginEdit(); c.update({ body: '切页前的最后输入' })
+    assert.equal(await c.navigate('notebooks'), false)
+    assert.equal(c.getSnapshot().section, 'notes'); assert.equal(c.getSnapshot().editing, true)
+    assert.equal(c.getSnapshot().draft!.body, '切页前的最后输入')
+    fail = false; assert.equal(await c.navigate('notebooks'), true)
+    assert.equal(f.rows.get(a)!.current.body, '切页前的最后输入'); assert.equal(c.getSnapshot().editing, false)
+    await c.navigate('notes')
+    assert.deepEqual(c.getSnapshot().filter, filter); assert.equal(c.getSnapshot().noteId, a)
+    assert.equal(c.getSnapshot().draft!.body, '切页前的最后输入'); assert.equal(c.getSnapshot().dirty, false)
+  } finally { c.dispose() }
+})
+
+test('removing a notebook refreshes the selected note and removed filter without leaving the notebooks tab', async () => {
+  const revision = createNotebookRevision({ version: 1, notebookId: b, parents: [], title: '普通本', recordedAt: '2026-11-09T00:00:00.000Z', status: 'active' })
+  const book = { notebookId: b, heads: [revision.revision], current: revision, conflicts: [], noteCount: 1, isDefault: false }
+  const f = fixture(path => {
+    if (path !== '/notes/notebook') return undefined
+    const previous = f.rows.get(a)!
+    f.rows.set(a, saved({ noteId: a, expectedHeads: previous.heads, content: { ...noteContent(previous), body: '移除后保留的正文' } }))
+    return Promise.resolve({ ok: true, notebooks: [] })
+  }), c = new NotesController(f.call)
+  try {
+    await c.open(a); await c.filter({ notebookId: b, order: 'oldest' }); await c.navigate('notebooks')
+    assert.equal(await c.notebook(book.current.title, book, true, { removal: 'move', expectedNoteCount: 1 }), true)
+    assert.equal(c.getSnapshot().section, 'notebooks')
+    assert.equal(c.getSnapshot().noteId, a); assert.equal(c.getSnapshot().draft!.body, '移除后保留的正文')
+    assert.deepEqual(c.getSnapshot().filter, { order: 'oldest' })
+    await c.navigate('notes'); assert.equal(c.getSnapshot().draft!.body, '移除后保留的正文')
+  } finally { c.dispose() }
+})
 
 test('M7 export freezes after pending writes and invalidates ownership on navigation or new persisted revision', async () => {
   const f = fixture(), c = new NotesController(f.call)

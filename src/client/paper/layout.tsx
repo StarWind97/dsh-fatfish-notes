@@ -6,14 +6,14 @@ const prefix='dsh-fatfish-notes.private.paper.'
 export function readPreference(key:string){try{return localStorage.getItem(prefix+key)}catch{return null}}
 export function writePreference(key:string,value:string){try{localStorage.setItem(prefix+key,value)}catch{/* The current view still works. */}}
 
-export function PaperColumns({list,children,selected,t}:{list:React.ReactNode;children:React.ReactNode;selected:boolean;t:T}){
+export function PaperColumns({list,children,selected,t,hidden=false}:{list:React.ReactNode;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean}){
   const root=useRef<HTMLDivElement>(null)
   const [available,setAvailable]=useState(1080)
   const [offset,setOffset]=useState(()=>Math.max(-280,Math.min(280,Number(readPreference('listOffset'))||0)))
   const drag=useRef<{x:number;width:number}|null>(null)
   useLayoutEffect(()=>{
     const el=root.current!
-    const measure=()=>setAvailable(el.clientWidth)
+    const measure=()=>{if(el.clientWidth)setAvailable(el.clientWidth)}
     measure();const observer=new ResizeObserver(measure);observer.observe(el)
     return ()=>observer.disconnect()
   },[])
@@ -21,7 +21,7 @@ export function PaperColumns({list,children,selected,t}:{list:React.ReactNode;ch
   const max=Math.max(200,Math.min(480,available-360))
   const width=Math.max(200,Math.min(max,baseline+offset))
   function resize(target:number){const next=Math.max(200,Math.min(max,Math.round(target)))-baseline;setOffset(next);writePreference('listOffset',String(next))}
-  return <div className="paper-split" data-selected={selected} ref={root} style={{gridTemplateColumns:`${width}px 0 minmax(0,1fr)`}}>
+  return <div className="paper-split" hidden={hidden} data-selected={selected} ref={root} style={{gridTemplateColumns:`${width}px 0 minmax(0,1fr)`}}>
     <aside id="paper-note-list" className="paper-list" aria-label={t('notesLibrary')}>{list}</aside>
     <div className="paper-divider" role="separator" tabIndex={0} aria-orientation="vertical" aria-controls="paper-note-list" aria-label={t('paperResize')} title={t('paperResize')} aria-valuemin={200} aria-valuemax={max} aria-valuenow={width}
       onDoubleClick={()=>{setOffset(0);writePreference('listOffset','0')}}

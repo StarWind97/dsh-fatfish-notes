@@ -18,7 +18,7 @@
 
 ## 开发与验证
 
-当前开发版已完成[默认笔记本与移除规则](plans/2026-11-08-default-notebook.zh.md)：默认归属、默认本设置同步及移除时保留/移入回收站。类型检查、构建和 227 项全量回归通过，已在隔离 DSH 完成实际安装、操作、指定私库同步和重启读回。该功能纳入 0.6.1 开发候选包，尚未对外发布，正式安装入口仍为 0.6.0。
+当前开发版已完成[默认笔记本与移除规则](plans/2026-11-08-default-notebook.zh.md)：默认归属、默认本设置同步及移除时保留/移入回收站。该功能批次通过类型检查、构建和 227 项全量回归，已在隔离 DSH 完成实际安装、操作、指定私库同步和重启读回。2026-11-09 又完成[笔记本独立选项卡](plans/2026-11-09-notebooks-tab.zh.md)，本次按第二档通过类型检查、构建、46 项相关客户端测试和隔离 DSH 交互验收，沿用前一批次的存储验证。这些改动纳入 0.6.1 开发候选包，尚未对外发布，正式安装入口仍为 0.6.0。
 
 `src/` 为 TypeScript 源码，`lib/` 由构建生成。命令以 [package.json](../package.json)为准；依照[三档验证范围](../AGENTS.md#验证范围)选择检查。涉及存储身份或发布候选包时，执行类型检查、构建、全量回归和实际安装验收。
 
@@ -30,7 +30,7 @@
 
 通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开已安装 0.6.1 候选包的 `release12-desktop` 体验资料；普通安装用户仍使用 0.6.0 正式版。包位于 `dist/`，当前包摘要见[候选记录](releases/0.6.1/review.zh.md)。默认笔记本的实际截图位于 `output/playwright/default-books/`，测试记录及升级前备份位于 `.dsh-home/pure-001/default-books-*`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；本轮另验证了两个本地 Git 副本的默认本同步，不将其称为两个真实宿主或两台物理设备验收。
 
-历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
+本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
 ## 后续备忘
 

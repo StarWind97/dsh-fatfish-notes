@@ -389,6 +389,8 @@
   "boundLoginCheckFailed": "Unable to check sign-in status right now",
   "boundLoginReadyHint": "This account syncs the current private notebook.",
   "notesManageBooks": "Manage notebooks",
+  "notesNotebooks": "Notebooks",
+  "notesBooksHint": "Organize notes by topic. Open a notebook to browse its contents.",
   "notesDefaultBook": "Default notebook",
   "notesDefaultBadge": "Default",
   "notesMakeDefault": "Set as default notebook",

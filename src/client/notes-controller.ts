@@ -16,7 +16,7 @@ function newId(): string {
   return result
 }
 export interface NotesState {
-  section: 'notes' | 'settings'; items: NoteListItem[]; cursor: string | null; filter: NoteListOptions
+  section: 'notes' | 'notebooks' | 'settings'; items: NoteListItem[]; cursor: string | null; filter: NoteListOptions
   notebooks: NotebookView[]; loadingList: boolean; listError: boolean; loadingNote: boolean
   noteId: string | null; note: NoteView | null; draft: NoteContent | null; dirty: boolean
   editing: boolean; saving: boolean; composing: boolean; operation: boolean; error: string | null; conflict: NoteView | null
@@ -302,7 +302,10 @@ export class NotesController {
       this.emit({ operation: true })
       const result = await this.call('/notes/notebook', { title, expectedHeads: book?.heads ?? [], ...(book ? { notebookId: book.notebookId } : {}), remove, ...options })
       this.emit({ notebooks: result.notebooks, operation: false, error: null })
-      if (remove && this.state.noteId) await this.open(this.state.noteId)
+      if (remove && this.state.noteId) {
+        const request = this.detailRequest('sync', this.state.noteId)
+        this.accept((await this.call('/notes/get', { noteId: request.noteId })).note, request)
+      }
       if (remove && this.state.filter.notebookId === book?.notebookId) {
         const { notebookId: _notebookId, ...rest } = this.state.filter
         await this.filter(rest)
