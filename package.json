@@ -1,6 +1,6 @@
 {
   "name": "dsh-fatfish-notes",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "肥鱼笔记：保存会话、编辑 Markdown、导出图文，通过专用 GitHub 私有仓库跨设备同步。",
   "type": "module",
   "main": "lib/index.js",
@@ -76,7 +76,6 @@
     "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
     "@deepseek-ai/dsh-host-webserver": "0.2.2-rc.1",
     "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
-    "@deepseek-ai/schemastery": "~3.19.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -108,7 +107,6 @@
     "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
     "@deepseek-ai/dsh-host-webserver": "0.2.2-rc.1",
     "@deepseek-ai/dsh-tools": "0.2.2-rc.1",
-    "@deepseek-ai/schemastery": "3.19.0",
     "@lezer/common": "1.5.5",
     "@types/node": "^22.19.0",
     "@types/pdfkit": "0.17.7",

@@ -1,12 +1,24 @@
 # 肥鱼笔记验证记录
 
-2026-11-06 更新。当前正式版为 [0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，产品已更名为肥鱼笔记；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+2026-11-08 更新。当前正式版为 [0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，0.6.1 为待发布候选版；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
 
 ## 验证环境
 
 当前已验证 Windows / Node 24.21.0 / DSH 0.2.2-rc.1；下方历史验证以各条记录中的宿主版本为准。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 0.6.1 市场诊断与依赖修正候选版
+
+2026-11-08 按[批准规划](plans/2026-11-08-market-metadata-and-peers.zh.md)完成三项工作，详细事实、包摘要及边界见 [0.6.1 候选记录](releases/0.6.1/review.zh.md)。
+
+- 移除未消费的 Schemastery peer 与直接开发依赖，新契约检查先失败后通过。第三档验证：类型检查、构建、全量回归 219/219 通过；真实安装后 128 个文件与候选包一致。相对 0.6.0 仅 package.json 变化。
+- 隔离 DSH 实际通过既有图片阅读、三种导出、自动保存、指定真实私库同步与关闭重开同修订读回；市场诊断已无本插件 Schemastery 要求及已解析 peer 版本冲突。未将无法静态解析的客户端依赖记为已解析成功。
+- 市场 1.73.15 的 Release 身份匹配和 GitHub manifest 读取问题分别提交 [#1147](https://github.com/dsh-market/dsh-market/issues/1147)、[#1148](https://github.com/dsh-market/dsh-market/issues/1148)。真实隔离宿主成功查询返回 DSH 0.2.2-rc.1 兼容；独立原始模块探测复现直连 ECONNRESET 对应 unknown。无法追溯原截图请求，不声称两项市场问题已经修复。
+- 已确认市场更名 PR #12722 于北京时间 2026-11-07 01:54:14 合并，公开目录包含新条目。后续显示问题独立于收录是否成功。
+- 隔离测试积累的本机认证 Cookie 导致宿主 HTTP 431 和启动弹窗；只清理该隔离实例的过期本机认证 Cookie 后，启动与再次重启均恢复。未修改宿主代码、账号登录、日常 DSH 或笔记数据。
+
+测试进程已关闭；体验入口 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)可重新打开候选版。尚未发布 0.6.1，未动 0.6.0 公开资产。证据和截图为 `.dsh-home/pure-001/market061-*`、`output/playwright/market061/`。
 
 ## 0.6.0 正式发布
 

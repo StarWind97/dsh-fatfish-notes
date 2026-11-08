@@ -12,6 +12,8 @@
 
 0.6.0 已通过公开下载和实际安装核验。[市场条目](marketplace/StarWind97__dsh-fatfish-notes.yml)将原来的 DSH Notebook 条目更名为肥鱼笔记，并更新到正式发布包；GitHub 发布与市场维护者合并分别确认，不将提交 PR 当作已经上架。
 
+2026-11-08 已核对更名 PR 合并及公开目录中的新条目。市场仍存在 GitHub Release 安装关联和宿主声明读取失败的展示问题，已分别反馈 [#1147](https://github.com/dsh-market/dsh-market/issues/1147)、[#1148](https://github.com/dsh-market/dsh-market/issues/1148)。按[修正规划](plans/2026-11-08-market-metadata-and-peers.zh.md)准备的 [0.6.1 候选版](releases/0.6.1/review.zh.md)删除未使用的 Schemastery 直接依赖要求，尚未正式发布。
+
 旧名称下的 `0.5.0`、`0.5.1` 已正式发布，历史包、发布说明和截图保留原样。历史结果见 [0.5.0](releases/0.5.0/review.zh.md)、[0.5.1](releases/0.5.1/review.zh.md)及验证记录；这些文件中的名称描述的是当时版本，不是当前安装入口。
 
 ## 开发与验证
@@ -24,7 +26,7 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开已安装 0.6.0 正式包的 `release12-desktop` 体验资料。发布包位于 `dist/`，公开下载核验文件位于 `.dsh-home/pure-001/release060-public/`。新版宿主图册位于 `output/playwright/compat022/index.html`；此前改名截图位于 `output/playwright/rename060/`，迁移前备份位于 `.dsh-home/pure-001/rename060-backup/`，均由 Git 忽略。Web 通过相同版本验证跨实例同步。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开已安装 0.6.1 候选包的 `release12-desktop` 体验资料；普通安装用户仍使用 0.6.0 正式版。包位于 `dist/`，0.6.0 公开下载核验文件位于 `.dsh-home/pure-001/release060-public/`。本轮证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，迁移前备份位于 `.dsh-home/pure-001/rename060-backup/`，均由 Git 忽略。Web 的跨实例同步证据仍为 0.6.0，未改写为新版本验收。
 
 历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
