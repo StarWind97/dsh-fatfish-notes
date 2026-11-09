@@ -1,6 +1,6 @@
 {
   "name": "dsh-fatfish-notes",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "肥鱼笔记：保存会话、编辑 Markdown、导出图文，通过专用 GitHub 私有仓库跨设备同步。",
   "type": "module",
   "main": "lib/index.js",
