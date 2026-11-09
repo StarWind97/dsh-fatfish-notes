@@ -79,6 +79,19 @@ export declare class NotesApplication {
         };
     }>;
     private saveInput;
+    attachment(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        attachment: import("../contracts/notes.js").NoteAttachment;
+    }>;
+    download(input: unknown, signal?: AbortSignal): Promise<{
+        bytes: Buffer<ArrayBufferLike>;
+        filename: string;
+        mediaType: string;
+    }>;
+    batch(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        completed: string[];
+    }>;
     status(input: unknown, trashed: boolean, signal?: AbortSignal): Promise<{
         ok: true;
         note: import("../contracts/notes.js").NoteView;
@@ -109,6 +122,7 @@ export declare class NotesApplication {
         source: Record<string, unknown>;
     }>;
     export(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
+    exportLibrary(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
     exportFont(signal?: AbortSignal): Promise<Buffer<ArrayBufferLike>>;
     exportConversation(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile & {
         warnings: string;

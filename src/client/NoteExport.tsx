@@ -7,10 +7,10 @@ import { notesStyles as s } from './notes-style.js'
 import type { T } from './locale.js'
 
 export function NoteExport({ controller, state, t, onClose }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void }) {
-  const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>(state.draft?.assetIds.length?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(1080), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('light'), [assetId, setAssetId] = useState('')
+  const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>((state.draft?.assetIds.length||state.draft?.attachments?.length)?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(1080), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('light'), [assetId, setAssetId] = useState('')
   const [includeTags,setIncludeTags]=useState(true),[includeSummary,setIncludeSummary]=useState(true)
   const hasTags=!!state.draft?.tags.length, hasSummary=!!state.draft?.summary
-  const hasImages=!!state.draft?.assetIds.length||(includeSource&&!!state.note?.current.sourceId)
+  const hasImages=!!state.draft?.attachments?.length||!!state.draft?.assetIds.length||(includeSource&&!!state.note?.current.sourceId)
   const group=format.startsWith('markdown')?'markdown':format==='pdf'?'pdf':format==='original'?'original':'png'
   const active = useRef<AbortController | null>(null)
   useEffect(() => { active.current?.abort(); setBusy(false); setStatus(''); setIncludeSource(false); setIncludeTags(true); setIncludeSummary(true); setAssetId('') }, [state.noteId])

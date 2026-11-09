@@ -39,6 +39,14 @@ export function validateBodyAssets(body: string, ids: string[]): string[] {
 }
 export async function checkReferences(files: NoteFiles, content: NoteContent): Promise<void> {
   validateBodyAssets(content.body, content.assetIds)
+  for (const file of content.attachments ?? []) {
+    const bytes = await files.read(`attachments/${hash(file.id)}.bin`, file.bytes)
+    if (bytes.length !== file.bytes || digest(bytes) !== file.id) fail('note_hash')
+  }
+  const visit=(node:{type:string;url?:string;children?:unknown[]})=>{
+    if(['link','definition'].includes(node.type)){const match=/^\.\.\/attachments\/([a-f0-9]{64})\.bin$/.exec(node.url??'');if(match&&!content.attachments?.some(a=>a.id===match[1]))fail('note_asset','附件不属于此笔记')}
+    node.children?.forEach(child=>visit(child as Parameters<typeof visit>[0]))
+  };visit(fromMarkdown(content.body))
   let total = 0
   for (const id of content.assetIds) {
     const bytes = await files.read(`assets/${assetId(id)}`, NOTE_LIMITS.image)

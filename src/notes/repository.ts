@@ -14,6 +14,9 @@ import { NoteFiles, missing, safePath, utf8 } from './files.js'
 import { checkReferences, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
 import { searchNotes } from './search.js'
 import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME } from './notebooks.js'
+import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
+import { attachment } from './validation.js'
+import { ATTACHMENT_LIMIT, type NoteAttachment, type NoteSelection } from '../contracts/notes.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -36,7 +39,7 @@ export class NoteRepository {
   onChange(listener: () => void): () => void { this.changeListeners.add(listener); return () => { this.changeListeners.delete(listener) } }
   private readonly now: () => number
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
-    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { await options.beforeWrite?.(path); if (/^(revisions|notebooks)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
+    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
   }
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
@@ -49,6 +52,7 @@ export class NoteRepository {
     return result
   }
   private view(state: State, noteId: string): NoteView {
+    if (state.deleted?.includes(noteId)) fail('note_deleted', '这篇笔记已彻底删除')
     const view = materializeNote(state.revisions.filter(r => r.noteId === noteId), noteId)
     const notebookId = view.current.notebookId
     if (notebookId !== null) {
@@ -85,16 +89,23 @@ export class NoteRepository {
   private async load(): Promise<State> {
     const state: State = { version: 1, revisions: [], notebooks: [], issues: [], blocked: new Set(), detachedRevisions: [], detachedNotebooks: [], acknowledgedPaths: [] }
     const paths = (await this.files.scan()).paths
+    state.deleted = []
+    for (const path of paths.filter(p => p.startsWith('deleted/'))) {
+      const noteId = readDeletion(JSON.parse(utf8(await this.files.read(path, 1024))) as unknown)
+      if (path !== `deleted/${noteId}.json`) fail('note_path')
+      state.deleted.push(noteId)
+    }
     // Future module formats must never be silently reinitialized.
     if (paths.includes('manifest.json')) {
       let manifest: unknown
       try {
         manifest = JSON.parse(utf8(await this.files.read('manifest.json'))) as unknown
         const v = object(manifest)
-        if (v.version !== undefined && v.version !== 1) fail('note_version', '笔记模块版本不支持，已暂停写入')
-        if (Object.keys(v).some(k => !['version', 'notes', 'notebooks', 'revision'].includes(k))) fail('note_schema')
+        if (v.version !== undefined && v.version !== 1 && v.version !== 2) fail('note_version', '笔记模块版本不支持，已暂停写入')
+        if (Object.keys(v).some(k => !['version', 'notes', 'notebooks', 'revision', 'deleted'].includes(k))) fail('note_schema')
         const { revision, ...data } = v
-        if (v.version !== 1 || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
+        if (![1,2].includes(Number(v.version)) || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
+        if (deletionIds(v.deleted).some(n => !state.deleted!.includes(n))) fail('note_deleted_missing', '删除记录缺失，已暂停操作')
         const claims: string[] = []
         for (const [rows, field, directory] of [[v.notes, 'noteId', 'revisions'], [v.notebooks, 'notebookId', 'notebooks']] as const) {
           const identities = new Set<string>()
@@ -102,18 +113,19 @@ export class NoteRepository {
             const entry = object(raw); keys(entry, [field, 'heads'])
             const identity = id(entry[field]), heads = sortedStrings(entry.heads, NOTE_LIMITS.revisions, hash)
             if (!heads.length || identities.has(identity)) fail('note_manifest')
-            identities.add(identity); claims.push(...heads.map(head => `${directory}/${identity}/${head}.json`))
+            identities.add(identity); if (directory !== 'revisions' || !state.deleted!.includes(identity)) claims.push(...heads.map(head => `${directory}/${identity}/${head}.json`))
           }
         }
         state.acknowledgedPaths = claims
       } catch (e) {
-        if (e instanceof NotebookError && ['note_version', 'note_schema'].includes(e.code)) throw e
+        if (e instanceof NotebookError && ['note_version', 'note_schema', 'note_deleted_missing'].includes(e.code)) throw e
         if (!(e instanceof SyntaxError || e instanceof NotebookError)) throw e
         state.issues.push({ path: 'manifest.json', code: 'note_manifest' })
       }
     }
     for (const path of paths) {
       if (!path.startsWith('revisions/') && !path.startsWith('notebooks/')) continue
+      if (path.startsWith('revisions/') && state.deleted.includes(path.split('/')[1]!)) continue
       if (path.split('/').at(-1)?.startsWith('.tmp-')) continue
       try {
         const value: unknown = JSON.parse(utf8(await this.files.read(path, NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)))
@@ -152,13 +164,14 @@ export class NoteRepository {
       state.issues.push({ path, code: 'note_missing' }); state.blocked.add(path.split('/')[1]!)
     }
     this.limits(state)
+    if (state.deleted.length && !state.issues.length) await this.cleanDeleted(state, paths)
     await this.ensureNotebooks(state)
     return state
   }
   private limits(state: NoteObjects): void {
     if (state.revisions.length + state.notebooks.length > NOTE_LIMITS.revisions || new Set(state.revisions.map(r => r.noteId)).size > NOTE_LIMITS.notes) fail('note_limit')
   }
-  private writable(state: State, identity: string): void { if (state.blocked.has(identity)) fail('note_corrupt', '该笔记有损坏修订，原件已隔离保留，请先恢复') }
+  private writable(state: State, identity: string): void { if (state.deleted?.includes(identity)) fail('note_deleted', '这篇笔记已彻底删除'); if (state.blocked.has(identity)) fail('note_corrupt', '该笔记有损坏修订，原件已隔离保留，请先恢复') }
   private complete(state: State): void {
     if (state.issues.some(issue => issue.code === 'note_missing')) fail('note_corrupt', '已确认保存的修订缺失或不可用，原清单已保留，请先恢复')
   }
@@ -183,7 +196,7 @@ export class NoteRepository {
     }
     const notes = [...new Set(state.revisions.map(r => r.noteId))].sort().map(noteId => ({ noteId, heads: this.view(state, noteId).heads }))
     const notebooks = [...new Set(state.notebooks.map(r => r.notebookId))].sort().map(notebookId => ({ notebookId, heads: this.notebook(state, notebookId).heads }))
-    const data = { version: 1, notes, notebooks }
+    const data = { version: moduleVersion(state), notes, notebooks, ...(state.deleted?.length ? { deleted: [...state.deleted].sort() } : {}) }
     await this.files.write('manifest.json', canonical({ ...data, revision: digest(canonical(data)) }), false)
   }
   private async document(state: State, noteId: string): Promise<void> {
@@ -301,6 +314,70 @@ export class NoteRepository {
   async getAsset(asset: string, signal?: AbortSignal): Promise<Buffer> {
     assetId(asset); return this.run(async () => { const bytes = await this.files.read(`assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash'); return bytes }, signal)
   }
+  async putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal): Promise<NoteAttachment> {
+    const copy = Buffer.from(bytes), metadata = attachment({ id: digest(copy), name, bytes: copy.length })
+    return this.run(async () => { await this.load(); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
+  }
+  async getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer> {
+    hash(fileId); return this.run(async () => { const bytes = await this.files.read(`attachments/${fileId}.bin`, ATTACHMENT_LIMIT); if (digest(bytes) !== fileId) fail('note_hash'); return bytes }, signal)
+  }
+  /** Validate the entire selection before deleting anything. New remote edits require a fresh confirmation. */
+  async batch(selection: NoteSelection[], action: 'trash' | 'restore' | 'purge', signal?: AbortSignal): Promise<string[]> {
+    if (!Array.isArray(selection) || !selection.length || selection.length > NOTE_LIMITS.notes || !['trash','restore','purge'].includes(action)) fail('note_schema')
+    const selected = selection.map(raw => { const v = object(raw); keys(v, ['noteId','expectedHeads']); return { noteId: id(v.noteId), expectedHeads: sortedStrings(v.expectedHeads, NOTE_LIMITS.revisions, hash) } })
+    if (new Set(selected.map(n => n.noteId)).size !== selected.length) fail('note_schema')
+    return this.run(async () => {
+      const s = await this.load(); this.complete(s)
+      if (s.issues.length) fail('note_corrupt')
+      for (const item of selected) {
+        this.writable(s, item.noteId); await this.external(s, item.noteId)
+        const view = this.view(s, item.noteId)
+        if (!same(view.heads, item.expectedHeads) || view.conflicts.length) conflict()
+        if (action !== 'trash' && view.current.status !== 'trashed') fail('note_not_trashed', '只能从回收站彻底删除或恢复')
+      }
+      for (const item of selected) {
+        if (action === 'purge') {
+          await this.files.write(`deleted/${item.noteId}.json`, deletionData(item.noteId), true)
+          s.deleted = [...new Set([...(s.deleted ?? []), item.noteId])].sort()
+        } else {
+          const view = this.view(s, item.noteId), { revision: _revision, ...data } = view.current
+          await this.append(s, createNoteRevision({ ...data, notebookId: view.effectiveNotebookId, parents: view.heads, status: action === 'trash' ? 'trashed' : 'active', recordedAt: new Date(this.now()).toISOString() }))
+        }
+      }
+      if (action === 'purge') {
+        s.revisions = s.revisions.filter(r => !s.deleted!.includes(r.noteId))
+        await this.cleanDeleted(s, (await this.files.scan()).paths); await this.manifest(s)
+      }
+      return selected.map(n => n.noteId)
+    }, signal)
+  }
+  private async cleanDeleted(state: State, paths: string[]): Promise<void> {
+    const deleted = new Set(state.deleted), retained = new Set<string>(), candidates = new Set<string>(), remove: string[] = []
+    const dependencies = async (r: NoteRevision, target: Set<string>) => {
+      r.assetIds.forEach(a => target.add(`assets/${a}`))
+      r.attachments?.forEach(a => target.add(`attachments/${a.id}.bin`))
+      if (r.sourceId) {
+        target.add(`sources/${r.sourceId}.json`)
+        const bytes = await this.files.read(`sources/${r.sourceId}.json`).catch(e => { if (missing(e)) return null; throw e })
+        if (bytes) { const source = object(JSON.parse(utf8(bytes)) as unknown); if (source.assets) Object.values(object(source.assets)).forEach(a => target.add(`assets/${assetId(a)}`)) }
+      }
+    }
+    for (const row of state.revisions) await dependencies(row, retained)
+    for (const path of paths) {
+      if (path.startsWith('revisions/') && deleted.has(path.split('/')[1]!)) {
+        const row = validateNoteRevision(JSON.parse(utf8(await this.files.read(path))) as unknown)
+        await dependencies(row, candidates); remove.push(path)
+      } else if (path.startsWith('documents/') && deleted.has(path.slice(10, -3))) remove.push(path)
+      else if (/^(jobs|captures)\//.test(path)) {
+        const value = object(JSON.parse(utf8(await this.files.read(path))) as unknown)
+        const data=value.data&&typeof value.data==='object'?object(value.data):value
+        if (deleted.has(String(data.noteId))) remove.push(path)
+      }
+    }
+    // Keep deleted revisions until dependencies are removed, making interrupted cleanup retryable.
+    for (const path of [...candidates].sort((a,b) => Number(a.startsWith('sources/')) - Number(b.startsWith('sources/')))) if (!retained.has(path)) await this.files.remove(path)
+    for (const path of remove) await this.files.remove(path)
+  }
   async putSource(value: unknown, signal?: AbortSignal): Promise<string> {
     const bytes = sourceBytes(value), sourceId = digest(bytes)
     return this.run(async () => { await this.load(); await this.files.write(`sources/${sourceId}.json`, bytes, true); return sourceId }, signal)
@@ -315,7 +392,7 @@ export class NoteRepository {
       const state = await this.load()
       if (state.issues.length) fail('note_corrupt', '笔记存在损坏文件，请恢复后再同步')
       for (const noteId of new Set(state.revisions.map(row => row.noteId))) await this.external(state, noteId)
-      return { objects: { version: 1, revisions: state.revisions, notebooks: state.notebooks }, generation: this.changeGeneration }
+      return { objects: { version: 1, revisions: state.revisions, notebooks: state.notebooks, ...(state.deleted?.length ? { deleted: state.deleted } : {}) }, generation: this.changeGeneration }
     }, signal)
   }
   async importMarkdown(noteId: string, markdown: string, signal?: AbortSignal): Promise<NoteView> {
@@ -324,35 +401,38 @@ export class NoteRepository {
   }
   /** Sources/assets must already be present; imports are monotonic and may leave recoverable immutable objects on failure. */
   async importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void> {
-    const v = object(input); keys(v, ['version', 'revisions', 'notebooks']); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
+    const v = object(input); keys(v, ['version', 'revisions', 'notebooks', ...('deleted' in v ? ['deleted'] : [])]); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
     const copy = structuredClone(input)
     const incoming = copy.revisions.map(validateNoteRevision), incomingBooks = copy.notebooks.map(validateNotebookRevision)
     this.limits(copy)
     return this.run(async () => {
       const s = await this.load()
+      const deleted = [...new Set([...(s.deleted ?? []), ...deletionIds(copy.deleted)])].sort()
       // Individually valid orphan objects can be completed by this validated input.
       // Truly damaged files never enter these sets and remain write-protected.
-      const revisions = mergeNoteRevisions([...s.revisions, ...s.detachedRevisions], incoming)
+      const revisions = mergeNoteRevisions([...s.revisions, ...s.detachedRevisions].filter(r => !deleted.includes(r.noteId)), incoming.filter(r => !deleted.includes(r.noteId)))
       const notebooks = mergeNotebookRevisions([...s.notebooks, ...s.detachedNotebooks], incomingBooks)
       const available = new Set([...revisions.map(notePath), ...notebooks.map(notebookPath)])
-      const issues = s.issues.filter(issue => !(issue.code === 'note_parent' || issue.code === 'note_missing') || !available.has(issue.path))
-      const next: State = { ...s, revisions, notebooks, detachedRevisions: [], detachedNotebooks: [], issues, blocked: new Set(issues.map(i => i.path.split('/')[1] ?? '')) }
+      const issues = s.issues.filter(issue => !deleted.includes(issue.path.split('/')[1] ?? '') && (!(issue.code === 'note_parent' || issue.code === 'note_missing') || !available.has(issue.path)))
+      const next: State = { ...s, revisions, notebooks, deleted, detachedRevisions: [], detachedNotebooks: [], issues, blocked: new Set(issues.map(i => i.path.split('/')[1] ?? '')) }
       this.limits(next); this.complete(next)
-      for (const r of incoming) this.writable(next, r.noteId)
+      for (const r of incoming.filter(r => !deleted.includes(r.noteId))) this.writable(next, r.noteId)
       for (const r of incomingBooks) this.writable(next, r.notebookId)
-      for (const r of incoming) await checkReferences(this.files, r)
+      for (const r of incoming.filter(r => !deleted.includes(r.noteId))) await checkReferences(this.files, r)
       const noteHashes = new Set(incoming.map(r => r.revision)), notebookHashes = new Set(incomingBooks.map(r => r.revision))
       for (const r of topologicalOrder(notebooks, r => r.notebookId)) if (notebookHashes.has(r.revision)) await this.files.write(notebookPath(r), canonical(r), true)
       for (const r of topologicalOrder(revisions, r => r.noteId)) if (noteHashes.has(r.revision)) await this.files.write(notePath(r), canonical(r), true)
-      for (const noteId of new Set([...incoming, ...s.detachedRevisions].map(r => r.noteId))) { await this.external(next, noteId); await this.document(next, noteId) }
+      for (const noteId of deleted) await this.files.write(`deleted/${noteId}.json`, deletionData(noteId), true)
+      for (const noteId of new Set([...incoming, ...s.detachedRevisions].map(r => r.noteId).filter(n => !deleted.includes(n)))) { await this.external(next, noteId); await this.document(next, noteId) }
       await this.splitConflicts(next)
       await this.ensureNotebooks(next)
       await this.manifest(next)
+      if (deleted.length) await this.cleanDeleted(next, (await this.files.scan()).paths)
     }, signal)
   }
   /** A deterministic fork root and merge commit converge on every device, even after a retry. */
   private async splitConflicts(state:State):Promise<void> {
-    for(const row of conflictRevisions(state.revisions))await this.append(state,row)
+    for(const row of conflictRevisions(state.revisions))if(!state.deleted?.includes(row.noteId))await this.append(state,row)
   }
   async listNotebooks(signal?: AbortSignal): Promise<NotebookView[]> {
     return this.run(async () => {

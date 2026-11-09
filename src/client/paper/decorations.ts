@@ -52,7 +52,7 @@ export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string
         if(sel.from<=first.to && sel.to>=first.from)mark(lm.from,end,'paper-token')
         else ranges.push(Decoration.replace({widget:task?new Preview('task',text(task).toLowerCase()==='[x]'?'x':'',taskLabel):new Preview('marker',order?count+'.':'•')}).range(lm.from,end))
       }else if(n.name==='Image'){
-        const url=n.getChild('URL'),src=url&&imageUrl(text(url)),alt=text(n).match(/^!\[([^\]]*)\]/)?.[1]??''
+        const url=n.getChild('URL'),src=url&&imageUrl(text(url).replace(/^<|>$/g,'')),alt=text(n).match(/^!\[([^\]]*)\]/)?.[1]??''
         if(src&&!active){widget(n,new Preview('image',src,alt),a===first.from&&b===doc.lineAt(b).to);return false}
       }else if(n.name==='Link'){
         const close=n.getChildren('LinkMark')[1];if(left&&close&&n.getChild('URL')){token(a,left.to,active);mark(left.to,close.from,'paper-link');token(close.from,b,active)}

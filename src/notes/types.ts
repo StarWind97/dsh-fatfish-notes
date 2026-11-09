@@ -1,6 +1,6 @@
 export type * from '../contracts/notes.js'
 import type { NoteRevision, NotebookRevision } from '../contracts/notes.js'
-export interface NoteObjects { version: 1; revisions: NoteRevision[]; notebooks: NotebookRevision[] }
+export interface NoteObjects { version: 1; revisions: NoteRevision[]; notebooks: NotebookRevision[]; deleted?: string[] }
 export interface RecoveryIssue { path: string; code: string }
 export interface NoteAsset { id: string; mediaType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'; bytes: number }
 export const NOTE_LIMITS = {

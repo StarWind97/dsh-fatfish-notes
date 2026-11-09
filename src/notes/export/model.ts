@@ -29,7 +29,10 @@ export function exportModel(title: string, body: string, allowed: readonly strin
   scan(tree)
   function image(url: string, alt: string): ExportBlock {
     const match = /^\.\.\/assets\/([a-f0-9]{64}\.(?:png|jpg|webp|gif))$/.exec(url), asset = match?.[1]
-    if (!asset || !allowed.includes(asset)) throw new ExportError('export_image_unarchived')
+    if (!asset || !allowed.includes(asset)) {
+      if(markdownOnly&&/^https?:\/\//i.test(url))return {type:'text',kind:'paragraph',runs:[{text:alt}]}
+      throw new ExportError('export_image_unarchived')
+    }
     used.add(asset); return { type: 'image', assetId: asset, alt }
   }
   function runs(nodes: PhrasingContent[], style: Omit<ExportRun, 'text'> = {}): Array<ExportRun | ExportBlock & { type: 'image' }> {

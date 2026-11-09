@@ -12,6 +12,25 @@ import type { CaptureResult } from '../src/contracts/notes.js'
 import { NoteCaptureBridge } from '../src/client/note-capture-bridge.js'
 import type { Api } from '../src/client/api.js'
 import type { SessionController, SessionPromptRequest } from '@deepseek-ai/dsh-api-session-controller'
+import {ulid} from '../src/domain/id.js'
+
+test('ordinary attachments require size consent and download with scope, MIME and HTTP fences',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'notes-attachment-http-')),app=await createApplication({dir})
+  let origin='';const server=createServer((req,res)=>{void createHttpHandler({app,getOrigin:()=>origin})(req,res)})
+  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();assert.ok(address&&typeof address!=='string');origin=`http://127.0.0.1:${address.port}`
+  const post=(path:string,body:unknown,headers:Record<string,string>={})=>fetch(origin+'/dsh-fatfish-notes'+path,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body)})
+  try{
+    const noteId=ulid(),payload={noteId,draft:true,name:'网页.html',base64:Buffer.from('<script>alert(1)</script>').toString('base64')}
+    assert.equal((await post('/notes/attachment',payload,{origin:'https://evil.example'})).status,403)
+    assert.equal((await post('/notes/batch',{notes:[],action:'purge'},{'sec-fetch-site':'cross-site'})).status,403)
+    const uploaded=await app.notes.attachment(payload),saved=await app.notes.save({noteId,expectedHeads:[],content:{title:'附件下载',body:`[网页](../attachments/${uploaded.attachment.id}.bin)`,summary:'',tags:[],notebookId:null,status:'active',sourceId:null,assetIds:[],attachments:[uploaded.attachment]}})
+    const query=new URLSearchParams({noteId,revision:saved.note.current.revision,attachmentId:uploaded.attachment.id}),url=origin+'/dsh-fatfish-notes/notes/download?'+query
+    const response=await fetch(url);assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'application/octet-stream');assert.match(response.headers.get('content-disposition')??'',/^attachment;/);assert.equal(response.headers.get('x-content-type-options'),'nosniff');assert.equal(await response.text(),'<script>alert(1)</script>')
+    assert.equal((await fetch(url,{headers:{'sec-fetch-site':'cross-site'}})).status,403)
+    assert.equal((await fetch(url.replace(uploaded.attachment.id,'f'.repeat(64)))).status,404)
+    await assert.rejects(app.notes.attachment({...payload,base64:Buffer.alloc(10*1024*1024+1).toString('base64')}),{code:'attachment_large'})
+  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
+})
 
 test('M3 host serves raw capture without model/GitHub behind the notebook HTTP fence',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-host-')),f=fixture()

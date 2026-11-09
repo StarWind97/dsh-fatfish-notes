@@ -133,6 +133,7 @@
     "mdast-util-gfm-table": "2.0.0",
     "micromark-extension-gfm-table": "2.1.1",
     "pdfkit": "0.20.2",
-    "react-markdown": "10.1.0"
+    "react-markdown": "10.1.0",
+    "yaml": "2.9.1"
   }
 }

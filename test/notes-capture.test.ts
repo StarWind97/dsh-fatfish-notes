@@ -163,7 +163,7 @@ test('M3 full selection covers all pages; turn scope picks preceding user and an
 
 test('M3 a future module manifest blocks even new capture journals',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-future-capture-'))
-  try{await mkdir(join(dir,'notes'));await writeFile(join(dir,'notes','manifest.json'),JSON.stringify({version:2}))
+  try{await mkdir(join(dir,'notes'));await writeFile(join(dir,'notes','manifest.json'),JSON.stringify({version:3}))
     const f=fixture(),service=new NoteCaptureService(new NoteRepository(dir),new NoteConversation(()=>f.controller))
     await assert.rejects(service.capture(request),{code:'note_version'});assert.deepEqual(await readdir(join(dir,'notes')),['manifest.json']);assert.equal(f.follows,0)
   }finally{await rm(dir,{recursive:true,force:true})}

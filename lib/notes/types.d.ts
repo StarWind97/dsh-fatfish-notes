@@ -4,6 +4,7 @@ export interface NoteObjects {
     version: 1;
     revisions: NoteRevision[];
     notebooks: NotebookRevision[];
+    deleted?: string[];
 }
 export interface RecoveryIssue {
     path: string;

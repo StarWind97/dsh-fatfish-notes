@@ -3,11 +3,12 @@ const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v ===
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string')
 const hash = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v)
 const id = (v: unknown) => typeof v === 'string' && /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(v)
+const attachment=(v:unknown)=>record(v)&&hash(v.id)&&typeof v.name==='string'&&Number.isSafeInteger(v.bytes)&&Number(v.bytes)>=0&&Number(v.bytes)<=50*1024*1024
 function cut(v: unknown): boolean { return record(v) && Number.isSafeInteger(v.throughSeq) && Number(v.throughSeq) >= -1 && typeof v.capturedAt === 'string' && Number.isFinite(Date.parse(v.capturedAt)) && typeof v.isSeeded === 'boolean' }
 function note(v: unknown): boolean {
   if (!record(v) || !id(v.noteId) || !strings(v.heads) || !v.heads.length || !v.heads.every(hash) || !record(v.current) || !Array.isArray(v.conflicts) || typeof v.savedAt !== 'string') return false
   const heads = v.heads
-  const revision = (r: unknown) => record(r) && r.version === 1 && r.noteId === v.noteId && hash(r.revision) && heads.includes(String(r.revision)) && ['title','body','summary','recordedAt'].every(k => typeof r[k] === 'string') && strings(r.tags) && strings(r.assetIds) && strings(r.parents) && ['active','trashed'].includes(String(r.status)) && (r.sourceId === null || hash(r.sourceId)) && (r.notebookId === null || id(r.notebookId))
+  const revision = (r: unknown) => record(r) && r.version === 1 && r.noteId === v.noteId && hash(r.revision) && heads.includes(String(r.revision)) && ['title','body','summary','recordedAt'].every(k => typeof r[k] === 'string') && strings(r.tags) && strings(r.assetIds) && strings(r.parents) && ['active','trashed'].includes(String(r.status)) && (r.sourceId === null || hash(r.sourceId)) && (r.notebookId === null || id(r.notebookId)) && (r.attachments===undefined||Array.isArray(r.attachments)&&r.attachments.every(attachment)) && (r.originPath===undefined||typeof r.originPath==='string')
   return revision(v.current) && v.conflicts.every(revision) && (v.effectiveNotebookId === null || id(v.effectiveNotebookId))
 }
 export function validCaptureSource(value: unknown): boolean {
@@ -16,6 +17,8 @@ export function validCaptureSource(value: unknown): boolean {
 export function validNotesResponse(path: ApiPath, value: unknown): boolean | undefined {
   if (path !== '/notes' && !path.startsWith('/notes/')) return undefined
   if (!record(value) || value.ok !== true) return false
+  if (path === '/notes/attachment') return attachment(value.attachment)
+  if (path === '/notes/batch') return strings(value.completed) && value.completed.every(id)
   if (path === '/notes/image') return record(value.asset) && typeof value.asset.id === 'string' && /^[a-f0-9]{64}\.(?:png|jpg|gif|webp)$/.test(value.asset.id) && Number.isSafeInteger(value.asset.bytes) && Number(value.asset.bytes)>0 && (value.asset.preview===undefined || typeof value.asset.preview==='string' && /^data:image\/(?:png|jpeg|webp|gif);base64,/.test(value.asset.preview))
   if (['/notes/get','/notes/save','/notes/trash','/notes/restore','/notes/resolve'].includes(path)) return note(value.note)
   if (path === '/notes') return Array.isArray(value.items) && value.items.length <= 100 && value.items.every(v => record(v) && id(v.noteId) && strings(v.heads) && v.heads.every(hash) && typeof v.title === 'string' && typeof v.summary === 'string' && strings(v.tags) && (v.notebookId === null || id(v.notebookId)) && ['active','trashed'].includes(String(v.status)) && typeof v.savedAt === 'string' && typeof v.conflicted === 'boolean') && (value.cursor === null || id(value.cursor))

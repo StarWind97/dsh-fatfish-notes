@@ -35,6 +35,33 @@ async function fixture() {
   return { dir, remote, gateway, account, backend, instance, connect, edit, show, set runner(value: GitRunner) { runner = value }, get repository() { return repository }, set repository(value: GitHubRepository | null) { repository = value }, async close() { await Promise.all(services.map(s => s.close())); await rm(dir, { recursive: true, force: true }) } }
 }
 
+test('permanent deletion and shared ordinary attachments converge with stale offline edits', async () => {
+  const f = await fixture()
+  try {
+    const a = await f.instance('purge-a'); await f.connect(a.sync)
+    const attachment = await a.notes.putAttachment(Buffer.from('pdf-or-video'), '附件.mp4')
+    const first = await a.notes.save({ expectedHeads: [], content: { ...content('第一篇'), attachments: [attachment] } })
+    const second = await a.notes.save({ expectedHeads: [], content: { ...content('第二篇'), attachments: [attachment] } })
+    await a.sync.sync()
+    const b = await f.instance('purge-b'); await f.connect(b.sync)
+    assert.deepEqual(await b.notes.getAttachment(attachment.id), Buffer.from('pdf-or-video'))
+    await b.notes.save(change(await b.notes.get(first.noteId), '离线编辑旧笔记'))
+    const trashed = await a.notes.trash(first.noteId, first.heads)
+    await a.notes.batch([{ noteId:first.noteId, expectedHeads:trashed.heads }], 'purge')
+    await a.sync.sync(); await b.sync.sync(); await a.sync.sync()
+    assert.deepEqual((await b.notes.list()).items.map(n=>n.noteId), [second.noteId])
+    await assert.rejects(b.notes.get(first.noteId))
+    assert.deepEqual(await b.notes.getAttachment(attachment.id), Buffer.from('pdf-or-video'))
+    await assert.rejects(f.show(`notes/documents/${first.noteId}.md`))
+    const last = await b.notes.trash(second.noteId, (await b.notes.get(second.noteId)).heads)
+    await b.notes.batch([{noteId:last.noteId,expectedHeads:last.heads}], 'purge')
+    await b.sync.sync(); await a.sync.sync()
+    await assert.rejects(a.notes.getAttachment(attachment.id))
+    await assert.rejects(f.show(`notes/attachments/${attachment.id}.bin`))
+    assert.equal((await a.notes.list({status:'all'})).items.length, 0)
+  } finally { await f.close() }
+})
+
 test('default notebook, chosen destination and notebook removal synchronize across real clones', async () => {
   const f = await fixture()
   try {

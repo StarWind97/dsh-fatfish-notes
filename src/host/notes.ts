@@ -10,10 +10,12 @@ import { NoteModelBridge, type NoteModelController } from './note-model.js'
 import { NoteEnrichment } from '../notes/enrichment.js'
 import { validateCaptureRequest } from '../notes/capture.js'
 import { NotebookError } from '../domain/errors.js'
+import {exportLibrary} from '../notes/export/library.js'
 import { createExport } from '../notes/export/service.js'
 import { createConversationExport } from '../notes/export/conversation.js'
 import { exportFont } from '../notes/export/pdf.js'
 import { ExportError } from '../notes/export/model.js'
+import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../contracts/notes.js'
 
 /** Composed facade owns every note operation through cancellation and drain. */
 export class NotesApplication {
@@ -96,6 +98,26 @@ export class NotesApplication {
     const v = object(input)
     return { ...(v.noteId === undefined ? {} : { noteId: id(v.noteId) }), expectedHeads: sortedStrings(v.expectedHeads, 100_000, hash), content: normalizeContent(v.content) }
   }
+  attachment(input: unknown, signal?: AbortSignal) { return this.run(async active => {
+    const v = object(input), noteId = id(v.noteId)
+    const note = await this.repository.get(noteId, active).catch(e => { if (v.draft === true && e instanceof NotebookError && e.code === 'note_not_found') return null; throw e })
+    if (note?.current.status === 'trashed') throw new NotebookError('note_trashed', '回收站中的笔记不能添加附件')
+    const encoded = text(v.base64, Math.ceil(ATTACHMENT_LIMIT / 3) * 4)
+    const bytes = Buffer.from(encoded, 'base64')
+    if (bytes.toString('base64') !== encoded || bytes.length > ATTACHMENT_LIMIT) throw new NotebookError('attachment_limit', '单个附件不能超过 50 MiB')
+    if (bytes.length > ATTACHMENT_WARNING && v.allowLarge !== true) throw new NotebookError('attachment_large', '附件较大，会增加上传、下载和同步时间，请确认后继续')
+    return { ok: true as const, attachment: await this.repository.putAttachment(bytes, text(v.name, 1000), active) }
+  }, signal) }
+  download(input: unknown, signal?: AbortSignal) { return this.run(async active => {
+    const v = object(input), note = await this.repository.getRevision(id(v.noteId), hash(v.revision), active)
+    const file = note.attachments?.find(a => a.id === hash(v.attachmentId))
+    if (!file) throw new NotebookError('note_asset', '附件不属于此笔记', 404)
+    return { bytes: await this.repository.getAttachment(file.id, active), filename: file.name, mediaType: 'application/octet-stream' }
+  }, signal) }
+  batch(input: unknown, signal?: AbortSignal) { return this.run(async active => {
+    const v = object(input)
+    return { ok: true as const, completed: await this.repository.batch(v.notes as NoteSelection[], v.action as 'trash' | 'restore' | 'purge', active) }
+  }, signal) }
   status(input: unknown, trashed: boolean, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), noteId = id(v.noteId), heads = sortedStrings(v.expectedHeads, 100_000, hash)
     return { ok: true as const, note: await (trashed ? this.repository.trash(noteId, heads, active) : this.repository.restore(noteId, heads, active)) }
@@ -148,6 +170,7 @@ export class NotesApplication {
       throw new NotebookError('export_failed', '导出未完成，请检查图片或稍后重试')
     }
   }, signal) }
+  exportLibrary(input:unknown,signal?:AbortSignal){return this.run(active=>exportLibrary(this.repository,input,active),signal)}
   exportFont(signal?: AbortSignal) { return this.run(async active => { const bytes = await exportFont(); active.throwIfAborted(); return bytes }, signal) }
   exportConversation(input:unknown,signal?:AbortSignal) { return this.run(async active=>{
     try { return await createConversationExport(this.conversation,input,active) }

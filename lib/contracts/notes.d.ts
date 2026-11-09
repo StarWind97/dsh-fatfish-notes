@@ -24,6 +24,19 @@ export interface NoteContent {
     status: NoteStatus;
     sourceId: string | null;
     assetIds: string[];
+    attachments?: NoteAttachment[];
+    originPath?: string;
+}
+export interface NoteAttachment {
+    id: string;
+    name: string;
+    bytes: number;
+}
+export declare const ATTACHMENT_WARNING: number;
+export declare const ATTACHMENT_LIMIT: number;
+export interface NoteSelection {
+    noteId: string;
+    expectedHeads: string[];
 }
 export interface NoteRevision extends NoteContent {
     version: 1;
@@ -167,6 +180,29 @@ export interface ConversationExportRequest {
     }>;
 }
 export interface NotesApiContract {
+    '/notes/attachment': {
+        request: {
+            noteId: string;
+            draft?: boolean;
+            name: string;
+            base64: string;
+            allowLarge?: boolean;
+        };
+        response: {
+            ok: true;
+            attachment: NoteAttachment;
+        };
+    };
+    '/notes/batch': {
+        request: {
+            notes: NoteSelection[];
+            action: 'trash' | 'restore' | 'purge';
+        };
+        response: {
+            ok: true;
+            completed: string[];
+        };
+    };
     '/notes': {
         request: NoteListOptions;
         response: NoteListResult & {

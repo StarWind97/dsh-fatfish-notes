@@ -7,6 +7,10 @@ import { markdown, markdownKeymap, markdownLanguage } from '@codemirror/lang-mar
 import { search, searchKeymap } from '@codemirror/search'
 import type { NotesController,NotesState } from '../notes-controller.js'
 import { resolveNoteImage } from '../NoteMarkdown.js'
+import {api} from '../api.js'
+import {AttachmentDialog,base64File} from '../NoteAttachments.js'
+import {noteLinkId,markdownLabel} from '../../contracts/note-links.js'
+import type {NoteListItem} from '../../contracts/notes.js'
 import { safePublicUrl } from '../safe-url.js'
 import type { T } from '../locale.js'
 import { livePreview,refreshMedia } from './decorations.js'
@@ -34,6 +38,9 @@ export function PaperWriting(props:Props){
   const raw=useRef(state.draft!.body)
   const editability=useRef(new Compartment())
   const linkRange=useRef<{from:number;to:number;original:string}|null>(null)
+  const attachmentPicker=useRef<HTMLInputElement>(null),attachmentAt=useRef<{from:number;to:number}|null>(null)
+  const [attachmentFiles,setAttachmentFiles]=useState<File[]>([]),[noteQuery,setNoteQuery]=useState(''),[noteResults,setNoteResults]=useState<NoteListItem[]>([]),[noteSearch,setNoteSearch]=useState(false)
+  useEffect(()=>{if(!link||!noteSearch)return;const abort=new AbortController(),timer=setTimeout(()=>{void api('/notes',{query:noteQuery,limit:30},abort.signal).then(page=>setNoteResults(page.items.filter(n=>n.noteId!==noteId))).catch(()=>{})},180);return()=>{clearTimeout(timer);abort.abort()}},[link!==null,noteSearch,noteQuery])
   const [remote,setRemote]=useState('')
   const known=useRef(new Set(state.draft!.assetIds)), keep=useRef(new Set(state.draft!.assetIds.filter(id=>!state.draft!.body.includes('../assets/'+id))))
   const noteId=state.noteId!
@@ -80,8 +87,31 @@ export function PaperWriting(props:Props){
     finally{pending.current.delete(at)}
     })
   }
+  function chooseAttachments(files:File[]){
+    const v=editor.current;if(!v)return
+    const {from,to}=v.state.selection.main,at={from,to};attachmentAt.current=at;pending.current.add(at);setAttachmentFiles(files)
+  }
+  function closeAttachments(){if(attachmentAt.current)pending.current.delete(attachmentAt.current);attachmentAt.current=null;setAttachmentFiles([]);editor.current?.focus()}
+  async function attachFiles(files:File[]){
+    return controller.queueImageImport(async signal=>{
+      let failed=false
+      for(const file of files){try{
+        const draft=controller.getSnapshot().draft!
+        if((draft.attachments??[]).reduce((n,a)=>n+a.bytes,0)+file.size>200*1024*1024)throw new Error('limit')
+        const {attachment}=await api('/notes/attachment',{noteId,draft:!controller.getSnapshot().note,name:file.name,base64:await base64File(file),allowLarge:true},signal)
+        signal.throwIfAborted()
+        const current=controller.getSnapshot().draft!,attachments=[...(current.attachments??[]).filter(a=>a.id!==attachment.id),attachment]
+        controller.update({attachments})
+        const insert='\n['+markdownLabel(attachment.name)+'](../attachments/'+attachment.id+'.bin)\n',v=editor.current,at=attachmentAt.current
+        if(v&&at)v.dispatch({changes:{from:at.from,insert},userEvent:'input.paste'})
+        else controller.update({body:current.body+insert})
+      }catch{signal.throwIfAborted();failed=true}}
+      setInfo(failed?t('attachmentFailed'):'')
+    })
+  }
   function run(action:Action){
     const v=editor.current;if(!v)return
+    if(action==='attachment'){controller.imagePickerOpen=true;attachmentPicker.current?.click();return}
     if(action==='picture'){controller.imagePickerOpen=true;picker.current?.click();return}
     if(action==='link'){openLink();return}
     format(v,action,t('paperText'));if(action!=='find')v.focus()
@@ -100,6 +130,7 @@ export function PaperWriting(props:Props){
       EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask')),
       EditorView.domEventHandlers({paste(event,v){
         const data=event.clipboardData;if(!data)return false
+        const ordinary=Array.from(data.files).filter(f=>!/^image\/(png|jpeg|gif|webp)$/.test(f.type));if(ordinary.length){event.preventDefault();chooseAttachments(ordinary);return true}
         const inputs=clipboardImages(data)
         if(!inputs.length){
           const plain=data.getData('text/plain').trim()
@@ -115,7 +146,7 @@ export function PaperWriting(props:Props){
       },dragover(e){if(e.dataTransfer?.types.includes('Files')){e.preventDefault();return true}return false},drop(e,v){
         const files=Array.from(e.dataTransfer?.files??[]);if(!files.length)return false
         e.preventDefault();const pos=v.posAtCoords({x:e.clientX,y:e.clientY});if(pos!==null)v.dispatch({selection:{anchor:pos}})
-        void importPictures(files.map(file=>({file,label:file.name})),v);return true
+        const images=files.filter(f=>/^image\/(png|jpeg|gif|webp)$/.test(f.type)),ordinary=files.filter(f=>!images.includes(f));if(images.length)void importPictures(images.map(file=>({file,label:file.name})),v);if(ordinary.length)chooseAttachments(ordinary);return true
       }}),
       EditorView.updateListener.of(u=>{
         // React may flush layout effects synchronously after an async image import.
@@ -140,7 +171,7 @@ export function PaperWriting(props:Props){
     if(body!==raw.current && !state.composing){raw.current=body;state.draft?.assetIds.forEach(id=>known.current.add(id));v.dispatch({changes:{from:0,to:v.state.doc.length,insert:editorText(body)},annotations:[Transaction.remote.of(true),Transaction.addToHistory.of(false)]})}
   },[body,state.composing,state.draft?.assetIds])
   useEffect(()=>{editor.current?.dispatch({effects:refreshMedia.of()})},[state.note?.current.revision])
-  useEffect(()=>{const input=picker.current;if(!input)return;const cancel=()=>{controller.imagePickerOpen=false};input.addEventListener('cancel',cancel);return()=>input.removeEventListener('cancel',cancel)},[controller])
+  useEffect(()=>{const input=picker.current,attachment=attachmentPicker.current;if(!input)return;const cancel=()=>{controller.imagePickerOpen=false};input.addEventListener('cancel',cancel);attachment?.addEventListener('cancel',cancel);return()=>{input.removeEventListener('cancel',cancel);attachment?.removeEventListener('cancel',cancel)}},[controller])
   const ctx=React.useMemo(()=>editor.current?selectionFormat(editor.current.state):{active:new Set<Format>(),heading:undefined},[formatTick])
   function done(){
     const v=editor.current, pane=mount.current?.closest<HTMLElement>('.paper-pane');if(!v||!pane)return
@@ -168,17 +199,17 @@ export function PaperWriting(props:Props){
       return sourceOffset(raw.current,pos)
     }
   }))
-  return <><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
+  return <>{attachmentFiles.length>0&&<AttachmentDialog files={attachmentFiles} t={t} close={closeAttachments} add={attachFiles}/>}<input ref={attachmentPicker} type="file" hidden multiple onChange={e=>{controller.imagePickerOpen=false;chooseAttachments(Array.from(e.target.files??[]));e.target.value=''}}/><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
     <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{controller.imagePickerOpen=false;const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
     {info&&<p className="paper-hint" role="status">{info}</p>}
     {remote&&<button type="button" onClick={()=>{const v=editor.current;if(!v)return;const range=v.state.selection.main,at=range.head-remote.length;if(at>=0&&v.state.sliceDoc(at,range.head)===remote)v.dispatch({selection:{anchor:at,head:range.head}});void importPictures([{url:remote,label:''}],v);setRemote('')}}>{t('paperImportUrl')}</button>}
-    {link&&<form className="paper-link-form" onSubmit={e=>{e.preventDefault();const url=safePublicUrl(link.url),v=editor.current;if(!url||!v){setInfo(t('paperBadUrl'));return}
+    {link&&<form className="paper-link-form" onSubmit={e=>{e.preventDefault();const url=noteLinkId(link.url)?link.url:safePublicUrl(link.url),v=editor.current;if(!url||!v){setInfo(t('paperBadUrl'));return}
       const r=linkRange.current;if(!r||v.state.sliceDoc(r.from,r.to)!==r.original){setLink(null);linkRange.current=null;v.focus();return}
       const label=(link.label||url).replace(/[\\\[\]]/g,'\\$&'),insert='['+label+'](<'+url.replace(/[<>]/g,encodeURIComponent)+'>)'
       linkRange.current=null;v.dispatch({changes:{from:r.from,to:r.to,insert},selection:{anchor:r.from+insert.length},userEvent:'input'});setLink(null);v.focus()}}>
       <label>{t('paperLinkText')}<input value={link.label} onChange={e=>setLink({...link,label:e.target.value})}/></label>
-      <label>{t('paperLinkUrl')}<input autoFocus type="url" required value={link.url} onChange={e=>setLink({...link,url:e.target.value})}/></label>
-      <button type="submit">{t('paperLinkApply')}</button><button type="button" onClick={()=>{setLink(null);editor.current?.focus()}}>{t('cancel')}</button></form>}
+      <label>{t('paperLinkUrl')}<input autoFocus required value={link.url} onChange={e=>setLink({...link,url:e.target.value})}/></label>
+      <button type="button" aria-expanded={noteSearch} onClick={()=>setNoteSearch(!noteSearch)}>{t('linkNote')}</button>{noteSearch&&<div><input aria-label={t('linkSearch')} placeholder={t('linkSearch')} value={noteQuery} onChange={e=>setNoteQuery(e.target.value)}/><div className="paper-note-results">{noteResults.map(n=><button type="button" key={n.noteId} onClick={()=>{setLink({...link,label:n.title,url:'fatfish-note:'+n.noteId});setNoteSearch(false)}}>{n.title}</button>)}</div></div>}<button type="submit">{t('paperLinkApply')}</button><button type="button" onClick={()=>{setLink(null);editor.current?.focus()}}>{t('cancel')}</button></form>}
     <div className="paper-writing" ref={mount} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}/>
   </>
 }

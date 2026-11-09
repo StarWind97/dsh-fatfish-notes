@@ -12,6 +12,7 @@ export declare class NoteFiles {
     constructor(root: string, beforeWrite?: ((path: string) => void | Promise<void>) | undefined);
     path(relative: string): string;
     read(relative: string, limit?: number): Promise<Buffer>;
+    remove(relative: string): Promise<void>;
     write(relative: string, data: string | Buffer, immutable: boolean): Promise<void>;
     scan(): Promise<{
         paths: string[];

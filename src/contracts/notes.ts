@@ -9,7 +9,12 @@ export interface NoteExportRequest {
 export interface NoteContent {
   title: string; body: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; sourceId: string | null; assetIds: string[]
+  attachments?: NoteAttachment[]; originPath?: string
 }
+export interface NoteAttachment { id: string; name: string; bytes: number }
+export const ATTACHMENT_WARNING = 10 * 1024 * 1024
+export const ATTACHMENT_LIMIT = 50 * 1024 * 1024
+export interface NoteSelection { noteId: string; expectedHeads: string[] }
 export interface NoteRevision extends NoteContent {
   version: 1; noteId: string; revision: string; parents: string[]; recordedAt: string
 }
@@ -59,6 +64,8 @@ export interface ConversationExportRequest {
   snapshotHash?:string; convertedImages?:Array<{assetId:string;png:string}>
 }
 export interface NotesApiContract {
+  '/notes/attachment': { request: { noteId: string; draft?: boolean; name: string; base64: string; allowLarge?: boolean }; response: { ok: true; attachment: NoteAttachment } }
+  '/notes/batch': { request: { notes: NoteSelection[]; action: 'trash' | 'restore' | 'purge' }; response: { ok: true; completed: string[] } }
   '/notes': { request: NoteListOptions; response: NoteListResult & { ok: true } }
   '/notes/save': { request: NoteSaveInput & { resolve?: boolean; keepBoth?:boolean }; response: { ok: true; note: NoteView; forkedFrom?:string } }
   '/notes/image': { request: { noteId: string; draft?: boolean } & ({url: string} | {base64: string; mediaType: string}); response: {ok: true; asset: {id: string; bytes: number; preview?: string}} }

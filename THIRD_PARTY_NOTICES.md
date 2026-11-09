@@ -1,6 +1,8 @@
 # 导出依赖与字体
 
-纸页编辑器把 CodeMirror、Lezer、Lucide 和 Markdown 渲染依赖打入 Client factory，React 继续使用宿主实例。该构建实际包含的 99 个第三方包的版本、版权声明和许可证收录于 [paper-client.txt](assets/licenses/paper-client.txt)。具体版本以锁文件为准。
+纸页编辑器把 CodeMirror、Lezer、Lucide 和 Markdown 渲染依赖打入 Client factory，React 继续使用宿主实例。这些编辑器依赖的版本、版权声明和许可证收录于 [paper-client.txt](assets/licenses/paper-client.txt)。具体版本以锁文件为准。
+
+Markdown 导入另外使用 YAML 2.9.1 解析基础属性，按 ISC 许可证分发；版权和完整许可证见 [yaml-ISC.txt](assets/licenses/yaml-ISC.txt)，项目为 [eemeli/yaml](https://github.com/eemeli/yaml)。
 
 导出使用锁定依赖，包括 PDFKit 0.20.2、html-to-image 1.11.13、fflate 0.8.3、mdast-util-gfm-table 2.0.0、micromark-extension-gfm-table 2.1.1（均 MIT）；开发类型 @types/pdfkit 0.17.7（MIT）。后两项为既有 mdast-util-from-markdown 增加 GFM 管道表格解析，不启用 HTML。上述五项运行依赖的完整版权与 MIT 许可证另存于随包的 `assets/licenses/*-MIT.txt`；完整依赖树及各依赖自身许可证随 npm 依赖分发，具体锁定见 package-lock.json。
 

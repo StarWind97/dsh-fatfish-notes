@@ -1,3 +1,5 @@
+import {changeReferences} from '../portable-links.js'
+import {attachmentLinkId} from '../../contracts/note-links.js'
 import { noteDateTime } from '../date.js'
 import type { NoteRepository } from '../repository.js'
 import { object, id, hash, text } from '../validation.js'
@@ -44,8 +46,11 @@ export async function createExport(repository: NoteRepository, input: unknown, s
     const snapshot: ExportSnapshot = { noteId: note.noteId, revision: note.revision, filename, model, assets: Object.fromEntries(Object.entries(images).map(([asset, bytes]) => [asset, `data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`])) }
     return { bytes: Buffer.from(JSON.stringify(snapshot)), mediaType: 'application/json; charset=utf-8', filename: `${filename}.json` }
   }
-  if (format === 'markdown') return { bytes: Buffer.from(exportMarkdown(header, body, appendix)), mediaType: 'text/markdown; charset=utf-8', filename: `${filename}.md` }
-  if (format === 'markdown-zip') return { bytes: exportZip(filename, exportMarkdown(header, body, appendix), images), mediaType: 'application/zip', filename: `${filename}.zip` }
+  const attached:Record<string,Buffer>={},attachmentNames=new Map<string,string>()
+  if(markdownOnly)for(const a of note.attachments??[]){const name=a.id.slice(0,16)+'-'+exportFilename(a.name);attachmentNames.set(a.id,name);if(format==='markdown-zip')attached[name]=await repository.getAttachment(a.id,signal)}
+  const portableBody=changeReferences(body,ref=>{const file=attachmentLinkId(ref.url);return file&&attachmentNames.has(file)?'attachments/'+encodeURIComponent(attachmentNames.get(file)!):undefined})
+  if (format === 'markdown') return { bytes: Buffer.from(exportMarkdown(header, portableBody, appendix)), mediaType: 'text/markdown; charset=utf-8', filename: `${filename}.md` }
+  if (format === 'markdown-zip') return { bytes: exportZip(filename, exportMarkdown(header, portableBody, appendix), images,attached), mediaType: 'application/zip', filename: `${filename}.zip` }
   return renderPdfFile(filename, model, images, v.convertedImages, signal)
 }
 

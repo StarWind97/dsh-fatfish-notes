@@ -1,4 +1,4 @@
-import type { NoteContent } from './types.js';
+import type { NoteContent, NoteAttachment } from './types.js';
 export declare function fail(code?: string, message?: string): never;
 export declare function object(value: unknown): Record<string, unknown>;
 export declare function keys(value: Record<string, unknown>, allowed: readonly string[]): void;
@@ -10,6 +10,9 @@ export declare function sortedStrings(value: unknown, max: number, check: (v: un
 export declare function date(value: unknown): string;
 export declare function status(value: unknown): 'active' | 'trashed';
 export declare const contentKeys: readonly ["title", "body", "summary", "tags", "notebookId", "status", "sourceId", "assetIds"];
+export declare const optionalContentKeys: readonly ["attachments", "originPath"];
+export declare function contentFields(v: Record<string, unknown>): string[];
+export declare function attachment(value: unknown): NoteAttachment;
 export declare function normalizeContent(value: unknown): NoteContent;
 /** Lexicographic object keys; array order is significant. No body normalization. */
 export declare function canonical(value: unknown): string;

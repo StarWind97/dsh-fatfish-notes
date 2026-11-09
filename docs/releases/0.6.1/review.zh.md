@@ -1,8 +1,21 @@
 # 0.6.1 开发候选版
 
-状态：2026-11-09 更新，**尚未正式发布**。正式安装入口和市场条目仍指向 0.6.0，不覆盖已有发布资产、不发布 npm。当前开发包包含[依赖修正](../../plans/2026-11-08-market-metadata-and-peers.zh.md)、[默认笔记本与移除规则](../../plans/2026-11-08-default-notebook.zh.md)及[笔记本选项卡](../../plans/2026-11-09-notebooks-tab.zh.md)。
+状态：2026-11-09 更新，**尚未正式发布**。正式安装入口和市场条目仍指向 0.6.0，不覆盖已有发布资产、不发布 npm。当前开发包包含[迁入迁出与附件](../../plans/2026-11-09-portability-and-attachments.zh.md)、[依赖修正](../../plans/2026-11-08-market-metadata-and-peers.zh.md)、[默认笔记本与移除规则](../../plans/2026-11-08-default-notebook.zh.md)及[笔记本选项卡](../../plans/2026-11-09-notebooks-tab.zh.md)。
 
-## 当前开发包：笔记本独立选项卡
+## 当前开发包：迁入迁出、附件与多选清理
+
+2026-11-09 按[批准规划](../../plans/2026-11-09-portability-and-attachments.zh.md)实现 Markdown 文件/文件夹/ZIP 导入、整库/单本导出、普通文件附件、稳定身份笔记互链、多选及回收站彻底删除。包括 PDF、音频和视频附件的存储与下载，不预览或播放。
+
+- 文件：`dist/dsh-fatfish-notes-0.6.1.tgz`，139 个文件，14,312,618 字节。
+- SHA-256：`d5aaafd32fdca3290ea3ba0e642d2d9e57192894811ad7fb7505dfb64e6da511`。
+- 实际安装到隔离 Desktop，139 个安装文件逐项匹配；重启后读回图片、附件和链接。真实私库同步为 idle / pending=false，并通过 GitHub API 复核删除标记及普通附件文件。
+- 类型检查、构建、73 项专项测试及第三档 **238/238 全量回归通过**，详见[验证记录](../../verification-log.zh.md)。最终仅修正导入/导出页签切回后的目录选择属性，重新构建并在宿主实际检查。
+- 实际导出单本 ZIP 含两篇 Markdown、图片及两个普通文件，所有相对引用目标存在；整库 ZIP 含 51 篇当前笔记。普通附件下载到新建目录并逐字节核对。导入素材和所有清理对象均为隔离测试数据。
+- 官方 Obsidian 1.15.0 安装包签名有效，独立解包后的程序启动即退出（`0x80000003`），没有完成 Obsidian 真实窗口验收。只确认 ZIP 格式、相对链接及导入往返，不把它们等同于 Obsidian 实测；未改系统安装或日常资料。
+- 新数据启用 notes manifest v2；同库实例须一并升级。第一次升级前备份为 `.dsh-home/pure-001/portability-backup-20261109-104236/`。回退需恢复相配套资料，不能让旧包继续写新格式。
+- 图册为 `output/playwright/portability/index.html`，记录为 `.dsh-home/pure-001/portability-*`。体验入口仍为 [Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)。未正式发布、不覆盖 0.6.0，不修改市场条目。
+
+## 前一开发包：笔记本独立选项卡
 
 2026-11-09 按[批准规划](../../plans/2026-11-09-notebooks-tab.zh.md)新增顶部「笔记本」页面，页面内新建/改名，点击名称进入相应内容，保留移除确认。切页自动保存、返回筛选与阅读位置、管理完成后留在本页均在隔离 DSH 实测。
 

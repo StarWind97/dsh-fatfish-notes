@@ -1,6 +1,7 @@
 import type { ImageMediaType } from '../contracts/media.js';
 import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
 import { NoteFiles } from './files.js';
+import { type NoteAttachment, type NoteSelection } from '../contracts/notes.js';
 export interface NoteRepositoryOptions {
     now?: () => number;
     beforeWrite?: (path: string) => void | Promise<void>;
@@ -44,6 +45,11 @@ export declare class NoteRepository {
     resolve(noteId: string, expectedHeads: string[], content: NoteContent, signal?: AbortSignal): Promise<NoteView>;
     putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal): Promise<NoteAsset>;
     getAsset(asset: string, signal?: AbortSignal): Promise<Buffer>;
+    putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal): Promise<NoteAttachment>;
+    getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer>;
+    /** Validate the entire selection before deleting anything. New remote edits require a fresh confirmation. */
+    batch(selection: NoteSelection[], action: 'trash' | 'restore' | 'purge', signal?: AbortSignal): Promise<string[]>;
+    private cleanDeleted;
     putSource(value: unknown, signal?: AbortSignal): Promise<string>;
     getSource(sourceId: string, signal?: AbortSignal): Promise<Record<string, unknown>>;
     exportObjects(signal?: AbortSignal): Promise<NoteObjects>;

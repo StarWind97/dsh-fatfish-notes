@@ -246,7 +246,7 @@ test('notes corrupt immutable files and descendants are logically isolated with 
 
 test('notes future manifest versions stop writes without replacing existing files', async t => {
   const { dir, repo } = await fixture(t)
-  await mkdir(join(dir, 'notes')); const manifest = '{"version":2,"future":true}'
+  await mkdir(join(dir, 'notes')); const manifest = '{"version":3,"future":true}'
   await writeFile(join(dir, 'notes', 'manifest.json'), manifest)
   await assert.rejects(repo.save({ expectedHeads: [], content }), code('note_version'))
   await assert.rejects(repo.putAsset(png, 'image/png'), code('note_version'))

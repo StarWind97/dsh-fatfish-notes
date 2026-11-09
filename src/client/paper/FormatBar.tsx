@@ -1,15 +1,16 @@
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Bold, Italic, Strikethrough, List, ListOrdered, ListChecks, Quote, Code2, SquareCode, Link, Image, Table2, Undo2, Redo2, Minus, IndentIncrease, IndentDecrease, Search, Ellipsis, ChevronDown, type LucideIcon } from 'lucide-react'
+import { Paperclip, Bold, Italic, Strikethrough, List, ListOrdered, ListChecks, Quote, Code2, SquareCode, Link, Image, Table2, Undo2, Redo2, Minus, IndentIncrease, IndentDecrease, Search, Ellipsis, ChevronDown, type LucideIcon } from 'lucide-react'
 import type { T,LocaleKey } from '../locale.js'
 import type { Format } from './format.js'
 
-export type Action=Format|'link'|'picture'
+export type Action=Format|'link'|'picture'|'attachment'
 type Tool={action:Action;key:LocaleKey;icon:LucideIcon;hint?:string}
 const tools:Tool[]=[
   {action:'bold',key:'paperBold',icon:Bold,hint:'Ctrl+B'},{action:'italic',key:'paperItalic',icon:Italic,hint:'Ctrl+I'},
   {action:'unordered',key:'paperUnordered',icon:List},{action:'ordered',key:'paperOrdered',icon:ListOrdered},
   {action:'link',key:'paperLink',icon:Link,hint:'Ctrl+K'},{action:'picture',key:'paperPicture',icon:Image},
+  {action:'attachment',key:'paperAttachment',icon:Paperclip},
   {action:'task',key:'paperTask',icon:ListChecks},{action:'undo',key:'paperUndo',icon:Undo2,hint:'Ctrl+Z'},
   {action:'code',key:'paperCode',icon:Code2},{action:'quote',key:'paperQuote',icon:Quote},
   {action:'block-code',key:'paperBlockCode',icon:SquareCode},{action:'strike',key:'paperStrike',icon:Strikethrough},
@@ -17,7 +18,7 @@ const tools:Tool[]=[
   {action:'rule',key:'paperRule',icon:Minus},{action:'indent',key:'paperIndent',icon:IndentIncrease,hint:'Tab'},
   {action:'outdent',key:'paperOutdent',icon:IndentDecrease,hint:'Shift+Tab'},{action:'find',key:'paperFind',icon:Search,hint:'Ctrl+F'},
 ]
-const order=['bold','italic','strike','unordered','ordered','task','quote','code','block-code','link','picture','table','undo','redo']
+const order=['bold','italic','strike','unordered','ordered','task','quote','code','block-code','link','picture','attachment','table','undo','redo']
 interface Props {t:T;run:(action:Action)=>void;active:Set<Format>;heading:string|undefined}
 export function FormatBar({t,run,active,heading}:Props){
   const bar=useRef<HTMLDivElement>(null),strip=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement|null>(null)

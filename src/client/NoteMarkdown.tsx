@@ -3,6 +3,8 @@ import Markdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { NoteView } from '../contracts/notes.js'
 import { safePublicUrl } from './safe-url.js'
+import {noteLinkId,attachmentLinkId} from '../contracts/note-links.js'
+import {attachmentUrl} from './NoteAttachments.js'
 
 export function noteAssetUrl(note: NoteView, assetId: string, sourceId?: string): string {
   const query = new URLSearchParams({ noteId: note.noteId, revision: note.current.revision, assetId, ...(sourceId ? { sourceId } : {}) })
@@ -19,6 +21,11 @@ const components: Components = {
   pre: ({ node, children }) => <pre data-md-pos={node?.position?.start.offset} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', padding: 14, borderRadius: 8, background: 'var(--dsw-alias-bg-layer-2)' }}>{children}</pre>,
 }
 /** Never fetch an arbitrary Markdown image, even when it is host-relative. */
-export function NoteMarkdown({ body, note }: { body: string; note: NoteView }) {
-  return <div className="note-markdown" style={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}><Markdown skipHtml remarkPlugins={[remarkGfm]} components={components} urlTransform={(url, key) => key === 'src' ? resolveNoteImage(url, note) ?? '' : safePublicUrl(url) ?? ''}>{body}</Markdown></div>
+export function NoteMarkdown({ body, note,onNoteLink }: { body: string; note: NoteView;onNoteLink?:(id:string)=>void }) {
+  return <div className="note-markdown" style={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}><Markdown skipHtml remarkPlugins={[remarkGfm]} components={{...components,a:({href,children})=>{
+    const id=noteLinkId(href??''),file=attachmentLinkId(href??'')
+    if(id)return <a href={href} onClick={e=>{e.preventDefault();onNoteLink?.(id)}}>{children}</a>
+    if(file&&note.current.attachments?.some(a=>a.id===file))return <a href={attachmentUrl(note,file)} download>{children}</a>
+    return href?<a href={href} target="_blank" rel="noopener noreferrer">{children}</a>:<span>{children}</span>
+  }}} urlTransform={(url, key) => key === 'src' ? resolveNoteImage(url, note) ?? '' : noteLinkId(url)||attachmentLinkId(url)?url:safePublicUrl(url) ?? ''}>{body}</Markdown></div>
 }

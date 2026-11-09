@@ -10,6 +10,8 @@ import { createNoteRevision, validateNoteRevision, validateNotebookRevision, mer
 import { serializeNoteMarkdown, parseNoteMarkdown, NOTE_METADATA_BYTES } from './markdown.js'
 import { mediaTypeFor, validateAsset, validateBodyAssets, sourceBytes } from './assets.js'
 import { utf8 } from './files.js'
+import { deletionIds, deletionData, readDeletion, moduleVersion, withoutDeleted } from './deletion.js'
+import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
 
 interface Snapshot { objects: NoteObjects; files: Map<string, Buffer> }
 const revisionPath = (r: NoteObjects['revisions'][number]) => `notes/revisions/${r.noteId}/${r.revision}.json`
@@ -17,11 +19,11 @@ const bookPath = (r: NoteObjects['notebooks'][number]) => `notes/notebooks/${r.n
 function manifest(objects: NoteObjects, version: number): string {
   const notes = [...new Set(objects.revisions.map(r => r.noteId))].sort().map(noteId => ({ noteId, heads: materializeNote(objects.revisions.filter(r => r.noteId === noteId), noteId).heads }))
   const notebooks = [...new Set(objects.notebooks.map(r => r.notebookId))].sort().map(notebookId => ({ notebookId, heads: materializeNotebook(objects.notebooks.filter(r => r.notebookId === notebookId), notebookId).heads }))
-  const data = { version, notes, notebooks }
+  const data = { version, notes, notebooks, ...(objects.deleted?.length ? { deleted: objects.deleted } : {}) }
   return canonical({ ...data, revision: digest(canonical(data)) })
 }
 function token(objects: NoteObjects): string {
-  return digest(canonical([...objects.revisions.map(revisionPath), ...objects.notebooks.map(bookPath)].sort()))
+  return digest(canonical([...objects.revisions.map(revisionPath), ...objects.notebooks.map(bookPath), ...(objects.deleted ?? []).map(n => `notes/deleted/${n}.json`)].sort()))
 }
 function sourceAssets(source: unknown): string[] {
   const value = object(source).assets
@@ -44,7 +46,7 @@ export class NotesSyncModule {
     if (generation === this.repository.generation) this.currentToken = token(objects)
     return { objects }
   }
-  validateVersion(version: unknown): void { if (version !== undefined && version !== 1) fail('note_version', '远端笔记版本不支持；已暂停备份，本机编辑仍可使用') }
+  validateVersion(version: unknown): void { if (version !== undefined && version !== 1 && version !== 2) fail('note_version', '远端笔记版本不支持；已暂停备份，本机编辑仍可使用') }
   async readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot> {
     const files = new Map<string, Buffer>(), objects: NoteObjects = { version: 1, revisions: [], notebooks: [] }
     let total = 0
@@ -66,6 +68,12 @@ export class NotesSyncModule {
     }
     const remoteManifest = object(JSON.parse(utf8(await read('notes/manifest.json', NOTE_LIMITS.scan))) as unknown)
     this.validateVersion(remoteManifest.version)
+    const deleted = deletionIds(remoteManifest.deleted)
+    if (deleted.length) objects.deleted = deleted
+    for (const noteId of deleted) {
+      const bytes = await read(`notes/deleted/${noteId}.json`, 1024)
+      if (readDeletion(JSON.parse(utf8(bytes)) as unknown) !== noteId) fail('note_path')
+    }
     await prefetch(paths,NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)
     for (const path of paths) {
       const raw: unknown = JSON.parse(utf8(await read(path, NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)))
@@ -73,6 +81,7 @@ export class NotesSyncModule {
       else { const row = validateNotebookRevision(raw); if (bookPath(row) !== path) fail('note_path'); objects.notebooks.push(row) }
     }
     objects.revisions = mergeNoteRevisions(objects.revisions, []); objects.notebooks = mergeNotebookRevisions(objects.notebooks, [])
+    if (objects.revisions.some(r => deleted.includes(r.noteId))) fail('note_manifest')
     if (new Set(objects.revisions.map(r => r.noteId)).size > NOTE_LIMITS.notes || canonical(remoteManifest) !== manifest(objects, Number(remoteManifest.version))) fail('note_manifest', '远端笔记清单与修订集合不一致；已暂停备份')
     const sources = new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : [])), assets = new Set(objects.revisions.flatMap(r => r.assetIds))
     await prefetch([...sources].map(id=>`notes/sources/${id}.json`),NOTE_LIMITS.source)
@@ -84,6 +93,12 @@ export class NotesSyncModule {
     }
     await prefetch([...assets].map(id=>`notes/assets/${id}`),NOTE_LIMITS.image)
     for (const asset of assets) { const bytes = await read(`notes/assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash') }
+    const attachments = objects.revisions.flatMap(r => r.attachments ?? [])
+    await prefetch([...new Set(attachments.map(a => `notes/attachments/${a.id}.bin`))], ATTACHMENT_LIMIT)
+    for (const attachment of attachments) {
+      const bytes = await read(`notes/attachments/${attachment.id}.bin`, ATTACHMENT_LIMIT)
+      if (bytes.length !== attachment.bytes || digest(bytes) !== attachment.id) fail('note_hash')
+    }
     for (const row of objects.revisions) {
       validateBodyAssets(row.body, row.assetIds)
       if (row.assetIds.reduce((n, id) => n + files.get(`notes/assets/${id}`)!.length, 0) > NOTE_LIMITS.imageTotal) fail('note_limit')
@@ -102,6 +117,7 @@ export class NotesSyncModule {
       const row = createNoteRevision({ ...externalContent, parents: [base.revision] })
       validateBodyAssets(row.body, row.assetIds)
       if (row.assetIds.some(id => !files.has(`notes/assets/${id}`)) || (row.sourceId && !files.has(`notes/sources/${row.sourceId}.json`)) || (row.notebookId && !objects.notebooks.some(b => b.notebookId === row.notebookId))) fail('note_asset')
+      if (row.attachments?.some(a => {const bytes=files.get(`notes/attachments/${a.id}.bin`);return !bytes||bytes.length!==a.bytes||digest(bytes)!==a.id})) fail('note_asset')
       external.push(row)
     }
     objects.revisions = mergeNoteRevisions(objects.revisions, external)
@@ -109,10 +125,20 @@ export class NotesSyncModule {
   }
   async install(remote: Snapshot, objects: NoteObjects, signal?: AbortSignal): Promise<void> {
     // Validate the whole remote first, then install dependencies before visible revisions.
+    const sourceIds = new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : []))
+    const assetIds = new Set(objects.revisions.flatMap(r => r.assetIds))
+    for (const sourceId of sourceIds) {
+      const bytes = remote.files.get(`notes/sources/${sourceId}.json`)
+      if (bytes) sourceAssets(JSON.parse(utf8(bytes)) as unknown).forEach(a => assetIds.add(a))
+    }
     for (const [path, bytes] of remote.files) {
       signal?.throwIfAborted()
-      if (path.startsWith('notes/assets/')) await this.repository.putAsset(bytes, mediaTypeFor(path.slice(13)), signal)
-      else if (path.startsWith('notes/sources/')) await this.repository.putSource(JSON.parse(utf8(bytes)) as unknown, signal)
+      if (path.startsWith('notes/assets/') && assetIds.has(path.slice(13))) await this.repository.putAsset(bytes, mediaTypeFor(path.slice(13)), signal)
+      else if (path.startsWith('notes/sources/') && sourceIds.has(path.slice(14, -5))) await this.repository.putSource(JSON.parse(utf8(bytes)) as unknown, signal)
+      else if (path.startsWith('notes/attachments/')) {
+        const file = objects.revisions.flatMap(r => r.attachments ?? []).find(a => path === `notes/attachments/${a.id}.bin`)
+        if (file) await this.repository.putAttachment(bytes, file.name, signal)
+      }
     }
     await this.repository.importObjects(objects, signal)
     await this.local(signal)
@@ -120,20 +146,25 @@ export class NotesSyncModule {
   async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot) {
     const remote=verified??await this.readSnapshot(backend,snapshot,signal)
     const local=(await this.local(signal)).objects
-    const revisions=mergeNoteRevisions(local.revisions,remote.objects.revisions)
-    const objects:NoteObjects={version:1,revisions:mergeNoteRevisions(revisions,conflictRevisions(revisions)),notebooks:mergeNotebookRevisions(local.notebooks,remote.objects.notebooks)}
+    const deleted = [...new Set([...(local.deleted ?? []), ...(remote.objects.deleted ?? [])])].sort()
+    const revisions=mergeNoteRevisions(withoutDeleted(local, deleted).revisions,withoutDeleted(remote.objects, deleted).revisions)
+    const objects:NoteObjects={version:1,revisions:mergeNoteRevisions(revisions,conflictRevisions(revisions).filter(r => !deleted.includes(r.noteId))),notebooks:mergeNotebookRevisions(local.notebooks,remote.objects.notebooks), ...(deleted.length ? { deleted } : {})}
     const files:PrivateFiles=new Map()
-    const set = (path: string, data: string | Buffer) => { const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data); if (!remote.files.get(path)?.equals(bytes)) files.set(path, bytes) }
+    const retained = new Set<string>()
+    const set = (path: string, data: string | Buffer) => { retained.add(path); const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data); if (!remote.files.get(path)?.equals(bytes)) files.set(path, bytes) }
     const assets = new Set(objects.revisions.flatMap(r => r.assetIds))
     for (const sourceId of new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : []))) {
       const bytes=remote.files.get('notes/sources/'+sourceId+'.json')
       const source=bytes?JSON.parse(utf8(bytes)) as unknown:await this.repository.getSource(sourceId,signal); set(`notes/sources/${sourceId}.json`, sourceBytes(source)); sourceAssets(source).forEach(id => assets.add(id))
     }
     for (const asset of assets) set(`notes/assets/${asset}`, remote.files.get(`notes/assets/${asset}`)??await this.repository.getAsset(asset, signal))
+    for (const file of objects.revisions.flatMap(r => r.attachments ?? [])) set(`notes/attachments/${file.id}.bin`, remote.files.get(`notes/attachments/${file.id}.bin`) ?? await this.repository.getAttachment(file.id, signal))
     for (const row of objects.revisions) set(revisionPath(row), canonical(row))
     for (const row of objects.notebooks) set(bookPath(row), canonical(row))
     for (const noteId of new Set(objects.revisions.map(r => r.noteId))) set(`notes/documents/${noteId}.md`, serializeNoteMarkdown(materializeNote(objects.revisions.filter(r => r.noteId === noteId), noteId).current))
-    set('notes/manifest.json', manifest(objects, this.version))
+    for (const noteId of deleted) set(`notes/deleted/${noteId}.json`, deletionData(noteId))
+    set('notes/manifest.json', manifest(objects, moduleVersion(objects)))
+    if (deleted.length) for (const path of snapshot.entries.keys()) if (/^notes\/(documents|revisions|sources|assets|attachments)\//.test(path) && snapshot.entries.get(path)?.type !== 'tree' && !retained.has(path)) files.set(path, null)
     return {files,acknowledged:token(objects),install:()=>this.install(remote,objects,signal)}
   }
 }

@@ -2,7 +2,7 @@ import { api, currentRepository, type Api } from './api.js'
 import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision } from '../contracts/notes.js'
 
-export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds] })
+export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}) })
 const comparable=(c:NoteContent)=>({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()})
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -276,6 +276,24 @@ export class NotesController {
     try { const accepted = this.accept((await this.call(trashed ? '/notes/trash' : '/notes/restore', { noteId: note.noteId, expectedHeads: note.heads })).note, request); if (accepted) void this.refresh(); return accepted }
     catch (e) { if (this.ownsDetail(request)) { this.emit({ error: errorCode(e) }); if (errorCode(e) === 'note_conflict') await this.loadConflict(request) }; return false }
     finally { if (this.ownsDetail(request)) this.emit({ operation: false }) }
+  }
+  async matching(filter: NoteListOptions = this.state.filter) {
+    const items: NoteListItem[] = []; let cursor: string | null = null
+    do { const page: {items:NoteListItem[];cursor:string|null} = await this.call('/notes', {...filter, limit:100, ...(cursor ? {cursor} : {})}); items.push(...page.items); cursor=page.cursor } while(cursor)
+    return items
+  }
+  async batch(notes: Array<{noteId:string;expectedHeads:string[]}>, action:'trash'|'restore'|'purge') {
+    if (!await this.prepareLeave() || this.state.operation) return false
+    this.emit({operation:true,error:null})
+    try {
+      await this.call('/notes/batch',{notes,action})
+      if(notes.some(n=>n.noteId===this.state.noteId)) {
+        if(action==='purge')this.emit({noteId:null,note:null,draft:null,editing:false})
+        else { const note=(await this.call('/notes/get',{noteId:this.state.noteId!})).note; this.emit({note,draft:noteContent(note)}) }
+      }
+      return true
+    }catch(e){this.emit({error:errorCode(e)});return false}
+    finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
   }
   private async loadConflict(request: DetailRequest) { try { const latest = await this.call('/notes/get', { noteId: request.noteId }); if (this.ownsDetail(request)) this.emit({ conflict: latest.note }) } catch { /* retain text */ } }
   async resolve(content?: NoteContent) {

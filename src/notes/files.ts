@@ -57,6 +57,11 @@ export class NoteFiles {
   constructor(readonly root: string, readonly beforeWrite?: (path: string) => void | Promise<void>) {}
   path(relative: string): string { return join(this.root, relativePath(relative)) }
   async read(relative: string, limit = NOTE_LIMITS.scan): Promise<Buffer> { return readBytes(this.path(relative), limit) }
+  async remove(relative: string): Promise<void> {
+    const path = this.path(relative); await safePath(path)
+    await this.beforeWrite?.(relative)
+    await unlink(path).catch(e => { if (!missing(e)) throw e })
+  }
   async write(relative: string, data: string | Buffer, immutable: boolean): Promise<void> {
     const path = this.path(relative), bytes = Buffer.isBuffer(data) ? data : Buffer.from(data)
     await safePath(path)

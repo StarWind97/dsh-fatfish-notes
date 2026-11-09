@@ -1,11 +1,11 @@
 import type { NoteRevision, NoteView, NotebookRevision, NotebookView } from './types.js'
 import { NOTE_LIMITS } from './types.js'
-import { canonical, contentKeys, date, digest, fail, hash, id, keys, normalizeContent, object, sortedStrings, status, text } from './validation.js'
+import { canonical, contentFields, date, digest, fail, hash, id, keys, normalizeContent, object, sortedStrings, status, text } from './validation.js'
 
 export function createNoteRevision(input: Omit<NoteRevision, 'revision'>): NoteRevision {
-  const v = object(input); keys(v, ['version', 'noteId', 'parents', 'recordedAt', ...contentKeys])
+  const v = object(input), fields = contentFields(v); keys(v, ['version', 'noteId', 'parents', 'recordedAt', ...fields])
   if (v.version !== 1) fail('note_version')
-  const data = { version: 1 as const, noteId: id(v.noteId), parents: sortedStrings(v.parents, NOTE_LIMITS.revisions, hash), recordedAt: date(v.recordedAt), ...normalizeContent(Object.fromEntries(contentKeys.map(k => [k, v[k]]))) }
+  const data = { version: 1 as const, noteId: id(v.noteId), parents: sortedStrings(v.parents, NOTE_LIMITS.revisions, hash), recordedAt: date(v.recordedAt), ...normalizeContent(Object.fromEntries(fields.map(k => [k, v[k]]))) }
   return { ...data, revision: digest(canonical(data)) }
 }
 export function validateNoteRevision(value: unknown): NoteRevision {
