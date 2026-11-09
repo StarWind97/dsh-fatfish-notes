@@ -22,7 +22,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
       if (await work()) done()
       else {
         const code = controller.getSnapshot().error
-        setError(code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
+        setError(code==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
         await controller.refresh()
       }
     } finally { setBusy(false) }

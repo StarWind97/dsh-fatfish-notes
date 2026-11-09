@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile, lstat } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile, lstat,copyFile } from 'node:fs/promises'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -56,6 +56,8 @@ export async function buildProject(root = process.cwd()): Promise<void> {
   buildHost(root)
   const client = join(root, 'src/client/index.tsx')
   await buildClient(client, join(root, 'lib/client.js'))
+  await build({entryPoints:[join(root,'src/client/standalone.tsx')],outfile:join(root,'lib/standalone.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',jsx:'automatic',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
+  await copyFile(join(root,'src/host/focus-window.ps1'),join(root,'lib/host/focus-window.ps1'))
   console.info('Built Fatfish Notes host and client')
 }
 

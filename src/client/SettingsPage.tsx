@@ -12,7 +12,7 @@ import { DEFAULT_PRIVATE_REPO_NAME, type PersonalState, type PersonalPreview, ty
 import type { LocaleKey, T } from './locale.js'
 
 type Tools = PersonalApiContract['/personal/sync/tools']['response']
-const setupErrors: Record<string, LocaleKey> = {
+const setupErrors: Record<string, LocaleKey> = {note_edit_busy:'windowEditBusy',window_expired:'windowRestart',
   notebook_picker_failed:'setupPickerFailed',notebook_picker_unavailable:'setupPickerUnavailable',notebook_folder_occupied:'setupFolderOccupied',
   notebook_previous_folder_unavailable:'resetLostFolder',
   notebook_move_changed:'moveChanged',notebook_move_failed:'moveChanged',notebook_unsynced:'resetPending',notebook_reset_target:'resetDifferent',notebook_dirty:'resetDirty',notebook_already_bound:'setupConnected',

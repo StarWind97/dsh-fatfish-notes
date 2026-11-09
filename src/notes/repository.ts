@@ -33,6 +33,8 @@ const notebookPath = (r: NotebookRevision): string => `notebooks/${r.notebookId}
 /** One queue per local directory. Parent application owns the cross-process single-writer lease. */
 export class NoteRepository {
   files: NoteFiles
+  editGuard:(noteIds:string[],requireLease?:boolean)=>void=()=>{}
+  coordinate<T>(work:()=>T|Promise<T>):Promise<T>{return this.run(async()=>work())}
   private changeGeneration = 0
   get generation(): number { return this.changeGeneration }
   private readonly changeListeners = new Set<() => void>()
@@ -254,9 +256,11 @@ export class NoteRepository {
     const v = object(input); if (Object.keys(v).some(k => !['noteId', 'expectedHeads', 'content'].includes(k))) fail('note_schema')
     const noteId = input.noteId === undefined ? ulid(this.now()) : id(input.noteId), rawContent = normalizeContent(input.content), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
+      this.editGuard([noteId])
       const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId)
       const content = this.localMembership(s, rawContent)
       const exists = s.revisions.some(r => r.noteId === noteId), heads = exists ? this.view(s, noteId).heads : []
+      if(exists)this.editGuard([noteId],true)
       if (!same(expected, heads) || heads.length > 1) {
         const base=expected.length===1 && s.revisions.find(r=>r.noteId===noteId&&r.revision===expected[0])
         if(!keepBoth||!base||!exists)return conflict()
@@ -279,6 +283,7 @@ export class NoteRepository {
   async adoptRevision(input: NoteRevision, persist: (revision: NoteRevision) => Promise<void>, signal?: AbortSignal): Promise<NoteView> {
     const row = validateNoteRevision(input)
     return this.run(async () => {
+      this.editGuard([row.noteId])
       const state = await this.load(); this.writable(state, row.noteId); await this.external(state, row.noteId)
       if (state.revisions.some(r => r.revision === row.revision)) {
         await this.document(state, row.noteId); await this.manifest(state); return this.view(state, row.noteId)
@@ -291,6 +296,7 @@ export class NoteRepository {
   private async setStatus(noteId: string, expectedHeads: string[], status: 'active' | 'trashed', signal?: AbortSignal): Promise<NoteView> {
     id(noteId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
+      this.editGuard([noteId])
       const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
       if (!same(view.heads, expected) || view.heads.length > 1) conflict()
       const { revision: _revision, ...data } = view.current
@@ -302,21 +308,22 @@ export class NoteRepository {
   async resolve(noteId: string, expectedHeads: string[], content: NoteContent, signal?: AbortSignal): Promise<NoteView> {
     id(noteId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash), normalized = normalizeContent(content)
     return this.run(async () => {
+      this.editGuard([noteId])
       const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
       if (!same(view.heads, expected)) conflict()
       return this.append(s, createNoteRevision({ version: 1, noteId, parents: view.heads, recordedAt: new Date(this.now()).toISOString(), ...normalized }))
     }, signal)
   }
-  async putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal): Promise<NoteAsset> {
+  async putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?:string): Promise<NoteAsset> {
     const copy = Buffer.from(bytes), metadata = validateAsset(copy, mediaType)
-    return this.run(async () => { await this.load(); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); await this.load(); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
   }
   async getAsset(asset: string, signal?: AbortSignal): Promise<Buffer> {
     assetId(asset); return this.run(async () => { const bytes = await this.files.read(`assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash'); return bytes }, signal)
   }
-  async putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal): Promise<NoteAttachment> {
+  async putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?:string): Promise<NoteAttachment> {
     const copy = Buffer.from(bytes), metadata = attachment({ id: digest(copy), name, bytes: copy.length })
-    return this.run(async () => { await this.load(); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); await this.load(); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
   }
   async getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer> {
     hash(fileId); return this.run(async () => { const bytes = await this.files.read(`attachments/${fileId}.bin`, ATTACHMENT_LIMIT); if (digest(bytes) !== fileId) fail('note_hash'); return bytes }, signal)
@@ -327,6 +334,7 @@ export class NoteRepository {
     const selected = selection.map(raw => { const v = object(raw); keys(v, ['noteId','expectedHeads']); return { noteId: id(v.noteId), expectedHeads: sortedStrings(v.expectedHeads, NOTE_LIMITS.revisions, hash) } })
     if (new Set(selected.map(n => n.noteId)).size !== selected.length) fail('note_schema')
     return this.run(async () => {
+      this.editGuard(selected.map(n=>n.noteId))
       const s = await this.load(); this.complete(s)
       if (s.issues.length) fail('note_corrupt')
       for (const item of selected) {
@@ -397,7 +405,7 @@ export class NoteRepository {
   }
   async importMarkdown(noteId: string, markdown: string, signal?: AbortSignal): Promise<NoteView> {
     id(noteId); parseNoteMarkdown(markdown)
-    return this.run(async () => { const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); await this.external(s, noteId, markdown); return this.view(s, noteId) }, signal)
+    return this.run(async () => { this.editGuard([noteId]); const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); await this.external(s, noteId, markdown); return this.view(s, noteId) }, signal)
   }
   /** Sources/assets must already be present; imports are monotonic and may leave recoverable immutable objects on failure. */
   async importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void> {
@@ -447,6 +455,7 @@ export class NoteRepository {
   async saveNotebook(input: { notebookId?: string; expectedHeads: string[]; title: string; makeDefault?: boolean }, signal?: AbortSignal): Promise<NotebookView> {
     const notebookId = input.notebookId === undefined ? ulid(this.now()) : id(input.notebookId), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash), title = input.title
     return this.run(async () => {
+      this.editGuard([])
       const s = await this.load(); this.writable(s, notebookId)
       this.complete(s)
       const heads = s.notebooks.some(r => r.notebookId === notebookId) ? this.notebook(s, notebookId).heads : []
@@ -462,6 +471,7 @@ export class NoteRepository {
     id(notebookId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       const s = await this.load(); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
+      this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>this.view(s,n).effectiveNotebookId===notebookId))
       this.complete(s)
       if (!same(book.heads, expected)) conflict()
       const destination = this.defaultBook(s)!

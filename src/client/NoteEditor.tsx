@@ -61,7 +61,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     anchor.current=null
   },[mode])
   if(!draft)return null
-  const editable=draft.status==='active'&&!state.loadingNote&&!state.operation
+  const editable=draft.status==='active'&&!state.loadingNote&&!state.operation&&(!state.editing||controller.writable)
   const status=state.error&&state.error!=='note_unsaved'?'notesSaveFailed':state.saving?'notesSaving':state.dirty?'notesPending':'paperSaved'
   const book=state.notebooks.find(b=>b.notebookId===draft.notebookId)?.current.title??state.notebooks.find(b=>b.isDefault)?.current.title??t('notesDefaultBook')
   function edit(target?:HTMLElement){
@@ -121,7 +121,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     {panel==='export'&&note&&<NoteExport controller={controller} state={state} t={t} onClose={()=>setPanel(null)}/>}
     <div hidden={sourceOpen}>
-    {mode==='edit'?<input className="paper-title-input" aria-label={t('notesTitle')} placeholder={t('notesUntitled')} value={draft.title} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({title:e.target.value})}/>:<h1>{draft.title||t('notesUntitled')}</h1>}
+    {mode==='edit'?<input disabled={!editable} className="paper-title-input" aria-label={t('notesTitle')} placeholder={t('notesUntitled')} value={draft.title} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({title:e.target.value})}/>:<h1>{draft.title||t('notesUntitled')}</h1>}
     <div className="paper-meta">
       <span className="paper-stamp"><LockKeyhole size={13}/>{t('paperPrivate')}
         {note&&<time dateTime={note.savedAt} title={t('noteModifiedAt')}>{noteDateTime(note.savedAt)}</time>}
@@ -142,11 +142,11 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
         </form></div></div>
     </aside>}
     {(mode==='edit'||draft.summary)&&<section className="paper-summary" aria-label={t('notesSummary')}>
-      <label><span>{t('notesSummary')}</span>{mode==='edit'?<textarea aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/>:<p>{draft.summary}</p>}</label>
+      <label><span>{t('notesSummary')}</span>{mode==='edit'?<textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/>:<p>{draft.summary}</p>}</label>
     </section>}
     {moved&&draft.status==='trashed'&&<div role="status" className="paper-notice">{t('paperMoved')} <button onClick={()=>void move(false)}>{t('paperUndoMove')}</button></div>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
-    {state.error&&<p role="alert" style={s.error}>{t(['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
+    {state.error&&<p role="alert" style={s.error}>{t(['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}
     {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} done={(pos,y)=>void finish(pos,y)}/>
       :<article className="paper-reading" onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('a,button,input'))edit(e.target as HTMLElement)}}>

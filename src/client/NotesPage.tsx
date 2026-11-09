@@ -19,8 +19,13 @@ import { NotebookNavigation } from './paper/NotebookNavigation.js'
 import { paperCss } from './paper/style.js'
 import type { OutlineSession } from './paper/use-outline.js'
 import type { T } from './locale.js'
+import type {NotesWorkspace} from './workspace.js'
+import {WindowButton,WorkspaceNotice} from './WorkspaceNotice.js'
 
-export function NotesPage({ controller, t, surface='embedded' }: { controller: NotesController; t: T; surface?:PaperSurface }) {
+const noWorkspaceSubscribe=()=>()=>{}
+const noWorkspaceState=()=>null
+export function NotesPage({ controller, t, surface='embedded',workspace }: { controller: NotesController; t: T; surface?:PaperSurface;workspace?:NotesWorkspace }) {
+  const windowState=useSyncExternalStore(workspace?.subscribe??noWorkspaceSubscribe,workspace?.getSnapshot??noWorkspaceState)
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const selection=useNoteSelection(controller,state,t)
   const [history,setHistory]=useState<string[]>([])
@@ -121,7 +126,7 @@ export function NotesPage({ controller, t, surface='embedded' }: { controller: N
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash)&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss}</style>
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}<header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesLibrary':section==='notebooks'?'notesNotebooks':'notesSettings')}</button>)}</nav>
-    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
+    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/>}</div></>}<FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     {state.section==='settings'&&<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>}
     <PaperColumns t={t} hidden={state.section!=='notes'} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}>
       {state.draft?<NoteEditor onNoteLink={id=>void follow(id)} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}

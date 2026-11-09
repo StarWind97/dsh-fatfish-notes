@@ -1,12 +1,22 @@
 # 肥鱼笔记验证记录
 
-2026-11-09 更新。当前正式版为 [0.7.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)，原 0.6.1 开发功能统一随本版发布；[0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)和旧名称下的 [0.5.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)作为历史版本保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+2026-11-10 更新。当前正式版为 [0.7.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)，原 0.6.1 开发功能统一随本版发布；[0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)和旧名称下的 [0.5.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)作为历史版本保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
 
 ## 验证环境
 
 当前已验证 Windows / Node 24.21.0 / DSH 0.2.2-rc.1；下方历史验证以各条记录中的宿主版本为准。真实宿主使用项目内 `.dsh-home/pure-001/` 的隔离 Web 与原生 Desktop，真实 GitHub 使用[项目协作约定](../AGENTS.md#隔离验收与交付)指定的私有测试库。
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
+
+## 2026-11-10 阶段 A 独立窗口与编辑交接
+
+用户要求连续完成 A 阶段，现已交付 [A1—A5 内部体验结果](plans/2026-11-10-stage-a-results.zh.md)，等待用户审核，未正式发布。涉及保存与恢复，执行第三档检查。
+
+- 类型检查和构建通过；全量 245 项首次通过 243 项，两处测试适配失败（新增路由白名单、新测试假接口参数）修正后，受影响 88 项全部通过。完整日志保留，不将首次失败写成一次全绿。
+- 同篇互斥、不同篇分别编辑、保存后交接、过期请求拒绝、批量整批预检和笔记本成员占用通过；中文组词/附件完成后交接由控制器测试覆盖。
+- 真实隔离 DSH 和 Chrome 验证按钮开窗与复用、本机更新、主题、宽窄布局、切换请求，以及会话四条消息/一张图片原样转存与解码。测试保存请求中断后真实退出并重启 DSH，稳定入口及恢复内容读回通过。
+- 最终内部包 147 个文件与安装目录一致，SHA-256 `2dd76e2b2dafae46686154a38d85d014a8b6b99fb2ac99b28d8042b95f59bfac`。指定私库同步完成；日常 DSH 未改动。
+- 图册 `output/playwright/a-stage/index.html`；日志、安装及操作证据位于 `.dsh-home/pure-001/a-stage/`。前序 A1/A2 图册作为历史保留。macOS、两台物理设备、硬崩溃/断电及完整系统输入法未实测。
 
 ## 2026-11-09 A2 共享自适应布局
 

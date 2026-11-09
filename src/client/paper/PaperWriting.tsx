@@ -110,6 +110,7 @@ export function PaperWriting(props:Props){
     })
   }
   function run(action:Action){
+    if(!controller.writable&&action!=='find')return
     const v=editor.current;if(!v)return
     if(action==='attachment'){controller.imagePickerOpen=true;attachmentPicker.current?.click();return}
     if(action==='picture'){controller.imagePickerOpen=true;picker.current?.click();return}
@@ -165,7 +166,7 @@ export function PaperWriting(props:Props){
     const frame=requestAnimationFrame(()=>{if(pane&&y!==undefined){const coords=view.coordsAtPos(start);if(coords)pane.scrollTop+=coords.top-y}})
     return ()=>{controller.imagePickerOpen=false;cancelAnimationFrame(frame);abort.abort();props.undo.current={body:raw.current,history:undoHistory(view.state)};view.destroy();editor.current=null;if(controller.getSnapshot().composing)controller.composition(false)}
   },[controller,noteId])
-  useLayoutEffect(()=>{const disabled=state.loadingNote||state.operation;editor.current?.dispatch({effects:editability.current.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)])})},[state.loadingNote,state.operation])
+  useLayoutEffect(()=>{const disabled=state.loadingNote||state.operation||!controller.writable;editor.current?.dispatch({effects:editability.current.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)])})},[state.loadingNote,state.operation,controller.writable])
   useLayoutEffect(()=>{
     const v=editor.current;if(!v)return
     if(body!==raw.current && !state.composing){raw.current=body;state.draft?.assetIds.forEach(id=>known.current.add(id));v.dispatch({changes:{from:0,to:v.state.doc.length,insert:editorText(body)},annotations:[Transaction.remote.of(true),Transaction.addToHistory.of(false)]})}

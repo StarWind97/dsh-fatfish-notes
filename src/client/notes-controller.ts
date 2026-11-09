@@ -22,6 +22,7 @@ export interface NotesState {
   editing: boolean; saving: boolean; composing: boolean; operation: boolean; error: string | null; conflict: NoteView | null
   jobs: NoteJobOverview[]; jobsError: boolean; jobsCursor: string | null
 }
+export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Promise<void>; release(noteId?:string):Promise<void>; writable(noteId:string):boolean }
 /** Plugin-owned editor: local autosave continues across panel transitions. */
 export class NotesController {
   private state: NotesState = this.emptyState()
@@ -62,9 +63,14 @@ export class NotesController {
   imagePickerOpen=false
   private inFlight:RecoveryRecord['inFlight']
   private readonly recovery:NoteRecovery
-  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void}={}){
-    this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository)
+  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string}={}){
+    this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
+  occupiedCount=0
+  private inputPaused=false
+  pauseInput(value:boolean){this.inputPaused=value;this.emit({})}
+  get writable(){return !this.inputPaused&&(!this.state.noteId||!this.options.editing||this.options.editing.writable(this.state.noteId))}
+  showError(code:string){this.emit({error:code})}
   private journal(){
     const {noteId,note,draft,dirty}=this.state
     if(!dirty||!noteId||!draft){if(noteId)this.recovery.clear();this.recoveryProtected=false;return}
@@ -87,6 +93,7 @@ export class NotesController {
     const {request,inFlight}=record
     this.emit({loadingNote:true})
     try{
+      await this.options.editing?.acquire(request.noteId)
       let latest:NoteView|null=null
       try{latest=(await this.call('/notes/get',{noteId:request.noteId})).note}catch(e){if(errorCode(e)!=='note_not_found')throw e}
       if(latest&&sameContent(noteContent(latest),request.content)){this.recovery.clear();return latest.noteId}
@@ -98,7 +105,7 @@ export class NotesController {
       this.recoveredHeads=request.expectedHeads
       this.recoveryProtected=true
       return null
-    }finally{this.emit({loadingNote:false})}
+    }finally{if(!this.state.dirty)await this.options.editing?.release(request.noteId);this.emit({loadingNote:false})}
   }
   getSnapshot = () => this.state
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
@@ -141,6 +148,7 @@ export class NotesController {
   }
   private initialized=false
   async initialize(lastId:string|null, order:NoteListOptions['order']='recent') {
+    try{await this.options.editing?.ready()}catch{this.emit({error:'window_offline'});return}
     if (!this.initialized) this.emit({filter:{...this.state.filter,order}})
     const firstLoad=!this.initialized
     this.initialized=true
@@ -157,15 +165,26 @@ export class NotesController {
     if(first)await this.open(first.noteId);else if(this.state.noteId)await this.back();else if(this.state.error==='note_not_found')this.emit({error:null})
   }
   update(patch: Partial<NoteContent>) {
+    if(!this.writable)return
     if (!this.state.draft || this.state.loadingNote || this.state.operation || this.state.draft.status === 'trashed') return
     this.emit({ draft: { ...this.state.draft, ...patch }, dirty: true, error: this.state.conflict ? 'note_conflict' : null })
     this.journal();this.schedule()
   }
   composition(active: boolean) { this.emit({ composing: active });if(!active){this.journal();this.schedule();if(this.finishPending)void this.leave()} }
-  beginEdit() { this.finishPending=false;this.emit({editing: true, error:null}) }
+  async beginEdit() {
+    if(!this.options.editing){this.finishPending=false;this.emit({editing:true,error:null});return}
+    if(!this.state.noteId)return
+    const noteId=this.state.noteId
+    try{
+      await this.options.editing?.acquire(noteId)
+      if(this.options.editing&&this.state.note&&!this.state.dirty){const latest=(await this.call('/notes/get',{noteId})).note;if(this.state.noteId!==noteId)return;this.emit({note:latest,draft:noteContent(latest)})}
+      this.finishPending=false;this.emit({editing:true,error:null})
+    }catch(e){this.emit({error:errorCode(e)})}
+  }
   async saveEdits() {
     const changed=this.state.editing||this.state.dirty
     if (!await this.flush()) return false
+    try{await this.options.editing?.release(this.state.noteId??undefined)}catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     this.finishPending=false
     this.clearDraftImages()
     this.emit({editing:false,error:null,...(this.state.note?{draft:noteContent(this.state.note)}:{})})
@@ -176,6 +195,7 @@ export class NotesController {
     if(this.state.operation||this.state.composing)return false
     const changed=this.state.editing||this.state.dirty
     if(!await this.flush())return false
+    try{await this.options.editing?.release(this.state.noteId??undefined)}catch(e){this.emit({error:errorCode(e)});return false}
     this.emit({editing:false});if(changed)this.options.onSettled?.();return true
   }
   flush(): Promise<boolean> {
@@ -201,6 +221,7 @@ export class NotesController {
     while (!this.disposed && this.state.dirty && !this.state.composing) {
       const { noteId, note, draft } = this.state
       if (!noteId || !draft) return false
+      if(this.options.editing&&!this.options.editing.writable(noteId)){this.emit({error:'note_edit_lost'});return false}
       const sent = structuredClone(draft)
       this.inFlight={noteId,expectedHeads:note?.heads??this.recoveredHeads,content:sent}
       this.journal()
@@ -213,6 +234,7 @@ export class NotesController {
         const merged = { ...current }
         for (const key of Object.keys(sent) as Array<keyof NoteContent>) if ((!this.state.editing||!['title','summary','tags'].includes(key)||(key==='title'&&result.note.noteId!==noteId))&&equal(current[key], sent[key])) Object.assign(merged, { [key]: canonical[key] })
         this.emit({ noteId:result.note.noteId,note: result.note, draft: merged, dirty: !sameContent(merged, canonical), saving: false })
+        if(result.note.noteId!==noteId&&this.options.editing){await this.options.editing.release(noteId);await this.options.editing.acquire(result.note.noteId)}
         this.inFlight=undefined;this.recoveredHeads=[];this.journal()
       } catch (error) {
         if (this.disposed) return false
@@ -262,8 +284,10 @@ export class NotesController {
     this.creating=true
     try {
     if (this.state.loadingNote || !await this.prepareLeave()) return false
+    const noteId=newId()
+    try{await this.options.editing?.acquire(noteId)}catch(e){this.emit({error:errorCode(e)});return false}
     ++this.navigation
-    this.emit({ section: 'notes', editing:true, noteId: newId(), note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}
   }
@@ -292,7 +316,7 @@ export class NotesController {
         else { const note=(await this.call('/notes/get',{noteId:this.state.noteId!})).note; this.emit({note,draft:noteContent(note)}) }
       }
       return true
-    }catch(e){this.emit({error:errorCode(e)});return false}
+    }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
   }
   private async loadConflict(request: DetailRequest) { try { const latest = await this.call('/notes/get', { noteId: request.noteId }); if (this.ownsDetail(request)) this.emit({ conflict: latest.note }) } catch { /* retain text */ } }
@@ -330,7 +354,7 @@ export class NotesController {
       }
       else await this.refresh()
       return true
-    } catch (e) { this.emit({ error: errorCode(e) }); return false }
+    } catch (e) { this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({ error: errorCode(e) }); return false }
     finally { this.bookSaving = false; if (started) this.emit({ operation: false }) }
   }
   async refreshJobs(more = false) {

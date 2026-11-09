@@ -9,6 +9,8 @@ export interface NoteRepositoryOptions {
 /** One queue per local directory. Parent application owns the cross-process single-writer lease. */
 export declare class NoteRepository {
     files: NoteFiles;
+    editGuard: (noteIds: string[], requireLease?: boolean) => void;
+    coordinate<T>(work: () => T | Promise<T>): Promise<T>;
     private changeGeneration;
     get generation(): number;
     private readonly changeListeners;
@@ -43,9 +45,9 @@ export declare class NoteRepository {
     trash(noteId: string, expectedHeads: string[], signal?: AbortSignal): Promise<NoteView>;
     restore(noteId: string, expectedHeads: string[], signal?: AbortSignal): Promise<NoteView>;
     resolve(noteId: string, expectedHeads: string[], content: NoteContent, signal?: AbortSignal): Promise<NoteView>;
-    putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal): Promise<NoteAsset>;
+    putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?: string): Promise<NoteAsset>;
     getAsset(asset: string, signal?: AbortSignal): Promise<Buffer>;
-    putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal): Promise<NoteAttachment>;
+    putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?: string): Promise<NoteAttachment>;
     getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer>;
     /** Validate the entire selection before deleting anything. New remote edits require a fresh confirmation. */
     batch(selection: NoteSelection[], action: 'trash' | 'restore' | 'purge', signal?: AbortSignal): Promise<string[]>;

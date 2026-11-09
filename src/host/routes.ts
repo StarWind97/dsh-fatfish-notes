@@ -6,11 +6,12 @@ import { isRecord } from '../domain/record.js'
 import type { ApiResponse, ErrorResponse } from '../contracts/api.js'
 import type { NotebookApplication } from './application.js'
 import { ROUTE_PREFIXES } from './plugin-identity.js'
+import { windowRequest } from './edit-coordinator.js'
 
-export const routePaths=['/notes/library-export','/notes/attachment','/notes/download','/notes/batch','/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/folder/pick','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
+export const routePaths=['/workspace/register','/workspace/state','/workspace/action','/workspace/open','/notes/library-export','/notes/attachment','/notes/download','/notes/batch','/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/folder/pick','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
 const READ_ONLY=new Set<string>(['/notes/download','/notes/export-font','/notes','/notes/notebooks','/notes/jobs','/notes/asset','/notes/job','/notes/get','/notes/source','/personal'])
 function loopback(value:string):boolean{if(value==='::1'||value==='::ffff:127.0.0.1')return true;const v=value.replace(/^::ffff:/,'');return isIP(v)===4&&v.split('.')[0]==='127'}
-function fence(req:IncomingMessage,origin:string):void{
+export function fence(req:IncomingMessage,origin:string):void{
   if(!loopback(req.socket.remoteAddress??''))throw new NotebookError('loopback_only','仅接受本机请求',403)
   let expected:URL,authority:URL
   try{expected=new URL(origin);const host=req.headers.host;if(!host||/[\s/@#?\\]/.test(host))throw new Error();authority=new URL(`${expected.protocol}//${host}`);if(authority.host!==host||authority.port!==expected.port||!(authority.hostname==='localhost'||loopback(authority.hostname.replace(/^\[|\]$/g,''))))throw new Error()}catch{throw new NotebookError('invalid_host','请求 Host 不受信任',403)}
@@ -40,6 +41,8 @@ function readJson(req:IncomingMessage,signal:AbortSignal,limit=2*1024*1024):Prom
 }
 export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOrigin:()=>string}):(req:IncomingMessage,res:ServerResponse)=>Promise<void>{
   return async(req,res)=>{
+    const actor=req.headers['x-notebook-window']===undefined?undefined:{windowId:String(req.headers['x-notebook-window']),serviceEpoch:String(req.headers['x-notebook-epoch']??''),...(req.headers['x-notebook-lease']?{leaseId:String(req.headers['x-notebook-lease'])}:{})}
+    return windowRequest.run(actor,async()=>{
     const controller=new AbortController(),abort=()=>controller.abort(),responseClosed=()=>{if(!res.writableEnded)abort()}
     req.once('aborted',abort);res.once('close',responseClosed)
     let body:unknown={}
@@ -51,8 +54,9 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
       if(req.method==='GET'&&!READ_ONLY.has(path))throw new NotebookError('method_not_allowed','此操作需要 POST',405)
       body=req.method==='POST'?await readJson(req,controller.signal,path==='/notes/attachment'?68*1024*1024:path==='/notes/save'?12*1024*1024:path==='/notes/image'?7*1024*1024:2*1024*1024):Object.fromEntries(url.searchParams)
       const signal=controller.signal
+      if(app.requireWindowIdentity&&['/notes/save','/notes/image','/notes/attachment','/notes/batch','/notes/trash','/notes/restore','/notes/resolve','/notes/notebook','/notes/candidate','/personal/sync/move','/personal/sync/reset'].includes(path))await app.workspaceRequest('/workspace/state',{})
       const expectedRepo=req.headers['x-notebook-repository']
-      if(path.startsWith('/notes') && expectedRepo!==undefined && String(app.backup.state().binding?.repositoryId)!==expectedRepo)
+      if((path.startsWith('/notes')||path==='/workspace/action'||path==='/workspace/open') && expectedRepo!==undefined && String(app.backup.state().binding?.repositoryId)!==expectedRepo)
         throw new NotebookError('personal_repository_changed','笔记库已切换，请重新打开插件',409)
       if(path==='/notes/export-font') {
         const bytes=await app.notes.exportFont(signal)
@@ -69,6 +73,14 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
       }
       let value:ApiResponse
       switch(path){
+        case '/workspace/register':case '/workspace/state':case '/workspace/action':value=await app.workspaceRequest(path,body);break
+        case '/workspace/open':{
+          if(!app.openWindow)throw new NotebookError('window_unavailable','当前环境暂不能打开独立窗口',409)
+          await app.workspaceRequest('/workspace/state',{})
+          const noteId=isRecord(body)&&typeof body.noteId==='string'?body.noteId:undefined
+          if(noteId&&!/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(noteId))throw new NotebookError('window_invalid','笔记不存在')
+          value=await app.openWindow(noteId);break
+        }
         case '/personal/folder/pick':value=await app.pickFolder(signal);break
         case '/notes':value=await app.notes.list(body,signal);break
         // Once the complete request has arrived, a page closing must not cancel its local write.
@@ -93,9 +105,9 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         case '/personal':value=app.personalState();break
         case '/personal/sync/preview':value=await app.backup.preview(body,signal);break
         case '/personal/sync/connect':await app.backup.connect(body,signal);value=app.personalState();break
-        case '/personal/sync/move':{const cleanupPending=await app.backup.move(body,signal);value={...app.personalState(),cleanupPending};break}
+        case '/personal/sync/move':{const cleanupPending=await app.changeLocation(()=>app.backup.move(body,signal));value={...app.personalState(),cleanupPending};break}
         case '/personal/sync/reset-preview':value=await app.backup.resetPreview(body,signal);break
-        case '/personal/sync/reset':await app.backup.reset(body,signal);value=app.personalState();break
+        case '/personal/sync/reset':await app.changeLocation(()=>app.backup.reset(body,signal));value=app.personalState();break
         case '/personal/sync/start':if(app.backup.ready&&app.backup.state().status!=='paused')void app.backup.sync().catch(()=>{});value=app.personalState();break
         case '/personal/sync':await app.backup.sync(signal);value=app.personalState();break
         case '/personal/sync/tools':value=await app.backup.tools(signal);break
@@ -105,8 +117,9 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
       send(res,200,value)
     }catch(error){
       const safe=error instanceof NotebookError?error:new NotebookError('internal_error','操作失败；详细信息未向外部公开',500)
-      const value:ErrorResponse={ok:false,status:'error',error:safe.message,code:safe.code,...(safe instanceof PreviousFolderUnavailable?{previousFolder:safe.folder}:{})}
+      const value:ErrorResponse={ok:false,status:'error',error:safe.message,code:safe.code,...(safe.affectedCount?{affectedCount:safe.affectedCount}:{}),...(safe instanceof PreviousFolderUnavailable?{previousFolder:safe.folder}:{})}
       send(res,safe.status,value)
     }finally{req.off('aborted',abort);res.off('close',responseClosed)}
+    })
   }
 }

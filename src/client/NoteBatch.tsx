@@ -13,7 +13,7 @@ export function useNoteSelection(controller:NotesController,state:NotesState,t:T
   function toggle(item:NoteListItem){setSelected(items=>items.some(n=>n.noteId===item.noteId)?items.filter(n=>n.noteId!==item.noteId):[...items,item])}
   async function all(clear=false){setBusy(true);setError('');try{const items=await controller.matching(clear?{status:'trashed'}:state.filter);if(clear)setConfirm({notes:items.map(n=>({noteId:n.noteId,expectedHeads:n.heads})),purge:true});else setSelected(items)}catch{setError(t('notesListFailed'))}finally{setBusy(false)}}
   async function run(){if(!confirm)return;setBusy(true);setError('');const request=confirm
-    try{if(!await controller.batch(request.notes,request.purge?'purge':'trash')){setError(t('batchChanged'));return}
+    try{if(!await controller.batch(request.notes,request.purge?'purge':'trash')){setError(controller.getSnapshot().error==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):t('batchChanged'));return}
       if(!request.purge){const ids=new Set(request.notes.map(n=>n.noteId));setUndo((await controller.matching({status:'trashed'})).filter(n=>ids.has(n.noteId)).map(n=>({noteId:n.noteId,expectedHeads:n.heads})))}
       setConfirm(null);setSelected([]);setSelecting(false)
     }catch{setError(t('batchChanged'))}finally{setBusy(false)}}

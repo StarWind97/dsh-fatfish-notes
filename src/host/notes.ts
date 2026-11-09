@@ -91,7 +91,7 @@ export class NotesApplication {
     const image = v.url === undefined
       ? normalizeImageAssets([{id:'image', base64:v.base64, mediaType:v.mediaType}])[0]!
       : await importImage(text(v.url, 4096), active)
-    const asset = await this.repository.putAsset(Buffer.from(image.base64,'base64'), image.mediaType, active)
+    const asset = await this.repository.putAsset(Buffer.from(image.base64,'base64'), image.mediaType, active, id(v.noteId))
     return {ok:true as const, asset:{id:asset.id, bytes:asset.bytes,...(v.url===undefined ? {} : {preview:`data:${image.mediaType};base64,${image.base64}`})}}
   }, signal) }
   private saveInput(input: unknown): NoteSaveInput {
@@ -106,7 +106,7 @@ export class NotesApplication {
     const bytes = Buffer.from(encoded, 'base64')
     if (bytes.toString('base64') !== encoded || bytes.length > ATTACHMENT_LIMIT) throw new NotebookError('attachment_limit', '单个附件不能超过 50 MiB')
     if (bytes.length > ATTACHMENT_WARNING && v.allowLarge !== true) throw new NotebookError('attachment_large', '附件较大，会增加上传、下载和同步时间，请确认后继续')
-    return { ok: true as const, attachment: await this.repository.putAttachment(bytes, text(v.name, 1000), active) }
+    return { ok: true as const, attachment: await this.repository.putAttachment(bytes, text(v.name, 1000), active, noteId) }
   }, signal) }
   download(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), note = await this.repository.getRevision(id(v.noteId), hash(v.revision), active)
