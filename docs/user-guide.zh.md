@@ -1,6 +1,6 @@
 # 肥鱼笔记使用说明
 
-本文对应肥鱼笔记 `0.7.0` 发布候选版，尚未正式发布；新增能力见[候选发布说明](releases/0.7.0/release-notes.md)。公开安装包仍为 [0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，其中尚无本文的默认笔记本、导入及批量清理等新增功能。
+本文对应肥鱼笔记 `0.7.0` 正式版，新增能力见[更新说明](releases/0.7.0/release-notes.md)。安装包见 [0.7.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)。
 
 ## 章节目录
 

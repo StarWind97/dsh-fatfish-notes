@@ -1,6 +1,6 @@
 # 肥鱼笔记验证记录
 
-2026-11-09 更新。当前正式版为 [0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)，原 0.6.1 开发功能统一进入 [0.7.0 发布准备](releases/0.7.0/review.zh.md)，尚未对外发布；旧名称下的 [0.5.1 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+2026-11-09 更新。当前正式版为 [0.7.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)，原 0.6.1 开发功能统一随本版发布；[0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)和旧名称下的 [0.5.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)作为历史版本保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
 
 ## 验证环境
 
@@ -8,7 +8,17 @@
 
 跨端验证使用同一台 Windows 电脑上的两个独立实例。macOS 和两台物理电脑之间的使用待实测。下文列出的日志与图册是本机忽略资料。
 
-## 0.7.0 发布前验证（未发布）
+## 0.7.0 正式发布核验
+
+用户审核确认后，只修改中英文 README 的正式状态及安装入口，并将两张新截图加入市场截图清单。运行代码与已通过 238 项全量回归的候选包一致，未重复运行同一套回归。
+
+- 最终包 SHA-256：`9f35c69d5ee1789a14f49269e12cc6d194e76665102887de821d5141dba816c7`，139 文件，14,313,751 字节；实际安装逐文件核对通过。
+- Release 非草稿、非预发布，标签 `v0.7.0` 指向 `c4c786f22af7f475b7dbd68c1d9a5726949b1685`。安装包、校验文件、图标和 6 张截图共 9 个公开文件均匿名下载成功，摘要一致。
+- 从公开 Release tarball URL 安装到隔离 Desktop，139 个文件全部匹配；未修改日常 DSH，未发布 npm。证据为 `.dsh-home/pure-001/release070-public*`。
+- 公开包在真实 DSH 0.2.2-rc.1 打开笔记库、显示原笔记及图片、读取唯一默认本并完成指定私库同步，idle / pending=false，无页面异常。测试结束关闭自建 DSH，体验入口现在打开公开正式包。
+- 市场更新为 [PR #13502](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13502)，仅修改既有条目的简介和 tarball，当前尚未合并，不能称为市场更新完成。
+
+## 0.7.0 发布前验证（历史准备阶段）
 
 用户批准发布准备，并确认日常实例只有本人使用、刚完成初始化、尚无内容。本轮不新增功能或迁移框架；版本统一为 0.7.0，公开下载仍保留 0.6.0。最终包及审核材料见[发布审核](releases/0.7.0/review.zh.md)。
 
