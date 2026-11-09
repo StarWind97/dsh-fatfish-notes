@@ -32,7 +32,7 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料；公开安装入口为 0.7.0。实际安装状态和包摘要见 [0.7.0 发布记录](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。本版图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；本轮另验证了两个本地 Git 副本的默认本同步，不将其称为两个真实宿主或两台物理设备验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装 A2 三栏内部包**，版本字段沿用 0.7.0，内容不同于公开包；包摘要、验证与回退见 [A2 交付](plans/2026-11-09-a2-layout-results.zh.md)，最新图册为 `output/playwright/a2/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
@@ -40,7 +40,7 @@
 
 2026-11-09 用户已确认由[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)统一维护顺序和阶段状态：**A 自适应布局与并行使用 → B 查找 → C 整理与恢复 → D 关联与复用 → 统一发布验收与确认 → E 会话复用 → F AI 输出**。原 E 提前并编号为 D，原 D 顺延为 E；A—D 集中发布，不按每个开发阶段分别发版。保存和同步的实际问题优先处理。
 
-**当前阶段 A：A1 技术补验和交互样稿已交付，待用户验收；下一步 A2 尚未开始。** [A1 结果与取舍](plans/2026-11-09-a1-layout-window-results.zh.md)记录稳定入口、Chrome/Edge 重用、DSH 重启恢复及 Windows 前台限制；[样稿说明](prototypes/a1-layout/README.md)提供宽窄、阅读/编辑、折叠调宽和模拟交接的体验入口。[阶段 A 专项规划](plans/2026-11-09-adaptive-layout-and-independent-window.zh.md)继续按 A1 → A2 共享布局 → A3 编辑保护与交接 → A4 正式独立窗口 → A5 内部验收推进；A5 不单独正式发布。
+**当前阶段 A：用户已确认 A1 布局，A2 共享自适应布局已完成并等待体验验收；下一步 A3 编辑保护与交接。** [A2 交付记录](plans/2026-11-09-a2-layout-results.zh.md)提供实际行为、隔离验证、截图及体验指引。[A1 结果与取舍](plans/2026-11-09-a1-layout-window-results.zh.md)保留稳定入口、Chrome/Edge 重用、DSH 重启恢复及 Windows 前台限制；[样稿说明](prototypes/a1-layout/README.md)保留历史样稿。[阶段 A 专项规划](plans/2026-11-09-adaptive-layout-and-independent-window.zh.md)继续按 A1 → A2 共享布局 → A3 编辑保护与交接 → A4 正式独立窗口 → A5 内部验收推进；A5 不单独正式发布。
 
 由 Agent 负责跟踪进度、补齐后续阶段的具体方案、安排实现与验证、主动提供效果和体验指引，并说明接续安排；用户参与验收、必要取舍及正式发布确认，无需记住节点或提醒下一步。保留已约定的分步验收停顿，收到对交付及接续安排的确认后推进，已批准范围不重复求授权。当前 A 已有详细专项，B—F 的实现细节由 Agent 在各阶段前主动准备，不能将路线确认当作全部功能已获实施授权。
 

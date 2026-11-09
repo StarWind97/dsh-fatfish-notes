@@ -12,13 +12,15 @@ import { NoteEditor } from './NoteEditor.js'
 import { SettingsPage } from './SettingsPage.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
-import { BookOpen, ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X } from 'lucide-react'
-import { PaperColumns,readPreference,writePreference } from './paper/layout.js'
+import { BookOpen, ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X, PanelLeftOpen } from 'lucide-react'
+import { PaperColumns,usePaperColumns,readPreference,writePreference } from './paper/layout.js'
+import type { PaperSurface } from './paper/layout-state.js'
+import { NotebookNavigation } from './paper/NotebookNavigation.js'
 import { paperCss } from './paper/style.js'
 import type { OutlineSession } from './paper/use-outline.js'
 import type { T } from './locale.js'
 
-export function NotesPage({ controller, t }: { controller: NotesController; t: T }) {
+export function NotesPage({ controller, t, surface='embedded' }: { controller: NotesController; t: T; surface?:PaperSurface }) {
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const selection=useNoteSelection(controller,state,t)
   const [history,setHistory]=useState<string[]>([])
@@ -29,6 +31,7 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
   const [booksOpen,setBooksOpen]=useState(false)
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
+  const columns=usePaperColumns(app,surface)
   const outlineSession=useRef<OutlineSession>({wide:null,open:false})
   const readingPosition=useRef<{noteId:string|null;pane:number;list:number}|null>(null)
   useLayoutEffect(()=>{
@@ -78,10 +81,23 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
     const order=state.filter.order??'recent'
     void choose(inTrash?{...previousFilter.current,order}:{status:'trashed',order})
   }
-  const list=<><div className="paper-list-scroll"><div className="paper-list-head">{inTrash?<strong className="paper-trash-title">{t('notesTrash')}</strong>:<label className="paper-picker"><select aria-label={t('notesNotebook')} value={state.filter.notebookId===undefined?'all':state.filter.notebookId??''} onChange={e=>{
-    clearTimeout(timer.current);const option=e.target.value,{notebookId:ignored,...rest}=state.filter
-    if(option==='manage'){void navigate('notebooks');return}
-    void choose(option==='all'?{...rest,query}:{...rest,query,notebookId:option||null})
+  function chooseNotebook(id?:string){
+    clearTimeout(timer.current);setHistory([]);setBooksOpen(false)
+    const {notebookId:ignored,status:previousStatus,...rest}=controller.getSnapshot().filter
+    void choose({...rest,query,...(id?{notebookId:id}:{})})
+  }
+  function toggleNotebooks(){
+    columns.toggle()
+    requestAnimationFrame(()=>app.current?.querySelector<HTMLButtonElement>(columns.expanded?'.paper-expand-notebooks':'.paper-notebook-nav header button')?.focus())
+  }
+  const selectedBook=activeBooks.find(b=>b.notebookId===state.filter.notebookId||(state.filter.notebookId===null&&b.isDefault))
+  const notebooks=<NotebookNavigation books={activeBooks} selected={state.filter.notebookId} trash={inTrash} disabled={state.operation} t={t} collapse={toggleNotebooks} choose={chooseNotebook} manage={()=>void navigate('notebooks')} openTrash={()=>{if(!inTrash)toggleTrash()}}/>
+  const list=<><div className="paper-list-scroll"><div className="paper-list-head">
+    {!columns.expanded&&columns.wide&&<button className="paper-expand-notebooks" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={17}/></button>}
+    {inTrash?<strong className="paper-trash-title">{t('notesTrash')}</strong>:columns.expanded?<h2 className="paper-list-title" title={selectedBook?.current.title??t('paperAll')}>{selectedBook?.current.title??t('paperAll')}</h2>:<label className="paper-picker"><select aria-label={t('notesNotebook')} value={state.filter.notebookId===undefined?'all':selectedBook?.notebookId??'all'} onChange={e=>{
+    const option=e.target.value
+    if(option==='manage'){clearTimeout(timer.current);void navigate('notebooks');return}
+    chooseNotebook(option==='all'?undefined:option)
   }}><option value="all">{t('paperAll')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}<option value="manage">{t('notesManageBooks')}…</option></select><ChevronDown size={14}/></label>}
       {!inTrash&&<button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button>}</div>
     <div className="paper-search"><Search size={16}/><input aria-label={t('notesSearch')} type="search" placeholder={t('notesSearch')} value={query} onChange={e=>search(e.target.value)}/>
@@ -102,12 +118,12 @@ export function NotesPage({ controller, t }: { controller: NotesController; t: T
       return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row">{selection.selecting&&<input type="checkbox" aria-label={item.title||t('notesUntitled')} checked={selection.selected.some(n=>n.noteId===item.noteId)} onChange={()=>selection.toggle(item)}/>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);if(selection.selecting)selection.toggle(item);else {setHistory([]);void controller.open(item.noteId)}}}>
         <strong>{item.title||t('notesUntitled')}</strong>{(item.excerpt||item.summary)&&<span>{item.excerpt||item.summary}</span>}<small>{item.conflicted?t('notesConflict'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')}</small>
       </button></div></React.Fragment>
-    })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot"><button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button><button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
+    })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash)&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss}</style>
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}<header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesLibrary':section==='notebooks'?'notesNotebooks':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup"><NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/></div></>}<FeedbackLink t={t}/></header>
     {state.section==='settings'&&<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>}
-    <PaperColumns t={t} hidden={state.section!=='notes'} selected={!!state.draft} list={list}>
+    <PaperColumns t={t} hidden={state.section!=='notes'} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}>
       {state.draft?<NoteEditor onNoteLink={id=>void follow(id)} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':'notesOpenFailed')}</p>}
     </PaperColumns>
