@@ -1,0 +1,4 @@
+{
+  "extends": "../../../tsconfig.client.json",
+  "include": ["./preview.tsx", "./assets.d.ts", "../../../src/client/**/*.ts", "../../../src/client/**/*.tsx"]
+}
