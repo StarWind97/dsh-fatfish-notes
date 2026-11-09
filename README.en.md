@@ -6,7 +6,7 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 ![Fatfish Notes library](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)
 
-The source tree is the **0.7.0 release candidate, not yet published**. The public stable download remains 0.6.0. Notebook management, import/export, ordinary attachments and batch cleanup below describe 0.7.0. See the [candidate release notes](docs/releases/0.7.0/release-notes.md).
+**0.7.0** adds default notebooks, library import/export, ordinary attachments, stable note links and batch trash cleanup. See the [release notes](docs/releases/0.7.0/release-notes.md).
 
 ## Features
 
@@ -21,12 +21,12 @@ The source tree is the **0.7.0 release candidate, not yet published**. The publi
 
 ## Install
 
-The public release is **0.6.0**; **0.7.0** is awaiting release review. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
+Current version: **0.7.0**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
 
-Download `dsh-fatfish-notes-0.6.0.tgz` from the [0.6.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
+Download `dsh-fatfish-notes-0.7.0.tgz` from the [0.7.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.6.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.7.0.tgz"
 ```
 
 Use the actual downloaded path. Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open the notebook from the sidebar.
@@ -43,7 +43,7 @@ If an already connected notebook needs GitHub authorization again, open **Sync a
 
 ## Upgrade, limitations and feedback
 
-For local review, use `dist/dsh-fatfish-notes-0.7.0.tgz` with the same installation command. There is no public 0.7.0 download yet. An upgrade from 0.6.0 retains the existing binding; no uninstall or setup reset is needed. An initialized empty library gains a default notebook.
+Upgrade with the same installation command and the actual downloaded package path. An upgrade from 0.6.0 retains the existing binding; no uninstall or setup reset is needed. An initialized empty library gains a default notebook.
 
 If you have content, confirm sync, quit DSH and back up the notebook folder and `DSH_HOME/fatfish-notes` before upgrading. Instances sharing one repository should upgrade together: 0.7.0 updates the data format, and a downgrade requires a matching backup. Historical 0.5.x identity migration is documented [separately](docs/plans/2026-11-06-fatfish-notes-rename.zh.md).
 

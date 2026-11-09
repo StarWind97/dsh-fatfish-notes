@@ -4,7 +4,7 @@
 
 保存会话、管理图文笔记、导出文件，通过自己的 GitHub 私有仓库跨设备同步。
 
-当前源码为 **0.7.0 发布候选版，尚未正式发布**。新增功能和升级说明见[候选发布说明](docs/releases/0.7.0/release-notes.md)。公开下载仍为 0.6.0；下文新增的笔记本管理、迁入迁出、附件和批量清理对应 0.7.0。
+**0.7.0** 新增默认笔记本、迁入迁出、普通附件、文章互链与批量清理。详见[更新说明](docs/releases/0.7.0/release-notes.md)。
 
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
@@ -20,17 +20,17 @@
 
 ## 安装与升级
 
-当前公开正式版为 `0.6.0`，`0.7.0` 候选包正在发布审核。适用于 DSH `0.2.2-rc.1`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
+当前版本为 `0.7.0`，适用于 DSH `0.2.2-rc.1`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
 
-从 [0.6.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)下载 `dsh-fatfish-notes-0.6.0.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
+从 [0.7.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)下载 `dsh-fatfish-notes-0.7.0.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.6.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.7.0.tgz"
 ```
 
 重新打开 DSH，在侧栏进入「肥鱼笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-审核体验使用本机 `dist/dsh-fatfish-notes-0.7.0.tgz`；该文件尚无公开下载。升级使用同一安装命令，替换为实际候选包路径即可，不需要先卸载或重新绑定。仅完成初始化的空库，升级后会提供默认笔记本。
+升级使用同一安装命令，替换为实际安装包路径即可，不需要先卸载或重新绑定。仅完成初始化的空库，升级后会提供默认笔记本。
 
 如已有内容，升级前确认「已同步」，关闭 DSH 并备份本机资料。同一私库的各端应一起升级；0.7.0 更新了数据格式，回退需要相配套的资料备份，不能只重装旧包。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。0.5.x 旧名称的历史迁移另见[改名规划](docs/plans/2026-11-06-fatfish-notes-rename.zh.md)。
 
