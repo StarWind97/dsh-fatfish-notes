@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Ellipsis, type LucideIcon } from 'lucide-react'
 import type { T } from '../locale.js'
 
-export interface NoteAction { label:string; icon:LucideIcon; run:()=>void; secondary?:boolean; disabled?:boolean }
+export interface NoteAction { label:string; icon:LucideIcon; run:()=>void; secondary?:boolean; disabled?:boolean; menuOnly?:boolean }
 export function NoteActions({actions,t,children}:{actions:NoteAction[]; t:T;children?:React.ReactNode}) {
   const [open,setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null)
@@ -29,9 +29,9 @@ export function NoteActions({actions,t,children}:{actions:NoteAction[]; t:T;chil
       const i=buttons.indexOf(document.activeElement as HTMLButtonElement)
       e.preventDefault();buttons[(i+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus()
     }}>
-    {actions.map(a=>button(a))}
+    {actions.filter(a=>!a.menuOnly).map(a=>button(a))}
     {children}
-    {actions.some(a=>a.secondary)&&<div className="paper-overflow"><button ref={trigger} aria-label={t('paperMore')} title={t('paperMore')} aria-expanded={open} aria-haspopup="menu" onClick={()=>setOpen(!open)}><Ellipsis size={17}/></button>
-      {open&&<div className="paper-popup more" role="menu">{actions.filter(a=>a.secondary).map(a=>button(a,true))}</div>}</div>}
+    {actions.some(a=>a.secondary||a.menuOnly)&&<div className={`paper-overflow${actions.some(a=>a.menuOnly)?' always':''}`}><button ref={trigger} aria-label={t('paperMore')} title={t('paperMore')} aria-expanded={open} aria-haspopup="menu" onClick={()=>setOpen(!open)}><Ellipsis size={17}/></button>
+      {open&&<div className="paper-popup more" role="menu">{actions.filter(a=>a.secondary||a.menuOnly).map(a=>button(a,true))}</div>}</div>}
   </div>
 }

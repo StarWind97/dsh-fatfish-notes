@@ -26,6 +26,8 @@ export interface NoteContent {
     assetIds: string[];
     attachments?: NoteAttachment[];
     originPath?: string;
+    favorite?: boolean;
+    isTemplate?: boolean;
 }
 export interface NoteAttachment {
     id: string;
@@ -60,6 +62,8 @@ export interface NoteSaveInput {
 }
 export interface NoteListItem {
     excerpt?: string;
+    favorite?: boolean;
+    isTemplate?: boolean;
     noteId: string;
     heads: string[];
     title: string;
@@ -78,10 +82,37 @@ export interface NoteListOptions {
     notebookId?: string | null;
     status?: NoteStatus | 'all';
     order?: 'recent' | 'oldest';
+    favorite?: boolean;
+    templates?: boolean;
+    recentIds?: string[];
 }
 export interface NoteListResult {
     items: NoteListItem[];
     cursor: string | null;
+}
+export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
+export interface NoteManageRequest {
+    notes: NoteSelection[];
+    action: NoteManageAction;
+    notebookId?: string;
+    tags?: string[];
+    revision?: string;
+    title?: string;
+    date?: string;
+    targetId?: string;
+}
+export interface NoteHistoryItem {
+    revision: string;
+    recordedAt: string;
+    title: string;
+    summary: string;
+    status: NoteStatus;
+}
+export interface NoteCatalog {
+    tags: Array<{
+        tag: string;
+        count: number;
+    }>;
 }
 export interface NotebookRevision {
     version: 1;
@@ -180,6 +211,50 @@ export interface ConversationExportRequest {
     }>;
 }
 export interface NotesApiContract {
+    '/notes/manage': {
+        request: NoteManageRequest;
+        response: {
+            ok: true;
+            completed: string[];
+            note?: NoteView;
+        };
+    };
+    '/notes/catalog': {
+        request: undefined;
+        response: {
+            ok: true;
+        } & NoteCatalog;
+    };
+    '/notes/history': {
+        request: {
+            noteId: string;
+            cursor?: string;
+        };
+        response: {
+            ok: true;
+            items: NoteHistoryItem[];
+            cursor: string | null;
+        };
+    };
+    '/notes/revision': {
+        request: {
+            noteId: string;
+            revision: string;
+        };
+        response: {
+            ok: true;
+            note: NoteView;
+        };
+    };
+    '/notes/backlinks': {
+        request: {
+            noteId: string;
+        };
+        response: {
+            ok: true;
+            items: NoteListItem[];
+        };
+    };
     '/notes/attachment': {
         request: {
             noteId: string;

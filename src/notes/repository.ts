@@ -7,7 +7,7 @@ import { ulid } from '../domain/id.js'
 import type { ImageMediaType } from '../contracts/media.js'
 import type { NoteObjects, NoteRevision, NotebookRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js'
 import { NOTE_LIMITS } from './types.js'
-import { canonical, digest, fail, hash, id, normalizeContent, object, keys, sortedStrings, assetId } from './validation.js'
+import { canonical, digest, fail, hash, id, normalizeContent, object, keys, sortedStrings, assetId, text } from './validation.js'
 import { createNoteRevision, validateNoteRevision, mergeNoteRevisions, materializeNote, createNotebookRevision, validateNotebookRevision, mergeNotebookRevisions, materializeNotebook, topologicalOrder } from './revisions.js'
 import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from './markdown.js'
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
@@ -16,7 +16,8 @@ import { searchNotes } from './search.js'
 import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME } from './notebooks.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
-import { ATTACHMENT_LIMIT, type NoteAttachment, type NoteSelection } from '../contracts/notes.js'
+import { ATTACHMENT_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
+import { linkedNotes, fillTemplate } from './relations.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -252,6 +253,88 @@ export class NoteRepository {
       return row
     }, signal)
   }
+  async history(noteId:string,cursor?:string,signal?:AbortSignal):Promise<{items:NoteHistoryItem[];cursor:string|null}> {
+    id(noteId);if(cursor)hash(cursor)
+    return this.run(async()=>{
+      const state=await this.load();this.writable(state,noteId);this.view(state,noteId)
+      const rows=state.revisions.filter(r=>r.noteId===noteId).sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt)||b.revision.localeCompare(a.revision))
+      const start=cursor?rows.findIndex(r=>r.revision===cursor)+1:0,page=rows.slice(start,start+30)
+      return {items:page.map(({revision,recordedAt,title,summary,status})=>({revision,recordedAt,title,summary,status})),cursor:rows.length>start+30?page.at(-1)!.revision:null}
+    },signal)
+  }
+  async catalog(signal?:AbortSignal):Promise<NoteCatalog> {
+    return this.run(async()=>{
+      const state=await this.load(),tags=new Map<string,number>()
+      for(const noteId of new Set(state.revisions.map(r=>r.noteId))) {
+        const row=this.view(state,noteId).current
+        if(row.status==='active'&&!row.isTemplate)row.tags.forEach(tag=>tags.set(tag,(tags.get(tag)??0)+1))
+      }
+      return {tags:[...tags].map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))}
+    },signal)
+  }
+  async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {
+    id(noteId)
+    return this.run(async()=>{
+      const state=await this.load();this.view(state,noteId)
+      const views=[...new Set(state.revisions.map(r=>r.noteId))].map(n=>this.view(state,n))
+        .filter(v=>v.noteId!==noteId&&v.current.status==='active'&&!v.current.isTemplate&&linkedNotes(v.current.body).has(noteId))
+      return searchNotes(views,{order:'recent',limit:100}).items
+    },signal)
+  }
+  /** All selected heads/leases and resulting content are checked before the first write. */
+  async manage(request:NoteManageRequest,signal?:AbortSignal):Promise<{completed:string[];note?:NoteView}> {
+    const v=object(request),actions=['favorite','unfavorite','move','add-tags','remove-tags','duplicate','template','instantiate','revision','revision-copy']
+    if(!actions.includes(String(v.action))||!Array.isArray(v.notes)||!v.notes.length||v.notes.length>NOTE_LIMITS.notes)fail('note_schema')
+    const selected=v.notes.map(raw=>{const n=object(raw);keys(n,['noteId','expectedHeads']);return {noteId:id(n.noteId),expectedHeads:sortedStrings(n.expectedHeads,NOTE_LIMITS.revisions,hash)}})
+    if(new Set(selected.map(n=>n.noteId)).size!==selected.length)fail('note_schema')
+    const action=request.action,copy=['duplicate','template','instantiate','revision-copy'].includes(action),single=copy||action==='revision'
+    if(single&&selected.length!==1)fail('note_schema')
+    const target=copy?id(v.targetId):undefined
+    const notebookId=action==='move'||v.notebookId!==undefined?id(v.notebookId):undefined
+    const tags=['add-tags','remove-tags'].includes(action)?sortedStrings(v.tags,50,t=>{const value=text(t,200).trim();if(!value)fail();return value}):[]
+    const revision=action.startsWith('revision')?hash(v.revision):undefined
+    const title=v.title===undefined?undefined:text(v.title,1200).trim()
+    const date=action==='instantiate'?text(v.date,10):''
+    if(action==='instantiate'&&!/^\d{4}-\d{2}-\d{2}$/.test(date))fail('note_date')
+    return this.run(async()=>{
+      this.editGuard([...selected.map(n=>n.noteId),...(target?[target]:[])])
+      const state=await this.load();this.complete(state)
+      if(state.issues.length)fail('note_corrupt')
+      if(notebookId&&!activeNotebook(this.notebook(state,notebookId)))fail('notebook_trashed','目标笔记本已被移除，请重新选择')
+      if(target&&(state.deleted?.includes(target)||state.revisions.some(r=>r.noteId===target)))fail('note_conflict','副本已存在，请刷新笔记库核对')
+      const rows:NoteRevision[]=[]
+      for(const item of selected) {
+        this.writable(state,item.noteId);await this.external(state,item.noteId)
+        const view=this.view(state,item.noteId),current=view.current
+        if(!same(view.heads,item.expectedHeads)||view.conflicts.length)conflict()
+        if(current.status!=='active')fail('note_trashed','请先恢复回收站中的笔记')
+        const old=revision?state.revisions.find(r=>r.noteId===item.noteId&&r.revision===revision):current
+        if(!old)fail('note_not_found','历史版本不存在')
+        let content:NoteContent={...revisionContent(old),notebookId:notebookId??(revision?old.notebookId:view.effectiveNotebookId),status:'active'}
+        if(revision)content={...content,sourceId:current.sourceId,...(current.favorite!==undefined?{favorite:current.favorite}:{}),...(current.isTemplate!==undefined?{isTemplate:current.isTemplate}:{})}
+        if(action==='favorite'||action==='unfavorite')content.favorite=action==='favorite'
+        if(action==='add-tags')content.tags=[...new Set([...current.tags,...tags])]
+        if(action==='remove-tags')content.tags=current.tags.filter(t=>!tags.includes(t))
+        if(copy){
+          delete content.originPath;delete content.favorite;content.isTemplate=action==='template'
+          const suffix=`（${action==='template'?'模板':'副本'}）`,chars=Array.from(old.title)
+          while(Buffer.byteLength(chars.join('')+suffix)>1200)chars.pop()
+          content.title=title||chars.join('')+suffix
+        }
+        if(action==='template')content.sourceId=null
+        if(action==='instantiate'){
+          if(!current.isTemplate)fail('note_schema')
+          content.title=title||current.title;content.body=fillTemplate(content.body,content.title,date);content.summary=fillTemplate(content.summary,content.title,date);content.sourceId=null
+        }
+        content=normalizeContent(this.localMembership(state,content))
+        await checkReferences(this.files,content);await this.verifyNotebook(state,content)
+        rows.push(createNoteRevision({version:1,noteId:target??item.noteId,parents:target?[]:view.heads,recordedAt:new Date(this.now()).toISOString(),...content}))
+      }
+      let note:NoteView|undefined
+      for(const row of rows)note=await this.append(state,row)
+      return {completed:rows.map(r=>r.noteId),...(single&&note?{note}: {})}
+    },signal)
+  }
   async save(input: NoteSaveInput, signal?: AbortSignal, keepBoth = false): Promise<NoteView> {
     const v = object(input); if (Object.keys(v).some(k => !['noteId', 'expectedHeads', 'content'].includes(k))) fail('note_schema')
     const noteId = input.noteId === undefined ? ulid(this.now()) : id(input.noteId), rawContent = normalizeContent(input.content), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash)
@@ -447,7 +530,7 @@ export class NoteRepository {
       const s = await this.load(), selected = this.defaultBook(s)?.notebookId, counts = new Map<string, number>()
       for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
         const note = this.view(s, noteId)
-        if (note.current.status === 'active' && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
+        if (note.current.status === 'active' && !note.current.isTemplate && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
       }
       return this.books(s).map(book => ({ ...book, isDefault: book.notebookId === selected, noteCount: counts.get(book.notebookId) ?? 0 }))
     }, signal)
@@ -471,7 +554,7 @@ export class NoteRepository {
     id(notebookId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       const s = await this.load(); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
-      this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>this.view(s,n).effectiveNotebookId===notebookId))
+      this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>{const v=this.view(s,n);return !v.current.isTemplate&&v.effectiveNotebookId===notebookId}))
       this.complete(s)
       if (!same(book.heads, expected)) conflict()
       const destination = this.defaultBook(s)!
@@ -479,7 +562,8 @@ export class NoteRepository {
       if (!activeNotebook(book)) fail('notebook_trashed')
       const members: NoteView[] = []
       for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
-        if (this.view(s, noteId).effectiveNotebookId !== notebookId) continue
+        const member=this.view(s,noteId)
+        if (member.current.isTemplate || member.effectiveNotebookId !== notebookId) continue
         this.writable(s, noteId); await this.external(s, noteId)
         const note = this.view(s, noteId)
         if (note.effectiveNotebookId !== notebookId) continue

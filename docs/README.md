@@ -32,7 +32,7 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装阶段 A 完整内部体验包**，版本字段沿用 0.7.0，内容不同于公开包；包摘要、验证与回退见 [阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)，最新图册为 `output/playwright/a-stage/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装 A—D 完整内部体验包**，版本字段沿用 0.7.0，内容不同于公开包；包摘要、验证与回退见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)，最新图册为 `output/playwright/bcd/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
@@ -40,9 +40,9 @@
 
 2026-11-09 用户已确认由[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)统一维护顺序和阶段状态：**A 自适应布局与并行使用 → B 查找 → C 整理与恢复 → D 关联与复用 → 统一发布验收与确认 → E 会话复用 → F AI 输出**。原 E 提前并编号为 D，原 D 顺延为 E；A—D 集中发布，不按每个开发阶段分别发版。保存和同步的实际问题优先处理。
 
-**当前阶段 A：A1—A5 已完成开发和隔离验收，等待用户审核体验；下一步准备 B「查找」的具体实施方案。** [阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)包含真实双窗口行为、保存交接、重启恢复、截图和操作指引。[A2 记录](plans/2026-11-09-a2-layout-results.zh.md)、[A1 结果](plans/2026-11-09-a1-layout-window-results.zh.md)与[样稿说明](prototypes/a1-layout/README.md)保留前序证据。用户最新授权要求连续完成 A 阶段，现于 A5 统一交付；未正式发布。
+**当前为 A—D 统一体验验收：B 查找、C 整理恢复、D 关联复用已实现并通过组合验证，现集中交付。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)记录本轮范围，[B—D 交付](plans/2026-11-10-bcd-results.zh.md)记录效果、验证和体验方法。[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)、[A2 记录](plans/2026-11-09-a2-layout-results.zh.md)、[A1 结果](plans/2026-11-09-a1-layout-window-results.zh.md)与[样稿说明](prototypes/a1-layout/README.md)保留前序证据。公开版仍为 0.7.0，本轮未正式发布。
 
-由 Agent 负责跟踪进度、补齐后续阶段的具体方案、安排实现与验证、主动提供效果和体验指引，并说明接续安排；用户参与验收、必要取舍及正式发布确认，无需记住节点或提醒下一步。按用户最新约定在 A 阶段完成后统一验收；后续阶段收到对交付及接续安排的确认后推进，已批准范围不重复求授权。当前 A 已有详细专项，B—F 的实现细节由 Agent 在各阶段前主动准备，不能将路线确认当作全部功能已获实施授权。
+由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。下一步修正体验反馈、准备集中发布审核，明确获准后才发布。E 会话侧栏与 F AI 输出仍需另行细化方案和批准。
 
 [独立窗口小范围验证](plans/2026-11-09-independent-window-validation.zh.md)是 A1 之前的证据：Chrome 应用窗口与隔离 DSH 共用同一笔记服务，保存、同地址关闭重开及会话图文转存可行；补充本机刷新后新笔记可自动出现。前期原型结果见 A1 记录；正式编辑保护、主题跟随与独立入口现已在阶段 A 内部包完成，公开 0.7.0 仍无此入口。
 

@@ -30,7 +30,7 @@ export function date(value: unknown): string {
 }
 export function status(value: unknown): 'active' | 'trashed' { if (value !== 'active' && value !== 'trashed') fail(); return value }
 export const contentKeys = ['title', 'body', 'summary', 'tags', 'notebookId', 'status', 'sourceId', 'assetIds'] as const
-export const optionalContentKeys = ['attachments', 'originPath'] as const
+export const optionalContentKeys = ['attachments', 'originPath', 'favorite', 'isTemplate'] as const
 export function contentFields(v: Record<string, unknown>): string[] { return [...contentKeys, ...optionalContentKeys.filter(k => Object.hasOwn(v, k))] }
 export function attachment(value: unknown): NoteAttachment {
   const v = object(value); keys(v, ['id', 'name', 'bytes'])
@@ -40,6 +40,7 @@ export function attachment(value: unknown): NoteAttachment {
 }
 export function normalizeContent(value: unknown): NoteContent {
   const v = object(value); keys(v, contentFields(v))
+  for (const key of ['favorite','isTemplate']) if (v[key] !== undefined && typeof v[key] !== 'boolean') fail('note_schema')
   let attachments: NoteAttachment[] | undefined
   if (v.attachments !== undefined) {
     if (!Array.isArray(v.attachments) || v.attachments.length > 128) fail('attachment_limit')
@@ -52,6 +53,7 @@ export function normalizeContent(value: unknown): NoteContent {
     notebookId: v.notebookId === null ? null : id(v.notebookId), status: status(v.status),
     sourceId: v.sourceId === null ? null : hash(v.sourceId), assetIds: sortedStrings(v.assetIds, NOTE_LIMITS.images, assetId),
     ...(attachments ? { attachments } : {}), ...(v.originPath !== undefined ? { originPath: text(v.originPath, 4096) } : {}),
+    ...(v.favorite !== undefined ? {favorite:v.favorite as boolean} : {}), ...(v.isTemplate !== undefined ? {isTemplate:v.isTemplate as boolean} : {}),
   }
 }
 /** Lexicographic object keys; array order is significant. No body normalization. */

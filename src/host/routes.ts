@@ -8,8 +8,8 @@ import type { NotebookApplication } from './application.js'
 import { ROUTE_PREFIXES } from './plugin-identity.js'
 import { windowRequest } from './edit-coordinator.js'
 
-export const routePaths=['/workspace/register','/workspace/state','/workspace/action','/workspace/open','/notes/library-export','/notes/attachment','/notes/download','/notes/batch','/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/folder/pick','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
-const READ_ONLY=new Set<string>(['/notes/download','/notes/export-font','/notes','/notes/notebooks','/notes/jobs','/notes/asset','/notes/job','/notes/get','/notes/source','/personal'])
+export const routePaths=['/notes/manage','/notes/catalog','/notes/history','/notes/revision','/notes/backlinks','/workspace/register','/workspace/state','/workspace/action','/workspace/open','/notes/library-export','/notes/attachment','/notes/download','/notes/batch','/notes','/notes/save','/notes/image','/notes/trash','/notes/restore','/notes/resolve','/notes/notebooks','/notes/notebook','/notes/jobs','/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate','/notes/capture','/notes/selection','/notes/get','/notes/source','/personal','/personal/folder/pick','/personal/sync/preview','/personal/sync/connect','/personal/sync','/personal/sync/start','/personal/sync/tools','/personal/sync/login','/personal/sync/move','/personal/sync/reset-preview','/personal/sync/reset','/notes/asset','/notes/export-font','/notes/export','/notes/conversation-export'] as const
+const READ_ONLY=new Set<string>(['/notes/catalog','/notes/history','/notes/revision','/notes/backlinks','/notes/download','/notes/export-font','/notes','/notes/notebooks','/notes/jobs','/notes/asset','/notes/job','/notes/get','/notes/source','/personal'])
 function loopback(value:string):boolean{if(value==='::1'||value==='::ffff:127.0.0.1')return true;const v=value.replace(/^::ffff:/,'');return isIP(v)===4&&v.split('.')[0]==='127'}
 export function fence(req:IncomingMessage,origin:string):void{
   if(!loopback(req.socket.remoteAddress??''))throw new NotebookError('loopback_only','仅接受本机请求',403)
@@ -54,7 +54,7 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
       if(req.method==='GET'&&!READ_ONLY.has(path))throw new NotebookError('method_not_allowed','此操作需要 POST',405)
       body=req.method==='POST'?await readJson(req,controller.signal,path==='/notes/attachment'?68*1024*1024:path==='/notes/save'?12*1024*1024:path==='/notes/image'?7*1024*1024:2*1024*1024):Object.fromEntries(url.searchParams)
       const signal=controller.signal
-      if(app.requireWindowIdentity&&['/notes/save','/notes/image','/notes/attachment','/notes/batch','/notes/trash','/notes/restore','/notes/resolve','/notes/notebook','/notes/candidate','/personal/sync/move','/personal/sync/reset'].includes(path))await app.workspaceRequest('/workspace/state',{})
+      if(app.requireWindowIdentity&&['/notes/manage','/notes/save','/notes/image','/notes/attachment','/notes/batch','/notes/trash','/notes/restore','/notes/resolve','/notes/notebook','/notes/candidate','/personal/sync/move','/personal/sync/reset'].includes(path))await app.workspaceRequest('/workspace/state',{})
       const expectedRepo=req.headers['x-notebook-repository']
       if((path.startsWith('/notes')||path==='/workspace/action'||path==='/workspace/open') && expectedRepo!==undefined && String(app.backup.state().binding?.repositoryId)!==expectedRepo)
         throw new NotebookError('personal_repository_changed','笔记库已切换，请重新打开插件',409)
@@ -101,6 +101,11 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         case '/notes/capture':value=await app.notes.capture(body,signal);break
         case '/notes/selection':value=await app.notes.selection(body,signal);break
         case '/notes/get':value=await app.notes.get(body,signal);break
+        case '/notes/manage':value=await app.notes.manage(body);break
+        case '/notes/catalog':value=await app.notes.catalog(signal);break
+        case '/notes/history':value=await app.notes.history(body,signal);break
+        case '/notes/revision':value=await app.notes.revision(body,signal);break
+        case '/notes/backlinks':value=await app.notes.backlinks(body,signal);break
         case '/notes/source':value=await app.notes.source(body,signal);break
         case '/personal':value=app.personalState();break
         case '/personal/sync/preview':value=await app.backup.preview(body,signal);break

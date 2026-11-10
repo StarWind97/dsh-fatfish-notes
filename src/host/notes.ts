@@ -1,4 +1,4 @@
-import type { CaptureSelectionRequest, NoteListOptions, NoteSaveInput, NoteJobOverview } from '../contracts/notes.js'
+import type { CaptureSelectionRequest, NoteListOptions, NoteSaveInput, NoteJobOverview, NoteManageRequest } from '../contracts/notes.js'
 import { NoteRepository } from '../notes/repository.js'
 import { NoteCaptureService } from '../notes/capture.js'
 import { object, text, id, hash, sortedStrings, normalizeContent } from '../notes/validation.js'
@@ -64,11 +64,18 @@ export class NotesApplication {
     return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active) }), signal)
   }
   get(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, note: await this.repository.get(text(object(input).noteId, 26), active) }), signal) }
+  manage(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ok:true as const,...await this.repository.manage(input as NoteManageRequest,active)}),signal) }
+  catalog(signal?:AbortSignal) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active)}),signal)}
+  history(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input);return {ok:true as const,...await this.repository.history(id(v.noteId),v.cursor===undefined?undefined:hash(v.cursor),active)}},signal)}
+  revision(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input),row=await this.repository.getRevision(id(v.noteId),hash(v.revision),active);return {ok:true as const,note:{noteId:row.noteId,heads:[row.revision],current:row,conflicts:[],savedAt:row.recordedAt,effectiveNotebookId:row.notebookId}}},signal)}
+  backlinks(input:unknown,signal?:AbortSignal) {return this.run(async active=>({ok:true as const,items:await this.repository.backlinks(id(object(input).noteId),active)}),signal)}
   list(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), options: NoteListOptions = {}
     if (v.cursor !== undefined) options.cursor = id(v.cursor)
     if (v.limit !== undefined) options.limit = Number(v.limit)
     if (v.query !== undefined) options.query = text(v.query, 12_000)
+    for(const key of ['favorite','templates'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
+    if(v.recentIds!==undefined){if(!Array.isArray(v.recentIds)||v.recentIds.length>100)throw new NotebookError('note_schema','访问记录无效');options.recentIds=v.recentIds.map(id)}
     if (v.tag !== undefined) options.tag = text(v.tag, 200)
     if (v.order === 'recent' || v.order === 'oldest') options.order = v.order
     if (v.notebookId !== undefined) options.notebookId = v.notebookId === null || v.notebookId === 'null' ? null : id(v.notebookId)

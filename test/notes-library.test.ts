@@ -348,18 +348,18 @@ test('autosave recovery survives immediate disposal and restores latest text in 
   await first.open(a);first.beginEdit();first.update({body:'最后一个字',summary:'摘要',tags:['标签']})
   assert.equal(first.needsExitWarning,false);first.dispose();assert.equal(f.writes.length,0)
   const restored=new NotesController(f.call,options)
-  try{await restored.initialize(a);assert.equal(restored.getSnapshot().draft!.body,'最后一个字');assert.equal(restored.getSnapshot().editing,false);assert.equal(storage.rows.size,0);assert.equal(f.writes.length,1)}finally{restored.dispose()}
+  try{await restored.initialize(a);assert.equal(restored.getSnapshot().draft!.body,'最后一个字');assert.equal(restored.getSnapshot().editing,false);assert.equal(storage.rows.has('fatfish-notes-recovery:1:123'),false);assert.deepEqual(restored.recentIds(),[a]);assert.equal(f.writes.length,1)}finally{restored.dispose()}
 })
 test('recovery is isolated by repository and reconciles a lost save receipt',async()=>{
   const f=fixture(),storage=memoryStorage(),options={storage,repository:()=>123}
   const first=new NotesController(f.call,options)
   await first.open(a);first.update({body:'最后修改'});first.dispose()
   const other=new NotesController(f.call,{storage,repository:()=>456})
-  try{await other.initialize(a);assert.equal(f.writes.length,0);assert.equal(storage.rows.size,1)}finally{other.dispose()}
-  const record=JSON.parse([...storage.rows.values()][0]!) as {request:NoteSaveInput}
+  try{await other.initialize(a);assert.equal(f.writes.length,0);assert.equal(storage.rows.has('fatfish-notes-recovery:1:123'),true);assert.equal(storage.rows.has('fatfish-notes-recovery:1:456'),false)}finally{other.dispose()}
+  const record=JSON.parse(storage.rows.get('fatfish-notes-recovery:1:123')!) as {request:NoteSaveInput}
   f.rows.set(a,saved(record.request))
   const next=new NotesController(f.call,options)
-  try{await next.initialize(a);assert.equal(next.getSnapshot().draft!.body,'最后修改');assert.equal(f.writes.length,0);assert.equal(storage.rows.size,0)}finally{next.dispose()}
+  try{await next.initialize(a);assert.equal(next.getSnapshot().draft!.body,'最后修改');assert.equal(f.writes.length,0);assert.equal(storage.rows.has('fatfish-notes-recovery:1:123'),false);assert.deepEqual(next.recentIds(),[a])}finally{next.dispose()}
 })
 test('continuous typing is saved within the maximum interval; IME and metadata whitespace are preserved',async()=>{
   const f=fixture(),c=new NotesController(f.call,{autosaveMs:50,maxWaitMs:65})

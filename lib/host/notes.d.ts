@@ -60,6 +60,38 @@ export declare class NotesApplication {
         ok: true;
         note: import("../contracts/notes.js").NoteView;
     }>;
+    manage(input: unknown, signal?: AbortSignal): Promise<{
+        completed: string[];
+        note?: import("../contracts/notes.js").NoteView;
+        ok: true;
+    }>;
+    catalog(signal?: AbortSignal): Promise<{
+        tags: Array<{
+            tag: string;
+            count: number;
+        }>;
+        ok: true;
+    }>;
+    history(input: unknown, signal?: AbortSignal): Promise<{
+        items: import("../contracts/notes.js").NoteHistoryItem[];
+        cursor: string | null;
+        ok: true;
+    }>;
+    revision(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        note: {
+            noteId: string;
+            heads: string[];
+            current: import("../contracts/notes.js").NoteRevision;
+            conflicts: never[];
+            savedAt: string;
+            effectiveNotebookId: string | null;
+        };
+    }>;
+    backlinks(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        items: import("../contracts/notes.js").NoteListItem[];
+    }>;
     list(input: unknown, signal?: AbortSignal): Promise<{
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;

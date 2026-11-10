@@ -1,8 +1,9 @@
 import { api, currentRepository, type Api } from './api.js'
 import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
-import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision } from '../contracts/notes.js'
+import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision, NoteManageRequest } from '../contracts/notes.js'
+import { RecentNotes } from './recent-notes.js'
 
-export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}) })
+export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
 const comparable=(c:NoteContent)=>({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()})
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -67,6 +68,8 @@ export class NotesController {
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
   occupiedCount=0
+  private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
+  recentIds(){return this.visits().read()}
   private inputPaused=false
   pauseInput(value:boolean){this.inputPaused=value;this.emit({})}
   get writable(){return !this.inputPaused&&(!this.state.noteId||!this.options.editing||this.options.editing.writable(this.state.noteId))}
@@ -276,7 +279,9 @@ export class NotesController {
     try {
       const result = await this.call('/notes/get', { noteId })
       if (generation !== this.navigation) return false
-      return this.accept(result.note, request)
+      const accepted=this.accept(result.note, request)
+      if(accepted&&result.note.current.status==='active'&&!result.note.current.isTemplate)this.visits().visit(noteId)
+      return accepted
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
   async create(): Promise<boolean> {
@@ -318,6 +323,22 @@ export class NotesController {
       return true
     }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
+  }
+  async manage(input:NoteManageRequest):Promise<boolean> {
+    if(this.state.operation||this.state.loadingNote||!await this.prepareLeave())return false
+    const copy=['duplicate','template','instantiate','revision-copy'].includes(input.action)
+    this.emit({operation:true,error:null});let created:string|undefined
+    try {
+      const result=await this.call('/notes/manage',{...input,...(copy&&!input.targetId?{targetId:newId()}: {})})
+      if(copy)created=result.note?.noteId
+      else if(input.notes.some(n=>n.noteId===this.state.noteId)) {
+        const note=(await this.call('/notes/get',{noteId:this.state.noteId!})).note
+        this.emit({note,draft:noteContent(note)})
+      }
+    }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
+    finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
+    if(created){await this.filter({order:'recent',...(input.action==='template'?{templates:true}:{})});await this.open(created);if(input.action==='instantiate')await this.beginEdit()}
+    return true
   }
   private async loadConflict(request: DetailRequest) { try { const latest = await this.call('/notes/get', { noteId: request.noteId }); if (this.ownsDetail(request)) this.emit({ conflict: latest.note }) } catch { /* retain text */ } }
   async resolve(content?: NoteContent) {

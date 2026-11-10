@@ -1,7 +1,7 @@
 import type { ImageMediaType } from '../contracts/media.js';
 import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
 import { NoteFiles } from './files.js';
-import { type NoteAttachment, type NoteSelection } from '../contracts/notes.js';
+import { type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js';
 export interface NoteRepositoryOptions {
     now?: () => number;
     beforeWrite?: (path: string) => void | Promise<void>;
@@ -38,6 +38,17 @@ export declare class NoteRepository {
     list(options?: NoteListOptions, signal?: AbortSignal): Promise<NoteListResult>;
     get(noteId: string, signal?: AbortSignal): Promise<NoteView>;
     getRevision(noteId: string, revision: string, signal?: AbortSignal): Promise<NoteRevision>;
+    history(noteId: string, cursor?: string, signal?: AbortSignal): Promise<{
+        items: NoteHistoryItem[];
+        cursor: string | null;
+    }>;
+    catalog(signal?: AbortSignal): Promise<NoteCatalog>;
+    backlinks(noteId: string, signal?: AbortSignal): Promise<NoteListResult['items']>;
+    /** All selected heads/leases and resulting content are checked before the first write. */
+    manage(request: NoteManageRequest, signal?: AbortSignal): Promise<{
+        completed: string[];
+        note?: NoteView;
+    }>;
     save(input: NoteSaveInput, signal?: AbortSignal, keepBoth?: boolean): Promise<NoteView>;
     /** A journaled AI adoption has a stable revision even if its receipt is lost. */
     adoptRevision(input: NoteRevision, persist: (revision: NoteRevision) => Promise<void>, signal?: AbortSignal): Promise<NoteView>;

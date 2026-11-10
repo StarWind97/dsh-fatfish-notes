@@ -19,6 +19,11 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if (!record(value) || value.ok !== true) return false
   if (path === '/notes/attachment') return attachment(value.attachment)
   if (path === '/notes/batch') return strings(value.completed) && value.completed.every(id)
+  if (path === '/notes/manage') return strings(value.completed)&&value.completed.every(id)&&(value.note===undefined||note(value.note))
+  if (path === '/notes/catalog') return Array.isArray(value.tags)&&value.tags.every(v=>record(v)&&typeof v.tag==='string'&&Number.isSafeInteger(v.count)&&Number(v.count)>0)
+  if (path === '/notes/history') return Array.isArray(value.items)&&value.items.length<=30&&value.items.every(v=>record(v)&&hash(v.revision)&&typeof v.recordedAt==='string'&&typeof v.title==='string'&&typeof v.summary==='string'&&['active','trashed'].includes(String(v.status)))&&(value.cursor===null||hash(value.cursor))
+  if (path === '/notes/backlinks') return validNotesResponse('/notes',{...value,cursor:null})
+  if (path === '/notes/revision') return note(value.note)
   if (path === '/notes/image') return record(value.asset) && typeof value.asset.id === 'string' && /^[a-f0-9]{64}\.(?:png|jpg|gif|webp)$/.test(value.asset.id) && Number.isSafeInteger(value.asset.bytes) && Number(value.asset.bytes)>0 && (value.asset.preview===undefined || typeof value.asset.preview==='string' && /^data:image\/(?:png|jpeg|webp|gif);base64,/.test(value.asset.preview))
   if (['/notes/get','/notes/save','/notes/trash','/notes/restore','/notes/resolve'].includes(path)) return note(value.note)
   if (path === '/notes') return Array.isArray(value.items) && value.items.length <= 100 && value.items.every(v => record(v) && id(v.noteId) && strings(v.heads) && v.heads.every(hash) && typeof v.title === 'string' && typeof v.summary === 'string' && strings(v.tags) && (v.notebookId === null || id(v.notebookId)) && ['active','trashed'].includes(String(v.status)) && typeof v.savedAt === 'string' && typeof v.conflicted === 'boolean') && (value.cursor === null || id(value.cursor))

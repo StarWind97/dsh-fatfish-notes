@@ -9,7 +9,7 @@ export interface NoteExportRequest {
 export interface NoteContent {
   title: string; body: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; sourceId: string | null; assetIds: string[]
-  attachments?: NoteAttachment[]; originPath?: string
+  attachments?: NoteAttachment[]; originPath?: string; favorite?: boolean; isTemplate?: boolean
 }
 export interface NoteAttachment { id: string; name: string; bytes: number }
 export const ATTACHMENT_WARNING = 10 * 1024 * 1024
@@ -25,11 +25,16 @@ export interface NoteView {
 export interface NoteSaveInput { noteId?: string; expectedHeads: string[]; content: NoteContent }
 export interface NoteListItem {
   excerpt?: string
+  favorite?: boolean; isTemplate?: boolean
   noteId: string; heads: string[]; title: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest' }
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[] }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
+export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
+export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
+export interface NoteHistoryItem { revision: string; recordedAt: string; title: string; summary: string; status: NoteStatus }
+export interface NoteCatalog { tags: Array<{tag: string; count: number}> }
 export interface NotebookRevision {
   version: 1; notebookId: string; revision: string; parents: string[]; recordedAt: string
   title: string; status: NoteStatus; defaultSelectedAt?: string
@@ -64,6 +69,11 @@ export interface ConversationExportRequest {
   snapshotHash?:string; convertedImages?:Array<{assetId:string;png:string}>
 }
 export interface NotesApiContract {
+  '/notes/manage': { request: NoteManageRequest; response: { ok: true; completed: string[]; note?: NoteView } }
+  '/notes/catalog': { request: undefined; response: { ok: true } & NoteCatalog }
+  '/notes/history': { request: { noteId: string; cursor?: string }; response: { ok: true; items: NoteHistoryItem[]; cursor: string | null } }
+  '/notes/revision': { request: { noteId: string; revision: string }; response: { ok: true; note: NoteView } }
+  '/notes/backlinks': { request: { noteId: string }; response: { ok: true; items: NoteListItem[] } }
   '/notes/attachment': { request: { noteId: string; draft?: boolean; name: string; base64: string; allowLarge?: boolean }; response: { ok: true; attachment: NoteAttachment } }
   '/notes/batch': { request: { notes: NoteSelection[]; action: 'trash' | 'restore' | 'purge' }; response: { ok: true; completed: string[] } }
   '/notes': { request: NoteListOptions; response: NoteListResult & { ok: true } }
