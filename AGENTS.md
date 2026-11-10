@@ -1,6 +1,6 @@
 # 肥鱼笔记项目协作约定
 
-接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。[DSH 0.2.2 适配](docs/plans/2026-11-06-dsh-022-compatibility.zh.md)已完成，用户确认后正式发布 `0.6.0`；市场更名进度见[发布记录](docs/releases/0.6.0/review.zh.md)。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
+接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。当前正式版为 `0.8.0`，A—D 与性能优化已完成并发布；市场更新状态见[发布记录](docs/releases/0.8.0/review.zh.md)。下一步和候选功能取舍统一见[主规划](docs/plans/2026-11-09-product-iteration-roadmap.zh.md)：E、F 尚未实施，E 完成后由 Agent 主动发起候选清单回顾，用户确认选取范围后再开发。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
 
 ## 0. 第一规则：先规划、经批准、再实施（必须遵守）
 

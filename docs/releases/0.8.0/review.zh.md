@@ -1,6 +1,6 @@
 # 0.8.0 发布审核
 
-状态：2026-11-10，用户明确确认后，**0.8.0 已正式发布，匿名下载与公开 URL 实际安装验证通过**。原市场条目更新已提交 [PR #13891](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13891)，等待检查及维护者审核；尚未声称市场页面已显示新版。
+状态：2026-11-10，用户明确确认后，**0.8.0 已正式发布，匿名下载与公开 URL 实际安装验证通过**。原市场条目更新 [PR #13891](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13891)的 `check` 和 `Submission gate` 均已通过；本次核对仍未合并，等待维护者审核，尚未声称市场页面已显示新版。
 
 ## 审核材料
 
