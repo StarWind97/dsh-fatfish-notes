@@ -4,16 +4,16 @@
 
 保存会话、管理图文笔记、导出文件，通过自己的 GitHub 私有仓库跨设备同步。
 
-**0.7.0** 新增默认笔记本、迁入迁出、普通附件、文章互链与批量清理。详见[更新说明](docs/releases/0.7.0/release-notes.md)。
-
-**0.8.0 已进入发布审核，尚未公开发布**：新增独立窗口、自适应三栏、收藏与查找、历史恢复、批量整理、反向链接和模板，并改善读取与切换速度。见[候选更新说明](docs/releases/0.8.0/release-notes.md)与[验证记录](docs/releases/0.8.0/review.zh.md)。下方安装入口仍为公开 0.7.0。
+**0.8.0** 新增独立窗口、自适应三栏、收藏与查找、历史恢复、批量整理、反向链接和模板，并改善读取与切换速度。见[更新说明](docs/releases/0.8.0/release-notes.md)与[验证记录](docs/releases/0.8.0/review.zh.md)。
 
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
-![肥鱼笔记阅读界面](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)
+![肥鱼笔记三栏与独立窗口](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/07-three-columns.png)
 
 - **原样保存会话**：在回答下方保存当前问答，也可选择多轮、单条消息或整个会话，保留只读原始素材。
 - **Markdown 图文编辑**：原地编辑、语法与预览切换，支持标题、列表、代码块、表格和图片，跟随宿主深浅色。
+- **与会话并行使用**：在 DSH 内或独立窗口打开笔记，宽窗展开三栏；同一篇笔记可在两处交接编辑。
+- **查找、整理与复用**：收藏、最近访问、多关键词搜索与正文定位；历史预览与恢复、批量移动和修改标签、反向链接及独立模板。
 - **文件导出**：笔记和会话均可导出 Markdown、图文 ZIP、PDF、长图或分页图片。
 - **笔记本与迁入迁出**：未指定位置的笔记进入默认本；导入 Markdown 文件、文件夹或 ZIP，整库或单本导出后可供 Obsidian 等软件阅读。
 - **附件与笔记互链**：保存和下载 PDF、音频、视频等普通附件，在文章之间插入链接并跳转。
@@ -22,19 +22,19 @@
 
 ## 安装与升级
 
-当前版本为 `0.7.0`，适用于 DSH `0.2.2-rc.1`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
+当前版本为 `0.8.0`，适用于 DSH `0.2.2-rc.1`。Windows 已验证，macOS 尚未实测。请准备自己的 GitHub 账号；首次设置会检测 Git 和 GitHub CLI，缺少时提供官方安装入口。
 
-从 [0.7.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)下载 `dsh-fatfish-notes-0.7.0.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
+从 [0.8.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0)下载 `dsh-fatfish-notes-0.8.0.tgz`，不要下载自动生成的 Source code 压缩包。先打开一次 DSH 完成资料初始化，再完全退出。在终端执行以下命令，将路径替换成实际安装包位置：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.7.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
 ```
 
 重新打开 DSH，在侧栏进入「肥鱼笔记」。Web 使用者将命令中的 `desktop` 换成自己的 profile 名称。如果终端找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
 升级使用同一安装命令，替换为实际安装包路径即可，不需要先卸载或重新绑定。仅完成初始化的空库，升级后会提供默认笔记本。
 
-如已有内容，升级前确认「已同步」，关闭 DSH 并备份本机资料。同一私库的各端应一起升级；0.7.0 更新了数据格式，回退需要相配套的资料备份，不能只重装旧包。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。0.5.x 旧名称的历史迁移另见[改名规划](docs/plans/2026-11-06-fatfish-notes-rename.zh.md)。
+如已有内容，升级前确认「已同步」，关闭独立笔记窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。同一私库的各端应一起升级；0.8.0 的收藏、模板等修订字段旧版不能识别，回退需要相配套的资料备份，不能只重装旧包。卸载、备份恢复和问题反馈见[使用说明](docs/user-guide.zh.md#安装升级与卸载)。0.5.x 旧名称的历史迁移另见[改名规划](docs/plans/2026-11-06-fatfish-notes-rename.zh.md)。
 
 ## 开始使用
 
@@ -73,6 +73,8 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.7.0.tgz"
 开发按改动影响选择验证范围，具体步骤见[开发入口](docs/README.md)与[项目协作约定](AGENTS.md#验证范围)。产品行为见[设计](docs/notes-design.zh.md)，日常操作见[使用说明](docs/user-guide.zh.md)。
 
 ## 限制与反馈
+
+独立窗口目前使用 Windows 上已安装的 Chrome 或 Edge，并依赖 DSH 保持运行。关闭 DSH 后暂停编辑，重新启动同一套资料后恢复连接。收藏和模板随私库同步；最近访问保存在当前浏览器，不跨窗口或设备同步。
 
 暂不支持将笔记自动附加到会话。AI 仅在转存会话时可选建议标题、摘要和标签，正文由用户手动整理。Obsidian 实际导出兼容验证为 1.10.6；macOS 和两台物理设备之间的使用尚待实测。彻底删除不重写 Git 历史，不等同于安全擦除，也不会立即缩减历史仓库体积。
 

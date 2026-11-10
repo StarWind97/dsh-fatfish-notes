@@ -4,16 +4,16 @@
 
 Save conversations, manage notes with images, export files, and sync across devices through your own private GitHub repository.
 
-![Fatfish Notes library](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)
+![Fatfish Notes three-column layout and separate window](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/07-three-columns.png)
 
-**0.7.0** adds default notebooks, library import/export, ordinary attachments, stable note links and batch trash cleanup. See the [release notes](docs/releases/0.7.0/release-notes.md).
-
-**0.8.0 is being prepared for release and is not public yet.** It adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [candidate release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md). Installation links below still point to public 0.7.0.
+**0.8.0** adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md).
 
 ## Features
 
 - Save the current exchange, selected turns or messages, or a whole conversation. Keep the original conversation material separately from the editable note.
 - Edit Markdown in place with live previews, headings, lists, code blocks, tables and images. Follow the host's light or dark appearance.
+- Open notes alongside DSH conversations in a separate window or use the adaptive three-column layout inside DSH. Hand off editing of the same note between windows.
+- Find content with favorites, recent visits, multiword search and highlighted matches. Preview and restore revisions, organize notes in batches, follow backlinks and create notes from reusable templates.
 - Export notes or conversations as Markdown, ZIP with image attachments, PDF, a long image or paginated images.
 - Organize notes in notebooks with a default destination. Import Markdown files, folders or ZIP archives; export a notebook or the library as portable Markdown with relative image, attachment and note links.
 - Save and download ordinary files including PDF, audio and video without inline preview or playback. Files over 10 MiB require confirmation; files over 50 MiB are rejected.
@@ -23,12 +23,12 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 ## Install
 
-Current version: **0.7.0**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
+Current version: **0.8.0**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
 
-Download `dsh-fatfish-notes-0.7.0.tgz` from the [0.7.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
+Download `dsh-fatfish-notes-0.8.0.tgz` from the [0.8.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.7.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
 ```
 
 Use the actual downloaded path. Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open the notebook from the sidebar.
@@ -45,9 +45,11 @@ If an already connected notebook needs GitHub authorization again, open **Sync a
 
 ## Upgrade, limitations and feedback
 
-Upgrade with the same installation command and the actual downloaded package path. An upgrade from 0.6.0 retains the existing binding; no uninstall or setup reset is needed. An initialized empty library gains a default notebook.
+Upgrade with the same installation command and the actual downloaded package path. An upgrade from 0.7.0 retains the existing binding and notes; no uninstall or setup reset is needed.
 
-If you have content, confirm sync, quit DSH and back up the notebook folder and `DSH_HOME/fatfish-notes` before upgrading. Instances sharing one repository should upgrade together: 0.7.0 updates the data format, and a downgrade requires a matching backup. Historical 0.5.x identity migration is documented [separately](docs/plans/2026-11-06-fatfish-notes-rename.zh.md).
+If you have content, confirm sync, close the separate notebook window and DSH, and back up the notebook folder and `DSH_HOME/fatfish-notes` before upgrading. Instances sharing one repository should upgrade together: old runtimes do not understand the new favorite/template revision fields, and a downgrade requires a matching backup. Historical 0.5.x identity migration is documented [separately](docs/plans/2026-11-06-fatfish-notes-rename.zh.md).
+
+The separate window currently uses Chrome or Edge installed on Windows and relies on DSH staying open. Closing DSH pauses editing; restarting the same profile reconnects it. Favorites and templates sync through the private repository. Recent visits stay in the current browser and do not sync across windows or devices.
 
 Import/export supports ordinary Markdown, basic properties, images, attachments and common Obsidian links, not third-party plugins, canvases or databases. Open an exported copy in Obsidian; do not share the plugin's internal data directory with another editor. Actual Obsidian verification used 1.10.6.
 
