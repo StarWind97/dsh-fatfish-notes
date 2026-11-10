@@ -48,14 +48,15 @@ export class NotesWorkspace implements EditAccess {
     if(prior&&(server.serviceEpoch!==prior.serviceEpoch||server.repositoryId!==prior.repositoryId)){
       this.controller?.pauseInput(true);this.emit({connected:false,restart:true,message:'windowRestart'});return
     }
-    this.emit({server,registered:true,connected:true,...(this.state.message==='windowOffline'?{message:null}:{})})
-    if(this.surface==='standalone'&&server.theme)applyTheme(server.theme)
+    if(!this.state.connected||!this.state.registered||this.state.message==='windowOffline'||JSON.stringify(server)!==JSON.stringify(prior))
+      this.emit({server,registered:true,connected:true,...(this.state.message==='windowOffline'?{message:null}:{})})
+    if(this.surface==='standalone'&&server.theme&&JSON.stringify(server.theme)!==JSON.stringify(prior?.theme))applyTheme(server.theme)
     this.controller?.pauseInput(this.state.busy||this.state.restart)
   }
   ready():Promise<void>{
     if(this.state.registered)return Promise.resolve()
     return this.registration??=this.serial(async()=>{
-      try{this.accept(await this.call('/workspace/register',{windowId:this.windowId,surface:this.surface}))}
+      try{const server=await this.call('/workspace/register',{windowId:this.windowId,surface:this.surface});this.seenSequence=server.changeSeq;this.accept(server)}
       catch(e){this.emit({connected:false,message:'windowOffline'});throw e}
       finally{this.registration=undefined}
     })
@@ -92,7 +93,7 @@ export class NotesWorkspace implements EditAccess {
       if(c?.getSnapshot().editing&&!this.writable(c.getSnapshot().noteId!)){
         c.pauseInput(true);this.emit({message:'windowLeaseLost'})
       }
-      if(s.changeSeq!==this.seenSequence){this.seenSequence=s.changeSeq;if(c&&!c.getSnapshot().loadingList)await c.refresh(true,true)}
+      if(s.changeSeq!==this.seenSequence&&c&&!c.getSnapshot().loadingList){this.seenSequence=s.changeSeq;await c.refresh(true,true)}
       const h=s.handoff
       if(h?.incoming&&c&&!this.handling&&!c.getSnapshot().composing&&!c.importing){
         this.handling=true;this.emit({busy:true});c.pauseInput(true)

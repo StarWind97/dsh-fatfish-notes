@@ -16,6 +16,8 @@ export declare class NoteRepository {
     private readonly changeListeners;
     onChange(listener: () => void): () => void;
     private readonly now;
+    private validated;
+    private writeEpoch;
     constructor(directory: string, options?: NoteRepositoryOptions);
     /** Only before admitting any client operations, during setup or host startup. */
     useDirectory(directory: string): void;

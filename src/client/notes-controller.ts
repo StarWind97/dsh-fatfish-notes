@@ -28,7 +28,7 @@ export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Prom
 export class NotesController {
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){++this.navigation;++this.listing;++this.jobGeneration;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
+  switched(){++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
@@ -37,6 +37,11 @@ export class NotesController {
   private polling = false
   private bookSaving = false
   private disposed = false
+  private listAbort:AbortController|undefined
+  private detailAbort:AbortController|undefined
+  private booksReady=false
+  private booksGeneration=0
+  private booksRequest:Promise<void>|undefined
   private readonly imageImports=new Set<Promise<void>>()
   private imageAbort=new AbortController()
   private readonly draftImages = new Map<string,string>()
@@ -71,7 +76,7 @@ export class NotesController {
   private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
   recentIds(){return this.visits().read()}
   private inputPaused=false
-  pauseInput(value:boolean){this.inputPaused=value;this.emit({})}
+  pauseInput(value:boolean){if(this.inputPaused===value)return;this.inputPaused=value;this.emit({})}
   get writable(){return !this.inputPaused&&(!this.state.noteId||!this.options.editing||this.options.editing.writable(this.state.noteId))}
   showError(code:string){this.emit({error:code})}
   private journal(){
@@ -113,17 +118,31 @@ export class NotesController {
   getSnapshot = () => this.state
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
   private emit(patch: Partial<NotesState>) { if (this.disposed) return; this.state = { ...this.state, ...patch }; this.listeners.forEach(fn => fn()) }
-  async refresh(reset = true, includeSelected = false) {
+  private refreshBooks(force:boolean):Promise<void>{
+    if(!force&&this.booksReady)return Promise.resolve()
+    if(this.booksRequest&&!force)return this.booksRequest
+    const generation=++this.booksGeneration
+    const request=this.call('/notes/notebooks',undefined).then(books=>{
+      if(generation!==this.booksGeneration)return
+      this.booksReady=true;this.emit({notebooks:books.notebooks})
+    }).catch(()=>{if(generation===this.booksGeneration){this.booksReady=false;this.emit({listError:true})}}).finally(()=>{if(this.booksRequest===request)this.booksRequest=undefined})
+    this.booksRequest=request;return request
+  }
+  async refresh(reset = true, includeSelected = false, refreshBooks = true) {
     const selected = includeSelected ? this.refreshSelected() : Promise.resolve()
     const generation = ++this.listing, filter = this.state.filter
+    this.listAbort?.abort();const abort=this.listAbort=new AbortController()
     this.emit({ loadingList: true, listError: false })
+    // Start the useful list first. Slow notebook counts must not delay its display.
+    const list=this.call('/notes', { order:'recent', ...filter, limit: 50, ...(!reset && this.state.cursor ? { cursor: this.state.cursor } : {}) },abort.signal)
+    const books=this.refreshBooks(refreshBooks)
     try {
-      const [result, books] = await Promise.all([this.call('/notes', { order:'recent', ...filter, limit: 50, ...(!reset && this.state.cursor ? { cursor: this.state.cursor } : {}) }), this.call('/notes/notebooks', undefined)])
+      const result = await list
       if (generation !== this.listing) return
       const items = reset ? result.items : [...this.state.items, ...result.items.filter(x => !this.state.items.some(v => v.noteId === x.noteId))]
-      this.emit({ items, cursor: result.cursor, notebooks: books.notebooks, loadingList: false })
+      this.emit({ items, cursor: result.cursor, loadingList: false })
     } catch { if (generation === this.listing) this.emit({ loadingList: false, listError: true }) }
-    finally { await selected }
+    finally { await Promise.all([selected,...(refreshBooks?[books]:[])]) }
   }
   /** Pulls refresh reading mode; an active editor keeps its original revision base. */
   private async refreshSelected(): Promise<void> {
@@ -139,7 +158,7 @@ export class NotesController {
       }
     } catch { if (this.ownsDetail(request)) this.emit({ listError: true }) }
   }
-  filter(filter: NoteListOptions) { this.emit({ filter }); return this.refresh() }
+  filter(filter: NoteListOptions) { this.emit({ filter }); return this.refresh(true,false,false) }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
     if(!await this.prepareLeave())return
     const navigation=this.navigation
@@ -268,16 +287,18 @@ export class NotesController {
   private accept(note: NoteView, request: DetailRequest): boolean {
     if (note.noteId !== request.noteId || !this.ownsDetail(request)) return false
     if (request.kind !== 'operation' && ((request.kind!=='open'&&this.state.editing) || this.state.dirty || this.state.composing || this.state.saving)) return false
+    if(request.kind==='sync'&&equal(note,this.state.note))return true
     this.emit({ editing:request.kind === 'open' ? false : this.state.editing, noteId: note.noteId, note, draft: noteContent(note), dirty: false, error: null, conflict: note.heads.length > 1 ? note : null, loadingNote: false, jobs: [], jobsError: false, jobsCursor: null }); void this.refreshJobs()
     return true
   }
   async open(noteId: string): Promise<boolean> {
     if (this.disposed || !await this.prepareLeave()) return false
     const generation = ++this.navigation
+    this.detailAbort?.abort();const abort=this.detailAbort=new AbortController()
     this.emit({ section: 'notes', loadingNote: true, error: null })
     const request = this.detailRequest('open', noteId)
     try {
-      const result = await this.call('/notes/get', { noteId })
+      const result = await this.call('/notes/get', { noteId },abort.signal)
       if (generation !== this.navigation) return false
       const accepted=this.accept(result.note, request)
       if(accepted&&result.note.current.status==='active'&&!result.note.current.isTemplate)this.visits().visit(noteId)
@@ -420,5 +441,5 @@ export class NotesController {
     } catch (e) { if (this.ownsDetail(request)) { this.emit({ error: errorCode(e) }); if (errorCode(e) === 'note_conflict' || errorCode(e) === 'ai_stale') await this.loadConflict(request) }; return false }
     finally { if (this.ownsDetail(request)) { this.emit({ operation: false }); void this.refreshJobs() } }
   }
-  dispose() { this.clearTimers();if(this.state.dirty)this.journal();this.clearDraftImages(); this.disposed = true; this.imageAbort.abort(); ++this.navigation; ++this.listing; this.listeners.clear() }
+  dispose() { this.clearTimers();if(this.state.dirty)this.journal();this.clearDraftImages(); this.disposed = true; this.imageAbort.abort();this.listAbort?.abort();this.detailAbort?.abort(); ++this.navigation; ++this.listing;++this.booksGeneration; this.listeners.clear() }
 }

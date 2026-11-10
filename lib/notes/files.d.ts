@@ -17,5 +17,6 @@ export declare class NoteFiles {
     scan(): Promise<{
         paths: string[];
         bytes: number;
+        fingerprint: string;
     }>;
 }

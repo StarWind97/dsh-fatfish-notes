@@ -41,16 +41,19 @@ export class NoteRepository {
   private readonly changeListeners = new Set<() => void>()
   onChange(listener: () => void): () => void { this.changeListeners.add(listener); return () => { this.changeListeners.delete(listener) } }
   private readonly now: () => number
+  private validated: { fingerprint: string; state: State } | undefined
+  private writeEpoch = 0
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
-    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
+    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
   }
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
+    this.validated = undefined
     this.files = new NoteFiles(resolve(directory, 'notes'), this.files.beforeWrite)
   }
   private run<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T> {
     const result = (queues.get(this.files.root) ?? Promise.resolve()).then(() => { signal?.throwIfAborted(); return work() })
-    const tail = result.catch(() => {}); queues.set(this.files.root, tail)
+    const tail = result.catch(() => { this.validated = undefined }); queues.set(this.files.root, tail)
     void tail.finally(() => { if (queues.get(this.files.root) === tail) queues.delete(this.files.root) })
     return result
   }
@@ -90,8 +93,11 @@ export class NoteRepository {
     }
   }
   private async load(): Promise<State> {
+    const listing = await this.files.scan(), epoch = this.writeEpoch
+    if (this.validated?.fingerprint === listing.fingerprint) return structuredClone(this.validated.state)
+    this.validated = undefined
     const state: State = { version: 1, revisions: [], notebooks: [], issues: [], blocked: new Set(), detachedRevisions: [], detachedNotebooks: [], acknowledgedPaths: [] }
-    const paths = (await this.files.scan()).paths
+    const paths = listing.paths
     state.deleted = []
     for (const path of paths.filter(p => p.startsWith('deleted/'))) {
       const noteId = readDeletion(JSON.parse(utf8(await this.files.read(path, 1024))) as unknown)
@@ -169,6 +175,10 @@ export class NoteRepository {
     this.limits(state)
     if (state.deleted.length && !state.issues.length) await this.cleanDeleted(state, paths)
     await this.ensureNotebooks(state)
+    // Never retain an interrupted/migrated/externally changing graph. Return a separate
+    // copy so callers and write operations cannot mutate the cached validation result.
+    if (!state.issues.length && epoch === this.writeEpoch && (await this.files.scan()).fingerprint === listing.fingerprint)
+      this.validated = { fingerprint: listing.fingerprint, state: structuredClone(state) }
     return state
   }
   private limits(state: NoteObjects): void {
@@ -509,10 +519,13 @@ export class NoteRepository {
       this.limits(next); this.complete(next)
       for (const r of incoming.filter(r => !deleted.includes(r.noteId))) this.writable(next, r.noteId)
       for (const r of incomingBooks) this.writable(next, r.notebookId)
-      for (const r of incoming.filter(r => !deleted.includes(r.noteId))) await checkReferences(this.files, r)
+      // load() has just checked the local objects and their dependencies against disk.
+      // Identical immutable hashes need no second reference scan or atomic publication.
+      const localNotes = new Set(s.revisions.map(r => r.revision)), localBooks = new Set(s.notebooks.map(r => r.revision))
+      for (const r of incoming.filter(r => !deleted.includes(r.noteId) && !localNotes.has(r.revision))) await checkReferences(this.files, r)
       const noteHashes = new Set(incoming.map(r => r.revision)), notebookHashes = new Set(incomingBooks.map(r => r.revision))
-      for (const r of topologicalOrder(notebooks, r => r.notebookId)) if (notebookHashes.has(r.revision)) await this.files.write(notebookPath(r), canonical(r), true)
-      for (const r of topologicalOrder(revisions, r => r.noteId)) if (noteHashes.has(r.revision)) await this.files.write(notePath(r), canonical(r), true)
+      for (const r of topologicalOrder(notebooks, r => r.notebookId)) if (notebookHashes.has(r.revision) && !localBooks.has(r.revision)) await this.files.write(notebookPath(r), canonical(r), true)
+      for (const r of topologicalOrder(revisions, r => r.noteId)) if (noteHashes.has(r.revision) && !localNotes.has(r.revision)) await this.files.write(notePath(r), canonical(r), true)
       for (const noteId of deleted) await this.files.write(`deleted/${noteId}.json`, deletionData(noteId), true)
       for (const noteId of new Set([...incoming, ...s.detachedRevisions].map(r => r.noteId).filter(n => !deleted.includes(n)))) { await this.external(next, noteId); await this.document(next, noteId) }
       await this.splitConflicts(next)

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, lstat, readdir, open, rename, link, unlink } from 'node:fs/promises'
 import { resolve, dirname, join, parse } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -84,9 +84,9 @@ export class NoteFiles {
     } finally { await unlink(temp).catch(e => { if (!missing(e)) throw e }) }
     await syncDirectory(dirname(path))
   }
-  async scan(): Promise<{ paths: string[]; bytes: number }> {
+  async scan(): Promise<{ paths: string[]; bytes: number; fingerprint: string }> {
     await safePath(this.root)
-    const paths: string[] = []; let bytes = 0, entries = 0
+    const paths: string[] = [], stamps: string[] = []; let bytes = 0, entries = 0
     const walk = async (directory: string, prefix: string, depth: number): Promise<void> => {
       if (depth > 8) fail('note_path')
       let listing = await readdir(directory, { withFileTypes: true }).catch(e => { if (missing(e)) return []; throw e })
@@ -102,17 +102,22 @@ export class NoteFiles {
           if (target.isFile() && !target.isSymbolicLink() && target.ino === staged.ino && target.dev === staged.dev && target.nlink === 2) { await unlink(join(directory, entry.name)); await syncDirectory(directory); break }
         }
       }
-      listing = await readdir(directory, { withFileTypes: true }).catch(e => { if (missing(e)) return []; throw e })
+      if (listing.some(e => /^\.tmp-[0-9a-f-]{36}$/.test(e.name)))
+        listing = await readdir(directory, { withFileTypes: true }).catch(e => { if (missing(e)) return []; throw e })
       for (const entry of listing) {
         if (++entries > NOTE_LIMITS.revisions * 3) fail('note_limit')
         const path = join(directory, entry.name), rel = `${prefix}${entry.name}`
-        const stat = await lstat(path)
-        if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink > 1)) fail('note_path')
+        const stat = await lstat(path, { bigint: true })
+        if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink > 1n)) fail('note_path')
         if (stat.isDirectory()) await walk(path, `${rel}/`, depth + 1)
-        else if (stat.isFile()) { bytes += stat.size; if (bytes > NOTE_LIMITS.scan) fail('note_limit', '笔记扫描超过 512 MiB'); paths.push(rel) }
+        else if (stat.isFile()) {
+          bytes += Number(stat.size); if (bytes > NOTE_LIMITS.scan) fail('note_limit', '笔记扫描超过 512 MiB'); paths.push(rel)
+          // Nanosecond change time detects replacements and writes even if mtime is restored.
+          stamps.push(JSON.stringify([rel,String(stat.dev),String(stat.ino),String(stat.size),String(stat.mtimeNs),String(stat.ctimeNs)]))
+        }
         else fail('note_path')
       }
     }
-    await walk(this.root, '', 0); return { paths: paths.sort(), bytes }
+    await walk(this.root, '', 0); return { paths: paths.sort(), bytes, fingerprint: createHash('sha256').update(stamps.sort().join('\n')).digest('hex') }
   }
 }
