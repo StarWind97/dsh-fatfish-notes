@@ -1,6 +1,6 @@
 # Update Fatfish Notes (肥鱼笔记) to 0.8.0
 
-Preparation draft — submit only after the release is public and its download and installation have been verified.
+Release: https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0
 
 ## Summary
 
@@ -14,7 +14,9 @@ Supported host remains DSH 0.2.2-rc.1, verified on Windows. Independent windows 
 
 Candidate checks are recorded in the [release review](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/docs/releases/0.8.0/review.zh.md): type checking and build passed; the 261-test suite passed 260 initially, with one Windows directory rename error passing two unchanged targeted reruns. All 151 packaged files matched the isolated installation. Actual public 0.7.0 data upgraded with notes, images and attachments intact. Two-window saves, editing protection, history preview, private GitHub sync and restart persistence passed. The runtime matches the previously reviewed performance package.
 
-Candidate SHA-256: `43bdf1002d304d3d588ba64c3f07a9f741bbbd98d0633509ec353ec3a360f3b4`. This is not yet a public asset. Replace it with the final package digest and add anonymous download/public URL installation results before submitting this PR. No public verification is claimed while this document is a draft.
+Published package SHA-256: `359b175cf89f509c41002efbbd94c52b7f7ee101c75c66b7490ade44e23289f9` (15,033,583 bytes). Only the two README files differ from the reviewed candidate; runtime code and dependencies are identical.
+
+Anonymous downloads of the public tarball, checksum file, icon and all eight declared screenshots matched local bytes. The exact public tarball URL was installed into an isolated DSH profile: all 151 files matched. The embedded and separate windows opened successfully; existing notes, archived images, attachment bytes and history preview passed. Sync with the designated private test repository completed with no pending changes or page errors. No npm publication is required.
 
 ## Upgrade boundary
 

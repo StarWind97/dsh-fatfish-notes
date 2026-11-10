@@ -1,14 +1,23 @@
 # 0.8.0 发布审核
 
-状态：2026-11-10，用户已明确确认「正式发布 0.8.0，并更新原插件市场条目」。发布前检查已完成，现执行正式发布；公开下载、安装及市场 PR 结果将在本页补记。
+状态：2026-11-10，用户明确确认后，**0.8.0 已正式发布，匿名下载与公开 URL 实际安装验证通过**。原市场条目更新已提交 [PR #13891](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13891)，等待检查及维护者审核；尚未声称市场页面已显示新版。
 
 ## 审核材料
 
 - [发布说明](release-notes.md)
-- [市场条目草稿](marketplace-entry.yml)与 [PR 正文草稿](marketplace-pr.md)
+- [市场条目](marketplace-entry.yml)与 [PR 正文](marketplace-pr.md)
 - [准备规划](../../plans/2026-11-10-release-080.zh.md)、[性能实测](../../plans/2026-11-10-performance-results.zh.md)与[功能验收](../../plans/2026-11-10-bcd-results.zh.md)
 
-公开版本仍为 0.7.0，其市场更新 [PR #13502](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13502)已于 2026-11-10 08:14（北京时间）合并。本次更新原条目，不重复申请收录。
+上版 0.7.0 的市场更新 [PR #13502](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13502)已于 2026-11-10 08:14（北京时间）合并。本次更新同一个条目，不重复申请收录。
+
+## 正式发布与公开安装
+
+- [GitHub Release v0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0)于 2026-11-10 16:17（北京时间）公开，为正式版及最新发布，非草稿或预发布。
+- 发布标签对应源码 `c8128cea16e76b400a258a6c97856a2c30a91ca2`，包含下述最终包的说明更新；后续发布记录按正常提交补充，不移动标签或替换资产。
+- 安装包、SHA-256 文件、图标和 8 张展示截图均使用无授权请求下载，内容逐项匹配本机文件。
+- 使用公开 Release URL 实际安装至项目内 `release12-desktop` 隔离 profile，全部 151 个安装文件与正式包一致。嵌入笔记页面和独立三栏窗口均打开正常，默认笔记本、既有正文、归档图片、普通附件字节及历史预览通过，无页面错误。
+- 2026-11-10 16:27（北京时间）指定私库同步成功，状态 `idle/pending=false`。测试后关闭自建 DSH 和 Chrome；未改动日常资料，也未调用模型额度。
+- 本轮证据：`.dsh-home/pure-001/release080/` 中的 `publication.json`、`public.json`、`public-installed.json`、`public-smoke.json` 和 `public-installed.png`。体验入口现为已公开的正式安装包。
 
 ## 正式包核对
 
@@ -19,7 +28,7 @@
 ## 最终检查
 
 - 审核候选包：`dist/fatfish-080-candidate-43bdf1002d30.tgz`，151 个文件，15,033,279 字节。
-- 候选 SHA-256：`43bdf1002d304d3d588ba64c3f07a9f741bbbd98d0633509ec353ec3a360f3b4`。正式包将更新中英文安装说明并重新核对，最终校验值另记，不覆盖本候选记录。
+- 候选 SHA-256：`43bdf1002d304d3d588ba64c3f07a9f741bbbd98d0633509ec353ec3a360f3b4`。正式包已更新中英文安装说明并重新核对，最终校验值见上文，不覆盖本候选记录。
 - 与用户已体验的性能优化包逐文件比较，仅 `package.json` 和中英文 README 改变；运行代码、依赖和其他打包文件相同。无测试 profile、源码、缓存或凭据，字体与必要许可证均随包分发。
 - 已实际安装到 `release12-desktop` 隔离资料，版本为 0.8.0，151 个文件与包逐项一致。
 - 按发布第三档依次完成类型检查、构建和全量回归。全量 261 项首次 260 项通过、1 项失败，无跳过，约 13 分 39 秒。失败发生在「切换到已有 B 仓库」测试创建 Git 缓存时，Windows 目录重命名返回 `EPERM`，不是断言差异；具体占用来源未确认。保持代码、断言与测试目录配置不变，该项单独连续复测两次均通过。没有把首次失败改写成一次全绿，也没有放宽校验或修改产品代码。
@@ -54,7 +63,7 @@
 
 独立页面首次加载单次为 1.269 秒；DSH 侧栏就绪后点击笔记至正文显示单次为 1.736 秒。两项首次加载均不作为稳定性承诺。自动脚本中包含 DSH 侧栏启动等待的 5.943 秒不作为插件首次加载时长。原前后对比及约 4000 字符文章补验沿用相同运行代码的[性能交付](../../plans/2026-11-10-performance-results.zh.md)，不重复测旧版基线，也不推断数千篇资料库速度。
 
-原始记录为 `.dsh-home/pure-001/release080/verification.json`、`candidate.json`、`metrics-summary.json`。测试结束已关闭自建 DSH 和 Chrome，仍可通过 [Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)重新体验候选版。没有操作日常 DSH 或调用模型额度。macOS、两台物理设备、硬断电与大型真实资料库仍未覆盖。
+原始记录为 `.dsh-home/pure-001/release080/verification.json`、`candidate.json`、`metrics-summary.json`。测试结束已关闭自建 DSH 和 Chrome；[Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)现已换为上述公开正式包。没有操作日常 DSH 或调用模型额度。macOS、两台物理设备、硬断电与大型真实资料库仍未覆盖。
 
 ## 实际效果
 
@@ -64,8 +73,10 @@
 
 ![历史版本预览](../../../assets/screenshots/08-history.png)
 
-## 发布确认后
+## 市场更新
 
-更新中英文 README 的公开下载入口，核对最终包与已审核包的运行代码一致，再创建 `v0.8.0` 标签和 GitHub Release、上传安装包及 SHA-256 文件；匿名下载和公开 URL 安装通过后提交市场更新。说明文件变化不重跑未受影响的全量测试，最终包采用最终摘要。
+更新原条目的 [PR #13891](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13891)仅修改 `data/plugins/StarWind97__dsh-fatfish-notes.yml`，更新中英文简介及 0.8.0 安装包地址，保留仓库、名称、分类和图标。核对相对提交时上游主分支只有一个提交、一个文件差异；未编辑生成的 README，也未创建新插件条目。
+
+分支为 `StarWind97:codex/update-fatfish-notes-0-8-0`，提交 `364fae97ffb572566e6d0a02f0bc6b179e60a89d`。证据为 `.dsh-home/pure-001/release080/market-submit.json`；维护者合并和市场目录刷新仍由上游处理。
 
 不发布 npm。市场提交、维护者合并和市场页面可见分别核对，不将提交成功当作已经上架。

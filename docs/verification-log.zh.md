@@ -1,6 +1,14 @@
 # 肥鱼笔记验证记录
 
-2026-11-10 更新。当前正式版为 [0.7.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)，原 0.6.1 开发功能统一随本版发布；[0.6.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.6.0)和旧名称下的 [0.5.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.5.1)作为历史版本保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+2026-11-10 更新。当前正式版为 [0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0)，包含 A—D 与性能优化；此前版本及旧名称下的发布作为历史保留。下方历史记录中的名称、路径和发布状态描述的是当时版本，不将旧验收改写为新验收。
+
+## 2026-11-10 0.8.0 正式发布
+
+用户明确批准后，正式发布标签 `v0.8.0` 指向 `c8128cea16e76b400a258a6c97856a2c30a91ca2`。安装包及校验文件已公开；最终 SHA-256 为 `359b175cf89f509c41002efbbd94c52b7f7ee101c75c66b7490ade44e23289f9`。与审核候选逐文件比较仅两个 README 改变，运行代码和依赖一致，沿用下述发布级测试，不重跑未受影响的全量回归。
+
+无授权下载安装包、校验文件、图标和 8 张截图，字节一致。使用公开 URL 安装到隔离 DSH，151 个文件全部匹配；实际嵌入与独立窗口、既有笔记和默认本、图片和附件、历史预览及指定私库同步通过，无页面错误，`idle/pending=false`。自建窗口已关闭，日常资料未改。证据及完整边界见[发布记录](releases/0.8.0/review.zh.md)。
+
+原市场条目更新已提交 [PR #13891](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13891)，只改一个 YAML 条目的简介和安装包 URL。市场合并、页面可见与 GitHub 正式发布分别记录。未发布 npm，未启动 E、F 新功能。
 
 ## 2026-11-10 0.8.0 发布前准备
 

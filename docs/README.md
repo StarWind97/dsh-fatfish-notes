@@ -1,6 +1,6 @@
 # 肥鱼笔记开发入口
 
-产品为 **肥鱼笔记 / Fatfish Notes**，定位为私人笔记管理。用户审核确认后，[0.7.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0) 已正式发布，包含笔记本管理、Markdown 迁入迁出、普通附件、文章互链与批量清理，沿用 [DSH 0.2.2 适配](plans/2026-11-06-dsh-022-compatibility.zh.md)。未发布 npm；市场更新进度与安装包校验值见[发布记录](releases/0.7.0/review.zh.md)。
+产品为 **肥鱼笔记 / Fatfish Notes**，定位为私人笔记管理。[0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0) 已按用户确认正式发布，包含独立窗口、自适应三栏、查找整理、历史恢复、模板与性能优化，沿用 [DSH 0.2.2 适配](plans/2026-11-06-dsh-022-compatibility.zh.md)。未发布 npm；公开安装、市场更新状态和校验值见[发布记录](releases/0.8.0/review.zh.md)。
 
 代码仓库、包标识统一为 `dsh-fatfish-notes`；控制目录及新建私人库建议名为 `fatfish-notes`。本地工作目录 `D:\DSH-Workspace\dsh-github-notebook` 保留，现有私人库也不强制改名。运行代码不保留旧品牌兼容分支。
 
@@ -8,9 +8,9 @@
 
 ## 当前版本
 
-2026-11-10 用户认可 A—D 和性能优化体验，现已按[发布准备规划](plans/2026-11-10-release-080.zh.md)完成 **0.8.0 候选包及最终验证**，等待正式发布确认。检查结果和待确认事项见[发布审核](releases/0.8.0/review.zh.md)。公开下载与市场条目仍为 0.7.0；其市场 PR #13502 已合并。
+2026-11-10 用户确认正式发布 0.8.0，并更新原插件市场条目；[准备规划](plans/2026-11-10-release-080.zh.md)已完成。GitHub Release 已公开，市场提交和维护者合并分别记录，不将发布等同于市场已更新。
 
-**0.7.0 已在 GitHub 正式发布。** 本次汇总下述原 0.6.1 开发功能，0.6.1 不另行发布。源码及公开安装包已更新；市场 PR、维护者合并与页面可见状态分别记录于[发布记录](releases/0.7.0/review.zh.md)，不将 GitHub 发布等同于市场已更新。
+上版 **0.7.0** 汇总了下述原 0.6.1 开发功能，0.6.1 未单独发布，其发布与市场合并记录[保留](releases/0.7.0/review.zh.md)。
 
 `0.6.0` 以 DSH 0.2.2-rc.1 为基线，适配新版会话图片读取；包含更名、阅读与编辑章节目录、宽窄布局与章节高亮、独立滚动、首次初始化系统目录选择及取消/恢复默认。首次设置只使用同名新目录或空目录，已有云端库下载为新的本地副本。自动保存、五分钟双向同步、会话选材转存与文件导出继续保留。
 
@@ -30,13 +30,13 @@
 
 已验证宿主组合为 Windows / Node 24.21.0 / DSH 0.2.2-rc.1。macOS、两台物理设备仍待实测。体验入口不自动更新宿主；DSH 侧栏的「新版本」是宿主更新提示，与插件包版本分别核对。
 
-性能检查随影响范围进入规划、开发和验收，遵循[性能约定](../AGENTS.md#性能贯穿规划开发与验收)。2026-11-10 已完成[读取与切换优化](plans/2026-11-10-performance.zh.md)，作为 A—D 集中验收前的修正；[实际耗时与体验入口](plans/2026-11-10-performance-results.zh.md)记录同一资料的前后对比。该优化现已合入 0.8.0 候选包，仍未对外发布。
+性能检查随影响范围进入规划、开发和验收，遵循[性能约定](../AGENTS.md#性能贯穿规划开发与验收)。2026-11-10 已完成[读取与切换优化](plans/2026-11-10-performance.zh.md)，作为 A—D 集中验收前的修正；[实际耗时与体验入口](plans/2026-11-10-performance-results.zh.md)记录同一资料的前后对比。该优化已随 0.8.0 正式发布。
 
 ## 本机隔离体验
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装 0.8.0 候选包**，包含 A—D 功能及性能优化，尚未公开发布；最新包摘要、验证与回退见[发布审核](releases/0.8.0/review.zh.md)，功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。此入口已安装并核验公开 0.8.0 包；最终摘要、安装和同步结果见[发布记录](releases/0.8.0/review.zh.md)。功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。历史验证图册保留在 `output/playwright/`，证据及备份位于 `.dsh-home/pure-001/`，均由 Git 忽略。Windows 已验证；不将同机副本称为两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
@@ -44,10 +44,10 @@
 
 2026-11-09 用户已确认由[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)统一维护顺序和阶段状态：**A 自适应布局与并行使用 → B 查找 → C 整理与恢复 → D 关联与复用 → 统一发布验收与确认 → E 会话复用 → F AI 输出**。原 E 提前并编号为 D，原 D 顺延为 E；A—D 集中发布，不按每个开发阶段分别发版。保存和同步的实际问题优先处理。
 
-**用户已初步体验认可 A—D 及性能优化，当前进入 0.8.0 发布前准备。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)记录本轮范围，[B—D 交付](plans/2026-11-10-bcd-results.zh.md)记录效果、验证和体验方法。[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)、[A2 记录](plans/2026-11-09-a2-layout-results.zh.md)、[A1 结果](plans/2026-11-09-a1-layout-window-results.zh.md)与[样稿说明](prototypes/a1-layout/README.md)保留前序证据。公开版仍为 0.7.0，本轮未正式发布。
+**用户已体验认可 A—D 及性能优化，并确认正式发布 0.8.0。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)、[交付](plans/2026-11-10-bcd-results.zh.md)和[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)保留功能与验证证据，原型和内部包记录作为历史材料。
 
-由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。下一步修正体验反馈、准备集中发布审核，明确获准后才发布。E 会话侧栏与 F AI 输出仍需另行细化方案和批准。
+由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。本轮正式发布已获确认，市场进度以发布记录为准。E 会话侧栏与 F AI 输出仍需另行细化方案和批准。
 
-[独立窗口小范围验证](plans/2026-11-09-independent-window-validation.zh.md)是 A1 之前的证据：Chrome 应用窗口与隔离 DSH 共用同一笔记服务，保存、同地址关闭重开及会话图文转存可行；补充本机刷新后新笔记可自动出现。前期原型结果见 A1 记录；正式编辑保护、主题跟随与独立入口现已在阶段 A 内部包完成，公开 0.7.0 仍无此入口。
+[独立窗口小范围验证](plans/2026-11-09-independent-window-validation.zh.md)是 A1 之前的证据：Chrome 应用窗口与隔离 DSH 共用同一笔记服务，保存、同地址关闭重开及会话图文转存可行；补充本机刷新后新笔记可自动出现。前期原型结果见 A1 记录；正式编辑保护、主题跟随与独立入口已随 0.8.0 发布。
 
 会话侧栏及笔记关联、宿主 AI 分析与输出延续此前[备忘](plans/2026-11-08-default-notebook.zh.md#后续备忘未进入详细规划)，具体接口和使用场景仍需验证。Markdown 导入已在 0.7.0 完成；直接附加到会话保留为待验证项，不因宿主内部存在附件方法就承诺已经可以集成。
