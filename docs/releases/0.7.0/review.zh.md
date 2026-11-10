@@ -1,6 +1,6 @@
 # 0.7.0 发布审核
 
-状态：2026-11-09 用户审核通过后，[0.7.0 已正式发布](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)。市场更新已提交 [PR #13502](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13502)，当前 OPEN，自动检查进行中，尚未合并；不宣称市场页面已更新。
+状态：2026-11-09 用户审核通过后，[0.7.0 已正式发布](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.7.0)。市场更新已提交 [PR #13502](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/13502)，已于 2026-11-10 08:14（北京时间）合并；当前 0.8.0 发布准备已只读复核。不据此宣称用户本机市场缓存已经刷新。
 
 ## 正式发布与市场
 

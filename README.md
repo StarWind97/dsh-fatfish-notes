@@ -6,6 +6,8 @@
 
 **0.7.0** 新增默认笔记本、迁入迁出、普通附件、文章互链与批量清理。详见[更新说明](docs/releases/0.7.0/release-notes.md)。
 
+**0.8.0 已进入发布审核，尚未公开发布**：新增独立窗口、自适应三栏、收藏与查找、历史恢复、批量整理、反向链接和模板，并改善读取与切换速度。见[候选更新说明](docs/releases/0.8.0/release-notes.md)与[验证记录](docs/releases/0.8.0/review.zh.md)。下方安装入口仍为公开 0.7.0。
+
 在 DeepSeek Harness 中把一轮问答、选中的几轮消息或整个会话保存为私人笔记。在纸页笔记库阅读、编辑 Markdown、粘贴图片和导出文件。首次使用需连接一个专用 GitHub 私有仓库。完成首次同步后可在本机保存，并在自己的设备之间继续工作。
 
 ![肥鱼笔记阅读界面](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/01-library.png)

@@ -8,6 +8,8 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 **0.7.0** adds default notebooks, library import/export, ordinary attachments, stable note links and batch trash cleanup. See the [release notes](docs/releases/0.7.0/release-notes.md).
 
+**0.8.0 is being prepared for release and is not public yet.** It adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [candidate release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md). Installation links below still point to public 0.7.0.
+
 ## Features
 
 - Save the current exchange, selected turns or messages, or a whole conversation. Keep the original conversation material separately from the editable note.

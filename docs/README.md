@@ -8,6 +8,8 @@
 
 ## 当前版本
 
+2026-11-10 用户认可 A—D 和性能优化体验，现已按[发布准备规划](plans/2026-11-10-release-080.zh.md)完成 **0.8.0 候选包及最终验证**，等待正式发布确认。检查结果和待确认事项见[发布审核](releases/0.8.0/review.zh.md)。公开下载与市场条目仍为 0.7.0；其市场 PR #13502 已合并。
+
 **0.7.0 已在 GitHub 正式发布。** 本次汇总下述原 0.6.1 开发功能，0.6.1 不另行发布。源码及公开安装包已更新；市场 PR、维护者合并与页面可见状态分别记录于[发布记录](releases/0.7.0/review.zh.md)，不将 GitHub 发布等同于市场已更新。
 
 `0.6.0` 以 DSH 0.2.2-rc.1 为基线，适配新版会话图片读取；包含更名、阅读与编辑章节目录、宽窄布局与章节高亮、独立滚动、首次初始化系统目录选择及取消/恢复默认。首次设置只使用同名新目录或空目录，已有云端库下载为新的本地副本。自动保存、五分钟双向同步、会话选材转存与文件导出继续保留。
@@ -28,13 +30,13 @@
 
 已验证宿主组合为 Windows / Node 24.21.0 / DSH 0.2.2-rc.1。macOS、两台物理设备仍待实测。体验入口不自动更新宿主；DSH 侧栏的「新版本」是宿主更新提示，与插件包版本分别核对。
 
-性能检查随影响范围进入规划、开发和验收，遵循[性能约定](../AGENTS.md#性能贯穿规划开发与验收)。2026-11-10 已完成[读取与切换优化](plans/2026-11-10-performance.zh.md)，作为 A—D 集中验收前的修正；[实际耗时与体验入口](plans/2026-11-10-performance-results.zh.md)记录同一资料的前后对比。最新隔离入口已安装该优化包，版本字段仍为 0.7.0，未对外发布。
+性能检查随影响范围进入规划、开发和验收，遵循[性能约定](../AGENTS.md#性能贯穿规划开发与验收)。2026-11-10 已完成[读取与切换优化](plans/2026-11-10-performance.zh.md)，作为 A—D 集中验收前的修正；[实际耗时与体验入口](plans/2026-11-10-performance-results.zh.md)记录同一资料的前后对比。该优化现已合入 0.8.0 候选包，仍未对外发布。
 
 ## 本机隔离体验
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装 A—D 功能及性能优化的内部体验包**，版本字段沿用 0.7.0，内容不同于公开包；最新包摘要、验证与回退见[性能交付](plans/2026-11-10-performance-results.zh.md)，功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。**此入口目前安装 0.8.0 候选包**，包含 A—D 功能及性能优化，尚未公开发布；最新包摘要、验证与回退见[发布审核](releases/0.8.0/review.zh.md)，功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。公开安装入口仍为 [0.7.0](releases/0.7.0/review.zh.md)，原 0.6.1 构建记录[保留](releases/0.6.1/review.zh.md)。公开版本图册为 `output/playwright/release070/index.html`，默认笔记本此前截图位于 `output/playwright/default-books/`，记录及备份位于 `.dsh-home/pure-001/`。此前市场诊断证据见 `output/playwright/market061/`；新版宿主既有图册位于 `output/playwright/compat022/index.html`，此前改名截图位于 `output/playwright/rename060/`，均由 Git 忽略。Web 的跨实例宿主同步证据仍为 0.6.0；默认本批次另验证了两个本地 Git 副本的同步，不将其称为两个真实宿主或两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
@@ -42,7 +44,7 @@
 
 2026-11-09 用户已确认由[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)统一维护顺序和阶段状态：**A 自适应布局与并行使用 → B 查找 → C 整理与恢复 → D 关联与复用 → 统一发布验收与确认 → E 会话复用 → F AI 输出**。原 E 提前并编号为 D，原 D 顺延为 E；A—D 集中发布，不按每个开发阶段分别发版。保存和同步的实际问题优先处理。
 
-**当前为 A—D 统一体验验收：B 查找、C 整理恢复、D 关联复用已实现并通过组合验证，现集中交付。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)记录本轮范围，[B—D 交付](plans/2026-11-10-bcd-results.zh.md)记录效果、验证和体验方法。[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)、[A2 记录](plans/2026-11-09-a2-layout-results.zh.md)、[A1 结果](plans/2026-11-09-a1-layout-window-results.zh.md)与[样稿说明](prototypes/a1-layout/README.md)保留前序证据。公开版仍为 0.7.0，本轮未正式发布。
+**用户已初步体验认可 A—D 及性能优化，当前进入 0.8.0 发布前准备。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)记录本轮范围，[B—D 交付](plans/2026-11-10-bcd-results.zh.md)记录效果、验证和体验方法。[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)、[A2 记录](plans/2026-11-09-a2-layout-results.zh.md)、[A1 结果](plans/2026-11-09-a1-layout-window-results.zh.md)与[样稿说明](prototypes/a1-layout/README.md)保留前序证据。公开版仍为 0.7.0，本轮未正式发布。
 
 由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。下一步修正体验反馈、准备集中发布审核，明确获准后才发布。E 会话侧栏与 F AI 输出仍需另行细化方案和批准。
 
