@@ -22,7 +22,7 @@ export interface RepositoryInspection {
     initialized: boolean;
 }
 export interface ChangeSet {
-    files: ReadonlyMap<string, string | Uint8Array | null>;
+    files: ReadonlyMap<string, string | Uint8Array | (() => Promise<Uint8Array>) | null>;
 }
 export interface Reconciliation {
     state: 'synced' | 'pending' | 'unknown';

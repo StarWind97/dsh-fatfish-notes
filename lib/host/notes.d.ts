@@ -1,11 +1,22 @@
+import type { CaptureProgress } from '../contracts/notes.js';
+import type { ConversationFileServices } from './conversation-files.js';
 import type { NoteJobOverview } from '../contracts/notes.js';
+import { NoteTransfers } from './note-transfers.js';
 import { NoteRepository } from '../notes/repository.js';
 import { type NoteModelController } from './note-model.js';
 import { NoteEnrichment } from '../notes/enrichment.js';
+import { exportLibrary } from '../notes/export/library.js';
 /** Composed facade owns every note operation through cancellation and drain. */
 export declare class NotesApplication {
     private readonly ready;
+    private readonly services;
     readonly repository: NoteRepository;
+    readonly transfers: NoteTransfers;
+    private readonly usageReader;
+    usage(signal?: AbortSignal): Promise<{
+        ok: true;
+        usage: import("./note-usage.js").NoteUsage;
+    }>;
     private readonly captureService;
     private readonly conversation;
     private readonly controller;
@@ -14,7 +25,39 @@ export declare class NotesApplication {
     readonly enrichment: NoteEnrichment;
     private readonly timer;
     private ticking;
-    constructor(directory: string, provider: () => NoteModelController | undefined, ready?: () => boolean | 'busy');
+    private captureProgress;
+    progress(input: unknown): {
+        ok: true;
+        progress: CaptureProgress | null;
+    };
+    constructor(directory: string, provider: () => NoteModelController | undefined, ready?: () => boolean | 'busy', services?: ConversationFileServices);
+    reference(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        instruction: string;
+        files: number;
+    }>;
+    transfer(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        uploadId: string;
+        offset: number;
+        asset?: never;
+        attachment?: never;
+    } | {
+        ok: true;
+        asset: import("../notes/types.js").NoteAsset;
+        uploadId?: never;
+        offset?: never;
+        attachment?: never;
+    } | {
+        ok: true;
+        attachment: import("../contracts/notes.js").NoteAttachment;
+        uploadId?: never;
+        offset?: never;
+        asset?: never;
+    } | {
+        ok: true;
+    }>;
+    localOperation<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T>;
     private run;
     capture(input: unknown, signal?: AbortSignal): Promise<{
         enrichmentJobId: string | null;
@@ -54,6 +97,7 @@ export declare class NotesApplication {
         messages: import("../contracts/notes.js").CaptureMessage[];
         complete: boolean;
         issues: string[];
+        materials?: import("../contracts/notes.js").CaptureMaterial[];
         ok: true;
     }>;
     get(input: unknown, signal?: AbortSignal): Promise<{
@@ -96,6 +140,10 @@ export declare class NotesApplication {
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;
         ok: true;
+    }>;
+    associate(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        note: import("../contracts/notes.js").NoteView;
     }>;
     save(input: unknown, signal?: AbortSignal): Promise<{
         forkedFrom?: string;
@@ -153,8 +201,9 @@ export declare class NotesApplication {
         ok: true;
         source: Record<string, unknown>;
     }>;
+    conversationFile(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
     export(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
-    exportLibrary(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
+    exportLibrary(input: unknown, signal?: AbortSignal, sink?: Parameters<typeof exportLibrary>[3]): Promise<import("../notes/export/service.js").ExportFile>;
     exportFont(signal?: AbortSignal): Promise<Buffer<ArrayBufferLike>>;
     exportConversation(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile & {
         warnings: string;

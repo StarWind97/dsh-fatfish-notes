@@ -17,6 +17,8 @@ const selection={ok:true,cut:{throughSeq:111,capturedAt:'2026-11-01T00:00:00.000
 test('capture from a middle answer preserves custom turns across whole-session mode and sends the chosen scope',async()=>{
   const requests:CaptureRequest[]=[]
   const bridge=new NoteCaptureBridge(async(path,input)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if(path==='/notes/selection')return {...selection,defaultMessageIds:['m2','m3']} as never
     requests.push(input as CaptureRequest);return {ok:true,messageCount:4} as never
   })
@@ -43,6 +45,8 @@ test('capture from a middle answer preserves custom turns across whole-session m
 test('cancelling inline selection discards picks and options; remounted rows read the active session and snapshot',async()=>{
   const saved:CaptureRequest[]=[]
   const bridge=new NoteCaptureBridge(async(path,input)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if(path==='/notes/selection')return {...selection,defaultMessageIds:['m4','m5']} as never
     saved.push(input as CaptureRequest);return {ok:true,messageCount:2} as never
   })
@@ -65,6 +69,8 @@ test('M4 independent AI options survive receipt loss/reload and keep the raw sav
   const note = materializeNote([revision], revision.noteId)
   const job: NoteJob = { version:1,jobId:'b'.repeat(64),captureRequestId:'unused',sessionId:'session',noteId:note.noteId,sourceId:revision.sourceId!,baseRevision:revision.revision,mode:'metadata',autoMetadata:true,status:'failed',error:'ai_no_candidate',stages:[{kind:'final',input:'original',assetIds:[],attempt:1,requestId:'attempt',status:'failed',result:null,error:'ai_no_candidate'}],candidate:null,adoption:null }
   const call: Api = async (path,body) => {
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if (path === '/notes/selection') return selection as never
     if (path === '/notes/job' || path === '/notes/job/retry') { if (path === '/notes/job/retry') completed = true; return {ok:true,job:{...job,status:completed?'completed':'failed'}} as never }
     if (path === '/notes/get') return {ok:true,note} as never
@@ -83,6 +89,8 @@ test('M3 both entry points use full selection; lost response retries same identi
   const data=new Map<string,string>(),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const requests:CaptureRequest[]=[];let fail=true
   const call:Api=async(path,body)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if(path==='/notes/selection')return selection as never
     if(path==='/notes/capture'){requests.push(body as CaptureRequest);if(fail)throw new Error('receipt lost');return{ok:true,messageCount:2} as never}
     throw new Error('unexpected')
@@ -96,7 +104,7 @@ test('M3 both entry points use full selection; lost response retries same identi
 })
 test('M3 cancellation retains request and does not report success from stale asynchronous response',async()=>{
   let done!:(v:unknown)=>void
-  const call:Api=async(path)=>path==='/notes/selection'?selection as never:await new Promise<unknown>(resolve=>{done=resolve}) as never
+  const call:Api=async(path)=>path==='/notes/session-context'?{ok:true,workspace:null,notebookId:null} as never:path==='/notes/selection'?selection as never:await new Promise<unknown>(resolve=>{done=resolve}) as never
   const bridge=new NoteCaptureBridge(call);await bridge.open('session');const saving=bridge.save(),id=bridge.getSnapshot()?.request?.requestId
   bridge.close();done({ok:true});await saving
   assert.equal(bridge.getSnapshot(),null);assert.ok(id)
@@ -116,6 +124,8 @@ test('M3 P2 limit failure can reselect a local answer while retaining the origin
   const data=new Map<string,string>(),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const requests:CaptureRequest[]=[];let selectionCalls=0,limit=true
   const call:Api=async(path,body)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if(path==='/notes/selection'){selectionCalls++;return selection as never}
     const request=body as CaptureRequest;requests.push(request)
     if(request.scope==='session'&&limit)throw new ApiError('note_limit')
@@ -141,6 +151,8 @@ test('M3 P2 unknown receipt and cancellation allow explicit reselection without 
   const data=new Map<string,string>(),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const requests:CaptureRequest[]=[];let fail='network'
   const call:Api=async(path,body,signal)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if(path==='/notes/selection')return selection as never
     requests.push(body as CaptureRequest)
     if(fail==='network')throw new ApiError('network')
@@ -162,7 +174,10 @@ test('pending capture keeps its recovery identity after restarting',async()=>{
   const original:CaptureRequest={requestId:'pending-request',sessionId:'session',scope:'session',mode:'raw',autoMetadata:false,notebookId:null}
   const data=new Map([['fatfish-notes-private:capture:unbound:session',JSON.stringify({version:1,requests:[{request:original,error:null}]})]]),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const requests:CaptureRequest[]=[]
-  const call:Api=async(path,body)=>{if(path==='/notes/selection')return selection as never;requests.push(body as CaptureRequest);return{ok:true,messageCount:2} as never}
+  const call:Api=async(path,body)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never;
+    if(path==='/notes/selection')return selection as never;requests.push(body as CaptureRequest);return{ok:true,messageCount:2} as never}
   const bridge=new NoteCaptureBridge(call,storage);await bridge.open('session','m111');assert.deepEqual(bridge.getSnapshot()?.request,original)
   await bridge.reselect();await bridge.save();bridge.dispose()
   const next=new NoteCaptureBridge(call,storage);await next.open('session');assert.deepEqual(next.getSnapshot()?.request,original);await next.save()

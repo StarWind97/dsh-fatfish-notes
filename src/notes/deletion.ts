@@ -11,4 +11,5 @@ export function withoutDeleted(objects: NoteObjects, deleted = objects.deleted ?
   const set = new Set(deleted)
   return { ...objects, revisions: objects.revisions.filter(r => !set.has(r.noteId)), ...(deleted.length ? { deleted: [...set].sort() } : {}) }
 }
-export function moduleVersion(objects: NoteObjects): 1 | 2 { return objects.deleted?.length || objects.revisions.some(r => r.attachments !== undefined || r.originPath !== undefined) ? 2 : 1 }
+/** New capacity and metadata require a writer that understands format 3. */
+export function moduleVersion(_objects: NoteObjects): 3 { return 3 }

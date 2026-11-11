@@ -2,7 +2,7 @@ import { ExportError } from './model.js'
 import { EXPORT_LIMITS } from './layout.js'
 
 /** Bounded header inspection before asking a decoder to allocate a full raster. */
-export function imageDimensions(bytes: Uint8Array): { width: number; height: number } {
+export function imageDimensions(bytes: Uint8Array,limits:{side:number;imagePixels:number}=EXPORT_LIMITS): { width: number; height: number } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   const ascii = (start: number, count: number) => String.fromCharCode(...bytes.subarray(start, start + count))
   let width = 0, height = 0
@@ -30,6 +30,6 @@ export function imageDimensions(bytes: Uint8Array): { width: number; height: num
     }
   } catch { throw new ExportError('export_image_decode') }
   if (!width || !height) throw new ExportError('export_image_decode')
-  if (width > EXPORT_LIMITS.side || height > EXPORT_LIMITS.side || width * height > EXPORT_LIMITS.imagePixels) throw new ExportError('export_image_budget')
+  if (width > limits.side || height > limits.side || width * height > limits.imagePixels) throw new ExportError('export_image_budget')
   return { width, height }
 }

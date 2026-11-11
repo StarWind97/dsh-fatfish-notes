@@ -8,7 +8,8 @@ import { search, searchKeymap } from '@codemirror/search'
 import type { NotesController,NotesState } from '../notes-controller.js'
 import { resolveNoteImage } from '../NoteMarkdown.js'
 import {api} from '../api.js'
-import {AttachmentDialog,base64File} from '../NoteAttachments.js'
+import {uploadFile} from '../import-worker-client.js'
+import {AttachmentDialog} from '../NoteAttachments.js'
 import {noteLinkId,markdownLabel} from '../../contracts/note-links.js'
 import type {NoteListItem} from '../../contracts/notes.js'
 import { safePublicUrl } from '../safe-url.js'
@@ -57,18 +58,18 @@ export function PaperWriting(props:Props){
     if(!inputs.length)return
     const {from,to}=view.state.selection.main,original=view.state.sliceDoc(from,to),at={from,to}
     pending.current.add(at);setInfo(t('paperImporting'))
-    const inserts:string[]=[];let failed=false
+    const inserts:string[]=[],fallback:File[]=[];let failed=false
     return controller.queueImageImport(async signal=>{
     try{
       for(const input of inputs){
         try{
-          const asset=await archiveInput(noteId,input,signal,!controller.getSnapshot().note);signal.throwIfAborted()
+          const asset=await archiveInput(noteId,input,signal,!controller.getSnapshot().note,controller.api);signal.throwIfAborted()
           known.current.add(asset.id)
           if('file' in input)controller.rememberImage(asset.id,input.file)
-          else if(asset.preview)controller.rememberImage(asset.id,asset.preview)
+          else if('preview' in asset&&asset.preview)controller.rememberImage(asset.id,asset.preview)
           const alt=(input.label||t('noteImage')).replace(/[\[\]\\\r\n]/g,' ')
           inserts.push('!['+alt+'](../assets/'+asset.id+')')
-        }catch{signal.throwIfAborted();failed=true;if('url' in input)inserts.push(input.url)}
+        }catch(error){signal.throwIfAborted();failed=true;if('file' in input&&/image_limit|image_type/.test(String(error)))fallback.push(input.file);if('url' in input)inserts.push(input.url)}
       }
       if(controller.getSnapshot().noteId!==noteId)return
       if(inserts.length){
@@ -82,7 +83,8 @@ export function PaperWriting(props:Props){
         const follow=view.state.selection.main.from===at.from&&view.state.selection.main.to===end
         view.dispatch({changes:{from:at.from,to:end,insert},...(follow?{selection:{anchor:at.from+insert.length}}:{}),userEvent:'input.paste'})
       }
-      setInfo(t(failed?'paperImageFail':'paperImported'))
+      if(fallback.length)chooseAttachments(fallback)
+      setInfo(t(fallback.length?'imageAsFile':failed?'paperImageFail':'paperImported'))
     }catch{if(editor.current===view)setInfo(t('paperImageFail'))}
     finally{pending.current.delete(at)}
     })
@@ -92,13 +94,13 @@ export function PaperWriting(props:Props){
     const {from,to}=v.state.selection.main,at={from,to};attachmentAt.current=at;pending.current.add(at);setAttachmentFiles(files)
   }
   function closeAttachments(){if(attachmentAt.current)pending.current.delete(attachmentAt.current);attachmentAt.current=null;setAttachmentFiles([]);editor.current?.focus()}
-  async function attachFiles(files:File[]){
-    return controller.queueImageImport(async signal=>{
-      let failed=false
+  async function attachFiles(files:File[],cancel:AbortSignal,progress:(value:{bytes:number;total:number;path:string})=>void){
+    return controller.queueImageImport(async queueSignal=>{
+      const signal=AbortSignal.any([queueSignal,cancel]);let failed=false
       for(const file of files){try{
         const draft=controller.getSnapshot().draft!
-        if((draft.attachments??[]).reduce((n,a)=>n+a.bytes,0)+file.size>200*1024*1024)throw new Error('limit')
-        const {attachment}=await api('/notes/attachment',{noteId,draft:!controller.getSnapshot().note,name:file.name,base64:await base64File(file),allowLarge:true},signal)
+        const {attachment}=await uploadFile(file,{noteId,draft:!controller.getSnapshot().note},controller.api,signal,progress)
+        if(!attachment)throw new Error('attachment_failed')
         signal.throwIfAborted()
         const current=controller.getSnapshot().draft!,attachments=[...(current.attachments??[]).filter(a=>a.id!==attachment.id),attachment]
         controller.update({attachments})

@@ -36,7 +36,7 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。此入口已安装并核验公开 0.8.0 包；最终摘要、安装和同步结果见[发布记录](releases/0.8.0/review.zh.md)。功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。历史验证图册保留在 `output/playwright/`，证据及备份位于 `.dsh-home/pure-001/`，均由 Git 忽略。Windows 已验证；不将同机副本称为两台物理设备验收。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。此入口现安装 E 阶段开发候选包，供集中验收，正式版仍为 0.8.0；新功能、实际验证和体验步骤见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)。功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。历史验证图册保留在 `output/playwright/`，证据及备份位于 `.dsh-home/pure-001/`，均由 Git 忽略。Windows 已验证；不将同机副本称为两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
@@ -46,7 +46,7 @@
 
 **用户已体验认可 A—D 及性能优化，并确认正式发布 0.8.0。** [B—D 方案](plans/2026-11-10-bcd-implementation.zh.md)、[交付](plans/2026-11-10-bcd-results.zh.md)和[阶段 A 交付](plans/2026-11-10-stage-a-results.zh.md)保留功能与验证证据，原型和内部包记录作为历史材料。
 
-由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。本轮正式发布已获确认，市场进度以发布记录为准。2026-11-10 已按授权完成 [E0 可行性验证](plans/2026-11-10-e0-conversation-validation.zh.md)：侧栏和关联具备实施条件，直接附加暂受公共接口限制。[E1—E3 具体方案](plans/2026-11-10-stage-e-implementation.zh.md)已提出，待用户确认后开发；F AI 输出未启动。
+由 Agent 跟踪进度、安排实现与验证、提供效果和体验指引；用户参与验收、必要取舍及正式发布确认，无需维护节点。用户已授权连续实施 B、C、D，完成后集中体验；已批准范围不重复求授权。本轮正式发布已获确认，市场进度以发布记录为准。2026-11-10 已按授权完成 [E0 可行性验证](plans/2026-11-10-e0-conversation-validation.zh.md)：侧栏和关联具备实施条件，直接附加暂受公共接口限制。[E1—E3 具体方案](plans/2026-11-10-stage-e-implementation.zh.md)已获本轮授权，现已接入会话侧栏、关联、文件选择、后台导入和材料引用，已完成隔离验收，待用户集中体验；F AI 输出未启动。
 
 常用功能统一维护于主规划的[候选清单](plans/2026-11-09-product-iteration-roadmap.zh.md#候选清单)，允许根据反馈和验证结果增删改。2026-11-10 用户确认：E 完成实施与验收后，Agent 在阶段交付中主动发起回顾，按必要性、可行性提出补齐、保留或移除建议，由用户决定选取范围和顺序。候选项不自动获得实施授权，也不要求全部完成后才能进入 F。
 
@@ -54,8 +54,8 @@
 
 [独立窗口小范围验证](plans/2026-11-09-independent-window-validation.zh.md)是 A1 之前的证据：Chrome 应用窗口与隔离 DSH 共用同一笔记服务，保存、同地址关闭重开及会话图文转存可行；补充本机刷新后新笔记可自动出现。前期原型结果见 A1 记录；正式编辑保护、主题跟随与独立入口已随 0.8.0 发布。
 
-会话侧栏及笔记关联已从此前[备忘](plans/2026-11-08-default-notebook.zh.md#后续备忘未进入详细规划)进入 E0 验证和待批准的 E 专项方案；AI 分析与输出仍属 F。Markdown 导入已在 0.7.0 完成；原生直接附加尚不具备完整公共接入条件，继续延期，不新增下载后手工附加入口。[材料引用补验](plans/2026-11-10-e0-material-reference-validation.zh.md)已验证宿主保存副本、输入框插入说明、模型读图文和重启恢复；“引用到当前会话”已纳入 E 整合方案待审，本项不额外解决会话材料跨设备同步。
+会话侧栏及笔记关联已从此前[备忘](plans/2026-11-08-default-notebook.zh.md#后续备忘未进入详细规划)进入已批准的 E 专项实施与集中验收；AI 分析与输出仍属 F。Markdown 导入已在 0.7.0 完成；原生直接附加尚不具备完整公共接入条件，继续延期，不新增下载后手工附加入口。[材料引用补验](plans/2026-11-10-e0-material-reference-validation.zh.md)已验证宿主保存副本、输入框插入说明、模型读图文和重启恢复；“引用到当前会话”已在 E 开发版接入，本项不额外解决会话材料跨设备同步。
 
-[普通附件与交付文件补验](plans/2026-11-10-e0-conversation-files-validation.zh.md)也已通过，包含两轮 8 项材料、33 MiB 分块读取及重启完整性。用户确认工作区对应笔记本为可改选的默认，不设置会话专用本；普通笔记归属仍可修改。上述规则、侧栏编辑、文件选择及引用已统一写入 [E 整合方案](plans/2026-11-10-stage-e-implementation.zh.md)，已通篇复核，等待用户明确允许后按 E1 → E2 → E3 推进。
+[普通附件与交付文件补验](plans/2026-11-10-e0-conversation-files-validation.zh.md)也已通过，包含两轮 8 项材料、33 MiB 分块读取及重启完整性。用户确认工作区对应笔记本为可改选的默认，不设置会话专用本；普通笔记归属仍可修改。上述规则、侧栏编辑、文件选择及引用已统一写入 [E 整合方案](plans/2026-11-10-stage-e-implementation.zh.md)，已按用户授权完成实现并进行集中验收。
 
-本轮按授权完成[图片/附件限制参考与常见规模小测](plans/2026-11-10-e-import-size-reference.zh.md)，以单个大小、合计大小及数量为重点。后续容量建议已获接受；固定单次 200 MiB 封顶按用户意见撤回。E 方案明确采用 Web Worker 执行导入重计算，异步分块处理文件，提供进度及有效取消；收起面板可继续任务，关闭运行窗口保留已完成结果。E2 内部依次完成线程/传输基础、容量与存储联动、会话材料流转，最后 E3 集中验收。单文件、图片预览、数量及整库规则统一见专项；正式代码、当前体积限制和 0.8.0 安装未变，本次没有开始 E 开发。
+本轮按授权完成[图片/附件限制参考与常见规模小测](plans/2026-11-10-e-import-size-reference.zh.md)，以单个大小、合计大小及数量为重点。后续容量建议已获接受；固定单次 200 MiB 封顶按用户意见撤回。E 方案明确采用 Web Worker 执行导入重计算，异步分块处理文件，提供进度及有效取消；收起面板可继续任务，关闭运行窗口保留已完成结果。E2 内部依次完成线程/传输基础、容量与存储联动、会话材料流转，最后 E3 集中验收。单文件、图片预览、数量及整库规则统一见专项；E 开发版已经采用新规则并安装到隔离资料；公开安装包仍为 0.8.0，正式发布另行确认。

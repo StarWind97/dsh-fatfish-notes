@@ -1,3 +1,4 @@
+import { type NoteAttachment } from '../contracts/notes.js';
 import type { ImageMediaType } from '../contracts/media.js';
 import type { NoteAsset, NoteContent } from './types.js';
 import { type NoteFiles } from './files.js';
@@ -7,3 +8,4 @@ export declare function mediaTypeFor(id: string): ImageMediaType;
 export declare function validateBodyAssets(body: string, ids: string[]): string[];
 export declare function checkReferences(files: NoteFiles, content: NoteContent): Promise<void>;
 export declare function sourceBytes(value: unknown): Buffer;
+export declare function sourceAttachments(source: Record<string, unknown>): NoteAttachment[];

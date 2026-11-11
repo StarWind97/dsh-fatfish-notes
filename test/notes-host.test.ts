@@ -28,7 +28,7 @@ test('ordinary attachments require size consent and download with scope, MIME an
     const response=await fetch(url);assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),'application/octet-stream');assert.match(response.headers.get('content-disposition')??'',/^attachment;/);assert.equal(response.headers.get('x-content-type-options'),'nosniff');assert.equal(await response.text(),'<script>alert(1)</script>')
     assert.equal((await fetch(url,{headers:{'sec-fetch-site':'cross-site'}})).status,403)
     assert.equal((await fetch(url.replace(uploaded.attachment.id,'f'.repeat(64)))).status,404)
-    await assert.rejects(app.notes.attachment({...payload,base64:Buffer.alloc(10*1024*1024+1).toString('base64')}),{code:'attachment_large'})
+    await assert.rejects(app.notes.attachment({...payload,base64:Buffer.alloc(50*1024*1024+1).toString('base64')}),{code:'attachment_large'})
   }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
 })
 
@@ -104,7 +104,7 @@ test('M3 facade close aborts and drains in-flight paging, refuses new writes',as
 
 test('M3 P2 real 129-image host rejection recovers to two-message capture through the reply entry',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'notes-limit-reselect-')),f=fixture(),app=new NotesApplication(dir,()=>f.controller)
-  f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:Array.from({length:129},(_,i)=>({type:'image',attachment:{attachmentId:`image-${i}`,mediaType:'image/png'}}))}}
+  f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:Array.from({length:129},(_,i)=>({type:'image',attachment:{attachmentId:`image-${i}`,mediaType:'image/png',bytes:1,width:1,height:1}}))}}
   const data=new Map<string,string>(),storage={getItem:(k:string)=>data.get(k)??null,setItem:(k:string,v:string)=>{data.set(k,v)},removeItem:(k:string)=>{data.delete(k)}}
   const call:Api=async(path,body,signal)=>{if(path==='/notes/selection')return await app.selection(body,signal) as never;if(path==='/notes/capture')return await app.capture(body,signal) as never;throw new Error('unexpected')}
   const first=new NoteCaptureBridge(call,storage)

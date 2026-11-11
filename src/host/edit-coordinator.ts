@@ -22,7 +22,7 @@ export class EditCoordinator {
   constructor(private readonly repository:()=>number|null,private readonly generation:()=>number,private readonly now=Date.now){}
   private prune(){const now=this.now();for(const [id,l] of this.leases)if(l.expiresAt<=now)this.leases.delete(id);if(this.transfer&&(this.transfer.expiresAt<=now||!this.leases.has(this.transfer.noteId)))this.transfer=null;for(const [id,s] of this.sessions)if(s.seen+24*60*60*1000<now&&!Array.from(this.leases.values()).some(l=>l.windowId===id))this.sessions.delete(id)}
   register(windowId:string,surface:WindowSurface){
-    this.prune();if(!/^[a-f0-9-]{36}$/.test(windowId)||!['embedded','standalone'].includes(surface))return fail('window_invalid')
+    this.prune();if(!/^[a-f0-9-]{36}$/.test(windowId)||!['embedded','standalone','conversation'].includes(surface))return fail('window_invalid')
     const existing=this.sessions.get(windowId);if(existing&&existing.surface!==surface)return fail('window_invalid')
     this.sessions.set(windowId,{surface,seen:this.now()});return this.state({windowId,serviceEpoch:this.epoch})
   }

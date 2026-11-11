@@ -1,3 +1,4 @@
+import {TransferProgress} from './TransferProgress.js'
 import * as React from 'react'
 import {createRoot} from 'react-dom/client'
 import {NotesPage} from './NotesPage.js'
@@ -15,4 +16,4 @@ workspace.bind(library);workspace.start();notebookSync.start()
 bindLibraryLifecycle(library)
 window.addEventListener('fatfish-notes-before-reset',event=>{const s=library.getSnapshot();if(s.dirty||s.saving||s.operation||library.importing)event.preventDefault()})
 window.addEventListener('fatfish-notes-switched',()=>location.reload())
-createRoot(document.getElementById('app')!).render(<Boundary t={translate}><SettingsPage t={translate}><NotesPage controller={library} workspace={workspace} surface="standalone" t={translate}/></SettingsPage></Boundary>)
+createRoot(document.getElementById('app')!).render(<Boundary t={translate}><SettingsPage t={translate}><NotesPage controller={library} workspace={workspace} surface="standalone" t={translate}/></SettingsPage><TransferProgress t={translate}/></Boundary>)

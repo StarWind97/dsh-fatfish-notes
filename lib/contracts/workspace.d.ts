@@ -1,4 +1,4 @@
-export type WindowSurface = 'embedded' | 'standalone';
+export type WindowSurface = 'embedded' | 'standalone' | 'conversation';
 export interface WindowIdentity {
     windowId: string;
     serviceEpoch: string;

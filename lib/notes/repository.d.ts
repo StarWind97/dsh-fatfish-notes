@@ -17,6 +17,7 @@ export declare class NoteRepository {
     onChange(listener: () => void): () => void;
     private readonly now;
     private validated;
+    private readonly sourceSessions;
     private writeEpoch;
     constructor(directory: string, options?: NoteRepositoryOptions);
     /** Only before admitting any client operations, during setup or host startup. */
@@ -38,6 +39,7 @@ export declare class NoteRepository {
     private external;
     private append;
     list(options?: NoteListOptions, signal?: AbortSignal): Promise<NoteListResult>;
+    associate(noteId: string, heads: string[], sessionId: string, linked: boolean, signal?: AbortSignal): Promise<NoteView>;
     get(noteId: string, signal?: AbortSignal): Promise<NoteView>;
     getRevision(noteId: string, revision: string, signal?: AbortSignal): Promise<NoteRevision>;
     history(noteId: string, cursor?: string, signal?: AbortSignal): Promise<{

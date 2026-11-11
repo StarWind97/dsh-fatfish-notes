@@ -14,6 +14,7 @@ import {NotesApplication} from '../src/host/notes.js'
 import type {Api} from '../src/client/api.js'
 import {digest,canonical} from '../src/notes/validation.js'
 const content: NoteContent = { title: '迁移测试', body: '正文', summary: '', tags: [], notebookId: null, status: 'active', sourceId: null, assetIds: [] }
+async function collected(file:{bytes:Buffer;stream?:()=>AsyncIterable<Uint8Array>}){if(!file.stream)return file.bytes;const rows:Buffer[]=[];for await(const row of file.stream())rows.push(Buffer.from(row));return Buffer.concat(rows)}
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=', 'base64')
 async function fixture(t: { after(fn: () => Promise<void>): void }) {
   const dir = await mkdtemp(join(tmpdir(), 'fatfish-portability-')); t.after(() => rm(dir, { recursive: true, force: true }))
@@ -25,7 +26,7 @@ test('ordinary attachments retain filenames and bytes through save, edit and res
   const reopened = new NoteRepository(dir)
   assert.deepEqual((await reopened.get(note.noteId)).current.attachments, [file])
   assert.deepEqual(await reopened.getAttachment(file.id), bytes)
-  await assert.rejects(repo.putAttachment(Buffer.alloc(50*1024*1024+1), 'too-big.mp4'))
+  await assert.rejects(repo.putAttachment(Buffer.alloc(100*1024*1024+1), 'too-big.mp4'))
   await assert.rejects(repo.save({ expectedHeads: [], content: { ...content, attachments: [{ ...file, bytes: file.bytes+1 }] } }))
 })
 test('permanent deletion retains shared attachments and removes originals, revisions and exclusive files', async t => {
@@ -63,15 +64,15 @@ test('library export roundtrips notebook folders, links, YAML, binary files and 
   const b=await repo.save({expectedHeads:[],content:{...content,title:'重复标题',notebookId:book.notebookId,body:'## 目标章节\n\n原样正文'}})
   const a=await repo.save({expectedHeads:[],content:{...content,title:'重复标题',notebookId:book.notebookId,summary:'摘要：中文',tags:['测试'],assetIds:[image.id],attachments:[file],body:`[另一篇](fatfish-note:${b.noteId})\n\n![图](../assets/${image.id})\n\n[视频](../attachments/${file.id}.bin)\n\n\`[代码链接](fatfish-note:${b.noteId})\``}})
   const trashed=await repo.save({expectedHeads:[],content:{...content,title:'不可导出回收站'}});await repo.trash(trashed.noteId,trashed.heads)
-  const output=await exportLibrary(repo,{}),files=unzipSync(output.bytes),md=Object.keys(files).filter(p=>p.endsWith('.md'))
+  const output=await exportLibrary(repo,{}),outputBytes=await collected(output),files=unzipSync(outputBytes),md=Object.keys(files).filter(p=>p.endsWith('.md'))
   assert.equal(md.length,2);assert.ok(md.every(p=>p.startsWith('工作 _ 资料/')));assert.equal(new Set(md).size,2)
   const exported=md.map(p=>new TextDecoder().decode(files[p])).find(body=>body.includes('摘要：中文'))!
   assert.ok(exported.includes('[另一篇](<'));assert.ok(exported.includes(encodeURIComponent('重复标题')));assert.ok(exported.includes(`\`[代码链接](fatfish-note:${b.noteId})\``));assert.ok(exported.includes('../attachments/'));assert.ok(exported.includes('summary: "摘要：中文"'))
-  const single=unzipSync((await createExport(repo,{noteId:a.noteId,revision:a.current.revision,format:'markdown-zip'})).bytes)
+  const single=unzipSync(await collected(await createExport(repo,{noteId:a.noteId,revision:a.current.revision,format:'markdown-zip'})))
   assert.ok(Object.keys(single).some(p=>p.endsWith('.mp4')))
   const dest=await fixture(t),app=new NotesApplication(dest.dir,()=>undefined);t.after(()=>app.close())
-  const api:Api=(async(path:string,body:unknown)=>path==='/notes/image'?app.image(body):path==='/notes/attachment'?app.attachment(body):path==='/notes/get'?app.get(body):app.save(body)) as Api
-  const plan=await scanImport(unzipEntries(output.bytes).entries),target=(await app.repository.listNotebooks())[0]!.notebookId
+  const api:Api=(async(path:string,body:unknown)=>path==='/notes/transfer'?app.transfer(body):path==='/notes/image'?app.image(body):path==='/notes/attachment'?app.attachment(body):path==='/notes/get'?app.get(body):app.save(body)) as Api
+  const plan=await scanImport(unzipEntries(outputBytes).entries),target=(await app.repository.listNotebooks())[0]!.notebookId
   for(const note of plan.notes){const report=await importNote(plan,note,target,false,api);assert.deepEqual(report,[])}
   const imported=(await app.repository.list()).items,read=(await Promise.all(imported.map(n=>app.repository.get(n.noteId)))).find(n=>n.current.summary==='摘要：中文')!
   assert.equal(imported.length,2);assert.deepEqual(read.current.tags,['测试']);assert.equal(read.current.attachments?.[0]?.name.endsWith('.mp4'),true);assert.deepEqual(await app.repository.getAttachment(read.current.attachments![0]!.id),Buffer.from('ordinary video'))
@@ -82,7 +83,7 @@ test('import preserves code, reports missing/ambiguous references and never inte
   const packed=zipSync({'../escape.md':Buffer.from('no'),'.obsidian/plugins/code.js':Buffer.from('no'),'本子/正文.md':Buffer.from('---\ntitle: 正文\ntags:\n - 资料\nsummary: 内容摘要\n---\n[[目标|跳转]]\n\n![[图.png]]\n\n![missing][gone]\n\n[gone]: absent.png\n\n[音频](../audio.mp3)\n\n`[[目标]]`\n\n```md\n![[图.png]]\n```'),'本子/目标.md':Buffer.from('目标'), '本子/图.png':png,'audio.mp3':Buffer.from('audio')})
   const extracted=unzipEntries(packed);assert.equal(extracted.entries.length,4);assert.equal(extracted.warnings.length,2)
   const plan=await scanImport(extracted.entries),note=plan.notes.find(n=>n.content.title==='正文')!,{dir}=await fixture(t),app=new NotesApplication(dir,()=>undefined);t.after(()=>app.close())
-  const api:Api=(async(path:string,body:unknown)=>path==='/notes/image'?app.image(body):path==='/notes/attachment'?app.attachment(body):path==='/notes/get'?app.get(body):app.save(body)) as Api
+  const api:Api=(async(path:string,body:unknown)=>path==='/notes/transfer'?app.transfer(body):path==='/notes/image'?app.image(body):path==='/notes/attachment'?app.attachment(body):path==='/notes/get'?app.get(body):app.save(body)) as Api
   const target=(await app.repository.listNotebooks())[0]!.notebookId,report=await importNote(plan,note,target,false,api),saved=(await app.get({noteId:note.noteId})).note.current
   assert.ok(report.some(w=>w.includes('absent.png')));assert.ok(saved.body.includes('[missing][gone]'));assert.ok(!saved.body.includes('![missing]'));assert.ok(saved.body.includes('`[[目标]]`'));assert.ok(saved.body.includes('```md\n![[图.png]]\n```'));assert.equal(saved.assetIds.length,1);assert.equal(saved.attachments?.length,1);assert.ok(saved.body.includes('fatfish-note:'))
   assert.equal(convertWiki('`[[x]]`\n\n```md\n[[x]]\n```',()=>'/changed'),'`[[x]]`\n\n```md\n[[x]]\n```')

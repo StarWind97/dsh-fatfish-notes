@@ -4,9 +4,14 @@ import type { GitSnapshot } from '../git/types.js';
 import type { PrivateFiles } from '../private-workspace/types.js';
 import { NoteRepository } from './repository.js';
 import { type NoteObjects } from './types.js';
+interface LazyFile {
+    length: number;
+    load: () => Promise<Buffer>;
+}
+type StoredFile = Buffer | LazyFile;
 interface Snapshot {
     objects: NoteObjects;
-    files: Map<string, Buffer>;
+    files: Map<string, StoredFile>;
 }
 /** Immutable identity acknowledgement never includes edits made after the frozen snapshot. */
 export declare class NotesSyncModule {

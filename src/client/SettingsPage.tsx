@@ -1,3 +1,4 @@
+import {NoteUsage} from './NoteUsage.js'
 import * as React from 'react'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { BookOpen, CheckCircle2, Folder, GitBranch } from 'lucide-react'
@@ -194,7 +195,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
       <style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
       {sync.error&&<p role="alert">{sync.errorCode&&setupErrors[sync.errorCode]?t(setupErrors[sync.errorCode]!):sync.error}</p>}
       <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button>
-      <CaptureAppearance t={t}/>
+      <NoteUsage t={t} details/><CaptureAppearance t={t}/>
       {sync.ready&&<footer className="setup-reset"><button disabled={busy||sync.pending} onClick={()=>{setManage('reset');setRepo(DEFAULT_PRIVATE_REPO_NAME);setMode('create');setCustom(null);setRecovery(null);setEditingFolder(false);setPreview(null);setError(null);setNotice(null)}}>{t('resetTitle')}</button><small>{t(sync.pending?'resetPending':'resetFoot')}</small></footer>}
     </>)}
     {busy&&<p role="status">{t('setupWorking')}</p>}

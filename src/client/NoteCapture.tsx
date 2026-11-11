@@ -1,6 +1,8 @@
-import { activeNotebook } from '../notes/notebooks.js'
+import {CaptureMaterials} from './CaptureMaterials.js'
+import {CaptureNotebook} from './CaptureNotebook.js'
+import {conversationNotesCss} from './ConversationNotes.js'
 import * as React from 'react'
-import { useSyncExternalStore, useEffect, useRef, useState } from 'react'
+import { useSyncExternalStore, useEffect, useRef } from 'react'
 import { BookPlus, CheckCircle2, LoaderCircle, X } from 'lucide-react'
 import { CaptureGlyph, useCaptureAppearance } from './CaptureAppearance.js'
 import { inChatSelection } from './CaptureInline.js'
@@ -8,7 +10,6 @@ import { CaptureSelection } from './CaptureSelection.js'
 import { ConversationExportDialog } from './ConversationExport.js'
 import { api } from './api.js'
 import { noteDateTime } from '../notes/date.js'
-import type { NotebookView } from '../contracts/notes.js'
 import type { NoteCaptureBridge } from './note-capture-bridge.js'
 import type { T } from './locale.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
@@ -36,13 +37,6 @@ export function NoteCaptureAction({ bridge, sessionId, messageId, openSetup, t, 
 }
 export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptureBridge; sessionId: string; t: T }) {
   const state = useSyncExternalStore(bridge.subscribe, bridge.getSnapshot, bridge.getSnapshot), dialog = useRef<HTMLDivElement>(null)
-  const [notebooks, setNotebooks] = useState<NotebookView[]>([]), [booksFailed, setBooksFailed] = useState(false)
-  useEffect(() => {
-    if (state?.status !== 'selecting' || !state.detail || state.exporting || state.sessionId !== sessionId) return
-    const controller = new AbortController(); setBooksFailed(false)
-    void api('/notes/notebooks', undefined, controller.signal).then(result => setNotebooks(result.notebooks.filter(activeNotebook))).catch(() => { if (!controller.signal.aborted) setBooksFailed(true) })
-    return () => controller.abort()
-  }, [state?.status, state?.detail, state?.sessionId, !!state?.exporting, sessionId])
   const inline=inChatSelection(state,sessionId)
   useEffect(() => {
     if (state?.sessionId !== sessionId || inline) return
@@ -58,7 +52,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
     const timer = setInterval(() => { void bridge.refreshJob() }, 2500)
     return () => clearInterval(timer)
   }, [bridge, sessionId, state?.result?.enrichmentJobId, state?.job?.status])
-  if (!state || state.sessionId !== sessionId) return null
+  if (!state || state.sessionId !== sessionId || state.minimized ) return null
   if (inline) return null
   if(state.exporting?.dialog)return <ConversationExportDialog state={state} bridge={bridge} t={t}/>
   const busy = state.status === 'loading' || state.status === 'saving'
@@ -71,17 +65,15 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
       else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first?.focus() }
     }
   }}>
-    <style>{notesCss}</style>
+    <style>{notesCss+conversationNotesCss}</style>
     <header className="capture-head"><strong><BookPlus size={18} aria-hidden="true"/>{t(state.status==='selecting'?'captureFine':'noteCaptureReply')}</strong>
       <button type="button" aria-label={t(busy?'cancel':'noteClose')} onClick={()=>busy?bridge.cancel():bridge.close()}><X size={17} aria-hidden="true"/></button>
     </header>
     <div className="capture-scroll">
     {state.status==='selecting' && state.selection && <>
-      <CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/>
+      <CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/><CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/>
       {state.recoveries.length>0 && <p role="note">{t('noteNewSaveWarning')}</p>}
-      {!state.exporting && <div className="capture-options"><label>{t('notesNotebook')}<select value={state.notebookId??notebooks.find(b=>b.isDefault)?.notebookId??''} onChange={e=>bridge.notebook(e.target.value||null)}>
-        <option value="" disabled hidden>{t('notesDefaultBook')}</option>{notebooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}
-      </select>{booksFailed && <small role="alert">{t('notesBooksFailed')}</small>}</label>
+      {!state.exporting && <div className="capture-options"><CaptureNotebook value={state.notebookId} choose={id=>bridge.notebook(id)} workspace={state.workspace??null} t={t}/>
       <label><input type="checkbox" checked={state.autoMetadata} onChange={e=>bridge.options(e.target.checked)}/>{t('noteAutoMetadata')}</label>
       {state.autoMetadata && <small>{t('noteAiDisclosure')}</small>}</div>}
     </>}

@@ -20,7 +20,6 @@ export declare const NOTE_LIMITS: {
     readonly source: number;
     readonly image: number;
     readonly images: 128;
-    readonly imageTotal: number;
     readonly notes: 5000;
     readonly revisions: 100000;
     readonly scan: number;

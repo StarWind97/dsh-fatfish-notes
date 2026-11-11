@@ -1,5 +1,8 @@
+import type {} from '@deepseek-ai/dsh-api-workspace-files'
+import type {} from '@deepseek-ai/dsh-attachment'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
 import { createApplication } from './host/application.js'
 import { createHttpHandler, routePaths } from './host/routes.js'
@@ -13,7 +16,7 @@ export const name=PLUGIN_NAME
 export const inject=['tools']
 export async function apply(ctx:Context):Promise<void>{
   const dir=dataDirectory()
-  const app=await ownApplication(ctx,dir,()=>createApplication({dir,conversation:()=>ctx.get('sessionController'),pickFolder:signal=>pickHostFolder(ctx.get('directoryPicker'),signal)}))
+  const app=await ownApplication(ctx,dir,()=>createApplication({dir,conversation:()=>ctx.get('sessionController'),workspaces:()=>ctx.get('workspaceRegistry'),attachments:()=>ctx.get('attachments'),workspaceFiles:()=>ctx.get('workspaceFiles'),pickFolder:signal=>pickHostFolder(ctx.get('directoryPicker'),signal)}))
   await enableStandalone(app,dir)
   ctx.effect(()=>registerNoteTools(ctx.tools,app.notes),'notes tools')
   ctx.inject(['webServer'],injected=>{

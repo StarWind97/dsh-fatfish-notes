@@ -14,6 +14,8 @@ export interface NoteExportRequest {
         assetId: string;
         png: string;
     }>;
+    assetIds?: string[];
+    attachmentIds?: string[];
 }
 export interface NoteContent {
     title: string;
@@ -28,6 +30,7 @@ export interface NoteContent {
     originPath?: string;
     favorite?: boolean;
     isTemplate?: boolean;
+    sessionLinks?: string[];
 }
 export interface NoteAttachment {
     id: string;
@@ -85,6 +88,8 @@ export interface NoteListOptions {
     favorite?: boolean;
     templates?: boolean;
     recentIds?: string[];
+    sessionId?: string;
+    relation?: 'source' | 'linked';
 }
 export interface NoteListResult {
     items: NoteListItem[];
@@ -142,6 +147,9 @@ export interface CaptureRequest {
     mode: NoteMode;
     autoMetadata: boolean;
     notebookId: string | null;
+    cut?: CaptureCut;
+    materialIds?: string[];
+    allowLarge?: boolean;
 }
 export type CaptureBlock = {
     type: 'text';
@@ -154,8 +162,25 @@ export type CaptureBlock = {
 export interface CaptureMessage {
     id: string;
     seq: number;
+    turn?: number;
     role: 'user' | 'assistant';
     blocks: CaptureBlock[];
+}
+export interface CaptureMaterial {
+    id: string;
+    kind: 'image' | 'file';
+    origin: 'upload' | 'delivery';
+    name: string;
+    bytes: number | null;
+    seq: number;
+    turn?: number;
+    messageId?: string;
+    imageId?: string;
+    available: boolean;
+}
+export interface ArchivedMaterial extends CaptureMaterial {
+    saved?: NoteAttachment;
+    assetId?: string;
 }
 export interface CaptureCut {
     throughSeq: number;
@@ -166,6 +191,7 @@ export interface CaptureTranscript {
     messages: CaptureMessage[];
     complete: boolean;
     issues: string[];
+    materials?: CaptureMaterial[];
 }
 export interface CaptureSource extends CaptureTranscript {
     version: 1;
@@ -178,6 +204,7 @@ export interface CaptureSource extends CaptureTranscript {
         messageId: string;
         blockIndex: number;
     }>;
+    archivedMaterials?: ArchivedMaterial[];
 }
 export interface CaptureResult {
     note: NoteView;
@@ -209,8 +236,134 @@ export interface ConversationExportRequest {
         assetId: string;
         png: string;
     }>;
+    materialIds?: string[];
+    allowLarge?: boolean;
+}
+export interface CaptureProgress {
+    file: string;
+    bytes: number;
+    total: number;
+    done: number;
+    count: number;
+    stage: 'reading' | 'saving' | 'complete';
 }
 export interface NotesApiContract {
+    '/notes/usage': {
+        request: undefined;
+        response: {
+            ok: true;
+            usage: {
+                bytes: number;
+                gitBytes: number;
+                notes: number;
+                revisions: number;
+                level: 'normal' | 'notice' | 'large';
+                nearLimit: boolean;
+            };
+        };
+    };
+    '/notes/capture-progress': {
+        request: {
+            requestId: string;
+        };
+        response: {
+            ok: true;
+            progress: CaptureProgress | null;
+        };
+    };
+    '/notes/conversation-file': {
+        request: {
+            sessionId: string;
+            throughSeq: number;
+            messageIds: string[];
+            materialId: string;
+            hash: string;
+        };
+        response: never;
+    };
+    '/notes/reference': {
+        request: {
+            sessionId: string;
+            noteId: string;
+            revision: string;
+            assetIds: string[];
+            attachmentIds: string[];
+        };
+        response: {
+            ok: true;
+            instruction: string;
+            files: number;
+        };
+    };
+    '/notes/import-task': {
+        request: {
+            action: 'begin' | 'end' | 'heartbeat';
+            taskId?: string;
+        };
+        response: {
+            ok: true;
+            taskId?: string;
+        };
+    };
+    '/notes/transfer': {
+        request: {
+            action: 'begin' | 'chunk' | 'finish' | 'cancel';
+            noteId: string;
+            draft?: boolean;
+            name?: string;
+            size?: number;
+            mediaType?: string;
+            uploadId?: string;
+            offset?: number;
+            base64?: string;
+        };
+        response: {
+            ok: true;
+            uploadId?: string;
+            offset?: number;
+            asset?: {
+                id: string;
+                bytes: number;
+                mediaType: string;
+            };
+            attachment?: NoteAttachment;
+        };
+    };
+    '/notes/session-context': {
+        request: {
+            sessionId: string;
+        };
+        response: {
+            ok: true;
+            workspace: {
+                id: string;
+                title: string;
+            } | null;
+            notebookId: string | null;
+        };
+    };
+    '/notes/associate': {
+        request: {
+            noteId: string;
+            expectedHeads: string[];
+            sessionId: string;
+            linked: boolean;
+        };
+        response: {
+            ok: true;
+            note: NoteView;
+        };
+    };
+    '/notes/workspace-book': {
+        request: {
+            workspaceId: string;
+            notebookId?: string | null;
+        };
+        response: {
+            ok: true;
+            notebookId: string | null;
+        };
+    };
     '/notes/manage': {
         request: NoteManageRequest;
         response: {

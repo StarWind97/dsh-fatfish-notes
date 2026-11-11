@@ -1,3 +1,7 @@
+import type {MaterialReference} from '../host/conversation-files.js'
+import type {CaptureMaterial,ArchivedMaterial,CaptureProgress} from '../contracts/notes.js'
+import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
+import {materialsFor,materialMarkdown} from './capture-materials.js'
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript, NoteRevision } from '../contracts/notes.js'
 import type { ImageMediaType } from '../contracts/media.js'
 import { NoteRepository } from './repository.js'
@@ -15,20 +19,24 @@ interface CaptureJournal {
   cut: CaptureCut | null; sourceId: string | null; revision: NoteRevision | null; finished: boolean
 }
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
-export interface CaptureRead extends CaptureTranscript { imageReferences?: ReadonlyMap<string, ImageAttachmentRef> }
+export interface CaptureRead extends CaptureTranscript { imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;materialReferences?:ReadonlyMap<string,MaterialReference> }
 export interface CaptureConversation {
   open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>
   read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>
+  material?(sessionId:string,material:CaptureMaterial,reference:MaterialReference,signal:AbortSignal,progress?:(bytes:number)=>void):Promise<Buffer>
   attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{ bytes: Buffer; mediaType: ImageMediaType }>
 }
 const identifier = (v: unknown): string => { const s = text(v, 512); if (!s || /[\u0000-\u001f]/.test(s)) fail('capture_request'); return s }
 export function validateCaptureRequest(input: unknown): CaptureRequest {
   const v = object(input)
-  if (Object.keys(v).some(k => !['requestId','sessionId','scope','anchorMessageId','messageIds','mode','autoMetadata','notebookId'].includes(k))) fail('capture_request')
+  if (Object.keys(v).some(k => !['requestId','sessionId','scope','anchorMessageId','messageIds','mode','autoMetadata','notebookId','cut','materialIds','allowLarge'].includes(k))) fail('capture_request')
   if (!['turn','selection','session'].includes(String(v.scope)) || v.mode !== 'raw' || typeof v.autoMetadata !== 'boolean') fail('capture_request')
   const result: CaptureRequest = { requestId: identifier(v.requestId), sessionId: identifier(v.sessionId), scope: v.scope as CaptureRequest['scope'], mode: v.mode as CaptureRequest['mode'], autoMetadata: v.autoMetadata, notebookId: v.notebookId === null ? null : id(v.notebookId) }
   if (v.anchorMessageId !== undefined) result.anchorMessageId = identifier(v.anchorMessageId)
   if (v.messageIds !== undefined) result.messageIds = sortedStrings(v.messageIds, NOTE_LIMITS.messages, identifier)
+  if(v.materialIds!==undefined)result.materialIds=sortedStrings(v.materialIds,256,identifier)
+  if(v.allowLarge!==undefined){if(typeof v.allowLarge!=='boolean')fail('capture_request');result.allowLarge=v.allowLarge}
+  if(v.cut!==undefined){const c=object(v.cut);if(!Number.isSafeInteger(c.throughSeq)||Number(c.throughSeq)<-1||typeof c.isSeeded!=='boolean'||typeof c.capturedAt!=='string'||!Number.isFinite(Date.parse(c.capturedAt)))fail('capture_request');result.cut={throughSeq:Number(c.throughSeq),isSeeded:c.isSeeded,capturedAt:c.capturedAt}}
   if (result.scope === 'turn' && !result.anchorMessageId || result.scope === 'selection' && !result.messageIds?.length) fail('capture_request')
   return result
 }
@@ -49,7 +57,7 @@ export function selectMessages(messages: CaptureMessage[], request: Pick<Capture
 export function rawBody(source: CaptureSource): string {
   const literal = new Set(source.textOnlyBlocks.map(b => `${b.messageId}:${b.blockIndex}`))
   const fenced = (value: string): string => { let width = 3; for (const match of value.matchAll(/`+/g)) width = Math.max(width, match[0].length + 1); const fence = '`'.repeat(width); return `${fence}text\n${value}\n${fence}` }
-  return source.messages.map(m => `## ${m.role === 'user' ? '用户' : 'AI'}\n\n${m.blocks.map((b, i) => b.type === 'text' ? literal.has(`${m.id}:${i}`) ? fenced(b.text) : b.text : source.assets[b.attachmentId] ? `![会话图片](../assets/${source.assets[b.attachmentId]})` : '[图片未归档]').join('\n')}`).join('\n\n---\n\n')
+  return source.messages.map(m => `## ${m.role === 'user' ? '用户' : 'AI'}\n\n${m.blocks.map((b, i) => b.type === 'text' ? literal.has(`${m.id}:${i}`) ? fenced(b.text) : b.text : source.assets[b.attachmentId] ? `![会话图片](../assets/${source.assets[b.attachmentId]})` : source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]').join('\n')}`).join('\n\n---\n\n')+materialMarkdown(source.archivedMaterials?.filter(m=>!m.imageId||!!m.saved)??[])
 }
 function markTextOnlyImages(source: CaptureSource): void {
   const safe = (body: string): boolean => { try { validateBodyAssets(body, Object.values(source.assets)); return true } catch (e) { if (!(e instanceof NotebookError) || e.code !== 'note_asset') throw e; return false } }
@@ -67,18 +75,18 @@ function markTextOnlyImages(source: CaptureSource): void {
 export class NoteCaptureService {
   private tail: Promise<unknown> = Promise.resolve()
   constructor(readonly repository: NoteRepository, private readonly conversation: CaptureConversation) {}
-  capture(input: unknown, signal: AbortSignal = new AbortController().signal): Promise<CaptureResult> {
+  capture(input: unknown, signal: AbortSignal = new AbortController().signal,progress?:(value:CaptureProgress)=>void): Promise<CaptureResult> {
     const request = validateCaptureRequest(input)
-    const result = this.tail.catch(() => {}).then(() => this.perform(request, signal))
+    const result = this.tail.catch(() => {}).then(() => this.perform(request, signal,progress))
     this.tail = result; return result
   }
   async selection(input: CaptureSelectionRequest, signal: AbortSignal = new AbortController().signal): Promise<CaptureSelection> {
     const sessionId = identifier(input.sessionId), cut = await this.conversation.open(sessionId, signal)
     const transcript = await this.conversation.read(sessionId, cut, signal)
     const selected = input.anchorMessageId ? selectMessages(transcript.messages, { scope: 'turn', anchorMessageId: identifier(input.anchorMessageId) }) : transcript.messages
-    return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, cut, defaultMessageIds: selected.map(m => m.id) }
+    return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, ...(transcript.materials?{materials:transcript.materials}:{}), cut, defaultMessageIds: selected.map(m => m.id) }
   }
-  private async perform(request: CaptureRequest, signal: AbortSignal): Promise<CaptureResult> {
+  private async perform(request: CaptureRequest, signal: AbortSignal,progress?:(value:CaptureProgress)=>void): Promise<CaptureResult> {
     signal.throwIfAborted()
     const path = `captures/${digest(request.requestId)}.json`, files = this.repository.files
     const write = async (journal: CaptureJournal) => { const data = canonical(journal); await files.write(path, canonical({ hash: digest(data), data: journal }), false) }
@@ -104,7 +112,7 @@ export class NoteCaptureService {
       journal = { version: 1, request, noteId: ulid(), recordedAt: new Date().toISOString(), cut: null, sourceId: null, revision: null, finished: false }
       await write(journal)
     }
-    if (!journal.cut) { journal.cut = await this.conversation.open(request.sessionId, signal); await write(journal) }
+    if (!journal.cut) { journal.cut = request.cut ?? await this.conversation.open(request.sessionId, signal); await write(journal) }
     signal.throwIfAborted()
     if (!journal.sourceId) {
       const transcript = await this.conversation.read(request.sessionId, journal.cut, signal)
@@ -114,6 +122,31 @@ export class NoteCaptureService {
         if (images.has(block.attachmentId) && images.get(block.attachmentId)!.mediaType !== block.mediaType) fail('capture_attachment', '同一图片出现不一致的附件类型')
         images.set(block.attachmentId, block)
       }
+      let archivedMaterials:ArchivedMaterial[]|undefined
+      if(request.materialIds!==undefined){
+        const available=materialsFor(messages,transcript.materials??[]),selected=new Set(request.materialIds)
+        if(request.materialIds.some(id=>!available.some(m=>m.id===id)))fail('source_mismatch','材料不属于所选问答')
+        for(const kind of ['image','file'])if(available.filter(m=>selected.has(m.id)&&m.kind===kind).length>128)fail('note_limit','单篇最多 128 张图片及 128 个普通附件')
+        archivedMaterials=[];let fileCount=0,imageCount=0,done=0
+        const count=selected.size,total=available.filter(m=>selected.has(m.id)).reduce((n,m)=>n+(m.bytes??0),0);let completedBytes=0
+        for(const material of available){
+          const archived:ArchivedMaterial={...material};archivedMaterials.push(archived)
+          if(!selected.has(material.id))continue
+          if(material.bytes!==null&&material.bytes>ATTACHMENT_LIMIT)fail('attachment_limit',`“${material.name}”超过 100 MiB`)
+          if(material.bytes!==null&&material.bytes>ATTACHMENT_WARNING&&!request.allowLarge)fail('attachment_large','所选文件超过 50 MiB，请确认后继续')
+          const ref=transcript.materialReferences?.get(material.id)
+          if(!ref||!this.conversation.material)fail('capture_file_missing',`无法读取“${material.name}”，请取消选择后重试`)
+          progress?.({file:material.name,bytes:completedBytes,total,done,count,stage:'reading'})
+          const bytes=await this.conversation.material(request.sessionId,material,ref,signal,n=>progress?.({file:material.name,bytes:completedBytes+n,total,done,count,stage:'reading'}))
+          completedBytes+=bytes.length;done++;progress?.({file:material.name,bytes:completedBytes,total,done,count,stage:'saving'})
+          if(material.kind==='image'&&bytes.length<=NOTE_LIMITS.image){
+            const ext=material.name.split('.').at(-1)?.toLowerCase(),type=material.imageId?images.get(material.imageId)?.mediaType:ext==='jpg'||ext==='jpeg'?'image/jpeg':`image/${ext}`
+            try{const asset=await this.repository.putAsset(bytes,type as ImageMediaType,signal);archived.assetId=asset.id;assets[material.imageId??material.id]=asset.id;if(++imageCount>NOTE_LIMITS.images)fail('note_limit');continue}catch(e){if(!(e instanceof NotebookError)||!['invalid_asset','image_limit','export_image_budget','export_image_type','export_image_decode','image_decode'].includes(e.code))throw e}
+          }
+          if(++fileCount>128)fail('note_limit','最多保存 128 个普通附件')
+          archived.saved=await this.repository.putAttachment(bytes,material.name,signal)
+        }
+      }else{
       if (images.size > NOTE_LIMITS.images) fail('note_limit', '所选会话超过 128 张图片')
       let total = 0
       for (const [attachmentId, image] of images) {
@@ -126,19 +159,19 @@ export class NoteCaptureService {
           missingAssetIds.push(attachmentId); continue
         }
         total += asset.bytes.length
-        if (total > NOTE_LIMITS.imageTotal) fail('note_limit', '所选图片超过 20 MiB')
         // Storage failures stop the operation. Only attachment retrieval/validation
         // failures can produce an explicitly partial archive.
         assets[attachmentId] = (await this.repository.putAsset(asset.bytes, asset.mediaType, signal)).id
       }
-      const source: CaptureSource = { version: 1, sessionId: request.sessionId, scope: request.scope, cut: journal.cut, messages, assets, missingAssetIds, textOnlyBlocks: [], complete: transcript.complete && !missingAssetIds.length, issues: [...transcript.issues, ...(missingAssetIds.length ? ['missing_assets'] : [])] }
+      }
+      const source: CaptureSource = { ...(archivedMaterials?{archivedMaterials}:{}),version: 1, sessionId: request.sessionId, scope: request.scope, cut: journal.cut, messages, assets, missingAssetIds, textOnlyBlocks: [], complete: transcript.complete && !missingAssetIds.length, issues: [...transcript.issues, ...(missingAssetIds.length ? ['missing_assets'] : [])] }
       markTextOnlyImages(source)
       journal.sourceId = await this.repository.putSource(source, signal); await write(journal)
     }
     const source = await this.repository.getSource(journal.sourceId, signal) as unknown as CaptureSource
     if (!journal.revision) {
       const notebookId = request.notebookId ?? (await this.repository.listNotebooks(signal)).find(book => book.isDefault)!.notebookId
-      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.scope === 'session' ? '会话笔记' : '问答笔记', body: rawBody(source), summary: '', tags: [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: Object.values(source.assets) })
+      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.scope === 'session' ? '会话笔记' : '问答笔记', body: rawBody(source), summary: '', tags: [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
       await write(journal)
     }
     signal.throwIfAborted()

@@ -5,15 +5,17 @@ export type NoteExportFormat = 'markdown' | 'markdown-zip' | 'pdf' | 'png-long' 
 export interface NoteExportRequest {
   noteId: string; revision: string; format: NoteExportFormat; includeSource?: boolean; includeTags?: boolean; includeSummary?: boolean
   assetId?: string; convertedImages?: Array<{ assetId: string; png: string }>
+  assetIds?:string[];attachmentIds?:string[]
 }
 export interface NoteContent {
   title: string; body: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; sourceId: string | null; assetIds: string[]
   attachments?: NoteAttachment[]; originPath?: string; favorite?: boolean; isTemplate?: boolean
+  sessionLinks?: string[]
 }
 export interface NoteAttachment { id: string; name: string; bytes: number }
-export const ATTACHMENT_WARNING = 10 * 1024 * 1024
-export const ATTACHMENT_LIMIT = 50 * 1024 * 1024
+export const ATTACHMENT_WARNING = 50 * 1024 * 1024
+export const ATTACHMENT_LIMIT = 100 * 1024 * 1024
 export interface NoteSelection { noteId: string; expectedHeads: string[] }
 export interface NoteRevision extends NoteContent {
   version: 1; noteId: string; revision: string; parents: string[]; recordedAt: string
@@ -29,7 +31,7 @@ export interface NoteListItem {
   noteId: string; heads: string[]; title: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[] }
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
 export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
@@ -46,15 +48,22 @@ export interface CaptureRequest {
   requestId: string; sessionId: string; scope: 'turn' | 'selection' | 'session'
   anchorMessageId?: string; messageIds?: string[]
   mode: NoteMode; autoMetadata: boolean; notebookId: string | null
+  cut?: CaptureCut; materialIds?: string[]; allowLarge?: boolean
 }
 export type CaptureBlock = { type: 'text'; text: string } | { type: 'image'; attachmentId: string; mediaType: string }
-export interface CaptureMessage { id: string; seq: number; role: 'user' | 'assistant'; blocks: CaptureBlock[] }
+export interface CaptureMessage { id: string; seq: number; turn?: number; role: 'user' | 'assistant'; blocks: CaptureBlock[] }
+export interface CaptureMaterial {
+  id:string; kind:'image'|'file'; origin:'upload'|'delivery'; name:string; bytes:number|null
+  seq:number; turn?:number; messageId?:string; imageId?:string; available:boolean
+}
+export interface ArchivedMaterial extends CaptureMaterial { saved?:NoteAttachment; assetId?:string }
 export interface CaptureCut { throughSeq: number; capturedAt: string; isSeeded: boolean }
-export interface CaptureTranscript { messages: CaptureMessage[]; complete: boolean; issues: string[] }
+export interface CaptureTranscript { messages: CaptureMessage[]; complete: boolean; issues: string[]; materials?:CaptureMaterial[] }
 export interface CaptureSource extends CaptureTranscript {
   version: 1; sessionId: string; scope: CaptureRequest['scope']; cut: CaptureCut
   assets: Record<string, string>; missingAssetIds: string[]
   textOnlyBlocks: Array<{ messageId: string; blockIndex: number }>
+  archivedMaterials?:ArchivedMaterial[]
 }
 export interface CaptureResult {
   note: NoteView; sourceId: string; complete: boolean; messageCount: number
@@ -67,8 +76,19 @@ export type ConversationExportFormat = 'markdown' | 'pdf' | 'png-long' | 'png-pa
 export interface ConversationExportRequest {
   sessionId:string; throughSeq:number; messageIds:string[]; format:'markdown'|'snapshot'|'pdf'
   snapshotHash?:string; convertedImages?:Array<{assetId:string;png:string}>
+  materialIds?:string[]; allowLarge?:boolean
 }
+export interface CaptureProgress {file:string;bytes:number;total:number;done:number;count:number;stage:'reading'|'saving'|'complete'}
 export interface NotesApiContract {
+  '/notes/usage': {request:undefined;response:{ok:true;usage:{bytes:number;gitBytes:number;notes:number;revisions:number;level:'normal'|'notice'|'large';nearLimit:boolean}}}
+  '/notes/capture-progress': {request:{requestId:string};response:{ok:true;progress:CaptureProgress|null}}
+  '/notes/conversation-file': {request:{sessionId:string;throughSeq:number;messageIds:string[];materialId:string;hash:string};response:never}
+  '/notes/reference': {request:{sessionId:string;noteId:string;revision:string;assetIds:string[];attachmentIds:string[]};response:{ok:true;instruction:string;files:number}}
+  '/notes/import-task': {request:{action:'begin'|'end'|'heartbeat';taskId?:string};response:{ok:true;taskId?:string}}
+  '/notes/transfer': {request:{action:'begin'|'chunk'|'finish'|'cancel';noteId:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string};attachment?:NoteAttachment}}
+  '/notes/session-context': { request: { sessionId:string }; response: { ok:true; workspace: { id:string; title:string } | null; notebookId:string|null } }
+  '/notes/associate': { request: { noteId: string; expectedHeads: string[]; sessionId: string; linked: boolean }; response: { ok: true; note: NoteView } }
+  '/notes/workspace-book': { request: { workspaceId: string; notebookId?: string | null }; response: { ok: true; notebookId: string | null } }
   '/notes/manage': { request: NoteManageRequest; response: { ok: true; completed: string[]; note?: NoteView } }
   '/notes/catalog': { request: undefined; response: { ok: true } & NoteCatalog }
   '/notes/history': { request: { noteId: string; cursor?: string }; response: { ok: true; items: NoteHistoryItem[]; cursor: string | null } }

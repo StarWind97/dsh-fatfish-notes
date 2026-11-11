@@ -198,5 +198,5 @@ test('M7 facade sanitizes decoder errors and keeps Markdown as fallback for tabl
   const dir = await mkdtemp(join(tmpdir(), 'notes-export-facade-')); t.after(() => rm(dir, { recursive: true, force: true })); const app = new NotesApplication(dir, () => undefined); t.after(() => app.close())
   const asset = await app.repository.putAsset(png, 'image/png'), note = (await app.save({ expectedHeads: [], content: { ...content, body: `| 图 |\n|---|\n| ![图](../assets/${asset.id}) |`, assetIds: [asset.id] } })).note, request = { noteId: note.noteId, revision: note.current.revision }
   await assert.rejects(app.export({ ...request, format: 'pdf' }), { code: 'export_table_image' })
-  const zip = await app.export({ ...request, format: 'markdown-zip' }); assert.deepEqual(Buffer.from(unzipSync(zip.bytes)[`assets/${asset.id}`]!), png)
+  const zip = await app.export({ ...request, format: 'markdown-zip' }); const chunks:Buffer[]=[];if(zip.stream)for await(const c of zip.stream())chunks.push(Buffer.from(c));assert.deepEqual(Buffer.from(unzipSync(zip.stream?Buffer.concat(chunks):zip.bytes)[`assets/${asset.id}`]!), png)
 })

@@ -1,9 +1,9 @@
+import {imageDimensions} from '../notes/export/image.js'
 import { NotebookError } from '../domain/errors.js'
 
 import type { ImageMediaType,ImageAsset } from '../contracts/media.js'
 export type { ImageMediaType,ImageAsset } from '../contracts/media.js'
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-export const MAX_NOTE_IMAGE_BYTES = 20 * 1024 * 1024
+export const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 export const IMAGE_EXTENSIONS: Readonly<Record<ImageMediaType, string>> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' }
 
 export function normalizeAssetId(value: unknown): string {
@@ -20,20 +20,21 @@ function detectType(bytes: Buffer): ImageMediaType | null {
 /** Copies and canonicalizes all data before any async work; journals never reopen mutable source files. */
 export function normalizeImageAssets(value: unknown): ImageAsset[] {
   if (!Array.isArray(value) || value.length > 128) throw new NotebookError('invalid_asset', '图片列表格式无效或数量过多')
-  const ids = new Set<string>(); let total = 0
+  const ids = new Set<string>()
   return value.map((raw: unknown) => {
     if (typeof raw !== 'object' || raw === null || !('id' in raw) || !('mediaType' in raw) || !('base64' in raw)) throw new NotebookError('invalid_asset', '图片快照格式无效')
     const id = normalizeAssetId(raw.id)
     if (ids.has(id)) throw new NotebookError('invalid_asset', '图片标识不能重复')
     ids.add(id)
-    if (typeof raw.base64 !== 'string' || raw.base64.length > Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024) throw new NotebookError('image_limit', '单张图片不能超过 5 MiB')
+    if (typeof raw.base64 !== 'string' || raw.base64.length > Math.ceil(MAX_IMAGE_BYTES / 3) * 4 + 1024) throw new NotebookError('image_limit', '正文图片不能超过 20 MiB，可作为普通附件保存原图')
     const encoded = raw.base64.replace(/\s/g, '')
     if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length % 4 === 1) throw new NotebookError('invalid_asset', '图片 base64 编码无效')
     const bytes = Buffer.from(encoded, 'base64')
     if (bytes.toString('base64').replace(/=+$/, '') !== encoded.replace(/=+$/, '')) throw new NotebookError('invalid_asset', '图片 base64 编码无效')
-    if (bytes.length > MAX_IMAGE_BYTES || (total += bytes.length) > MAX_NOTE_IMAGE_BYTES) throw new NotebookError('image_limit', '单张图片上限 5 MiB，每次导入总上限 20 MiB')
+    if (bytes.length > MAX_IMAGE_BYTES) throw new NotebookError('image_limit', '正文图片不能超过 20 MiB')
     const mediaType = detectType(bytes)
     if (!mediaType || mediaType !== raw.mediaType) throw new NotebookError('invalid_asset', '图片内容与声明类型不符，仅支持 PNG、JPEG、WebP 和 GIF')
+    try{imageDimensions(bytes,{side:Number.MAX_SAFE_INTEGER,imagePixels:32_000_000})}catch{throw new NotebookError('image_limit','图片超过 3200 万像素或无法读取尺寸，请作为普通附件保存')}
     return { id, mediaType, base64: bytes.toString('base64') }
   })
 }

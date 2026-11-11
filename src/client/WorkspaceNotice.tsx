@@ -6,7 +6,7 @@ import type {T} from './locale.js'
 
 export function WindowButton({workspace,t}:{workspace:NotesWorkspace;t:T}){
   const s=useSyncExternalStore(workspace.subscribe,workspace.getSnapshot)
-  if(workspace.surface!=='embedded'||!s.server?.available)return null
+  if(workspace.surface==='standalone'||!s.server?.available)return null
   return <button disabled={s.message==='windowOpening'} title={t('windowOpen')} aria-label={t('windowOpen')} onClick={()=>void workspace.open()}><ExternalLink size={17}/></button>
 }
 export function WorkspaceNotice({workspace,t}:{workspace:NotesWorkspace;t:T}){
@@ -14,7 +14,7 @@ export function WorkspaceNotice({workspace,t}:{workspace:NotesWorkspace;t:T}){
   const h=server?.handoff,command=server?.command
   const owner=server?.owner
   const disconnected=!s.connected&&s.registered
-  const content=s.busy?t('windowSavingHandoff'):h?t(h.incoming?'windowAwaitInput':'windowAwaitHandoff'):disconnected?t(s.restart?'windowRestart':'windowOffline'):s.message?t(s.message as Parameters<T>[0]):owner?t(owner==='embedded'?'windowOwnerEmbedded':'windowOwnerStandalone'):null
+  const content=s.busy?t('windowSavingHandoff'):h?t(h.incoming?'windowAwaitInput':'windowAwaitHandoff'):disconnected?t(s.restart?'windowRestart':'windowOffline'):s.message?t(s.message as Parameters<T>[0]):owner?t(owner==='conversation'?'windowOwnerConversation':owner==='embedded'?'windowOwnerEmbedded':'windowOwnerStandalone'):null
   return <>{content&&<aside className="paper-window-notice" role="status"><span>{content}</span>
     {h&&!s.busy&&<button onClick={()=>void workspace.cancel()}>{t('cancel')}</button>}
     {owner&&!h&&!disconnected&&<button onClick={()=>void workspace.handoff()}>{t('windowContinueHere')}</button>}

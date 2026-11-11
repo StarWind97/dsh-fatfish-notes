@@ -8,6 +8,8 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 **0.8.0** adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md).
 
+Current `main` contains the unreleased stage E implementation: a conversation sidebar, note links to sessions, selected uploaded/delivered files, references inserted into the conversation input, and background chunked imports. The public release remains 0.8.0; see the [stage E results](docs/plans/2026-11-11-stage-e-results.zh.md).
+
 ## Features
 
 - Save the current exchange, selected turns or messages, or a whole conversation. Keep the original conversation material separately from the editable note.
@@ -16,7 +18,7 @@ Save conversations, manage notes with images, export files, and sync across devi
 - Find content with favorites, recent visits, multiword search and highlighted matches. Preview and restore revisions, organize notes in batches, follow backlinks and create notes from reusable templates.
 - Export notes or conversations as Markdown, ZIP with image attachments, PDF, a long image or paginated images.
 - Organize notes in notebooks with a default destination. Import Markdown files, folders or ZIP archives; export a notebook or the library as portable Markdown with relative image, attachment and note links.
-- Save and download ordinary files including PDF, audio and video without inline preview or playback. Files over 10 MiB require confirmation; files over 50 MiB are rejected.
+- Save and download ordinary files including PDF, audio and video without inline preview or playback. In unreleased stage E, files over 50 MiB require confirmation and files over 100 MiB are rejected (the public 0.8.0 release uses 10/50 MiB).
 - Link notes by stable identity, and select multiple notes for trash cleanup. Permanent deletion keeps files that other notes still reference.
 - Keep a local copy and sync through a dedicated private GitHub repository. After the initial online setup, temporary offline edits are saved locally and sync resumes automatically.
 - Optionally request title, summary and tag suggestions when saving a conversation. Note bodies are edited manually.

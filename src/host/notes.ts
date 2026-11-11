@@ -1,8 +1,14 @@
+import {NoteUsageReader} from './note-usage.js'
+import {windowRequest} from './edit-coordinator.js'
+import type {CaptureProgress} from '../contracts/notes.js'
+import {referenceNote} from './note-reference.js'
+import type {ConversationFileServices} from './conversation-files.js'
 import type { CaptureSelectionRequest, NoteListOptions, NoteSaveInput, NoteJobOverview, NoteManageRequest } from '../contracts/notes.js'
+import {NoteTransfers} from './note-transfers.js'
 import { NoteRepository } from '../notes/repository.js'
 import { NoteCaptureService } from '../notes/capture.js'
 import { object, text, id, hash, sortedStrings, normalizeContent } from '../notes/validation.js'
-import { mediaTypeFor } from '../notes/assets.js'
+import { mediaTypeFor, sourceAttachments } from '../notes/assets.js'
 import { importImage } from '../media/import.js'
 import { normalizeImageAssets } from '../media/images.js'
 import { NoteConversation } from './note-conversation.js'
@@ -12,7 +18,7 @@ import { validateCaptureRequest } from '../notes/capture.js'
 import { NotebookError } from '../domain/errors.js'
 import {exportLibrary} from '../notes/export/library.js'
 import { createExport } from '../notes/export/service.js'
-import { createConversationExport } from '../notes/export/conversation.js'
+import { createConversationExport,conversationFile } from '../notes/export/conversation.js'
 import { exportFont } from '../notes/export/pdf.js'
 import { ExportError } from '../notes/export/model.js'
 import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../contracts/notes.js'
@@ -20,6 +26,9 @@ import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../con
 /** Composed facade owns every note operation through cancellation and drain. */
 export class NotesApplication {
   readonly repository: NoteRepository
+  readonly transfers:NoteTransfers
+  private readonly usageReader:NoteUsageReader
+  usage(signal?:AbortSignal){return this.run(async active=>({ok:true as const,usage:await this.usageReader.read(active)}),signal)}
   private readonly captureService: NoteCaptureService
   private readonly conversation: NoteConversation
   private readonly controller = new AbortController()
@@ -28,14 +37,21 @@ export class NotesApplication {
   readonly enrichment: NoteEnrichment
   private readonly timer: ReturnType<typeof setInterval>
   private ticking = false
-  constructor(directory: string, provider: () => NoteModelController | undefined, private readonly ready: () => boolean|'busy' = () => true) {
+  private captureProgress=new Map<string,{owner:string;value:CaptureProgress}>()
+  progress(input:unknown){const item=this.captureProgress.get(text(object(input).requestId,512));return {ok:true as const,progress:item?.owner===(windowRequest.getStore()?.windowId??'local')?item.value:null}}
+  constructor(directory: string, provider: () => NoteModelController | undefined, private readonly ready: () => boolean|'busy' = () => true,private readonly services:ConversationFileServices={}) {
     this.repository = new NoteRepository(directory)
-    this.conversation = new NoteConversation(provider)
+    this.usageReader=new NoteUsageReader(this.repository)
+    this.transfers=new NoteTransfers(directory,this.repository)
+    this.conversation = new NoteConversation(provider,services)
     this.captureService = new NoteCaptureService(this.repository, this.conversation)
     this.enrichment = new NoteEnrichment(this.repository, new NoteModelBridge(provider, this.repository))
     this.timer = setInterval(() => { if (!this.ticking) { this.ticking = true; void this.run(async signal => { for (const jobId of await this.enrichment.list()) { try { await this.enrichment.drive(jobId, signal) } catch { signal.throwIfAborted() } } }).catch(() => {}).finally(() => { this.ticking = false }) } }, 2000)
     this.timer.unref()
   }
+  reference(input:unknown,signal?:AbortSignal){return this.run(active=>referenceNote(this.repository,this.services.attachments?.(),this.conversation,input,active),signal)}
+  transfer(input:unknown,signal?:AbortSignal){return this.run(active=>this.transfers.request(input,active),signal)}
+  localOperation<T>(work:()=>Promise<T>,signal?:AbortSignal){return this.run(()=>work(),signal)}
   private run<T>(work: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal): Promise<T> {
     if (this.controller.signal.aborted) return Promise.reject(new NotebookError('closed', '笔记正在关闭', 503))
     const ready=this.ready()
@@ -50,9 +66,17 @@ export class NotesApplication {
     return result
   }
   capture(input: unknown, signal?: AbortSignal) { return this.run(async active => {
-    const request = validateCaptureRequest(input), result = await this.captureService.capture(request, active)
-    const job = await this.enrichment.ensure(request, result, active)
-    return { ok: true as const, ...result, ...(job ? { enrichmentJobId: job.jobId, enrichmentStatus: 'queued' as const } : {}) }
+    const request=validateCaptureRequest(input),owner=windowRequest.getStore()?.windowId??'local'
+    const claim=await this.repository.coordinate(()=>{if(this.ready()!==true)throw new NotebookError('notebook_busy','笔记库正在切换');return this.transfers.task({action:'begin'})})
+    const heartbeat=setInterval(()=>{this.transfers.task({action:'heartbeat',taskId:claim.taskId})},20000);heartbeat.unref()
+    const report=(value:CaptureProgress)=>{if(this.captureProgress.size>30)this.captureProgress.delete(this.captureProgress.keys().next().value!);this.captureProgress.set(request.requestId,{owner,value})}
+    report({file:'读取会话',bytes:0,total:0,done:0,count:0,stage:'reading'})
+    try{
+      const result=await this.captureService.capture(request,active,report)
+      const job=await this.enrichment.ensure(request,result,active)
+      const current=this.captureProgress.get(request.requestId)!.value;report({...current,stage:'complete'})
+      return {ok:true as const,...result,...(job?{enrichmentJobId:job.jobId,enrichmentStatus:'queued' as const}:{})}
+    }finally{clearInterval(heartbeat);this.transfers.task({action:'end',taskId:claim.taskId})}
   }, signal) }
   job(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, job: await this.enrichment.drive(text(object(input).jobId, 64), active) }), signal) }
   retryJob(input: unknown, signal?: AbortSignal) { return this.run(async active => { const jobId = text(object(input).jobId, 64); await this.enrichment.drive(jobId, active); await this.enrichment.retry(jobId, active); return { ok: true as const, job: await this.enrichment.drive(jobId, active) } }, signal) }
@@ -71,6 +95,8 @@ export class NotesApplication {
   backlinks(input:unknown,signal?:AbortSignal) {return this.run(async active=>({ok:true as const,items:await this.repository.backlinks(id(object(input).noteId),active)}),signal)}
   list(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), options: NoteListOptions = {}
+    if(v.sessionId!==undefined)options.sessionId=text(v.sessionId,512)
+    if(v.relation!==undefined){if(!['source','linked'].includes(String(v.relation)))throw new NotebookError('note_schema','关联筛选无效');options.relation=v.relation as 'source'|'linked'}
     if (v.cursor !== undefined) options.cursor = id(v.cursor)
     if (v.limit !== undefined) options.limit = Number(v.limit)
     if (v.query !== undefined) options.query = text(v.query, 12_000)
@@ -82,6 +108,10 @@ export class NotesApplication {
     if (v.status !== undefined) { if (!['active','trashed','all'].includes(String(v.status))) throw new NotebookError('note_schema','笔记筛选不正确'); options.status = v.status as NoteListOptions['status'] & string }
     return { ok: true as const, ...await this.repository.list(options, active) }
   }, signal) }
+  associate(input:unknown,signal?:AbortSignal){return this.run(async active=>{
+    const v=object(input);if(typeof v.linked!=='boolean')throw new NotebookError('note_schema','关联选项无效')
+    return {ok:true as const,note:await this.repository.associate(id(v.noteId),sortedStrings(v.expectedHeads,100_000,hash),text(v.sessionId,512),v.linked,active)}
+  },signal)}
   save(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = this.saveInput(input), resolve = object(input).resolve
     if (resolve !== undefined && typeof resolve !== 'boolean') throw new NotebookError('note_schema','保存选项无效')
@@ -111,13 +141,14 @@ export class NotesApplication {
     if (note?.current.status === 'trashed') throw new NotebookError('note_trashed', '回收站中的笔记不能添加附件')
     const encoded = text(v.base64, Math.ceil(ATTACHMENT_LIMIT / 3) * 4)
     const bytes = Buffer.from(encoded, 'base64')
-    if (bytes.toString('base64') !== encoded || bytes.length > ATTACHMENT_LIMIT) throw new NotebookError('attachment_limit', '单个附件不能超过 50 MiB')
+    if (bytes.toString('base64') !== encoded || bytes.length > ATTACHMENT_LIMIT) throw new NotebookError('attachment_limit', '单个附件不能超过 100 MiB')
     if (bytes.length > ATTACHMENT_WARNING && v.allowLarge !== true) throw new NotebookError('attachment_large', '附件较大，会增加上传、下载和同步时间，请确认后继续')
     return { ok: true as const, attachment: await this.repository.putAttachment(bytes, text(v.name, 1000), active, noteId) }
   }, signal) }
   download(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), note = await this.repository.getRevision(id(v.noteId), hash(v.revision), active)
-    const file = note.attachments?.find(a => a.id === hash(v.attachmentId))
+    const sources=note.sourceId?sourceAttachments(await this.repository.getSource(note.sourceId,active)):[]
+    const file = [...(note.attachments??[]),...sources].find(a => a.id === hash(v.attachmentId))
     if (!file) throw new NotebookError('note_asset', '附件不属于此笔记', 404)
     return { bytes: await this.repository.getAttachment(file.id, active), filename: file.name, mediaType: 'application/octet-stream' }
   }, signal) }
@@ -169,23 +200,24 @@ export class NotesApplication {
     return { bytes: await this.repository.getAsset(assetId, active), mediaType: mediaTypeFor(assetId) }
   }, signal) }
   source(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, source: await this.repository.getSource(text(object(input).sourceId, 64), active) }), signal) }
+  conversationFile(input:unknown,signal?:AbortSignal){return this.run(active=>conversationFile(this.conversation,input,active),signal)}
   export(input: unknown, signal?: AbortSignal) { return this.run(async active => {
-    try { return await createExport(this.repository, input, active) }
+    try { return await createExport(this.repository, input, active,true) }
     catch (error) {
       if (error instanceof ExportError) throw new NotebookError(error.code, '导出未完成，请检查图片、内容和导出限制')
       if (error instanceof NotebookError) throw error
       throw new NotebookError('export_failed', '导出未完成，请检查图片或稍后重试')
     }
   }, signal) }
-  exportLibrary(input:unknown,signal?:AbortSignal){return this.run(active=>exportLibrary(this.repository,input,active),signal)}
+  exportLibrary(input:unknown,signal?:AbortSignal,sink?:Parameters<typeof exportLibrary>[3]){return this.run(active=>exportLibrary(this.repository,input,active,sink),signal)}
   exportFont(signal?: AbortSignal) { return this.run(async active => { const bytes = await exportFont(); active.throwIfAborted(); return bytes }, signal) }
   exportConversation(input:unknown,signal?:AbortSignal) { return this.run(async active=>{
-    try { return await createConversationExport(this.conversation,input,active) }
+    try { return await createConversationExport(this.conversation,input,active,true) }
     catch(error){if(error instanceof ExportError)throw new NotebookError(error.code,'会话导出未完成');throw error}
   },signal) }
   async drain():Promise<void>{await Promise.allSettled([...this.pending])}
   close(): Promise<void> {
-    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending]).then(() => {}) }
+    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending]).then(() => this.transfers.close()) }
     return this.closePromise
   }
 }

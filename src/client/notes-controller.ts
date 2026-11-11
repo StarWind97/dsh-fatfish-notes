@@ -3,7 +3,7 @@ import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision, NoteManageRequest } from '../contracts/notes.js'
 import { RecentNotes } from './recent-notes.js'
 
-export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
+export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.sessionLinks!==undefined?{sessionLinks:[...note.current.sessionLinks]}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
 const comparable=(c:NoteContent)=>({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()})
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -72,6 +72,7 @@ export class NotesController {
   constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string}={}){
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
+  get api(){return this.call}
   occupiedCount=0
   private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
   recentIds(){return this.visits().read()}

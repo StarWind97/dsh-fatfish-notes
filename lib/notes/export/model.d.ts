@@ -32,6 +32,7 @@ export interface ExportImage {
     height: number;
 }
 export interface ExportSnapshot {
+    attachments?: import('../../contracts/notes.js').NoteAttachment[];
     noteId: string;
     revision: string;
     filename: string;

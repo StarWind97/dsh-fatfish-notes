@@ -1,9 +1,10 @@
+import {ATTACHMENT_LIMIT,type NoteAttachment} from '../contracts/notes.js'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { normalizeImageAssets, IMAGE_EXTENSIONS } from '../media/images.js'
 import type { ImageMediaType } from '../contracts/media.js'
 import type { NoteAsset, NoteContent } from './types.js'
 import { NOTE_LIMITS } from './types.js'
-import { assetId, digest, fail, hash, canonical, object } from './validation.js'
+import { assetId, digest, fail, hash, canonical, object, text } from './validation.js'
 import { utf8, type NoteFiles } from './files.js'
 
 export function validateAsset(bytes: Buffer, mediaType: ImageMediaType): NoteAsset {
@@ -40,28 +41,29 @@ export function validateBodyAssets(body: string, ids: string[]): string[] {
 export async function checkReferences(files: NoteFiles, content: NoteContent): Promise<void> {
   validateBodyAssets(content.body, content.assetIds)
   for (const file of content.attachments ?? []) {
-    const bytes = await files.read(`attachments/${hash(file.id)}.bin`, file.bytes)
-    if (bytes.length !== file.bytes || digest(bytes) !== file.id) fail('note_hash')
+    await files.check(`attachments/${hash(file.id)}.bin`,file.bytes,bytes=>{if(bytes.length!==file.bytes||digest(bytes)!==file.id)fail('note_hash')})
   }
   const visit=(node:{type:string;url?:string;children?:unknown[]})=>{
     if(['link','definition'].includes(node.type)){const match=/^\.\.\/attachments\/([a-f0-9]{64})\.bin$/.exec(node.url??'');if(match&&!content.attachments?.some(a=>a.id===match[1]))fail('note_asset','附件不属于此笔记')}
     node.children?.forEach(child=>visit(child as Parameters<typeof visit>[0]))
   };visit(fromMarkdown(content.body))
-  let total = 0
   for (const id of content.assetIds) {
-    const bytes = await files.read(`assets/${assetId(id)}`, NOTE_LIMITS.image)
-    if (validateAsset(bytes, mediaTypeFor(id)).id !== id) fail('note_hash')
-    total += bytes.length
-    if (total > NOTE_LIMITS.imageTotal) fail('note_limit', '单篇图片总量超过 20 MiB')
+    await files.check(`assets/${assetId(id)}`,NOTE_LIMITS.image,bytes=>{if(validateAsset(bytes,mediaTypeFor(id)).id!==id)fail('note_hash')})
   }
   if (content.sourceId !== null) {
     const bytes = await files.read(`sources/${hash(content.sourceId)}.json`, NOTE_LIMITS.source)
     if (digest(bytes) !== content.sourceId) fail('note_hash')
-    try { object(JSON.parse(utf8(bytes)) as unknown) } catch { fail('note_source') }
+    try { const source=object(JSON.parse(utf8(bytes)) as unknown);for(const file of sourceAttachments(source))await files.check(`attachments/${file.id}.bin`,file.bytes,data=>{if(data.length!==file.bytes||digest(data)!==file.id)fail('note_hash')}) } catch { fail('note_source') }
   }
 }
 export function sourceBytes(value: unknown): Buffer {
   object(value); const bytes = Buffer.from(canonical(value))
   if (bytes.length > NOTE_LIMITS.source) fail('note_limit', '原始快照超过 20 MiB')
   return bytes
+}
+
+export function sourceAttachments(source:Record<string,unknown>):NoteAttachment[]{
+  if(source.archivedMaterials===undefined)return []
+  if(!Array.isArray(source.archivedMaterials)||source.archivedMaterials.length>256)fail('note_source')
+  return source.archivedMaterials.flatMap(value=>{const m=object(value);if(m.saved===undefined)return [];const a=object(m.saved);if(!Number.isSafeInteger(a.bytes)||Number(a.bytes)<0||Number(a.bytes)>ATTACHMENT_LIMIT)fail('note_source');return [{id:hash(a.id),name:text(a.name,1000),bytes:Number(a.bytes)}]})
 }

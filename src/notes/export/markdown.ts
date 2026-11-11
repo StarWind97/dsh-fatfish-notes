@@ -1,3 +1,4 @@
+import {materialMarkdown} from '../capture-materials.js'
 import type { NoteRevision, CaptureSource } from '../../contracts/notes.js'
 import type { Root, RootContent, PhrasingContent } from 'mdast'
 import { exportTree, ExportError } from './model.js'
@@ -20,11 +21,14 @@ export function sourceMarkdown(source: Record<string, unknown>): { body: string;
         chunks.push(`\n${fence}text\n${block.text}\n${fence}\n`)
       } else if (block.type === 'image') {
         const asset = v.assets[block.attachmentId]
-        if (!asset || !/^[a-f0-9]{64}\.(png|jpg|webp|gif)$/.test(asset)) throw new ExportError('export_image_missing')
+        if (!asset) { chunks.push('\n[图片未包含]\n'); continue }
+        if (!/^[a-f0-9]{64}\.(png|jpg|webp|gif)$/.test(asset)) throw new ExportError('export_image_missing')
         assets.add(asset); chunks.push(`\n![原始图片](../assets/${asset})\n`)
       } else throw new ExportError('export_source')
     }
   }
+  for(const m of v.archivedMaterials??[])if(m.assetId)assets.add(m.assetId)
+  chunks.push(materialMarkdown(v.archivedMaterials?.filter(m=>!m.imageId||!!m.saved)??[]))
   return { body: chunks.join(''), assets: [...assets] }
 }
 const escapePunctuation = (value: string): string => value.replace(/[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/g, '\\$&')

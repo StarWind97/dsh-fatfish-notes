@@ -33,6 +33,8 @@ test('navigation waits for a pending pasted image and automatically saves it',as
 function fixture(intercept?: (path: string, input: unknown) => Promise<unknown> | undefined) {
   const rows = new Map([[a, note(a)], [b, note(b, 'second')]]), writes: Array<NoteSaveInput & { resolve?: boolean }> = []
   const call: Api = async (path, input) => {
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     const handled = intercept?.(path, input); if (handled) return await handled as never
     if (path === '/notes/get') return { ok: true, note: rows.get((input as { noteId: string }).noteId) } as never
     if (path === '/notes/jobs') return { ok: true, jobs: [], cursor: null } as never
@@ -178,6 +180,8 @@ test('M5 deleted notebook effective membership is used without a write on openin
 test('M5 capture passes selected notebook and navigates to the saved library note', async () => {
   let request: CaptureRequest | undefined, opened: string | undefined
   const call: Api = async (path, input) => {
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     if (path === '/notes/selection') return { ok: true, defaultMessageIds: ['m1'], messages: [{id:'m1',seq:1,role:'assistant',blocks:[{type:'text',text:'saved answer'}]}], cut: {throughSeq:1,capturedAt:'2026-11-01T00:00:01.000Z',isSeeded:false}, complete: true, issues: [] } as never
     if (path === '/notes/capture') { request = input as CaptureRequest; return { ok: true, note: note(), enrichmentJobId: null } as never }
     throw new Error('unexpected')

@@ -1,3 +1,6 @@
+import {CaptureMaterials} from './CaptureMaterials.js'
+import {materialsFor} from '../notes/capture-materials.js'
+import {ATTACHMENT_WARNING} from '../contracts/notes.js'
 import * as React from 'react'
 import { Download, MessageSquare, MessagesSquare, ListChecks } from 'lucide-react'
 import type { ConversationExportFormat } from '../contracts/notes.js'
@@ -15,14 +18,16 @@ export function ConversationExportDialog({state,bridge,t}:{state:NoteCaptureStat
   const active=React.useRef<AbortController|null>(null)
   React.useLayoutEffect(()=>()=>active.current?.abort(),[])
   const ids=selection ? options.range==='session'?selection.messages.map(m=>m.id):options.range==='turn'?selection.defaultMessageIds:state.selected : []
+  const large=selection&&materialsFor(selection.messages.filter(m=>ids.includes(m.id)),selection.materials??[]).some(m=>state.materialIds?.includes(m.id)&&Number(m.bytes)>ATTACHMENT_WARNING)&&!state.allowLarge
   const reset=()=>{setPartial(null);setError(null)}
   function close(){active.current?.abort();bridge.close()}
   async function run(){
     if(!selection || !ids.length || active.current)return
+    if(large)return
     if(partial){startNoteDownload(partial);close();return}
     const job=new AbortController();active.current=job;setBusy(true);reset()
     try{
-      const file=await downloadConversation({sessionId:state.sessionId,throughSeq:selection.cut.throughSeq,messageIds:ids},options.format,job.signal)
+      const file=await downloadConversation({sessionId:state.sessionId,throughSeq:selection.cut.throughSeq,messageIds:ids,...(state.materialIds?{materialIds:materialsFor(selection.messages.filter(m=>ids.includes(m.id)),selection.materials??[]).filter(m=>state.materialIds!.includes(m.id)).map(m=>m.id),allowLarge:state.allowLarge??false}:{})},options.format,job.signal)
       job.signal.throwIfAborted()
       if(file.warnings.partial || file.warnings.missing || file.warnings.linked)setPartial(file)
       else {startNoteDownload(file);close()}
@@ -45,6 +50,7 @@ export function ConversationExportDialog({state,bridge,t}:{state:NoteCaptureStat
         <label>{t('notesExportFormat')}<select value={options.format} disabled={busy} onChange={e=>{reset();bridge.exportFormat(e.target.value as ConversationExportFormat)}}>
           {formats.map(([value,label])=><option key={value} value={value}>{label||t(value==='png-long'?'notesExportLong':'notesExportPages')}</option>)}
         </select></label>
+        <CaptureMaterials state={state} bridge={bridge} t={t} messageIds={ids} disabled={busy}/><p>{t('exportFilesBundle')}</p>
         <p className="chat-export-hint">{t(options.format==='markdown'?'chatExportMarkdownHint':'chatExportFileHint')}</p>
         {!selection.complete && <p role="alert">{t('chatExportPartial')}</p>}
         {partial && <div role="alert">{partial.warnings.missing>0 && <p>{t('chatExportMissing',{count:partial.warnings.missing})}</p>}
@@ -54,7 +60,7 @@ export function ConversationExportDialog({state,bridge,t}:{state:NoteCaptureStat
       </>}
     </div><footer><button type="button" onClick={close}>{t('cancel')}</button>
       {state.status==='failed'?<button type="button" onClick={()=>void bridge.openExport(state.sessionId,state.anchorMessageId!)}>{t('noteRetry')}</button>:
-      <button type="button" className="chat-export-primary" disabled={busy||!ids.length} onClick={()=>void run()}><Download size={15} aria-hidden="true"/>{t(busy?'notesExportWorking':partial?'chatExportAnyway':'chatExportDownload')}</button>}
+      <button type="button" className="chat-export-primary" disabled={busy||!ids.length||!!large} onClick={()=>void run()}><Download size={15} aria-hidden="true"/>{t(busy?'notesExportWorking':partial?'chatExportAnyway':'chatExportDownload')}</button>}
     </footer>
   </PaperDialog>
 }

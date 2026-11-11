@@ -1,5 +1,6 @@
+import {bundleFiles} from './export-bundle.js'
+import {exportFilename} from '../notes/export/markdown.js'
 import { toBlob } from 'html-to-image'
-import { zipSync } from 'fflate'
 import { ApiError } from './api.js'
 import { ExportError, type ExportSnapshot, type ExportImage } from '../notes/export/model.js'
 import { checkPixels, layoutExport, EXPORT_LIMITS, type ExportPage } from '../notes/export/layout.js'
@@ -7,7 +8,7 @@ import { imageDimensions } from '../notes/export/image.js'
 import type { NoteExportRequest, NoteExportFormat } from '../contracts/notes.js'
 
 export type ExportFormat = Exclude<NoteExportFormat, 'snapshot'>
-export interface ExportOptions { format: ExportFormat; includeSource: boolean; includeTags?:boolean; includeSummary?:boolean; width: number; pixelRatio: number; background: 'light' | 'dark' | 'transparent'; assetId?: string }
+export interface ExportOptions { format: ExportFormat; includeSource: boolean; assetIds?:string[];attachmentIds?:string[];includeTags?:boolean; includeSummary?:boolean; width: number; pixelRatio: number; background: 'light' | 'dark' | 'transparent'; assetId?: string }
 export interface DownloadFile { blob: Blob; filename: string }
 interface Frozen { noteId: string; revision: string }
 export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<Response> {
@@ -24,7 +25,7 @@ export function downloadFilename(response: Response): string {
   const match = /filename\*=UTF-8''([^;]+)/i.exec(response.headers.get('content-disposition') ?? '')
   try { const name = decodeURIComponent(match?.[1] ?? '笔记'); return /[\\/\x00-\x1f]/.test(name) ? '笔记' : name } catch { return '笔记' }
 }
-type ExportFields = Pick<NoteExportRequest, 'includeSource'|'includeTags'|'includeSummary'>
+type ExportFields = Pick<NoteExportRequest, 'includeSource'|'includeTags'|'includeSummary'|'assetIds'|'attachmentIds'>
 async function snapshot(identity: Frozen, fields: ExportFields, signal: AbortSignal): Promise<ExportSnapshot> {
   const value = await (await exportRequest(identity, { format: 'snapshot', ...fields }, signal)).json() as ExportSnapshot
   signal.throwIfAborted()
@@ -108,7 +109,7 @@ export async function renderPages(value: Pick<ExportSnapshot,'model'|'filename'>
   const measure = (text: string, size: number) => { const key = `${size}:${text}`; const known = measures.get(key); if (known !== undefined) return known; context.font = `${size}px DSHExportNoto`; const n = context.measureText(text).width; measures.set(key, n); return n }
   const pages = layoutExport(value.model, images, measure, options.width, options.format === 'png-pages' ? Math.round(options.width * Math.SQRT2) : null)
   for (const page of pages) checkPixels(page.width, page.height, options.pixelRatio)
-  const files: Record<string, Uint8Array> = {}, holder = document.createElement('div'); let totalBytes = 0
+  const files: File[] = [], holder = document.createElement('div'); let totalBytes = 0
   Object.assign(holder.style, { position: 'fixed', left: '-100000px', top: '0', pointerEvents: 'none', zIndex: '-1' }); holder.setAttribute('aria-hidden', 'true'); document.body.append(holder)
   try {
     for (let i = 0; i < pages.length; i++) {
@@ -121,18 +122,23 @@ export async function renderPages(value: Pick<ExportSnapshot,'model'|'filename'>
       const bitmap = await createImageBitmap(blob)
       try { if (bitmap.width !== Math.floor(page.width * options.pixelRatio) || bitmap.height !== Math.floor(page.height * options.pixelRatio)) throw new ExportError('export_dimensions') } finally { bitmap.close() }
       if (options.format === 'png-long') return { blob, filename: `${value.filename}-长图.png` }
-      files[`${String(i + 1).padStart(3, '0')}.png`] = new Uint8Array(await blob.arrayBuffer())
+      files.push(new File([blob],`${String(i+1).padStart(3,'0')}.png`,{type:'image/png'}))
     }
-    signal.throwIfAborted(); return { blob: new Blob([zipSync(files, { level: 0 }) as Uint8Array<ArrayBuffer>], { type: 'application/zip' }), filename: `${value.filename}-分页图片.zip` }
+    signal.throwIfAborted(); return { blob: await bundleFiles(files,[],signal), filename: `${value.filename}-分页图片.zip` }
   } finally { holder.remove(); canvas.width = 0 }
 }
 export async function createNoteDownload(identity: Frozen, options: ExportOptions, signal: AbortSignal): Promise<DownloadFile> {
   if (options.width < 480 || options.width > 2160 || !Number.isInteger(options.width) || ![1,2].includes(options.pixelRatio)) throw new ExportError('export_dimensions')
   const {includeSource,includeTags,includeSummary}=options
-  const fields:ExportFields={includeSource,...(includeTags!==undefined&&{includeTags}),...(includeSummary!==undefined&&{includeSummary})}
+  const fields:ExportFields={includeSource,...(options.assetIds?{assetIds:options.assetIds}:{}),...(options.attachmentIds?{attachmentIds:options.attachmentIds}:{}),...(includeTags!==undefined&&{includeTags}),...(includeSummary!==undefined&&{includeSummary})}
   if (options.format === 'pdf' || options.format.startsWith('png-')) {
     const value = await snapshot(identity, fields, signal), prepared = await prepareImages(value, signal)
-    if (options.format !== 'pdf') return renderPages(value, prepared.images, options, signal)
+    if (options.format !== 'pdf') {
+      const rendered=await renderPages(value,prepared.images,options,signal)
+      if(!value.attachments?.length)return rendered
+      const blob=await bundleFiles([new File([rendered.blob],rendered.filename,{type:rendered.blob.type})],value.attachments.map(f=>({name:f.id.slice(0,16)+'-'+exportFilename(f.name),path:'/notes/download',body:{...identity,attachmentId:f.id}})),signal,true)
+      return {blob,filename:value.filename+'.zip'}
+    }
     if (prepared.convertedImages.reduce((n, image) => n + Math.ceil(image.png.length * 3 / 4), 0) > 1024 * 1024) throw new ExportError('export_conversion_budget')
     const response = await exportRequest(identity, { format: 'pdf', ...fields, convertedImages: prepared.convertedImages }, signal)
     const blob = await response.blob(); signal.throwIfAborted(); return { blob, filename: downloadFilename(response) }

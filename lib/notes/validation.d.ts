@@ -10,7 +10,7 @@ export declare function sortedStrings(value: unknown, max: number, check: (v: un
 export declare function date(value: unknown): string;
 export declare function status(value: unknown): 'active' | 'trashed';
 export declare const contentKeys: readonly ["title", "body", "summary", "tags", "notebookId", "status", "sourceId", "assetIds"];
-export declare const optionalContentKeys: readonly ["attachments", "originPath", "favorite", "isTemplate"];
+export declare const optionalContentKeys: readonly ["attachments", "originPath", "favorite", "isTemplate", "sessionLinks"];
 export declare function contentFields(v: Record<string, unknown>): string[];
 export declare function attachment(value: unknown): NoteAttachment;
 export declare function normalizeContent(value: unknown): NoteContent;

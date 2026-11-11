@@ -1,3 +1,5 @@
+import type {CaptureSource} from '../contracts/notes.js'
+import {NoteMaterialChoices,noteMaterials} from './NoteMaterialChoices.js'
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { NotesController, NotesState } from './notes-controller.js'
@@ -9,11 +11,15 @@ import type { T } from './locale.js'
 export function NoteExport({ controller, state, t, onClose }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void }) {
   const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>((state.draft?.assetIds.length||state.draft?.attachments?.length)?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(1080), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('light'), [assetId, setAssetId] = useState('')
   const [includeTags,setIncludeTags]=useState(true),[includeSummary,setIncludeSummary]=useState(true)
+  const [selected,setSelected]=useState(()=>noteMaterials(state.draft??undefined).map(m=>m.id))
+  const [source,setSource]=useState<CaptureSource|null>(null),[sourceFailed,setSourceFailed]=useState(false)
+  useEffect(()=>{setSource(null);setSourceFailed(false);if(!includeSource||!state.note?.current.sourceId)return;let live=true;void controller.api('/notes/source',{sourceId:state.note.current.sourceId}).then(r=>{if(!live)return;const value=r.source as unknown as CaptureSource;setSource(value);setSelected(old=>[...new Set([...old,...Object.values(value.assets??{}).map(id=>'image:'+id),...(value.archivedMaterials??[]).flatMap(m=>m.assetId?['image:'+m.assetId]:m.saved?['file:'+m.saved.id]:[])])])}).catch(()=>{if(live)setSourceFailed(true)});return()=>{live=false}},[includeSource,state.noteId])
+  const materials=[...new Map([...noteMaterials(state.draft??undefined),...(includeSource&&source?noteMaterials({...state.draft!,assetIds:[...new Set([...Object.values(source.assets),...(source.archivedMaterials??[]).flatMap(m=>m.assetId?[m.assetId]:[])])],attachments:source.archivedMaterials?.flatMap(m=>m.saved?[m.saved]:[])??[]}):[])].map(m=>[m.id,m])).values()]
   const hasTags=!!state.draft?.tags.length, hasSummary=!!state.draft?.summary
   const hasImages=!!state.draft?.attachments?.length||!!state.draft?.assetIds.length||(includeSource&&!!state.note?.current.sourceId)
   const group=format.startsWith('markdown')?'markdown':format==='pdf'?'pdf':format==='original'?'original':'png'
   const active = useRef<AbortController | null>(null)
-  useEffect(() => { active.current?.abort(); setBusy(false); setStatus(''); setIncludeSource(false); setIncludeTags(true); setIncludeSummary(true); setAssetId('') }, [state.noteId])
+  useEffect(() => { active.current?.abort(); setBusy(false); setStatus(''); setIncludeSource(false); setIncludeTags(true); setIncludeSummary(true); setAssetId('');setSelected(noteMaterials(state.draft??undefined).map(m=>m.id)) }, [state.noteId])
   useEffect(() => () => active.current?.abort(), [])
   async function run() {
     if (active.current) active.current.abort()
@@ -21,7 +27,7 @@ export function NoteExport({ controller, state, t, onClose }: { controller: Note
     try {
       const frozen = await controller.freezeExport(); job.signal.throwIfAborted()
       if (!frozen) { setStatus('notesExportSaveFirst'); return }
-      const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format, includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width, pixelRatio, background, ...(assetId ? { assetId } : {}) }, job.signal)
+      const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format:format.startsWith('markdown')?(selected.length||includeSource?'markdown-zip':'markdown'):format,assetIds:materials.filter(m=>m.image&&selected.includes(m.id)).map(m=>m.id.slice(6)),attachmentIds:materials.filter(m=>!m.image&&selected.includes(m.id)).map(m=>m.id.slice(5)), includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width, pixelRatio, background, ...(assetId ? { assetId } : {}) }, job.signal)
       job.signal.throwIfAborted()
       if (!frozen.isCurrent()) { setStatus('notesExportChanged'); return }
       startNoteDownload(file); setStatus('notesExportStarted')
@@ -36,15 +42,17 @@ export function NoteExport({ controller, state, t, onClose }: { controller: Note
     <p style={s.muted}>{t('notesExportHint')}</p>
     <label style={s.label}>{t('notesExportFormat')}<select style={s.input} value={group} disabled={busy} onChange={e=>{const choice=e.target.value;setFormat(choice==='markdown'?(hasImages?'markdown-zip':'markdown'):choice==='png'?'png-long':choice==='original'?'original':'pdf')}}>
       <option value="markdown">Markdown</option><option value="pdf">PDF</option><option value="png">{t('notesPictures')}</option>{!!state.draft?.assetIds.length&&<option value="original">{t('notesExportOriginal')}</option>}</select></label>
-    {(group==='markdown'||group==='png')&&<label style={s.label}>{t('notesExportContents')}<select style={s.input} value={format} disabled={busy} onChange={e=>setFormat(e.target.value as ExportFormat)}>
-      {group==='markdown'?<><option value="markdown">{t('notesExportMarkdown')}</option><option value="markdown-zip">{t('notesExportZip')}</option></>:<><option value="png-long">{t('notesExportLong')}</option><option value="png-pages">{t('notesExportPages')}</option></>}</select></label>}
-    {format === 'markdown' && <p>{t('notesExportMarkdownHint')}</p>}
+    {group==='png'&&<label style={s.label}>{t('notesExportContents')}<select style={s.input} value={format} disabled={busy} onChange={e=>setFormat(e.target.value as ExportFormat)}>
+      <option value="png-long">{t('notesExportLong')}</option><option value="png-pages">{t('notesExportPages')}</option></select></label>}
+    {group==='markdown'&&<p>{t('exportAutoBundle')}</p>}
+    {format!=='original'&&<><NoteMaterialChoices rows={materials} selected={selected} change={setSelected} disabled={busy} t={t}/><p>{t('exportFilesBundle')}</p></>}
     {format !== 'original' && <div className="paper-export-fields">
       <label className="paper-checkbox"><input type="checkbox" checked={hasTags&&includeTags} disabled={busy||!hasTags} onChange={e=>setIncludeTags(e.target.checked)}/>{t('exportIncludeTags')}</label>
       <label className="paper-checkbox"><input type="checkbox" checked={hasSummary&&includeSummary} disabled={busy||!hasSummary} onChange={e=>setIncludeSummary(e.target.checked)}/>{t('exportIncludeSummary')}</label>
     </div>}
     {format === 'original' ? <label style={s.label}>{t('notesExportOriginal')}<select style={s.input} value={assetId} disabled={busy} onChange={e => setAssetId(e.target.value)}><option value="">{t('notesExportChooseImage')}</option>{state.note?.current.assetIds.map((id, index) => <option value={id} key={id}>{t('notesExportImageNumber', { index: index + 1 })} · {id.split('.')[1]}</option>)}</select></label> : state.note?.current.sourceId && <label className="paper-checkbox"><input type="checkbox" checked={includeSource} disabled={busy || !state.note?.current.sourceId} onChange={e => {setIncludeSource(e.target.checked);if(e.target.checked&&format==='markdown')setFormat('markdown-zip')}} />{t('notesExportIncludeSource')}</label>}
     {format.startsWith('png-') && <><label style={s.label}>{t('notesExportWidth')}<select style={s.input} value={width} disabled={busy} onChange={e => setWidth(Number(e.target.value))}>{[720,1080,1440,2160].map(n => <option key={n} value={n}>{n} px</option>)}</select></label><label style={s.label}>{t('notesExportRatio')}<select style={s.input} value={pixelRatio} disabled={busy} onChange={e => setRatio(Number(e.target.value))}><option value={1}>1×</option><option value={2}>2×</option></select></label><label style={s.label}>{t('notesExportBackground')}<select style={s.input} value={background} disabled={busy} onChange={e => setBackground(e.target.value as ExportOptions['background'])}><option value="light">{t('notesExportLight')}</option><option value="dark">{t('notesExportDark')}</option><option value="transparent">{t('notesExportTransparent')}</option></select></label></>}
+    {sourceFailed&&<p role="alert">{t('notesExportFailed')}</p>}
     {status && <p role="status">{t(status as Parameters<T>[0])}</p>}
-  </div><footer><button type="button" onClick={close}>{t(busy?'notesExportCancel':'cancel')}</button><button type="button" className="paper-primary" disabled={busy || state.loadingNote || state.operation || state.composing || !!state.conflict || format === 'original' && !assetId} onClick={() => void run()}>{t(busy ? 'notesExportWorking' : 'notesExportDownload')}</button></footer></PaperDialog>
+  </div><footer><button type="button" onClick={close}>{t(busy?'notesExportCancel':'cancel')}</button><button type="button" className="paper-primary" disabled={busy || (includeSource&&!source) || state.loadingNote || state.operation || state.composing || !!state.conflict || format === 'original' && !assetId} onClick={() => void run()}>{t(busy ? 'notesExportWorking' : 'notesExportDownload')}</button></footer></PaperDialog>
 }

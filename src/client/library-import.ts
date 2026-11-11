@@ -7,10 +7,9 @@ import type {NoteContent,NoteAttachment} from '../contracts/notes.js'
 import {ATTACHMENT_LIMIT} from '../contracts/notes.js'
 import type {Root,RootContent,PhrasingContent} from 'mdast'
 import type {Api} from './api.js'
-export interface ImportEntry {path:string;bytes:number;read:()=>Promise<Uint8Array>}
+export interface ImportEntry {path:string;bytes:number;read:()=>Promise<Uint8Array>;chunks?:()=>AsyncIterable<Uint8Array>}
 export interface ImportNote {path:string;noteId:string;content:NoteContent;warnings:string[];done?:boolean}
 export interface ImportPlan {entries:Map<string,ImportEntry>;notes:ImportNote[];warnings:string[];bytes:number}
-export const IMPORT_TOTAL=200*1024*1024
 export function portablePath(value:string):string|null{
   if(/^[a-z]:|^[\\/]|[\x00-\x1f]/i.test(value))return null
   const parts:string[]=[];for(const part of value.replace(/\\/g,'/').split('/')){if(part==='..'){if(!parts.length)return null;parts.pop()}else if(part&&part!=='.')parts.push(part.normalize('NFC'))}
@@ -24,12 +23,11 @@ export function unzipEntries(bytes:Uint8Array):{entries:ImportEntry[];warnings:s
     const path=portablePath(file.name)
     if(file.name.endsWith('/')||!path||path.split('/').some(s=>s.startsWith('.'))){if(!file.name.endsWith('/'))warnings.push(`${file.name}: 未导入隐藏文件或不安全路径`);return false}
     if(names.has(path.toLowerCase()))throw new Error('Duplicate archive path');names.add(path.toLowerCase())
-    if(file.originalSize>ATTACHMENT_LIMIT){warnings.push(`${path}: 超过 50 MiB，已跳过`);return false}
-    total+=file.originalSize;if(total>IMPORT_TOTAL)throw new Error('Archive exceeds 200 MiB')
+    if(file.originalSize>ATTACHMENT_LIMIT){warnings.push(`${path}: 超过 100 MiB，已跳过`);return false}
+    total+=file.originalSize
     return true
   }})
   const entries=Object.entries(files).map(([path,content])=>({path:portablePath(path)!,bytes:content.length,read:async()=>content}))
-  if(entries.reduce((n,e)=>n+e.bytes,0)>IMPORT_TOTAL)throw new Error('Archive exceeds 200 MiB')
   return {entries,warnings}
 }
 export function parseImportNote(path:string,text:string):ImportNote{
@@ -45,12 +43,12 @@ export function parseImportNote(path:string,text:string):ImportNote{
   const summary=typeof data.summary==='string'?data.summary:typeof data.description==='string'?data.description:''
   return {path,noteId:importId(),warnings,content:{title,summary,tags:[...new Set(tags.map(t=>t.replace(/^#/,'')))].filter(Boolean),body,notebookId:null,status:'active',sourceId:null,assetIds:[],originPath:path}}
 }
-export async function scanImport(entries:ImportEntry[],warnings:string[]=[]):Promise<ImportPlan>{
+export async function scanImport(entries:ImportEntry[],warnings:string[]=[],signal?:AbortSignal,progress?:(path:string)=>void):Promise<ImportPlan>{
   const map=new Map<string,ImportEntry>(),notes:ImportNote[]=[];let bytes=0
-  for(const entry of entries){const path=portablePath(entry.path);if(!path||path.split('/').some(p=>p.startsWith('.'))){warnings.push(`${entry.path}: 跳过配置或不安全路径`);continue}
-    if(entry.bytes>ATTACHMENT_LIMIT){warnings.push(`${path}: 超过 50 MiB，已跳过`);continue}
+  for(const entry of entries){signal?.throwIfAborted();progress?.(entry.path);const path=portablePath(entry.path);if(!path||path.split('/').some(p=>p.startsWith('.'))){warnings.push(`${entry.path}: 跳过配置或不安全路径`);continue}
+    if(entry.bytes>ATTACHMENT_LIMIT){warnings.push(`${path}: 超过 100 MiB，已跳过`);continue}
     if(map.has(path))throw new Error('Duplicate path');map.set(path,{...entry,path});bytes+=entry.bytes
-    if(bytes>IMPORT_TOTAL||map.size>10000)throw new Error('Import exceeds limit')
+    if(map.size>10000)throw new Error('Import exceeds limit')
     if(/\.md$/i.test(path)){try{if(entry.bytes>10*1024*1024)throw new Error('Markdown over 10 MiB');notes.push(parseImportNote(path,new TextDecoder('utf-8',{fatal:true}).decode(await entry.read())))}catch{warnings.push(`${path}: 无法读取 UTF-8 Markdown 或内容过大`)}}
   }
   if(notes.length>5000)throw new Error('Too many notes')
@@ -79,7 +77,7 @@ export function convertWiki(body:string,resolve:(url:string,image:boolean)=>stri
   return body
 }
 function encoded(bytes:Uint8Array){let value='';for(let at=0;at<bytes.length;at+=32768)value+=String.fromCharCode(...bytes.subarray(at,at+32768));return btoa(value)}
-export async function importNote(plan:ImportPlan,note:ImportNote,notebookId:string,remote:boolean,api:Api,signal?:AbortSignal):Promise<string[]> {
+export async function importNote(plan:ImportPlan,note:ImportNote,notebookId:string,remote:boolean,api:Api,signal?:AbortSignal,progress?:(bytes:number,total:number,path:string)=>void):Promise<string[]> {
   const warnings=[...note.warnings],content=structuredClone(note.content),assetIds=new Set<string>(),attachments=new Map<string,NoteAttachment>(),resolved=new Map<string,string>()
   content.notebookId=notebookId
   let body=convertWiki(content.body,(url,image)=>{
@@ -99,10 +97,14 @@ export async function importNote(plan:ImportPlan,note:ImportNote,notebookId:stri
       if(/^https?:\/\//i.test(ref.url)){if(!ref.image||!remote)continue;const {asset}=await api('/notes/image',{noteId:note.noteId,draft:true,url:ref.url},signal);assetIds.add(asset.id);resolved.set(ref.url,'../assets/'+asset.id);continue}
       if(!local){if(!/^fatfish-note:|^#/i.test(ref.url))warnings.push(`${ref.url}: 引用文件未包含或存在歧义，保留链接`);continue}
       const entry=plan.entries.get(local);if(!entry)continue
-      const bytes=await entry.read(),imageType=/\.(png|jpe?g|gif|webp)$/i.exec(local)?.[1]?.toLowerCase()
-      if(ref.image&&imageType){const {asset}=await api('/notes/image',{noteId:note.noteId,draft:true,base64:encoded(bytes),mediaType:'image/'+(imageType==='jpg'?'jpeg':imageType)},signal);assetIds.add(asset.id);resolved.set(ref.url,'../assets/'+asset.id)}
-      else{const {attachment}=await api('/notes/attachment',{noteId:note.noteId,draft:true,name:local.split('/').at(-1)!,base64:encoded(bytes),allowLarge:true},signal);attachments.set(attachment.id,attachment);resolved.set(ref.url,'../attachments/'+attachment.id+'.bin')}
-    }catch{signal?.throwIfAborted();warnings.push(`${ref.url}: 文件转存失败，保留原链接`)}
+      progress?.(0,entry.bytes,local)
+      const imageType=/\.(png|jpe?g|gif|webp)$/i.exec(local)?.[1]?.toLowerCase()
+      let result:Awaited<ReturnType<typeof transferEntry>>
+      try{result=await transferEntry(entry,{noteId:note.noteId,draft:true,...(ref.image&&imageType?{mediaType:'image/'+(imageType==='jpg'?'jpeg':imageType)}:{})},api,signal,progress)}catch(error){if(!ref.image||!/image_limit|invalid_asset/.test(String(error)))throw error;warnings.push(`${local}: 图片按原图附件保存，不在正文解码`);result=await transferEntry(entry,{noteId:note.noteId,draft:true},api,signal,progress)}
+      if(result.asset){assetIds.add(result.asset.id);resolved.set(ref.url,'../assets/'+result.asset.id)}
+      else if(result.attachment){attachments.set(result.attachment.id,result.attachment);resolved.set(ref.url,'../attachments/'+result.attachment.id+'.bin')}
+
+    }catch(error){signal?.throwIfAborted();throw Error(`${ref.url}: 文件未能转存，本篇尚未保存。请检查后重试。`)}
   }
   body=changeReferences(body,ref=>{
     const url=resolved.get(ref.url)
@@ -121,4 +123,17 @@ export async function importNote(plan:ImportPlan,note:ImportNote,notebookId:stri
     if(!saved||saved.note.current.body!==content.body||saved.note.current.originPath!==content.originPath)throw error
   }
   note.done=true;return warnings
+}
+
+export async function transferEntry(entry:ImportEntry,options:{noteId:string;draft:boolean;mediaType?:string},api:Api,signal?:AbortSignal,progress?:(bytes:number,total:number,path:string)=>void){
+  const {uploadId}=await api('/notes/transfer',{action:'begin',...options,name:entry.path.split('/').at(-1)!,size:entry.bytes},signal)
+  if(!uploadId)throw Error('Missing upload')
+  let finished=false,offset=0
+  try{
+    const fallback=async function*(){const bytes=await entry.read();for(let at=0;at<bytes.length;at+=1024*1024)yield bytes.subarray(at,at+1024*1024)}
+    for await(const part of entry.chunks?.()??fallback()){
+      for(let at=0;at<part.length;at+=1024*1024){signal?.throwIfAborted();const bytes=part.subarray(at,at+1024*1024);await api('/notes/transfer',{action:'chunk',noteId:options.noteId,uploadId,offset,base64:encoded(bytes)},signal);offset+=bytes.length;progress?.(offset,entry.bytes,entry.path)}
+    }
+    const result=await api('/notes/transfer',{action:'finish',noteId:options.noteId,uploadId},signal);finished=true;return result
+  }finally{if(!finished)await api('/notes/transfer',{action:'cancel',noteId:options.noteId,uploadId}).catch(()=>{})}
 }

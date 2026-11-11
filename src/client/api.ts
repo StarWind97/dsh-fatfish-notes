@@ -26,12 +26,12 @@ export function currentRepository(){return clientRepository}
 function pinRepository(id:number,switched=false){
   if(switched||clientRepository===undefined)clientRepository=id
 }
-export function createApi(fetcher: typeof fetch = globalThis.fetch): Api {
+export function createApi(fetcher: typeof fetch = globalThis.fetch, actorHeaders?:(path:string,body:unknown)=>Record<string,string>): Api {
   return async (path, requestBody, signal) => {
     const body:unknown=requestBody
     signal?.throwIfAborted()
     let response: Response
-    const headers:Record<string,string>=path==='/workspace/register'?{}:windowHeaders(path,body)
+    const headers:Record<string,string>=path==='/workspace/register'?{}:(actorHeaders??windowHeaders)(path,body)
     if((path.startsWith('/notes')||path==='/workspace/action'||path==='/workspace/open') && clientRepository!==undefined)headers['x-notebook-repository']=String(clientRepository)
     if(body!==undefined)headers['Content-Type']='application/json'
     try { response = await fetcher(`/dsh-fatfish-notes${path}`, {method:body === undefined ? 'GET' : 'POST',credentials:'same-origin',headers, ...(body === undefined ? {} : {body:JSON.stringify(body)}), ...(signal ? {signal} : {})}) }

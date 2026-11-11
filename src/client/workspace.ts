@@ -1,4 +1,4 @@
-import {api,ApiError,setWindowHeaders,type Api} from './api.js'
+import {api,createApi,ApiError,setWindowHeaders,type Api} from './api.js'
 import type {EditAccess,NotesController} from './notes-controller.js'
 import type {WorkspaceState,WindowSurface,WindowTheme} from '../contracts/workspace.js'
 import {browserStorage} from './note-recovery.js'
@@ -19,8 +19,19 @@ export class NotesWorkspace implements EditAccess {
   private controller:NotesController|undefined
   private seenSequence=-1
   private requestedHandoff:string|null=null
-  constructor(readonly surface:WindowSurface,private readonly call:Api=api){
-    const key=`fatfish-notes-window:${surface}`,storage=browserStorage()
+  readonly api:Api
+  private visible=true
+  setVisible(value:boolean){this.visible=value}
+  private headers=(path:string,body:unknown)=>{
+    const s=this.state.server,headers:Record<string,string>={'x-notebook-window':this.windowId,'x-notebook-epoch':s?.serviceEpoch??''}
+    const noteId=body&&typeof body==='object'&&'noteId' in body?body.noteId:undefined
+    if(s?.owned&&(noteId===s.owned.noteId||path==='/workspace/action'))headers['x-notebook-lease']=s.owned.leaseId
+    return headers
+  }
+  constructor(readonly surface:WindowSurface,private call:Api=api,scope=''){
+    if(surface==='conversation'&&call===api)this.call=createApi(globalThis.fetch,this.headers)
+    this.api=this.call
+    const key=`fatfish-notes-window:${surface}${scope?':'+scope:''}`,storage=browserStorage()
     let id:string|undefined
     try{id=storage?.getItem(key)??undefined}catch{}
     this.windowId=id&&/^[a-f0-9-]{36}$/.test(id)?id:crypto.randomUUID()
@@ -32,16 +43,11 @@ export class NotesWorkspace implements EditAccess {
   private emit(patch:Partial<WindowState>){this.state={...this.state,...patch};this.listeners.forEach(fn=>fn())}
   bind(controller:NotesController){this.controller=controller}
   start(){
-    setWindowHeaders((path,body)=>{
-      const s=this.state.server,headers:Record<string,string>={'x-notebook-window':this.windowId,'x-notebook-epoch':s?.serviceEpoch??''}
-      const noteId=body&&typeof body==='object'&&'noteId' in body?body.noteId:undefined
-      if(s?.owned&&(noteId===s.owned.noteId||path==='/workspace/action'))headers['x-notebook-lease']=s.owned.leaseId
-      return headers
-    })
+    if(this.surface!=='conversation')setWindowHeaders(this.headers)
     void this.ready().catch(()=>{})
     this.timer=setInterval(()=>void this.poll(),2000)
   }
-  dispose(){this.stopped=true;clearInterval(this.timer);setWindowHeaders(()=>({}));this.listeners.clear()}
+  dispose(){this.stopped=true;clearInterval(this.timer);if(this.surface!=='conversation')setWindowHeaders(()=>({}));this.listeners.clear()}
   private serial<T>(work:()=>Promise<T>):Promise<T>{const result=this.chain.then(work,work);this.chain=result.catch(()=>{});return result}
   private accept(server:WorkspaceState){
     const prior=this.state.server
@@ -80,7 +86,7 @@ export class NotesWorkspace implements EditAccess {
     }
   }
   async poll(){
-    if(this.stopped||this.polling)return
+    if(this.stopped||this.polling||(!this.visible&&!this.state.server?.owned))return
     this.polling=true
     try{
       await this.ready()

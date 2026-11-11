@@ -68,6 +68,8 @@ test('direct export uses shareable turn selection without resuming or creating a
   const selection:CaptureSelection={cut:{throughSeq:4,capturedAt:new Date().toISOString(),isSeeded:false},
     messages:[0,1,2,3].map(i=>({id:String(i),role:i%2?'assistant':'user',seq:i,blocks:[]})),complete:true,issues:[],defaultMessageIds:['2','3']}
   const bridge=new NoteCaptureBridge(async(path)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/capture-progress')return {ok:true,progress:null} as never
     assert.equal(path,'/notes/selection');return {ok:true,...selection} as never
   },{getItem:()=>assert.fail('export loaded note recovery'),setItem:()=>assert.fail('export saved note recovery'),removeItem:()=>assert.fail()})
   await bridge.openExport('s','3')

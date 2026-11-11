@@ -30,12 +30,12 @@ export function date(value: unknown): string {
 }
 export function status(value: unknown): 'active' | 'trashed' { if (value !== 'active' && value !== 'trashed') fail(); return value }
 export const contentKeys = ['title', 'body', 'summary', 'tags', 'notebookId', 'status', 'sourceId', 'assetIds'] as const
-export const optionalContentKeys = ['attachments', 'originPath', 'favorite', 'isTemplate'] as const
+export const optionalContentKeys = ['attachments', 'originPath', 'favorite', 'isTemplate', 'sessionLinks'] as const
 export function contentFields(v: Record<string, unknown>): string[] { return [...contentKeys, ...optionalContentKeys.filter(k => Object.hasOwn(v, k))] }
 export function attachment(value: unknown): NoteAttachment {
   const v = object(value); keys(v, ['id', 'name', 'bytes'])
   const name = text(v.name, 1000).normalize('NFC').replace(/[\\/\u0000-\u001f\u007f]/g, '_').trim()
-  if (!name || name === '.' || name === '..' || !Number.isSafeInteger(v.bytes) || Number(v.bytes) < 0 || Number(v.bytes) > ATTACHMENT_LIMIT) fail('attachment_limit', '附件名称无效或超过 50 MiB')
+  if (!name || name === '.' || name === '..' || !Number.isSafeInteger(v.bytes) || Number(v.bytes) < 0 || Number(v.bytes) > ATTACHMENT_LIMIT) fail('attachment_limit', '附件名称无效或超过 100 MiB')
   return { id: hash(v.id), name, bytes: Number(v.bytes) }
 }
 export function normalizeContent(value: unknown): NoteContent {
@@ -45,7 +45,7 @@ export function normalizeContent(value: unknown): NoteContent {
   if (v.attachments !== undefined) {
     if (!Array.isArray(v.attachments) || v.attachments.length > 128) fail('attachment_limit')
     attachments = v.attachments.map(attachment)
-    if (new Set(attachments.map(a => a.id)).size !== attachments.length || attachments.reduce((n,a) => n+a.bytes, 0) > 200*1024*1024) fail('attachment_limit', '单篇附件总量不能超过 200 MiB')
+    if (new Set(attachments.map(a => a.id)).size !== attachments.length) fail('attachment_limit', '同一文件不应重复登记')
   }
   return {
     title: text(v.title, 1200).trim() || '无标题', body: text(v.body, NOTE_LIMITS.body),
@@ -53,6 +53,7 @@ export function normalizeContent(value: unknown): NoteContent {
     notebookId: v.notebookId === null ? null : id(v.notebookId), status: status(v.status),
     sourceId: v.sourceId === null ? null : hash(v.sourceId), assetIds: sortedStrings(v.assetIds, NOTE_LIMITS.images, assetId),
     ...(attachments ? { attachments } : {}), ...(v.originPath !== undefined ? { originPath: text(v.originPath, 4096) } : {}),
+    ...(v.sessionLinks !== undefined ? { sessionLinks: sortedStrings(v.sessionLinks, 1000, s => { const value=text(s,512); if(!value.trim()) fail('note_schema'); return value }) } : {}),
     ...(v.favorite !== undefined ? {favorite:v.favorite as boolean} : {}), ...(v.isTemplate !== undefined ? {isTemplate:v.isTemplate as boolean} : {}),
   }
 }

@@ -1,4 +1,4 @@
-export type WindowSurface = 'embedded' | 'standalone'
+export type WindowSurface = 'embedded' | 'standalone' | 'conversation'
 export interface WindowIdentity { windowId:string; serviceEpoch:string; leaseId?:string }
 export interface EditLease { noteId:string; leaseId:string; expiresAt:number }
 export interface WindowTheme { dark:boolean; background:string; foreground:string; muted:string; border:string; language:'zh'|'en' }

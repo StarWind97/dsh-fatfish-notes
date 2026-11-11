@@ -54,7 +54,19 @@ export async function syncDirectory(path: string): Promise<void> {
   const handle = await open(path, 'r'); try { await handle.sync() } finally { await handle.close() }
 }
 export class NoteFiles {
+  private checked=new Map<string,{stamp:string;bytes:number}>()
   constructor(readonly root: string, readonly beforeWrite?: (path: string) => void | Promise<void>) {}
+  /** Content-addressed references are rechecked whenever the file identity or timestamp changes. */
+  async check(relative:string,limit:number,verify:(bytes:Buffer)=>void):Promise<number>{
+    const path=this.path(relative);await safePath(path)
+    const stamp=async()=>{const s=await lstat(path,{bigint:true});if(!s.isFile()||s.nlink>1n)fail('note_path');return [s.dev,s.ino,s.size,s.mtimeNs,s.ctimeNs].join(':')}
+    const before=await stamp(),key=`${relative}:${limit}`,cached=this.checked.get(key)
+    if(cached?.stamp===before)return cached.bytes
+    const bytes=await this.read(relative,limit);verify(bytes)
+    if(await stamp()!==before)fail('note_changed')
+    if(this.checked.size>20000)this.checked.clear()
+    this.checked.set(key,{stamp:before,bytes:bytes.length});return bytes.length
+  }
   path(relative: string): string { return join(this.root, relativePath(relative)) }
   async read(relative: string, limit = NOTE_LIMITS.scan): Promise<Buffer> { return readBytes(this.path(relative), limit) }
   async remove(relative: string): Promise<void> {
@@ -68,8 +80,6 @@ export class NoteFiles {
     const previous = await this.read(relative).catch(e => { if (missing(e)) return null; throw e })
     if (previous?.equals(bytes)) return
     if (immutable && previous) fail('note_corrupt', '已有不可变文件与新内容不一致，原件已保留')
-    const listing = await this.scan()
-    if (listing.bytes + bytes.length - (previous?.length ?? 0) > NOTE_LIMITS.scan) fail('note_limit', '笔记模块超过 512 MiB')
     await this.beforeWrite?.(relative)
     await mkdir(dirname(path), { recursive: true }); await safePath(path)
     const temp = join(dirname(path), `.tmp-${randomUUID()}`), handle = await open(temp, 'wx', 0o600)
@@ -111,7 +121,7 @@ export class NoteFiles {
         if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink > 1n)) fail('note_path')
         if (stat.isDirectory()) await walk(path, `${rel}/`, depth + 1)
         else if (stat.isFile()) {
-          bytes += Number(stat.size); if (bytes > NOTE_LIMITS.scan) fail('note_limit', '笔记扫描超过 512 MiB'); paths.push(rel)
+          bytes += Number(stat.size); if (Number(stat.size) > NOTE_LIMITS.scan) fail('note_limit', '存在超出支持范围的单个文件'); paths.push(rel)
           // Nanosecond change time detects replacements and writes even if mtime is restored.
           stamps.push(JSON.stringify([rel,String(stat.dev),String(stat.ino),String(stat.size),String(stat.mtimeNs),String(stat.ctimeNs)]))
         }

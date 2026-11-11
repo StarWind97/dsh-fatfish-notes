@@ -1,5 +1,5 @@
-import { fileBase64 } from './file-base64.js'
-import { api } from '../api.js'
+import {uploadFile} from '../import-worker-client.js'
+import { api, type Api } from '../api.js'
 import { safePublicUrl } from '../safe-url.js'
 
 export type ImageInput={file:File;label:string}|{url:string;label:string}
@@ -20,12 +20,12 @@ export function clipboardImages(data:DataTransfer):ImageInput[]{
   const url=/^https:\/\/\S+$/i.test(raw)?safePublicUrl(raw):null
   return url&&(/\.(png|jpe?g|gif|webp)$/i.test(new URL(url).pathname)||/[?&](?:format|fm)=(?:png|jpe?g|gif|webp)(?:&|$)/i.test(url))?[{url,label:''}]:[]
 }
-export async function archiveInput(noteId:string,input:ImageInput,signal:AbortSignal,draft:boolean){
-  if('url' in input)return (await api('/notes/image',{noteId,draft,url:input.url},signal)).asset
+export async function archiveInput(noteId:string,input:ImageInput,signal:AbortSignal,draft:boolean,call:Api=api){
+  if('url' in input)return (await call('/notes/image',{noteId,draft,url:input.url},signal)).asset
   const {file}=input
-  if(!file.size||file.size>5*1024*1024)throw new Error('image_limit')
+  if(!file.size||file.size>20*1024*1024)throw new Error('image_limit')
   const suffix=file.name.split('.').pop()?.toLowerCase()??''
   const mediaType=file.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif'} as Record<string,string>)[suffix]
   if(!mediaType||!['image/png','image/jpeg','image/webp','image/gif'].includes(mediaType))throw new Error('image_type')
-  return (await api('/notes/image',{noteId,draft,mediaType,base64:await fileBase64(file)},signal)).asset
+  const result=await uploadFile(file,{noteId,draft,mediaType},call,signal);if(!result.asset)throw new Error('image_limit');return result.asset
 }

@@ -9,7 +9,10 @@ export declare function syncDirectory(path: string): Promise<void>;
 export declare class NoteFiles {
     readonly root: string;
     readonly beforeWrite?: ((path: string) => void | Promise<void>) | undefined;
+    private checked;
     constructor(root: string, beforeWrite?: ((path: string) => void | Promise<void>) | undefined);
+    /** Content-addressed references are rechecked whenever the file identity or timestamp changes. */
+    check(relative: string, limit: number, verify: (bytes: Buffer) => void): Promise<number>;
     path(relative: string): string;
     read(relative: string, limit?: number): Promise<Buffer>;
     remove(relative: string): Promise<void>;

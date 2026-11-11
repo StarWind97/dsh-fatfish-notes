@@ -11,7 +11,7 @@ import { canonical, digest, fail, hash, id, normalizeContent, object, keys, sort
 import { createNoteRevision, validateNoteRevision, mergeNoteRevisions, materializeNote, createNotebookRevision, validateNotebookRevision, mergeNotebookRevisions, materializeNotebook, topologicalOrder } from './revisions.js'
 import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from './markdown.js'
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
-import { checkReferences, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
+import { checkReferences, sourceAttachments, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
 import { searchNotes } from './search.js'
 import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME } from './notebooks.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
@@ -42,6 +42,7 @@ export class NoteRepository {
   onChange(listener: () => void): () => void { this.changeListeners.add(listener); return () => { this.changeListeners.delete(listener) } }
   private readonly now: () => number
   private validated: { fingerprint: string; state: State } | undefined
+  private readonly sourceSessions=new Map<string,string>()
   private writeEpoch = 0
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
     this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
@@ -49,6 +50,7 @@ export class NoteRepository {
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
     this.validated = undefined
+    this.sourceSessions.clear()
     this.files = new NoteFiles(resolve(directory, 'notes'), this.files.beforeWrite)
   }
   private run<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -110,10 +112,10 @@ export class NoteRepository {
       try {
         manifest = JSON.parse(utf8(await this.files.read('manifest.json'))) as unknown
         const v = object(manifest)
-        if (v.version !== undefined && v.version !== 1 && v.version !== 2) fail('note_version', '笔记模块版本不支持，已暂停写入')
+        if (v.version !== undefined && ![1,2,3].includes(v.version as number)) fail('note_version', '笔记模块版本不支持，已暂停写入')
         if (Object.keys(v).some(k => !['version', 'notes', 'notebooks', 'revision', 'deleted'].includes(k))) fail('note_schema')
         const { revision, ...data } = v
-        if (![1,2].includes(Number(v.version)) || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
+        if (![1,2,3].includes(v.version as number) || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
         if (deletionIds(v.deleted).some(n => !state.deleted!.includes(n))) fail('note_deleted_missing', '删除记录缺失，已暂停操作')
         const claims: string[] = []
         for (const [rows, field, directory] of [[v.notes, 'noteId', 'revisions'], [v.notebooks, 'notebookId', 'notebooks']] as const) {
@@ -250,7 +252,35 @@ export class NoteRepository {
   }
   async list(options: NoteListOptions = {}, signal?: AbortSignal): Promise<NoteListResult> {
     const input = structuredClone(options)
-    return this.run(async () => { const s = await this.load(); return searchNotes([...new Set(s.revisions.map(r => r.noteId))].map(n => this.view(s, n)), input) }, signal)
+    return this.run(async () => {
+      const s = await this.load(); let views=[...new Set(s.revisions.map(r => r.noteId))].map(n => this.view(s, n))
+      if(input.sessionId){
+        text(input.sessionId,512)
+        const origins=this.sourceSessions
+        for(const sourceId of new Set(views.flatMap(v=>v.current.sourceId?[v.current.sourceId]:[]))){
+          signal?.throwIfAborted()
+          if(!origins.has(sourceId)){
+            const source=object(JSON.parse(utf8(await this.files.read(`sources/${sourceId}.json`,NOTE_LIMITS.source))))
+            if(origins.size>=10000)origins.clear()
+            origins.set(sourceId,String(source.sessionId??''))
+          }
+        }
+        views=views.filter(v=>{const r=v.current,source=r.sourceId&&origins.get(r.sourceId)===input.sessionId,linked=r.sessionLinks?.includes(input.sessionId!);return r.status==='active'&&!r.isTemplate&&(input.relation==='source'?source:input.relation==='linked'?linked&&!source:source||linked)})
+      }
+      return searchNotes(views,input)
+    }, signal)
+  }
+  async associate(noteId:string,heads:string[],sessionId:string,linked:boolean,signal?:AbortSignal):Promise<NoteView>{
+    id(noteId);text(sessionId,512);if(!sessionId.trim())fail('note_schema')
+    return this.run(async()=>{
+      this.editGuard([noteId]);const state=await this.load();this.complete(state);this.writable(state,noteId);await this.external(state,noteId)
+      const view=this.view(state,noteId);if(!same(view.heads,heads)||view.conflicts.length)conflict()
+      if(view.current.status!=='active'||view.current.isTemplate)fail('note_trashed')
+      const links=new Set(view.current.sessionLinks??[]);if(linked)links.add(sessionId);else links.delete(sessionId)
+      const content=normalizeContent({...revisionContent(view.current),sessionLinks:[...links]})
+      if(canonical(content)===canonical(revisionContent(view.current)))return view
+      return this.append(state,createNoteRevision({version:1,noteId,parents:view.heads,recordedAt:new Date(this.now()).toISOString(),...content}))
+    },signal)
   }
   async get(noteId: string, signal?: AbortSignal): Promise<NoteView> {
     id(noteId); return this.run(async () => { const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); return this.view(s, noteId) }, signal)
@@ -321,12 +351,12 @@ export class NoteRepository {
         const old=revision?state.revisions.find(r=>r.noteId===item.noteId&&r.revision===revision):current
         if(!old)fail('note_not_found','历史版本不存在')
         let content:NoteContent={...revisionContent(old),notebookId:notebookId??(revision?old.notebookId:view.effectiveNotebookId),status:'active'}
-        if(revision)content={...content,sourceId:current.sourceId,...(current.favorite!==undefined?{favorite:current.favorite}:{}),...(current.isTemplate!==undefined?{isTemplate:current.isTemplate}:{})}
+        if(revision){delete content.sessionLinks;content={...content,sourceId:current.sourceId,...(current.sessionLinks!==undefined?{sessionLinks:current.sessionLinks}:{}),...(current.favorite!==undefined?{favorite:current.favorite}:{}),...(current.isTemplate!==undefined?{isTemplate:current.isTemplate}:{})}}
         if(action==='favorite'||action==='unfavorite')content.favorite=action==='favorite'
         if(action==='add-tags')content.tags=[...new Set([...current.tags,...tags])]
         if(action==='remove-tags')content.tags=current.tags.filter(t=>!tags.includes(t))
         if(copy){
-          delete content.originPath;delete content.favorite;content.isTemplate=action==='template'
+          delete content.originPath;delete content.favorite;delete content.sessionLinks;content.isTemplate=action==='template'
           const suffix=`（${action==='template'?'模板':'副本'}）`,chars=Array.from(old.title)
           while(Buffer.byteLength(chars.join('')+suffix)>1200)chars.pop()
           content.title=title||chars.join('')+suffix
@@ -409,14 +439,14 @@ export class NoteRepository {
   }
   async putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?:string): Promise<NoteAsset> {
     const copy = Buffer.from(bytes), metadata = validateAsset(copy, mediaType)
-    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); await this.load(); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
   }
   async getAsset(asset: string, signal?: AbortSignal): Promise<Buffer> {
     assetId(asset); return this.run(async () => { const bytes = await this.files.read(`assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash'); return bytes }, signal)
   }
   async putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?:string): Promise<NoteAttachment> {
     const copy = Buffer.from(bytes), metadata = attachment({ id: digest(copy), name, bytes: copy.length })
-    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); await this.load(); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
   }
   async getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer> {
     hash(fileId); return this.run(async () => { const bytes = await this.files.read(`attachments/${fileId}.bin`, ATTACHMENT_LIMIT); if (digest(bytes) !== fileId) fail('note_hash'); return bytes }, signal)
@@ -460,7 +490,7 @@ export class NoteRepository {
       if (r.sourceId) {
         target.add(`sources/${r.sourceId}.json`)
         const bytes = await this.files.read(`sources/${r.sourceId}.json`).catch(e => { if (missing(e)) return null; throw e })
-        if (bytes) { const source = object(JSON.parse(utf8(bytes)) as unknown); if (source.assets) Object.values(object(source.assets)).forEach(a => target.add(`assets/${assetId(a)}`)) }
+        if (bytes) { const source = object(JSON.parse(utf8(bytes)) as unknown); sourceAttachments(source).forEach(a=>target.add(`attachments/${a.id}.bin`)); if (source.assets) Object.values(object(source.assets)).forEach(a => target.add(`assets/${assetId(a)}`)) }
       }
     }
     for (const row of state.revisions) await dependencies(row, retained)

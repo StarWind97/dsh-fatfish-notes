@@ -228,7 +228,7 @@ test('notes corrupt index is preserved verbatim in quarantine and rebuilt from i
   assert.ok(issues.some(i => i.path === 'manifest.json'))
   assert.deepEqual(await readFile(join(dir, 'notes', 'quarantine', `${digest(bad)}.bin`)), bad)
   assert.equal((await reopened.get(base.noteId)).current.body, content.body)
-  assert.equal(JSON.parse(await readFile(join(dir, 'notes', 'manifest.json'), 'utf8')).version, 1)
+  assert.equal(JSON.parse(await readFile(join(dir, 'notes', 'manifest.json'), 'utf8')).version, 3)
 })
 
 test('notes corrupt immutable files and descendants are logically isolated with original bytes retained', async t => {
@@ -246,7 +246,7 @@ test('notes corrupt immutable files and descendants are logically isolated with 
 
 test('notes future manifest versions stop writes without replacing existing files', async t => {
   const { dir, repo } = await fixture(t)
-  await mkdir(join(dir, 'notes')); const manifest = '{"version":3,"future":true}'
+  await mkdir(join(dir, 'notes')); const manifest = '{"version":99,"future":true}'
   await writeFile(join(dir, 'notes', 'manifest.json'), manifest)
   await assert.rejects(repo.save({ expectedHeads: [], content }), code('note_version'))
   await assert.rejects(repo.putAsset(png, 'image/png'), code('note_version'))
@@ -302,15 +302,16 @@ test('notes 5000-note cap rejects the entire oversized import before writes', as
   assert.deepEqual(await readdir(dir), [])
 })
 
-test('notes archived images enforce the actual per-note 20 MiB budget', async t => {
+test('notes archived images retain separate per-file limits without the former aggregate 20 MiB budget', async t => {
   const { repo } = await fixture(t), assets: string[] = []
   for (let i = 0; i < 5; i++) {
-    const bytes = Buffer.alloc(NOTE_LIMITS.image); png.copy(bytes); bytes[bytes.length - 1] = i
+    const bytes = Buffer.alloc(5*1024*1024); png.copy(bytes); bytes[bytes.length - 1] = i
     assets.push((await repo.putAsset(bytes, 'image/png')).id)
   }
   const base = await repo.save({ expectedHeads: [], content: { ...content, assetIds: assets.slice(0, 4) } })
-  await assert.rejects(repo.save({ noteId: base.noteId, expectedHeads: base.heads, content: { ...content, assetIds: assets } }), code('note_limit'))
-  assert.equal((await repo.get(base.noteId)).current.assetIds.length, 4)
+  await repo.save({ noteId: base.noteId, expectedHeads: base.heads, content: { ...content, assetIds: assets } })
+  assert.equal((await repo.get(base.noteId)).current.assetIds.length, 5)
+  await assert.rejects(repo.putAsset(Buffer.alloc(NOTE_LIMITS.image+1),'image/png'))
 })
 
 test('notes repository refuses directory symlinks/junctions and leaves outside files unchanged', async t => {

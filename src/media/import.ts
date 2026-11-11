@@ -31,9 +31,9 @@ const pinnedRequest:ImageRequest=({url,address},signal)=>new Promise((resolve,re
   const req=request(url,{method:'GET',signal,agent:false,headers:{accept:'image/png,image/jpeg,image/webp,image/gif'},lookup:(_hostname,options,callback)=>callback(null,options.all?[address]:address.address,address.family)},res=>{
     const status=res.statusCode??0,location=res.headers.location,mediaType=(res.headers['content-type']??'').split(';')[0]!.trim().toLowerCase()
     if(status>=300&&status<400){res.resume();resolve({status,...(location?{location}:{}),mediaType,bytes:Buffer.alloc(0)});return}
-    if(Number(res.headers['content-length'])>MAX_IMAGE_BYTES){res.destroy();reject(new NotebookError('image_limit','单张图片不能超过 5 MiB'));return}
+    if(Number(res.headers['content-length'])>MAX_IMAGE_BYTES){res.destroy();reject(new NotebookError('image_limit','正文图片不能超过 20 MiB'));return}
     let size=0;const chunks:Buffer[]=[]
-    res.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>MAX_IMAGE_BYTES){res.destroy();reject(new NotebookError('image_limit','单张图片不能超过 5 MiB'))}else chunks.push(chunk)})
+    res.on('data',(chunk:Buffer)=>{size+=chunk.length;if(size>MAX_IMAGE_BYTES){res.destroy();reject(new NotebookError('image_limit','正文图片不能超过 20 MiB'))}else chunks.push(chunk)})
     res.once('error',reject);res.once('end',()=>resolve({status,mediaType,bytes:Buffer.concat(chunks)}))
   });req.once('error',reject);req.end()
 })

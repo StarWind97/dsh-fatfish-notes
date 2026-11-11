@@ -11,7 +11,8 @@ export type ExportBlock =
   | { type: 'rule' }
 export interface ExportModel { title: string; blocks: ExportBlock[]; assetIds: string[] }
 export interface ExportImage { dataUrl: string; width: number; height: number }
-export interface ExportSnapshot { noteId: string; revision: string; filename: string; model: ExportModel; assets: Record<string, string> }
+export interface ExportSnapshot {
+  attachments?:import('../../contracts/notes.js').NoteAttachment[];noteId: string; revision: string; filename: string; model: ExportModel; assets: Record<string, string> }
 export class ExportError extends Error { constructor(readonly code: string) { super(code) } }
 export function exportLink(url: string): string | undefined {
   try { const u = new URL(url); return ['https:', 'http:'].includes(u.protocol) && !u.username && !u.password ? u.href : undefined } catch { return undefined }

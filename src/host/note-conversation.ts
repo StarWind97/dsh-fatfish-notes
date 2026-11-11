@@ -1,3 +1,6 @@
+import {ConversationFiles,materialName,type ConversationFileServices,type MaterialReference} from './conversation-files.js'
+import type {FileAttachmentRef} from '@deepseek-ai/dsh-attachment'
+import type {CaptureMaterial} from '../contracts/notes.js'
 import type { SessionController, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { AttachmentId, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -18,8 +21,19 @@ const nonTranscript = new Set(`agent-preset/selected agent/inbox/spliced approva
 /** Archive append-origin text, rather than the model-compaction replacement. */
 export function projectTranscript(events: readonly SessionWireEvent[]): CaptureRead {
   const messages: CaptureMessage[] = [], issues = new Set<string>(), ids = new Set<string>()
+  const materials:CaptureMaterial[]=[],materialReferences=new Map<string,MaterialReference>();let turn:number|undefined
   const imageReferences = new Map<string, ImageAttachmentRef>()
   for (const event of events) {
+    const eventData=object(event.data)
+    if(event.type==='turn/start'&&typeof eventData.turn==='number')turn=eventData.turn
+    if(event.type==='deliverables/presented'&&Array.isArray(eventData.files)){
+      for(const [i,raw]of eventData.files.entries()){
+        const file=object(raw);if(typeof file.path!=='string')continue
+        const id=`delivery:${event.seq}:${i}`,name=materialName(file.path),ext=name.split('.').at(-1)?.toLowerCase()
+        materials.push({id,kind:['png','jpg','jpeg','gif','webp'].includes(ext??'')?'image':'file',origin:'delivery',name,bytes:null,seq:event.seq,...(typeof eventData.turn==='number'?{turn:eventData.turn}:turn===undefined?{}:{turn}),available:true})
+        materialReferences.set(id,{kind:'delivery',path:file.path})
+      }
+    }
     if (event.type === 'tool/ptc-dispatch') {
       const content = object(event.data).content
       if (Array.isArray(content) && content.some(b => object(b).type === 'image')) issues.add('unsupported_tool_images')
@@ -39,9 +53,16 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
     const messageId = text(message.id, 512)
     if (!Array.isArray(message.content)) fail('capture_protocol')
     const blocks: CaptureMessage['blocks'] = []
-    for (const raw of message.content) {
+    for (const [index,raw] of message.content.entries()) {
       const block = object(raw)
       if (block.type === 'text' && !toolImages) blocks.push({ type: 'text', text: text(block.text, NOTE_LIMITS.body) })
+      else if(block.type==='file'&&!toolImages){
+        const ref=object(block.attachment),id=`upload:${event.seq}:${index}`,name=typeof ref.name==='string'?materialName(ref.name):'附件'
+        const valid=typeof ref.attachmentId==='string'&&/^sha256:[a-f0-9]{64}$/.test(ref.attachmentId)&&Number.isSafeInteger(ref.bytes)&&Number(ref.bytes)>=0
+        materials.push({id,kind:'file',origin:'upload',name,bytes:valid?Number(ref.bytes):null,seq:event.seq,...(turn===undefined?{}:{turn}),messageId,available:valid})
+        if(valid)materialReferences.set(id,{kind:'upload',ref:ref as unknown as FileAttachmentRef})
+        blocks.push({type:'text',text:`[上传文件：${name}]`})
+      }
       else if (block.type === 'image') {
         const attachment = object(block.attachment), attachmentId = text(attachment.attachmentId, 512), mediaType = text(attachment.mediaType, 100)
         blocks.push({ type: 'image', attachmentId, mediaType })
@@ -50,19 +71,23 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
           imageReferences.set(attachmentId, { attachmentId: attachmentId as AttachmentId, mediaType: mediaType as ImageMediaType,
             bytes: attachment.bytes as number, width: attachment.width as number, height: attachment.height as number })
         }
+        const ref=imageReferences.get(attachmentId),id=`image:${event.seq}:${index}`
+        materials.push({id,kind:'image',origin:event.type==='user/message'?'upload':'delivery',name:typeof attachment.name==='string'?materialName(attachment.name):`会话图片.${mediaType.split('/')[1]??'png'}`,bytes:ref?.bytes??null,seq:event.seq,...(turn===undefined?{}:{turn}),messageId,imageId:attachmentId,available:!!ref})
+        if(ref)materialReferences.set(id,{kind:'image',ref})
       }
       else if (!toolImages && !['reasoning', 'tool-call'].includes(String(block.type))) issues.add('unsupported_content')
     }
     if (!blocks.length) continue
     if (ids.has(messageId)) { issues.add('duplicate_message_identity'); continue }
-    ids.add(messageId); messages.push({ id: messageId, seq: event.seq, role: event.type === 'user/message' ? 'user' : 'assistant', blocks })
+    ids.add(messageId); messages.push({ id: messageId, seq: event.seq, ...(typeof data.turn==='number'?{turn:data.turn}:turn===undefined?{}:{turn}), role: event.type === 'user/message' ? 'user' : 'assistant', blocks })
     if (messages.length > NOTE_LIMITS.messages) fail('note_limit', '会话超过 20,000 条可见消息，未保存为完整笔记')
   }
-  return { messages, complete: !issues.size, issues: [...issues], imageReferences }
+  return { messages, complete: !issues.size, issues: [...issues], imageReferences,materials,materialReferences }
 }
 
 export class NoteConversation {
-  constructor(private readonly provider: () => NoteConversationController | undefined) {}
+  private files:ConversationFiles
+  constructor(private readonly provider: () => NoteConversationController | undefined,services:ConversationFileServices={}) {this.files=new ConversationFiles(services)}
   private controller(): NoteConversationController {
     const value = this.provider()
     if (!value?.follow || !value.page) throw new NotebookError('conversation_unavailable', '宿主未提供完整会话读取服务', 503)
@@ -81,8 +106,11 @@ export class NoteConversation {
     } finally { controller.abort(); await iterator.return?.() }
   }
   async read(sessionId: string, cut: Pick<CaptureCut,'throughSeq'>, signal: AbortSignal): Promise<CaptureRead> {
-    return projectTranscript(await readNoteHistory(this.controller(), sessionId, cut.throughSeq, signal))
+    const result=projectTranscript(await readNoteHistory(this.controller(), sessionId, cut.throughSeq, signal))
+    for(const material of result.materials??[]){const ref=result.materialReferences?.get(material.id);if(ref)await this.files.describe(sessionId,material,ref,signal)}
+    return result
   }
+  material(sessionId:string,material:CaptureMaterial,reference:MaterialReference,signal:AbortSignal,progress?:(bytes:number)=>void){return this.files.read(sessionId,material,reference,signal,progress)}
   async attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{ bytes: Buffer; mediaType: ImageMediaType }> {
     signal.throwIfAborted()
     if (!reference || reference.attachmentId !== attachmentId || reference.mediaType !== mediaType || reference.bytes > NOTE_LIMITS.image) fail('capture_attachment')

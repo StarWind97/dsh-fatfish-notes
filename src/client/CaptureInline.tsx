@@ -53,10 +53,10 @@ function CaptureBar({state,selection,bridge,t}: {state:NoteCaptureState; selecti
     <div className="capture-bar-row">
       <strong aria-live="polite"><ListChecks size={16} aria-hidden="true"/>{t('capturePicked',{turns,messages:count})}</strong>
       <button type="button" aria-pressed={whole} onClick={()=>bridge.setScope(whole?'selection':'session')}>{t('captureWhole')}</button>
-      <button type="button" title={t(state.exporting?'captureFine':'captureFineHint')} onClick={()=>bridge.showDetail(true)}>{t('captureFine')}</button>
+      <button type="button" title={t(state.exporting?'captureFine':'captureFineHint')} onClick={()=>bridge.showDetail(true)}>{t('captureFine')}{!!selection.materials?.length&&` · ${selection.materials.length}`}</button>
       <span className="capture-bar-space"/>
       <button type="button" onClick={()=>bridge.close()}>{t('cancel')}</button>
-      <button type="button" className="capture-bar-save" disabled={!count} onClick={()=>state.exporting?bridge.exportDialog():void bridge.save()}>{t(state.exporting?'chatExportContinue':'captureSave')}</button>
+      <button type="button" className="capture-bar-save" disabled={!count} onClick={()=>state.exporting?bridge.exportDialog():selection.materials?.length?bridge.showDetail(true):void bridge.save()}>{t(state.exporting?'chatExportContinue':'captureSave')}</button>
     </div>
     {!selection.complete && <small role="alert">{t(state.exporting?'chatExportPartial':'notePartialSource')}</small>}
     {state.autoMetadata && <small>{t('noteAutoMetadata')}</small>}

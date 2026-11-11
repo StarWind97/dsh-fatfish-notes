@@ -1,3 +1,5 @@
+import type { MaterialReference } from '../host/conversation-files.js';
+import type { CaptureMaterial, CaptureProgress } from '../contracts/notes.js';
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript } from '../contracts/notes.js';
 import type { ImageMediaType } from '../contracts/media.js';
 import { NoteRepository } from './repository.js';
@@ -5,10 +7,12 @@ import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
 export interface CaptureRead extends CaptureTranscript {
     imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;
+    materialReferences?: ReadonlyMap<string, MaterialReference>;
 }
 export interface CaptureConversation {
     open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>;
     read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>;
+    material?(sessionId: string, material: CaptureMaterial, reference: MaterialReference, signal: AbortSignal, progress?: (bytes: number) => void): Promise<Buffer>;
     attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{
         bytes: Buffer;
         mediaType: ImageMediaType;
@@ -24,7 +28,7 @@ export declare class NoteCaptureService {
     private readonly conversation;
     private tail;
     constructor(repository: NoteRepository, conversation: CaptureConversation);
-    capture(input: unknown, signal?: AbortSignal): Promise<CaptureResult>;
+    capture(input: unknown, signal?: AbortSignal, progress?: (value: CaptureProgress) => void): Promise<CaptureResult>;
     selection(input: CaptureSelectionRequest, signal?: AbortSignal): Promise<CaptureSelection>;
     private perform;
 }
