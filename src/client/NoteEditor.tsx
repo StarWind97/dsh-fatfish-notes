@@ -1,3 +1,4 @@
+import {DocumentTools} from './paper/DocumentTools.js'
 import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -164,7 +165,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} done={(pos,y)=>void finish(pos,y)}/>
       :<article className="paper-reading" onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('a,button,input'))edit(e.target as HTMLElement)}}>
       {state.filter.query&&<button className="paper-search-jump" onClick={nextHit}><Search size={14}/>{t('findNextMatch')}</button>}
-      {note?<NoteMarkdown body={draft.body} note={note} onNoteLink={onNoteLink} query={state.filter.query}/>:<p>{draft.body}</p>}
+      {note?<NoteMarkdown t={t} body={draft.body} note={note} onNoteLink={onNoteLink} query={state.filter.query}/>:<p>{draft.body}</p>}
       {note&&<AttachmentList note={note} t={t}/>}
       {note&&!draft.isTemplate&&<Backlinks note={note} t={t} open={onNoteLink}/>}
       {editable&&<button onClick={()=>edit()}><Pencil size={14}/> {t('notesEdit')}</button>}</article>}
@@ -177,5 +178,6 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     <svg width="16" height="44" viewBox="0 0 16 44" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M1 1 7 22 1 43 M9 1 15 22 9 43"/></svg>
   </button>}
   </div>
+  {!sourceOpen&&<DocumentTools body={draft.body} t={t}/>}
   </div>
 }

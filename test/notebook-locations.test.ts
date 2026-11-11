@@ -28,7 +28,7 @@ test('an atomic replacement waits out a real Windows sharing lock',{skip:process
     lock.stdin.end('release\n')
     await replaceFile(temp,dest)
     assert.equal(await readFile(dest,'utf8'),'new')
-  }finally{lock.stdin.end();await closed;await rm(root,{recursive:true,force:true})}
+  }finally{lock.stdin.end();await closed;await rm(root,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 test('Windows Git can initialize the long cache paths of named local folders',{skip:process.platform!=='win32'},async()=>{
   const root=await mkdtemp(join(tmpdir(),'dsh-git-long-'))
@@ -38,7 +38,7 @@ test('Windows Git can initialize the long cache paths of named local folders',{s
     await mkdir(path,{recursive:true})
     await runGit(['init','--initial-branch=main'],{cwd:path})
     assert.match(await readFile(join(path,'.git','HEAD'),'utf8'),/refs\/heads\/main/)
-  }finally{await rm(root,{recursive:true,force:true})}
+  }finally{await rm(root,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 async function fixture(){
   const root=await mkdtemp(join(tmpdir(),'dsh-location-')),home=join(root,'control')
@@ -50,7 +50,7 @@ async function fixture(){
   let app=await open()
   return {root,home,open,repos,get app(){return app},set git(r:GitRunner){git=r},async restart(){await app.close();app=await open()},
     async connect(folder?:string){const {preview}=await app.backup.preview({repo:'alpha',mode:'create',folder:folder??''});await app.backup.connect({previewId:preview.id,confirmPrivate:true});return app.personalState().sync},
-    async close(){await app.close();await rm(root,{recursive:true,force:true})}}
+    async close(){await app.close();await rm(root,{recursive:true,force:true,maxRetries:10,retryDelay:100})}}
 }
 
 test('fresh setup only uses a same-named empty folder and does not create a cloud repository during preview',async()=>{
@@ -95,7 +95,7 @@ test('a failed first creation resumes its own claimed empty folder after restart
     checked=await app.backup.preview({mode:'create',repo:'alpha',folder})
     await assert.rejects(app.backup.connect({previewId:checked.preview.id,confirmPrivate:true}))
     assert.equal(attempts,2);assert.equal(app.personalState().sync.binding,null)
-  }finally{await app.close();await rm(root,{recursive:true,force:true})}
+  }finally{await app.close();await rm(root,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('new libraries default to fatfish-notes and keep an explicitly named library on restart',async()=>{
@@ -154,7 +154,7 @@ test('offline move copies the verified notebook and Git cache, preserves pending
     await f.restart();assert.equal(f.app.personalState().sync.folder,dest)
     assert.equal((await f.app.notes.get({noteId:note.noteId})).note.current.title,'offline note')
     f.git=runGit;await f.app.backup.sync();assert.equal(f.app.personalState().sync.pending,false)
-  } finally {await f.close();await rm(dest,{recursive:true,force:true})}
+  } finally {await f.close();await rm(dest,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('moving a legacy bound home preserves control records and ignores unowned files; interrupted copies can retry',async()=>{
@@ -164,7 +164,7 @@ test('moving a legacy bound home preserves control records and ignores unowned f
     // Model a previously bound legacy installation, not a new setup into a nonempty home.
     await f.app.close()
     await rename(join(dest,'notes'),join(f.home,'notes'))
-    await rm(dest,{recursive:true,force:true})
+    await rm(dest,{recursive:true,force:true,maxRetries:10,retryDelay:100})
     const config=JSON.parse(await readFile(join(f.home,'backup','sync.json'),'utf8'))
     config.folder=f.home;config.locations=[]
     await writeFile(join(f.home,'backup','sync.json'),JSON.stringify(config));await f.restart()
@@ -298,7 +298,7 @@ test('upgrade remembers the active legacy control folder and allows returning to
     const a=await f.connect(),id=a.binding!.repositoryId
     await f.app.close()
     await rename(join(a.folder,'notes'),join(f.home,'notes'))
-    await rm(a.folder,{recursive:true,force:true})
+    await rm(a.folder,{recursive:true,force:true,maxRetries:10,retryDelay:100})
     const cfg=join(f.home,'backup','sync.json'), legacy=JSON.parse(await readFile(cfg,'utf8'))
     legacy.folder=f.home;delete legacy.locations;await writeFile(cfg,JSON.stringify(legacy))
     await rm(join(f.home,'notes','.fatfish-notes-repository'))

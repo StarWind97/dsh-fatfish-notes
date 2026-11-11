@@ -130,7 +130,7 @@ export function PaperWriting(props:Props){
     const view=new EditorView({parent:el,state:EditorState.create({doc,selection:{anchor:start},extensions:[
       markdown({base:markdownLanguage}),history(),...(props.undo.current?.body===body?[historyField.init(()=>props.undo.current!.history)]:[]),editability.current.of([]),search({top:true}),keymap.of([...shortcuts,...searchKeymap,...markdownKeymap,...defaultKeymap,...historyKeymap]),drawSelection(),EditorView.lineWrapping,
       EditorState.phrases.of(t('paperDone')==='完成'?{Find:'查找',Replace:'替换',next:'下一个',previous:'上一个',all:'全选匹配',replace:'替换','replace all':'全部替换','match case':'区分大小写',regexp:'正则表达式','by word':'全词',close:'关闭'}:{}),
-      EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask')),
+      EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')]),
       EditorView.domEventHandlers({paste(event,v){
         const data=event.clipboardData;if(!data)return false
         const ordinary=Array.from(data.files).filter(f=>!/^image\/(png|jpeg|gif|webp)$/.test(f.type));if(ordinary.length){event.preventDefault();chooseAttachments(ordinary);return true}

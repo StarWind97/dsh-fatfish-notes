@@ -7,6 +7,9 @@ import {NoteRepository} from '../src/notes/repository.js'
 import {WorkspaceBooks} from '../src/host/workspace-books.js'
 import {noteContent} from '../src/client/notes-controller.js'
 import type {NoteContent} from '../src/contracts/notes.js'
+import {fixture as captureFixture,request} from './fixtures/notes-capture.js'
+import {NoteCaptureService} from '../src/notes/capture.js'
+import {NoteConversation} from '../src/host/note-conversation.js'
 const a='01K00000000000000000000000',b='01K00000000000000000000001'
 const content:NoteContent={title:'会话关联',body:'原文',summary:'',tags:[],notebookId:null,status:'active',sourceId:null,assetIds:[]}
 async function fixture(t:{after(fn:()=>Promise<void>):void}){const dir=await mkdtemp(join(tmpdir(),'fatfish-session-'));t.after(()=>rm(dir,{recursive:true,force:true}));return {dir,repo:new NoteRepository(dir)}}
@@ -34,4 +37,23 @@ test('workspace defaults are local, repository-specific, persisted and fall back
   repoId=2;assert.equal((await map.request({workspaceId:'workspace'})).notebookId,null)
   repoId=1;await repo.deleteNotebook(book.notebookId,book.heads,undefined,{removal:'move',expectedNoteCount:0})
   assert.equal((await map.request({workspaceId:'workspace'})).notebookId,null)
+})
+test('related lists include source and manual notes once; browsing reports relation without filtering out other notes',async t=>{
+  const {repo}=await fixture(t),f=captureFixture(),service=new NoteCaptureService(repo,new NoteConversation(()=>f.controller))
+  const source=(await service.capture(request)).note
+  let manual=await repo.save({noteId:a,expectedHeads:[],content})
+  manual=await repo.associate(a,manual.heads,request.sessionId,true)
+  await repo.associate(source.noteId,source.heads,request.sessionId,true)
+  await repo.save({noteId:b,expectedHeads:[],content:{...content,title:'未关联'}})
+  const related=await repo.list({sessionId:request.sessionId,relation:'linked'})
+  assert.equal(related.items.length,2)
+  assert.equal(related.items.find(n=>n.noteId===source.noteId)?.sessionRelation,'source')
+  assert.equal(related.items.find(n=>n.noteId===a)?.sessionRelation,'manual')
+  const browse=await repo.list({sessionId:request.sessionId,relation:'browse'})
+  assert.equal(browse.items.length,3);assert.equal(browse.items.find(n=>n.noteId===b)?.sessionRelation,null)
+  const current=await repo.get(source.noteId);await repo.associate(source.noteId,current.heads,request.sessionId,false)
+  assert.equal((await repo.list({sessionId:request.sessionId,relation:'source'})).items.length,1)
+  manual=await repo.associate(a,manual.heads,'another-session',true);await repo.associate(a,manual.heads,request.sessionId,false)
+  assert.equal((await repo.list({sessionId:'another-session',relation:'linked'})).items.length,1)
+  assert.equal((await repo.list({sessionId:request.sessionId,relation:'linked'})).items.length,1)
 })

@@ -64,6 +64,7 @@ export interface NoteSaveInput {
     content: NoteContent;
 }
 export interface NoteListItem {
+    sessionRelation?: 'source' | 'manual' | null;
     excerpt?: string;
     favorite?: boolean;
     isTemplate?: boolean;
@@ -89,7 +90,7 @@ export interface NoteListOptions {
     templates?: boolean;
     recentIds?: string[];
     sessionId?: string;
-    relation?: 'source' | 'linked';
+    relation?: 'source' | 'linked' | 'browse';
 }
 export interface NoteListResult {
     items: NoteListItem[];

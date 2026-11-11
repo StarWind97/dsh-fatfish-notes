@@ -29,5 +29,5 @@ test('M7 real HTTP exports/font retain both-prefix fences, private headers, POST
     assert.equal(font.status, 200); assert.equal(font.headers.get('content-type'), 'font/otf'); assert.equal((await font.arrayBuffer()).byteLength, 16437364)
     const invalid = await post('dsh-fatfish-notes', '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'original', assetId: 'C:/secret.png' }), text = await invalid.text()
     assert.equal(invalid.status, 400); assert.ok(text.includes('export_image_missing')); assert.ok(!text.includes(dir)); assert.ok(!text.includes('C:/secret'))
-  } finally { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); await app.close(); await rm(dir, { recursive: true, force: true }) }
+  } finally { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); await app.close(); await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }) }
 })

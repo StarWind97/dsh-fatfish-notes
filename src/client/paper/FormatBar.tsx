@@ -1,3 +1,4 @@
+import {shortcutLabel} from './DocumentTools.js'
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Paperclip, Bold, Italic, Strikethrough, List, ListOrdered, ListChecks, Quote, Code2, SquareCode, Link, Image, Table2, Undo2, Redo2, Minus, IndentIncrease, IndentDecrease, Search, Ellipsis, ChevronDown, type LucideIcon } from 'lucide-react'
@@ -40,11 +41,11 @@ export function FormatBar({t,run,active,heading}:Props){
   }} onBlur={e=>{if(e.relatedTarget&&!bar.current?.contains(e.relatedTarget as Node))setMenu(null)}}>
     <div className="paper-toolstrip" ref={strip}>
       <button type="button" aria-label={t('paperStyles')} aria-haspopup="menu" aria-expanded={menu==='heading'} onClick={e=>toggle(e,'heading')}>{heading?'H'+heading:t('paperParagraph')}<ChevronDown size={12}/></button>
-      {shown.map(({action,key,icon:Icon,hint})=><button key={action} type="button" title={t(key)+(hint?' ('+hint+')':'')} aria-label={t(key)} aria-pressed={active.has(action as Format)} onMouseDown={e=>e.preventDefault()} onClick={()=>invoke(action)}><Icon size={16}/></button>)}
+      {shown.map(({action,key,icon:Icon,hint})=><button key={action} type="button" title={t(key)+(hint?' ('+shortcutLabel(hint)+')':'')} aria-label={t(key)} aria-pressed={active.has(action as Format)} onMouseDown={e=>e.preventDefault()} onClick={()=>invoke(action)}><Icon size={16}/></button>)}
       <button aria-label={t('paperFormatMore')} title={t('paperFormatMore')} aria-haspopup="menu" aria-expanded={menu==='more'} onClick={e=>toggle(e,'more')}><Ellipsis size={17}/></button>
     </div>
     {menu&&<div className={'paper-popup '+menu} role="menu" aria-label={t(menu==='heading'?'paperStyles':'paperFormatMore')}>
-      {menu==='heading'?[0,1,2,3,4,5,6].map(n=><button key={n} role="menuitemradio" aria-checked={n===Number(heading??0)} onClick={()=>invoke(n?'h'+n as Format:'paragraph')}><small>{n?'H'+n:'¶'}</small>{n?t('paperHeading',{n}):t('paperParagraph')}</button>):tools.slice(count).map(({action,key,icon:Icon,hint})=><button key={action} role="menuitem" onClick={()=>invoke(action)}><Icon size={16}/>{t(key)}<small>{hint}</small></button>)}
+      {menu==='heading'?[0,1,2,3,4,5,6].map(n=><button key={n} role="menuitemradio" aria-checked={n===Number(heading??0)} onClick={()=>invoke(n?'h'+n as Format:'paragraph')}><small>{n?'H'+n:'¶'}</small>{n?t('paperHeading',{n}):t('paperParagraph')}</button>):tools.slice(count).map(({action,key,icon:Icon,hint})=><button key={action} role="menuitem" onClick={()=>invoke(action)}><Icon size={16}/>{t(key)}<small>{hint&&shortcutLabel(hint)}</small></button>)}
     </div>}
   </div>
 }

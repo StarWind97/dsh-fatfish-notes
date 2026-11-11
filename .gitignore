@@ -1,6 +1,7 @@
 # 本地/测试产物
 node_modules/
 test/.tmp/
+.tmp/
 *.log
 
 # 打包产物

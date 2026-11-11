@@ -2,10 +2,11 @@ import { syntaxTree } from '@codemirror/language'
 import { StateField, StateEffect, type EditorState } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
+import {copyCode} from './CopyCode.js'
 
 export const refreshMedia=StateEffect.define<void>()
 class Preview extends WidgetType {
-  constructor(readonly type:'image'|'code'|'table'|'rule'|'marker'|'task',readonly value:string,readonly extra='',readonly rows:readonly string[][]=[]) {super()}
+  constructor(readonly type:'image'|'code'|'table'|'rule'|'marker'|'task',readonly value:string,readonly extra='',readonly rows:readonly string[][]=[],readonly copyLabels:readonly string[]=[]) {super()}
   eq(other:Preview){return this.type===other.type&&this.value===other.value&&this.extra===other.extra&&JSON.stringify(this.rows)===JSON.stringify(other.rows)}
   toDOM(view:EditorView):HTMLElement{
     let el:HTMLElement
@@ -15,6 +16,10 @@ class Preview extends WidgetType {
       el=document.createElement('div');el.className='paper-code'
       if(this.extra){const label=document.createElement('small');label.textContent=this.extra;el.append(label)}
       const pre=document.createElement('pre');pre.textContent=this.value;el.append(pre)
+      const copy=document.createElement('button');copy.type='button';copy.className='paper-copy-code';copy.title=this.copyLabels[0]??'Copy code';copy.setAttribute('aria-label',copy.title)
+      copy.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>'
+      const feedback=document.createElement('span');feedback.setAttribute('role','status');copy.append(feedback)
+      copy.onclick=e=>{e.preventDefault();e.stopPropagation();void copyCode(this.value).then(()=>{feedback.textContent=this.copyLabels[1]??'Copied'},()=>{feedback.textContent=this.copyLabels[2]??'Copy failed'}).then(()=>{setTimeout(()=>{if(copy.isConnected)feedback.textContent=''},2200)})};el.append(copy)
     }else if(this.type==='table'){
       el=document.createElement('div');el.className='paper-table';const table=document.createElement('table');el.append(table)
       this.rows.forEach((row,i)=>{const tr=table.insertRow();for(const value of row){const cell=document.createElement(i?'td':'th');cell.textContent=value;tr.append(cell)}})
@@ -24,11 +29,12 @@ class Preview extends WidgetType {
       box.onmousedown=e=>e.preventDefault();box.onclick=e=>{e.preventDefault();const pos=view.posAtDOM(box),line=view.state.doc.lineAt(pos),match=/\[([ xX])\]/.exec(line.text.slice(pos-line.from));if(match){const from=pos+match.index+1;view.dispatch({changes:{from,to:from+1,insert:this.value==='x'?' ':'x'},userEvent:'input'})}}
       return box
     }else{el=document.createElement('span');el.className='paper-bullet';el.textContent=this.value}
-    el.onmousedown=e=>{e.preventDefault();view.dispatch({selection:{anchor:view.posAtDOM(el)}});view.focus()};return el
+    el.onmousedown=e=>{if((e.target as HTMLElement).closest('button'))return;e.preventDefault();view.dispatch({selection:{anchor:view.posAtDOM(el)}});view.focus()};return el
   }
+  ignoreEvent(event:Event){return !!(event.target as HTMLElement)?.closest?.('.paper-copy-code')}
 }
 
-export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string){
+export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string,copyLabels:readonly string[]=[]){
   function build(state:EditorState){
     const ranges:ReturnType<Decoration['range']>[]=[], sel=state.selection.main,doc=state.doc
     const text=(n:SyntaxNode)=>state.sliceDoc(n.from,n.to)
@@ -59,8 +65,9 @@ export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string
       }else if(n.name==='QuoteMark'){line(a,'paper-quote');token(a,b,sel.from<=first.to&&sel.to>=first.from)}
       else if(n.name==='FencedCode'){
         if(!active&&a===first.from&&b===doc.lineAt(b).to){
-          const content=n.getChildren('CodeText').map(text).join('\n'),info=n.getChild('CodeInfo')
-          widget(n,new Preview('code',content,info?text(info):''),true);return false
+          const last=doc.lineAt(b),closing=/^ {0,3}(`{3,}|~{3,})\s*$/.test(last.text)&&last.from>first.from
+          const content=state.sliceDoc(Math.min(first.to+1,b),closing?last.from:b),info=n.getChild('CodeInfo')
+          widget(n,new Preview('code',content,info?text(info):'',[],copyLabels),true);return false
         }
         for(let i=first.number;i<=doc.lineAt(b).number;i++)line(doc.line(i).from,'paper-code-line')
       }else if(n.name==='Table'&&!active&&a===first.from&&b===doc.lineAt(b).to){

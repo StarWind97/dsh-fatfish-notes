@@ -29,7 +29,7 @@ test('ordinary attachments require size consent and download with scope, MIME an
     assert.equal((await fetch(url,{headers:{'sec-fetch-site':'cross-site'}})).status,403)
     assert.equal((await fetch(url.replace(uploaded.attachment.id,'f'.repeat(64)))).status,404)
     await assert.rejects(app.notes.attachment({...payload,base64:Buffer.alloc(50*1024*1024+1).toString('base64')}),{code:'attachment_large'})
-  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('M3 host serves raw capture without model/GitHub behind the notebook HTTP fence',async()=>{
@@ -53,7 +53,7 @@ test('M3 host serves raw capture without model/GitHub behind the notebook HTTP f
     const source=await post('dsh-fatfish-notes','/notes/source',{sourceId:a.sourceId});assert.equal(source.status,200)
     const get=await fetch(`${origin}/dsh-fatfish-notes/notes/get?noteId=${a.note.noteId}`);assert.equal(get.status,200)
     assert.equal(f.follows,1)
-  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('M4 host raw save succeeds without a model; task routes retain fences and cancellation is local', async () => {
@@ -73,7 +73,7 @@ test('M4 host raw save succeeds without a model; task routes retain fences and c
     assert.equal((await app.notes.repository.list()).items.length,1)
     const cancelled=await post('dsh-fatfish-notes','/notes/job/cancel',{jobId:captured.enrichmentJobId});assert.equal(cancelled.status,200);assert.equal(((await cancelled.json()) as {job:{status:string}}).job.status,'cancelled')
     const replay=await app.notes.capture({...request,autoMetadata:true});assert.equal(replay.enrichmentJobId,captured.enrichmentJobId);assert.equal(replay.note.noteId,captured.note.noteId)
-  } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
+  } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('M4 facade close drains its admitted prompt operation without cancelling the whole session', async () => {
@@ -86,7 +86,7 @@ test('M4 facade close drains its admitted prompt operation without cancelling th
     await waiting;await app.close();await assert.rejects(running);assert.equal(finished,true)
     const restarted=new NotesApplication(dir,()=>f.controller)
     try {const replay=await restarted.capture({...request,autoMetadata:true});assert.equal(replay.enrichmentJobId,captured.enrichmentJobId);assert.equal((await restarted.repository.list()).items.length,1)}finally{await restarted.close()}
-  }finally{await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('M3 facade close aborts and drains in-flight paging, refuses new writes',async()=>{
@@ -99,7 +99,7 @@ test('M3 facade close aborts and drains in-flight paging, refuses new writes',as
     await waiting;await app.close();assert.equal(finished,true);await assert.rejects(capture)
     await assert.rejects(app.capture({...request,requestId:'new'}),{code:'closed'})
     assert.equal((await app.repository.list()).items.length,0)
-  }finally{await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('M3 P2 real 129-image host rejection recovers to two-message capture through the reply entry',async()=>{
@@ -116,5 +116,5 @@ test('M3 P2 real 129-image host rejection recovers to two-message capture throug
     assert.equal(next.getSnapshot()?.status,'saved');assert.equal(next.getSnapshot()?.result?.messageCount,2);assert.equal((await app.repository.list()).items.length,1)
     assert.equal(next.getSnapshot()?.recoveries[0]?.request.requestId,original)
     await next.resume(original!);assert.equal(next.getSnapshot()?.error,'note_limit');assert.equal((await app.repository.list()).items.length,1);next.dispose()
-  }finally{first.dispose();await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{first.dispose();await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })

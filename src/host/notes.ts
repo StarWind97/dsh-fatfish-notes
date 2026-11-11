@@ -96,7 +96,7 @@ export class NotesApplication {
   list(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), options: NoteListOptions = {}
     if(v.sessionId!==undefined)options.sessionId=text(v.sessionId,512)
-    if(v.relation!==undefined){if(!['source','linked'].includes(String(v.relation)))throw new NotebookError('note_schema','关联筛选无效');options.relation=v.relation as 'source'|'linked'}
+    if(v.relation!==undefined){if(!['source','linked','browse'].includes(String(v.relation)))throw new NotebookError('note_schema','关联筛选无效');options.relation=v.relation as 'source'|'linked'|'browse'}
     if (v.cursor !== undefined) options.cursor = id(v.cursor)
     if (v.limit !== undefined) options.limit = Number(v.limit)
     if (v.query !== undefined) options.query = text(v.query, 12_000)

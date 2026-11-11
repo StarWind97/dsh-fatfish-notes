@@ -32,7 +32,7 @@ async function fixture() {
   async function connect(sync: PersonalSync) { const p = await sync.preview({ repo: 'private-data', mode:repository?'existing':'create' }); await sync.connect({ previewId: p.preview.id, confirmPrivate: true }) }
   async function edit(files: Map<string, string | Uint8Array | null>) { await backend.exclusive(async () => { const snapshot = await backend.snapshot(); const commit = await backend.commit(snapshot, { files }, randomUUID()); await backend.push(commit, snapshot.revision) }) }
   const show = async (path: string) => (await runGit(['--git-dir', remote, 'show', `main:${path}`])).stdout
-  return { dir, remote, gateway, account, backend, instance, connect, edit, show, set runner(value: GitRunner) { runner = value }, get repository() { return repository }, set repository(value: GitHubRepository | null) { repository = value }, async close() { await Promise.all(services.map(s => s.close())); await rm(dir, { recursive: true, force: true }) } }
+  return { dir, remote, gateway, account, backend, instance, connect, edit, show, set runner(value: GitRunner) { runner = value }, get repository() { return repository }, set repository(value: GitHubRepository | null) { repository = value }, async close() { await Promise.all(services.map(s => s.close())); await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }) } }
 }
 
 test('permanent deletion and shared ordinary attachments converge with stale offline edits', async () => {

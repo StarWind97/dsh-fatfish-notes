@@ -265,7 +265,10 @@ export class NoteRepository {
             origins.set(sourceId,String(source.sessionId??''))
           }
         }
-        views=views.filter(v=>{const r=v.current,source=r.sourceId&&origins.get(r.sourceId)===input.sessionId,linked=r.sessionLinks?.includes(input.sessionId!);return r.status==='active'&&!r.isTemplate&&(input.relation==='source'?source:input.relation==='linked'?linked&&!source:source||linked)})
+        const relation=(v:NoteView):'source'|'manual'|null=>v.current.sourceId&&origins.get(v.current.sourceId)===input.sessionId?'source':v.current.sessionLinks?.includes(input.sessionId!)?'manual':null
+        views=views.filter(v=>v.current.status==='active'&&!v.current.isTemplate&&(input.relation==='browse'||(input.relation==='source'?relation(v)==='source':!!relation(v))))
+        const page=searchNotes(views,input),byId=new Map(views.map(v=>[v.noteId,v]))
+        return {...page,items:page.items.map(item=>({...item,sessionRelation:relation(byId.get(item.noteId)!)}))}
       }
       return searchNotes(views,input)
     }, signal)

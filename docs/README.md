@@ -36,6 +36,8 @@
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
+2026-11-11 最新体验已更新为 [E 验收修正版](plans/2026-11-11-stage-e-review-results.zh.md)：修正会话保存/导出主题，完善侧栏按笔记本浏览、自动关联和工作区默认本，增加字数、快捷键说明与代码复制。[已批准规划](plans/2026-11-11-stage-e-review.zh.md)和主规划同步维护，截图见 `output/playwright/e-review/index.html`。本轮未发布，F 未启动。
+
 通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。此入口现安装 E 阶段开发候选包，供集中验收，正式版仍为 0.8.0；新功能、实际验证和体验步骤见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)。功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。历史验证图册保留在 `output/playwright/`，证据及备份位于 `.dsh-home/pure-001/`，均由 Git 忽略。Windows 已验证；不将同机副本称为两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。

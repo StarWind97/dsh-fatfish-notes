@@ -61,7 +61,7 @@ test('repository queue guards late saves, background adoption, attachments and t
     const denied=assert.rejects(late,{code:'note_edit_busy'})
     release();await queued;await handoff;await denied
     assert.equal((await repo.get(a)).current.body,'正文')
-  }finally{await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('managed HTTP mutations require a registered current window; fences and repository identity remain enforced',async()=>{
@@ -84,7 +84,7 @@ test('managed HTTP mutations require a registered current window; fences and rep
     assert.equal(((await(await post('/notes/save',payload,headers)).json()) as {code:string}).code,'note_edit_lost')
     app.workspace.endLocationChange(true)
     assert.equal((await post('/notes/save',payload,writeHeaders)).status,409)
-  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
 test('editor saves before lease release, waits for composition and attachment work, and keeps recovery separate',async()=>{
@@ -112,5 +112,5 @@ test('editor saves before lease release, waits for composition and attachment wo
     const first=new NoteRecovery(storage,()=>1,'one'),second=new NoteRecovery(storage,()=>1,'two')
     first.write({request:{noteId:a,expectedHeads:[],content}});second.write({request:{noteId:b,expectedHeads:[],content}});first.clear();assert.equal(second.read()?.request.noteId,b)
     await c.beginEdit();owned=false;c.update({body:'过期输入'});assert.equal(c.getSnapshot().draft?.body,'附件完成')
-  }finally{c.dispose();await app.close();await rm(dir,{recursive:true,force:true})}
+  }finally{c.dispose();await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })

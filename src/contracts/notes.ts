@@ -26,12 +26,13 @@ export interface NoteView {
 }
 export interface NoteSaveInput { noteId?: string; expectedHeads: string[]; content: NoteContent }
 export interface NoteListItem {
+  sessionRelation?: 'source' | 'manual' | null
   excerpt?: string
   favorite?: boolean; isTemplate?: boolean
   noteId: string; heads: string[]; title: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' }
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
 export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
