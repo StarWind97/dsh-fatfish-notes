@@ -96,7 +96,7 @@ export interface NoteListResult {
     items: NoteListItem[];
     cursor: string | null;
 }
-export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
+export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
 export interface NoteManageRequest {
     notes: NoteSelection[];
     action: NoteManageAction;
@@ -624,6 +624,7 @@ export interface NoteStage {
     error: string | null;
 }
 export interface NoteJob {
+    transport?: 'auxiliary';
     version: 1;
     jobId: string;
     captureRequestId: string;

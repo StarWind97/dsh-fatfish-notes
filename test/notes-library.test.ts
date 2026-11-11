@@ -6,7 +6,7 @@ import { NotesController, noteContent } from '../src/client/notes-controller.js'
 import { NoteMarkdown, resolveNoteImage } from '../src/client/NoteMarkdown.js'
 import { NoteCaptureBridge } from '../src/client/note-capture-bridge.js'
 import { ApiError, createApi, type Api } from '../src/client/api.js'
-import type { NoteContent, NoteView, NoteSaveInput, CaptureRequest } from '../src/contracts/notes.js'
+import type { NoteContent, NoteView, NoteSaveInput, CaptureRequest, NoteListItem } from '../src/contracts/notes.js'
 import { createNoteRevision, createNotebookRevision, materializeNote } from '../src/notes/revisions.js'
 
 const a = '01K00000000000000000000000', b = '01K00000000000000000000001'
@@ -18,6 +18,31 @@ function saved(input: NoteSaveInput): NoteView {
 }
 function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
 const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0))
+
+test('sidebar new draft associates its first save and preserves the chosen notebook; empty exit writes nothing',async()=>{
+  const f=fixture(),c=new NotesController(f.call)
+  try{
+    await c.create({notebookId:b,sessionId:'current-session'});await c.leave();assert.equal(f.writes.length,0)
+    await c.create({notebookId:b,sessionId:'current-session'});c.update({title:'侧栏新建',body:'正文'});await c.leave()
+    assert.deepEqual(f.writes.at(-1)?.content.sessionLinks,['current-session']);assert.equal(f.writes.at(-1)?.content.notebookId,b)
+  }finally{c.dispose()}
+})
+
+test('sidebar association refresh retains loaded pages and order, while a different filter resets them',async()=>{
+  const rows:NoteListItem[]=Array.from({length:120},(_,i)=>({noteId:String(i),heads:['old'],title:String(i),summary:'',tags:[],notebookId:null,status:'active',savedAt:'2026-11-11',conflicted:false,sessionRelation:null}));let ordered=[...rows]
+  const c=new NotesController(async(path,input)=>{
+    if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
+    if(path==='/notes'){const v=input as {cursor?:string};const offset=Number(v.cursor??0);return {ok:true,items:ordered.slice(offset,offset+50),cursor:offset+50<ordered.length?String(offset+50):null} as never}
+    throw new Error(path)
+  },{stableList:true})
+  try{
+    await c.filter({sessionId:'s',relation:'browse'});await c.refresh(false);const ids=c.getSnapshot().items.map(n=>n.noteId)
+    c.patchAssociation({...note(),noteId:'72',heads:['linked'],savedAt:'new'},'manual');assert.equal(c.getSnapshot().items[72]?.sessionRelation,'manual')
+    ordered=[{...rows[72]!,heads:['linked'],sessionRelation:'manual'} as typeof rows[number],...rows.filter(n=>n.noteId!=='72')]
+    await c.refresh();assert.deepEqual(c.getSnapshot().items.map(n=>n.noteId),ids);assert.equal(c.getSnapshot().cursor,'100')
+    await c.filter({sessionId:'s',relation:'linked'});assert.equal(c.getSnapshot().items.length,50);assert.equal(c.getSnapshot().items[0]?.noteId,'72')
+  }finally{c.dispose()}
+})
 test('navigation waits for a pending pasted image and automatically saves it',async()=>{
   const f=fixture(),c=new NotesController(f.call),gate=deferred<void>()
   try{

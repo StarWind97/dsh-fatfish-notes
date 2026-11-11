@@ -34,7 +34,7 @@ export interface NoteListItem {
 }
 export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
-export type NoteManageAction = 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
+export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
 export interface NoteHistoryItem { revision: string; recordedAt: string; title: string; summary: string; status: NoteStatus }
 export interface NoteCatalog { tags: Array<{tag: string; count: number}> }
@@ -126,6 +126,7 @@ export interface NoteStage {
   status: 'ready' | 'waiting' | 'done' | 'failed'; result: NoteStageResult | null; error: string | null
 }
 export interface NoteJob {
+  transport?: 'auxiliary'
   version: 1; jobId: string; captureRequestId: string; sessionId: string; noteId: string
   sourceId: string; baseRevision: string; mode: 'metadata'; autoMetadata: boolean
   status: 'running' | 'failed' | 'cancelled' | 'candidate' | 'completed'; error: string | null

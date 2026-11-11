@@ -4,7 +4,7 @@ import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView
 import { RecentNotes } from './recent-notes.js'
 
 export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.sessionLinks!==undefined?{sessionLinks:[...note.current.sessionLinks]}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
-const comparable=(c:NoteContent)=>({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()})
+const comparable=(c:NoteContent)=>Object.fromEntries(Object.entries({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()}).sort(([a],[b])=>a.localeCompare(b)))
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const errorCode = (e: unknown) => e instanceof Error && 'code' in e ? String(e.code) : 'request_failed'
@@ -69,7 +69,7 @@ export class NotesController {
   imagePickerOpen=false
   private inFlight:RecoveryRecord['inFlight']
   private readonly recovery:NoteRecovery
-  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string}={}){
+  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string;stableList?:boolean}={}){
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
   get api(){return this.call}
@@ -139,6 +139,11 @@ export class NotesController {
     const books=this.refreshBooks(refreshBooks)
     try {
       const result = await list
+      if(reset&&this.options.stableList){
+        const count=this.state.items.length
+        while(result.cursor&&result.items.length<count){const page=await this.call('/notes',{order:'recent',...filter,limit:50,cursor:result.cursor},abort.signal);result.items.push(...page.items);result.cursor=page.cursor}
+        const order=new Map(this.state.items.map((n,i)=>[n.noteId,i]));result.items.sort((a,b)=>(order.get(a.noteId)??Infinity)-(order.get(b.noteId)??Infinity))
+      }
       if (generation !== this.listing) return
       const items = reset ? result.items : [...this.state.items, ...result.items.filter(x => !this.state.items.some(v => v.noteId === x.noteId))]
       this.emit({ items, cursor: result.cursor, loadingList: false })
@@ -159,7 +164,7 @@ export class NotesController {
       }
     } catch { if (this.ownsDetail(request)) this.emit({ listError: true }) }
   }
-  filter(filter: NoteListOptions) { this.emit({ filter }); return this.refresh(true,false,false) }
+  filter(filter: NoteListOptions) { this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
     if(!await this.prepareLeave())return
     const navigation=this.navigation
@@ -306,7 +311,11 @@ export class NotesController {
       return accepted
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
-  async create(): Promise<boolean> {
+  patchAssociation(note:NoteView,relation:NoteListItem['sessionRelation']) {
+    const exclude=this.state.filter.relation==='linked'&&!relation
+    this.emit({items:this.state.items.flatMap(item=>item.noteId!==note.noteId?[item]:exclude?[]:[{...item,heads:note.heads,sessionRelation:relation??null,savedAt:note.savedAt}])})
+  }
+  async create(options:{notebookId?:string|null;sessionId?:string}={}): Promise<boolean> {
     if(this.creating)return false
     this.creating=true
     try {
@@ -314,7 +323,7 @@ export class NotesController {
     const noteId=newId()
     try{await this.options.editing?.acquire(noteId)}catch(e){this.emit({error:errorCode(e)});return false}
     ++this.navigation
-    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], notebookId: this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}
   }

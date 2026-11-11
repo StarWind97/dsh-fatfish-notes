@@ -1,3 +1,5 @@
+import {RowMenu} from './RowMenu.js'
+import {useItemActions} from './ItemActions.js'
 import {NoteUsage} from './NoteUsage.js'
 import * as React from 'react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
@@ -101,9 +103,10 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
     columns.toggle()
     requestAnimationFrame(()=>app.current?.querySelector<HTMLButtonElement>(columns.expanded?'.paper-expand-notebooks':'.paper-notebook-nav header button')?.focus())
   }
+  const itemActions=useItemActions(controller,state,t,id=>controller.open(id))
   const selectedBook=activeBooks.find(b=>b.notebookId===state.filter.notebookId||(state.filter.notebookId===null&&b.isDefault))
-  const notebooks=<NotebookNavigation books={activeBooks} selected={state.filter.notebookId} trash={inTrash} disabled={state.operation} t={t} collapse={toggleNotebooks} choose={chooseNotebook} manage={()=>void navigate('notebooks')} openTrash={()=>{if(!inTrash)toggleTrash()}}/>
-  const list=<><div className="paper-list-scroll"><div className="paper-list-head">
+  const notebooks=<NotebookNavigation books={activeBooks} actual={state.note?.effectiveNotebookId??state.draft?.notebookId??null} actions={itemActions.bookActions} selected={state.filter.notebookId} trash={inTrash} disabled={state.operation} t={t} collapse={toggleNotebooks} choose={chooseNotebook} manage={()=>void navigate('notebooks')} openTrash={()=>{if(!inTrash)toggleTrash()}}/>
+  const list=<><div className="paper-list-controls"><div className="paper-list-head">
     {!columns.expanded&&columns.wide&&<button className="paper-expand-notebooks" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={17}/></button>}
     {inTrash?<strong className="paper-trash-title">{t('notesTrash')}</strong>:columns.expanded?<h2 className="paper-list-title" title={selectedBook?.current.title??t('paperAll')}>{selectedBook?.current.title??t('paperAll')}</h2>:<label className="paper-picker"><select aria-label={t('notesNotebook')} value={state.filter.notebookId===undefined?'all':selectedBook?.notebookId??'all'} onChange={e=>{
     const option=e.target.value
@@ -125,16 +128,16 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
       <button onClick={()=>void controller.refresh(true,true)}>{t('refresh')}</button></div>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
-    {selection.controls}<div className="paper-rows">{state.items.map((item,i)=>{
+    {selection.controls}</div><div className="paper-list-scroll"><div className="paper-rows">{state.items.map((item,i)=>{
       const date=noteDateTime(item.savedAt).slice(0,10),showDate=view!=='visits'&&(!i||noteDateTime(state.items[i-1]!.savedAt).slice(0,10)!==date)
-      return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row">{selection.selecting&&<input type="checkbox" aria-label={item.title||t('notesUntitled')} checked={selection.selected.some(n=>n.noteId===item.noteId)} onChange={()=>selection.toggle(item)}/>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);if(selection.selecting)selection.toggle(item);else {setHistory([]);void controller.open(item.noteId)}}}>
+      return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row"><RowMenu label={(item.title||t('notesUntitled'))+' · 操作'} actions={itemActions.noteActions(item)}>{selection.selecting&&<input type="checkbox" aria-label={item.title||t('notesUntitled')} checked={selection.selected.some(n=>n.noteId===item.noteId)} onChange={()=>selection.toggle(item)}/>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);if(selection.selecting)selection.toggle(item);else {setHistory([]);void controller.open(item.noteId)}}}>
         <strong>{item.favorite&&<Star size={12} fill="currentColor" aria-label={t('findFavorites')}/>} <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong>{(item.excerpt||item.summary)&&<span><Highlight value={item.excerpt||item.summary} query={state.filter.query}/></span>}<small>{item.conflicted?t('notesConflict'):item.isTemplate?t('reuseTemplates'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')}</small>
-      </button></div></React.Fragment>
+      </button></RowMenu></div></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash)&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss}</style>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
     {fromTemplate&&<ReuseDialog mode="instantiate" state={state} controller={controller} t={t} close={()=>setFromTemplate(false)}/>}
-    {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}<header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesLibrary':section==='notebooks'?'notesNotebooks':'notesSettings')}</button>)}</nav>
+    {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesLibrary':section==='notebooks'?'notesNotebooks':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} dirty={state.dirty} saving={state.saving} revision={state.note?.current.revision}/>}</div></>}<FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     {state.section==='settings'&&<div className="paper-other" style={s.page}><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>}
     <PaperColumns t={t} hidden={state.section!=='notes'} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}>

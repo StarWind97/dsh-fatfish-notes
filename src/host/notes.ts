@@ -45,7 +45,7 @@ export class NotesApplication {
     this.transfers=new NoteTransfers(directory,this.repository)
     this.conversation = new NoteConversation(provider,services)
     this.captureService = new NoteCaptureService(this.repository, this.conversation)
-    this.enrichment = new NoteEnrichment(this.repository, new NoteModelBridge(provider, this.repository))
+    this.enrichment = new NoteEnrichment(this.repository, new NoteModelBridge(provider, this.repository, services))
     this.timer = setInterval(() => { if (!this.ticking) { this.ticking = true; void this.run(async signal => { for (const jobId of await this.enrichment.list()) { try { await this.enrichment.drive(jobId, signal) } catch { signal.throwIfAborted() } } }).catch(() => {}).finally(() => { this.ticking = false }) } }, 2000)
     this.timer.unref()
   }
@@ -215,9 +215,9 @@ export class NotesApplication {
     try { return await createConversationExport(this.conversation,input,active,true) }
     catch(error){if(error instanceof ExportError)throw new NotebookError(error.code,'会话导出未完成');throw error}
   },signal) }
-  async drain():Promise<void>{await Promise.allSettled([...this.pending])}
+  async drain():Promise<void>{await Promise.allSettled([...this.pending,this.enrichment.drain()])}
   close(): Promise<void> {
-    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending]).then(() => this.transfers.close()) }
+    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending,this.enrichment.close()]).then(() => this.transfers.close()) }
     return this.closePromise
   }
 }

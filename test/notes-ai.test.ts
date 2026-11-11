@@ -1,3 +1,4 @@
+import {revisionContent} from '../src/notes/conflicts.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -10,11 +11,20 @@ import { NoteCaptureService } from '../src/notes/capture.js'
 import { NoteConversation } from '../src/host/note-conversation.js'
 import { NoteEnrichment, type NoteModel } from '../src/notes/enrichment.js'
 import { NoteModelBridge, inspectNoteTurns } from '../src/host/note-model.js'
-import { planStages } from '../src/notes/enrichment-plan.js'
+import { planStages, stageResult } from '../src/notes/enrichment-plan.js'
 import { fixture, request } from './fixtures/notes-capture.js'
 import { canonical, digest } from '../src/notes/validation.js'
 
 const signal = () => new AbortController().signal
+
+test('metadata stages include archived delivery images once and exclude plain file paths',()=>{
+  const asset='a'.repeat(64)+'.png'
+  const source={messages:[{id:'one',seq:2,turn:1,role:'assistant',blocks:[{type:'text',text:'交付图片'}]}],assets:{},archivedMaterials:[{id:'d1',seq:3,turn:1,kind:'image',assetId:asset},{id:'d2',seq:5,kind:'image',assetId:asset},{id:'file',seq:6,kind:'file',name:'C:/private.txt'}]} as unknown as CaptureSource
+  const stages=planStages(source,'a'.repeat(64));assert.deepEqual(stages[0]!.assetIds,[asset]);assert.doesNotMatch(stages[0]!.input,/private/)
+  assert.throws(()=>stageResult({title:'标题',summary:'长'.repeat(201),tags:[]},stages[0]!,true))
+  assert.throws(()=>stageResult({title:'标题',summary:'第一段\n第二段',tags:[]},stages[0]!,true))
+  assert.equal(stageResult({title:'标题',summary:'简短摘要',tags:['资料']},stages[0]!,true).summary,'简短摘要')
+})
 class Model implements NoteModel {
   calls: Array<{ job: NoteJob; stage: NoteStage; prompt: string }> = []
   active = new Set<string>(); ended = new Set<string>(); fail = false
@@ -140,17 +150,46 @@ test('M4 official turn fold identifies consumed no-step failure and queued cance
   add('user/message', { source: { kind: 'user', rpcId: 'n3' } }); assert.deepEqual(inspectNoteTurns(events, ['n3']), { active: ['n3'], ended: [] })
 })
 
-test('M4 image dispatch uses frozen verified asset bytes through official prompt content', async () => {
-  const f = await setup()
+test('auxiliary image metadata uses frozen bytes, the selected model and no conversation prompt', async () => {
+  const f=await setup()
   try {
-    const bytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5xkAAAAASUVORK5CYII=', 'base64'), asset = await f.repo.putAsset(bytes, 'image/png')
-    const received: unknown[] = [], f2 = fixture(), controller = { ...f2.controller, async *follow() { yield { type: 'snapshot', header: { id: request.sessionId }, cursor: -1, projections: { values: { imageLimits: { maxImagesPerMessage: 2, maxImageBytes: 1000, maxMessageImageBytes: 2000, mediaTypes: ['image/png'] } } } } }, async prompt(req: unknown) { received.push(req); return { accepted: true } } }
-    const bridge = new NoteModelBridge(() => controller as never, f.repo), job = f.job!, stage = { ...job.stages[0]!, assetIds: [asset.id] }
-    await bridge.dispatch(job, stage, 'saved prompt', signal())
-    const prompt = received[0] as { requestId: string; mode: string; content: Array<{ type: string; data?: string; name?: string }> }
-    assert.equal(prompt.requestId, stage.requestId); assert.equal(prompt.mode, 'queue'); assert.equal(prompt.content[1]!.type, 'image'); assert.deepEqual(Buffer.from(prompt.content[1]!.data!, 'base64'), bytes); assert.equal(prompt.content[1]!.name, asset.id)
-    await assert.rejects(bridge.dispatch(job, { ...stage, assetIds: [asset.id,asset.id,asset.id] }, '', signal()), { code: 'ai_image_budget' }); assert.equal(received.length, 1)
-  } finally { await f.close() }
+    const bytes=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5xkAAAAASUVORK5CYII=','base64'),asset=await f.repo.putAsset(bytes,'image/png'),received:unknown[]=[],images:unknown[]=[]
+    const controller={...fixture().controller,async *follow(){yield {type:'snapshot',header:{id:request.sessionId},projections:{values:{modelSelection:{next:{provider:'chosen',model:'vision'}}}}}},prompt(){assert.fail('must not write conversation')}}
+    const llm={async prepareCall(config:unknown){return {config,async *stream(options:unknown){received.push(options);yield {type:'text-delta',text:JSON.stringify({title:'观测记录',summary:'保留图文观测资料，便于下次继续整理。',tags:['观测']})};yield {type:'finish',reason:{kind:'stop'}}}}}}
+    const attachments={imageLimits:{maxImagesPerMessage:2,maxImageBytes:1000,maxMessageImageBytes:2000,mediaTypes:['image/png']},async saveImage(input:unknown){images.push(input);return {attachmentId:'frozen'}}}
+    const bridge=new NoteModelBridge(()=>controller as never,f.repo,{llm:()=>llm as never,attachments:()=>attachments as never}),stage={...f.job!.stages[0]!,assetIds:[asset.id]}
+    const result=await bridge.dispatch(f.job!,stage,'source',signal());assert.equal(result.title,'观测记录')
+    const req=received[0] as any;assert.equal(req.provider,'chosen');assert.equal(req.model,'vision');assert.deepEqual(req.tools,[]);assert.equal(req.purpose,'fatfish-notes-metadata');assert.equal(req.messages[0].content[1].attachment.attachmentId,'frozen');assert.deepEqual((images[0] as any).data,bytes)
+    await assert.rejects(bridge.dispatch(f.job!,{...stage,assetIds:[asset.id,asset.id,asset.id]},'',signal()),{code:'ai_image_budget'});assert.equal(received.length,1)
+  }finally{await f.close()}
+})
+
+test('auxiliary jobs are nonblocking, preserve human edits and never resume old prompt jobs',async()=>{
+  const f=await setup(false);let resolve!:(v:any)=>void
+  const service=new NoteEnrichment(f.repo,{auxiliary:true,inspect:async()=>({active:[],ended:[]}),dispatch:(_j,_s,_p,active)=>new Promise((r,reject)=>{resolve=r;active.addEventListener('abort',()=>reject(active.reason),{once:true})})})
+  try{
+    const job=(await service.ensure({...f.req,autoMetadata:true},f.captured,signal()))!;await service.drive(job.jobId,signal())
+    assert.equal((await service.get(job.jobId)).status,'running')
+    const edited=await f.repo.save({noteId:job.noteId,expectedHeads:f.captured.note.heads,content:{...revisionContent(f.captured.note.current),title:'手工改名'}})
+    resolve({title:'AI建议',summary:'一段简短摘要。',tags:['资料']});await service.drain()
+    assert.equal((await service.get(job.jobId)).status,'candidate');assert.equal((await f.repo.get(job.noteId)).current.title,edited.current.title)
+    const {transport:_transport,...old}=job;await f.repo.files.write(`jobs/${job.jobId}.json`,canonical({job:old,checksum:digest(canonical(old))}),false)
+    assert.equal((await service.drive(job.jobId,signal())).status,'cancelled')
+  }finally{await service.close();await f.close()}
+})
+
+test('auxiliary formatting correction is bounded and cancellation preserves the saved original',async()=>{
+ const f=await setup(false);let calls=0
+ const controller={...fixture().controller,async *follow(){yield {type:'snapshot',header:{id:request.sessionId},projections:{values:{modelSelection:{next:{provider:'p',model:'m'}}}}}}}
+ const llm={async prepareCall(){return {config:{},async *stream(){calls++;yield {type:'text-delta',text:JSON.stringify({title:'建议',summary:'过长'.repeat(201),tags:[]})};yield {type:'finish',reason:{kind:'stop'}}}}}}
+ const bridge=new NoteModelBridge(()=>controller as never,f.repo,{llm:()=>llm as never})
+ const service=new NoteEnrichment(f.repo,{auxiliary:true,inspect:async()=>({active:[],ended:[]}),dispatch:(_j,_s,_p,active)=>new Promise((_resolve,reject)=>active.addEventListener('abort',()=>reject(active.reason),{once:true}))})
+ try{
+   const stages=planStages(await f.repo.getSource(f.captured.sourceId) as unknown as CaptureSource, 'a'.repeat(64))
+   await assert.rejects(bridge.dispatch({sessionId:request.sessionId} as NoteJob,stages[0]!,'',signal()),{code:'ai_no_candidate'});assert.equal(calls,2)
+   const job=(await service.ensure({...f.req,autoMetadata:true},f.captured,signal()))!;await service.drive(job.jobId,signal());await service.cancel(job.jobId);await service.drain()
+   assert.equal((await service.get(job.jobId)).status,'cancelled');assert.equal((await f.repo.get(job.noteId)).current.body,f.captured.note.current.body)
+ }finally{await service.close();await f.close()}
 })
 
 test('M4 unknown/corrupt job journals fail closed and preserve bytes', async () => {

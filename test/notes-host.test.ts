@@ -68,7 +68,8 @@ test('M4 host raw save succeeds without a model; task routes retain fences and c
     for(const prefix of ['dsh-fatfish-notes']) {
       for(const path of ['/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate']) assert.equal((await post(prefix,path,{jobId:captured.enrichmentJobId},{origin:'https://evil.example'})).status,403)
       const response:Response=await fetch(`${origin}/${prefix}/notes/job?jobId=${captured.enrichmentJobId}`);assert.equal(response.status,200)
-      const result=await response.json() as {job:{error:string;status:string}};assert.equal(result.job.error,'ai_unavailable');assert.equal(result.job.status,'running')
+      await app.notes.enrichment.drain()
+      const result=await app.notes.job({jobId:captured.enrichmentJobId});assert.equal(result.job.error,'ai_unavailable');assert.equal(result.job.status,'failed')
     }
     assert.equal((await app.notes.repository.list()).items.length,1)
     const cancelled=await post('dsh-fatfish-notes','/notes/job/cancel',{jobId:captured.enrichmentJobId});assert.equal(cancelled.status,200);assert.equal(((await cancelled.json()) as {job:{status:string}}).job.status,'cancelled')
@@ -76,14 +77,15 @@ test('M4 host raw save succeeds without a model; task routes retain fences and c
   } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 })
 
-test('M4 facade close drains its admitted prompt operation without cancelling the whole session', async () => {
+test('facade close aborts its auxiliary stream without prompting or cancelling the conversation', async () => {
   const dir=await mkdtemp(join(tmpdir(),'notes-ai-drain-')), f=fixture(); let entered!:()=>void, finished=false
   const waiting=new Promise<void>(resolve=>{entered=resolve})
-  const controller={...f.controller,prompt:async(_request:SessionPromptRequest,active:AbortSignal)=>{entered();await new Promise<void>((_resolve,reject)=>active.addEventListener('abort',()=>{setTimeout(()=>{finished=true;reject(active.reason)},15)},{once:true}));return{accepted:true as const}}} as unknown as SessionController
-  const app=new NotesApplication(dir,()=>controller)
+  const controller={...f.controller,async *follow(...args:Parameters<typeof f.controller.follow>){for await(const snapshot of f.controller.follow(...args))yield {...snapshot,projections:{values:{}}}},modelCatalog:async()=>({default:{provider:'test',model:'test'}}),prompt:()=>assert.fail('must not prompt')} as unknown as SessionController
+  const llm={async prepareCall(){return {config:{},async *stream({signal:active}:{signal:AbortSignal}){entered();await new Promise<void>((_resolve,reject)=>active.addEventListener('abort',()=>{setTimeout(()=>{finished=true;reject(active.reason)},15)},{once:true}));yield {type:'finish',reason:{kind:'stop'}}}}}}
+  const app=new NotesApplication(dir,()=>controller,()=>true,{llm:()=>llm as never})
   try {
     const captured=await app.capture({...request,autoMetadata:true}), running=app.job({jobId:captured.enrichmentJobId});void running.catch(()=>{})
-    await waiting;await app.close();await assert.rejects(running);assert.equal(finished,true)
+    await waiting;await app.close();await running;assert.equal(finished,true)
     const restarted=new NotesApplication(dir,()=>f.controller)
     try {const replay=await restarted.capture({...request,autoMetadata:true});assert.equal(replay.enrichmentJobId,captured.enrichmentJobId);assert.equal((await restarted.repository.list()).items.length,1)}finally{await restarted.close()}
   }finally{await app.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}

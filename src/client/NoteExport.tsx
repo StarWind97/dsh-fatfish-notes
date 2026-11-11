@@ -8,7 +8,7 @@ import { PaperDialog } from './paper/PaperDialog.js'
 import { notesStyles as s } from './notes-style.js'
 import type { T } from './locale.js'
 
-export function NoteExport({ controller, state, t, onClose }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void }) {
+export function NoteExport({ controller, state, t, onClose, freeze }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void; freeze?:()=>ReturnType<NotesController['freezeExport']> }) {
   const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>((state.draft?.assetIds.length||state.draft?.attachments?.length)?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(1080), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('light'), [assetId, setAssetId] = useState('')
   const [includeTags,setIncludeTags]=useState(true),[includeSummary,setIncludeSummary]=useState(true)
   const [selected,setSelected]=useState(()=>noteMaterials(state.draft??undefined).map(m=>m.id))
@@ -25,7 +25,7 @@ export function NoteExport({ controller, state, t, onClose }: { controller: Note
     if (active.current) active.current.abort()
     const job = new AbortController(); active.current = job; setBusy(true); setStatus('')
     try {
-      const frozen = await controller.freezeExport(); job.signal.throwIfAborted()
+      const frozen = await (freeze?freeze():controller.freezeExport()); job.signal.throwIfAborted()
       if (!frozen) { setStatus('notesExportSaveFirst'); return }
       const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format:format.startsWith('markdown')?(selected.length||includeSource?'markdown-zip':'markdown'):format,assetIds:materials.filter(m=>m.image&&selected.includes(m.id)).map(m=>m.id.slice(6)),attachmentIds:materials.filter(m=>!m.image&&selected.includes(m.id)).map(m=>m.id.slice(5)), includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width, pixelRatio, background, ...(assetId ? { assetId } : {}) }, job.signal)
       job.signal.throwIfAborted()

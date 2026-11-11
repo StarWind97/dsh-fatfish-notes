@@ -30,7 +30,7 @@ export function NoteCaptureDock({bridge,sessionId,t}: {bridge:NoteCaptureBridge;
     if(!active)return
     ref.current?.focus({preventScroll:true})
     const cancel=(event:KeyboardEvent)=>{
-      if(event.key!=='Escape' || event.defaultPrevented || !ref.current?.getClientRects().length ||
+      if(event.isComposing || event.key!=='Escape' || event.defaultPrevented || !ref.current?.getClientRects().length ||
         (event.target instanceof Element && event.target.closest('dialog[open],[role="dialog"]')))return
       event.preventDefault();bridge.close()
     }
@@ -51,12 +51,12 @@ function CaptureBar({state,selection,bridge,t}: {state:NoteCaptureState; selecti
   const count = whole ? selection.messages.length : selected.size
   return <div className="capture-bar" role="region" aria-label={t(state.exporting?'chatExportTitle':'noteCaptureReply')}>
     <div className="capture-bar-row">
-      <strong aria-live="polite"><ListChecks size={16} aria-hidden="true"/>{t('capturePicked',{turns,messages:count})}</strong>
+      <button type="button" className="capture-picked" onClick={()=>bridge.showDetail(true)} aria-live="polite"><ListChecks size={16} aria-hidden="true"/>{t('capturePicked',{turns,messages:count})}</button>
       <button type="button" aria-pressed={whole} onClick={()=>bridge.setScope(whole?'selection':'session')}>{t('captureWhole')}</button>
-      <button type="button" title={t(state.exporting?'captureFine':'captureFineHint')} onClick={()=>bridge.showDetail(true)}>{t('captureFine')}{!!selection.materials?.length&&` · ${selection.materials.length}`}</button>
-      <span className="capture-bar-space"/>
+      <button type="button" title={t(state.exporting?'captureFine':'captureFineHint')} onClick={()=>bridge.showDetail(true)}>{t(state.exporting?'captureFine':'captureOptions')}{!!selection.materials?.length&&` · ${selection.materials.length}`}</button>
+      <button type="button" className="capture-bar-space" aria-label={t('captureOptions')} onClick={()=>bridge.showDetail(true)}/>
       <button type="button" onClick={()=>bridge.close()}>{t('cancel')}</button>
-      <button type="button" className="capture-bar-save" disabled={!count} onClick={()=>state.exporting?bridge.exportDialog():selection.materials?.length?bridge.showDetail(true):void bridge.save()}>{t(state.exporting?'chatExportContinue':'captureSave')}</button>
+      <button type="button" className="capture-bar-save" disabled={!count} onClick={()=>state.exporting?bridge.exportDialog():bridge.showDetail(true)}>{t(state.exporting?'chatExportContinue':'captureNext')}</button>
     </div>
     {!selection.complete && <small role="alert">{t(state.exporting?'chatExportPartial':'notePartialSource')}</small>}
     {state.autoMetadata && <small>{t('noteAutoMetadata')}</small>}

@@ -3,22 +3,29 @@ import type { NoteJob, NoteStage } from '../contracts/notes.js';
 import type { NoteModel } from '../notes/enrichment.js';
 import type { NoteRepository } from '../notes/repository.js';
 import type { NoteConversationController } from './note-conversation.js';
-export type NoteModelController = NoteConversationController & Partial<Pick<SessionController, 'prompt'>>;
+import type { ConversationFileServices } from './conversation-files.js';
+declare module '@deepseek-ai/dsh-llm/types' {
+    interface LlmRequestPurposeMap {
+        'fatfish-notes-metadata': true;
+    }
+}
+export type NoteModelController = NoteConversationController & Partial<Pick<SessionController, 'modelCatalog'>>;
 export declare function inspectNoteTurns(events: readonly SessionWireEvent[], requestIds: string[]): {
     active: string[];
     ended: string[];
 };
-/** Uses only official Host prompt and frozen local image bytes; never reads a
- * path/URL supplied by source text or the model. */
+/** Auxiliary requests use the Host's configured model and frozen note assets.
+ * No prompt(), tools, hidden session or current conversation messages are used. */
 export declare class NoteModelBridge implements NoteModel {
     private readonly provider;
     private readonly repository;
-    constructor(provider: () => NoteModelController | undefined, repository: NoteRepository);
-    private controller;
-    private opening;
-    inspect(sessionId: string, requestIds: string[], signal: AbortSignal): Promise<{
+    private readonly services;
+    readonly auxiliary = true;
+    constructor(provider: () => NoteModelController | undefined, repository: NoteRepository, services?: ConversationFileServices);
+    inspect(): Promise<{
         active: string[];
         ended: string[];
     }>;
-    dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<void>;
+    private selection;
+    dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<import("../contracts/notes.js").NoteStageResult>;
 }

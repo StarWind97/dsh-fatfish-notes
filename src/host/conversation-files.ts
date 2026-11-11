@@ -7,6 +7,7 @@ import {NotebookError} from '../domain/errors.js'
 
 export type WorkspaceFileService=Pick<import('@deepseek-ai/dsh-api-workspace-files').WorkspaceFiles,'stat'|'readBytes'>
 export interface ConversationFileServices {
+  llm?:()=>import('@deepseek-ai/dsh-llm').LlmRuntime|undefined
   attachments?:()=>AttachmentStore|undefined
   workspaceFiles?:()=>WorkspaceFileService|undefined
   workspaces?:()=>Pick<WorkspaceRegistry,'list'>|undefined

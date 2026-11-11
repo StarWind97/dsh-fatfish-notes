@@ -87,7 +87,7 @@
   "noteReselect": "保留原请求，重新选材",
   "noteRecoveryNotice": "以下未确认的保存请求仍会保留。核对或重试会继续各自的原请求，不会另建副本。",
   "noteRecoverSession": "核对第 {index} 次整会话保存",
-  "noteAiDisclosure": "先原样保存所选消息与图片。勾选 AI 建议后，当前会话的模型仅生成标题、摘要和标签。",
+  "noteAiDisclosure": "先原样保存所选消息与图片。勾选 AI 建议后，在后台生成简短标题、摘要和标签，不向会话添加问答。",
   "noteSaveOptions": "保存方式",
   "noteAutoMetadata": "AI 建议标题、摘要和标签",
   "noteSaveWithAi": "保存原文并建议信息",
@@ -525,7 +525,7 @@
   "sessionUnlinked": "已解除关联，笔记仍在笔记库中。",
   "sessionSource": "从本会话保存",
   "sessionLinked": "关联的笔记",
-  "sessionFind": "查找并关联",
+  "sessionFind": "查找笔记",
   "sessionLoadFailed": "暂时无法读取笔记，请重试。",
   "sessionEmpty": "暂无相关笔记。可以保存当前会话，或查找并关联已有笔记。",
   "sessionAssociate": "关联到本会话",
@@ -586,5 +586,7 @@
   "documentShortcutsHint": "以下快捷键在正文编辑器中使用。修改会自动保存。",
   "documentCopyCode": "复制代码",
   "documentCopied": "已复制",
-  "documentCopyFailed": "复制失败，请重试"
+  "documentCopyFailed": "复制失败，请重试",
+  "captureOptions": "保存选项",
+  "captureNext": "下一步"
 }

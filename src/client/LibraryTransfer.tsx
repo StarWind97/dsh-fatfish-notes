@@ -10,11 +10,11 @@ import {fileSize} from './NoteAttachments.js'
 import {downloadFilename,startNoteDownload} from './note-export.js'
 import {importJob} from './import-job.js'
 
-export function LibraryTransfer({controller,state,t,close}:{controller:NotesController;state:NotesState;t:T;close:()=>void}){
+export function LibraryTransfer({controller,state,t,close,initialExport}:{initialExport?:string;controller:NotesController;state:NotesState;t:T;close:()=>void}){
   const job=useSyncExternalStore(importJob.subscribe,importJob.getSnapshot),plan=job.plan
-  const [mode,setMode]=useState<'import'|'export'>('import'),[exportBusy,setExportBusy]=useState(false),[exportMessage,setExportMessage]=useState(''),[minimized,setMinimized]=useState(false),[page,setPage]=useState(0)
+  const [mode,setMode]=useState<'import'|'export'>(initialExport?'export':'import'),[exportBusy,setExportBusy]=useState(false),[exportMessage,setExportMessage]=useState(''),[minimized,setMinimized]=useState(false),[page,setPage]=useState(0)
   const busy=job.busy||exportBusy,message=mode==='import'?job.message:exportMessage,report=job.report,progress={done:job.done,total:job.total}
-  const [book,setBook]=useState(state.filter.notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??''),[scope,setScope]=useState(state.filter.notebookId??''),[folders,setFolders]=useState(false),[remote,setRemote]=useState(false),[large,setLarge]=useState(false)
+  const [book,setBook]=useState(state.filter.notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??''),[scope,setScope]=useState(initialExport??state.filter.notebookId??''),[folders,setFolders]=useState(false),[remote,setRemote]=useState(false),[large,setLarge]=useState(false)
   const [selected,setSelected]=useState<Set<string>>(new Set(plan?.notes.map(n=>n.noteId)??[]))
   const input=useRef<HTMLInputElement>(null),folderInput=useRef<HTMLInputElement>(null),zipInput=useRef<HTMLInputElement>(null),abort=useRef<AbortController|null>(null)
   useEffect(()=>{if(!book){const initial=state.notebooks.find(b=>b.isDefault)?.notebookId;if(initial)setBook(initial)}},[state.notebooks,book])

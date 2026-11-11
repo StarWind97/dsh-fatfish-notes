@@ -1,3 +1,5 @@
+import {RowMenu} from './RowMenu.js'
+import {useItemActions} from './ItemActions.js'
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Pencil, Plus, Star, Trash2 } from 'lucide-react'
@@ -11,6 +13,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
   const [title, setTitle] = useState(''), [editing, setEditing] = useState<NotebookView>(), [removing, setRemoving] = useState<NotebookView>()
   const [formOpen, setFormOpen] = useState(false), input = useRef<HTMLInputElement>(null)
   const [removal, setRemoval] = useState<NotebookRemoval>('move'), [busy, setBusy] = useState(false), [error, setError] = useState('')
+  const actions=useItemActions(controller,state,t,id=>controller.open(id))
   const books = state.notebooks.filter(activeNotebook), selected = books.find(b => b.isDefault)
   useEffect(() => { if (formOpen) { input.current?.focus(); input.current?.select() } }, [formOpen, editing])
   const closeForm = () => { setFormOpen(false); setTitle(''); setEditing(undefined); setError('') }
@@ -28,7 +31,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
     } finally { setBusy(false) }
   }
   return <section className="paper-other paper-books-page" aria-labelledby="paper-books-title">
-    <div className="paper-books-content">
+    {actions.dialogs}<div className="paper-books-content">
       <header className="paper-books-heading"><div><h2 id="paper-books-title">{t('notesNotebooks')}</h2><p>{t('notesBooksHint')}</p></div>
         <button className="paper-primary" disabled={busy} onClick={() => { setEditing(undefined); setTitle(''); setError(''); setFormOpen(true); input.current?.focus() }}><Plus size={16}/>{t('notesNewBook')}</button>
       </header>
@@ -37,13 +40,13 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
         <div><input ref={input} id="notebook-name" autoComplete="off" value={title} disabled={busy} maxLength={240} placeholder={t('notesBookName')} onChange={event => setTitle(event.target.value)}/><button className="paper-primary" disabled={busy || !title.trim()} type="submit">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</button><button type="button" disabled={busy} onClick={closeForm}>{t('cancel')}</button></div>
       </form>}
       {state.listError && <p role="alert">{t('notesListFailed')} <button disabled={busy || state.loadingList} onClick={() => void controller.refresh()}>{t('refresh')}</button></p>}
-      <div className="paper-book-list">{books.map(book => <div className="paper-book-entry" key={book.notebookId}>
+      <div className="paper-book-list">{books.map(book => <div className="paper-book-entry" key={book.notebookId}><RowMenu label={book.current.title+' · 操作'} actions={actions.bookActions(book)}>
         <button className="paper-book-open" disabled={busy} title={book.current.title} onClick={() => void onOpen(book.notebookId)}><BookOpen size={21}/><span className="paper-book-name"><strong>{book.current.title}</strong><span className="paper-book-details">{t('notesBookCount', { count: book.noteCount ?? 0 })}{book.isDefault && <span className="paper-book-badge">{t('notesDefaultBadge')}</span>}</span></span></button>
         <div className="paper-book-actions">
           <button disabled={busy} title={t('notesRenameBook')} aria-label={t('notesRenameBookNamed', { title: book.current.title })} onClick={() => { setEditing(book); setTitle(book.current.title); setError(''); setFormOpen(true) }}><Pencil size={16}/></button>
           <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultBadge' : 'notesMakeDefault')} aria-label={t('notesMakeDefaultNamed', { title: book.current.title })} onClick={() => void run(() => controller.notebook(book.current.title, book, false, { makeDefault: true }), () => {})}><Star size={16} fill={book.isDefault ? 'currentColor' : 'none'}/></button>
           <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultProtected' : 'notesRemoveBook')} aria-label={t('notesRemoveBookNamed', { title: book.current.title })} onClick={() => { setRemoving(book); setRemoval('move'); setError('') }}><Trash2 size={16}/></button>
-        </div>
+        </div></RowMenu>
       </div>)}</div>
       <p className="paper-book-help">{t('notesDefaultBookHint')}</p>
       {error && !removing && <p role="alert">{error}</p>}
@@ -65,6 +68,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
 }
 
 export const notebookManagerCss = `
+.paper-book-entry>.paper-menu-row{flex:1;min-width:0}
 .paper-books-content{width:100%;max-width:880px;margin:0 auto;padding:32px clamp(20px,4cqw,48px) 48px}
 .paper-books-page button.paper-primary:not(:disabled):hover{background:var(--accent)}
 .paper-books-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}.paper-books-heading h2{font:650 28px/1.4 var(--serif);margin:0 0 5px}.paper-books-heading p{margin:0;font-size:13px;color:var(--muted)}.paper-books-heading>button{flex:none}

@@ -8,7 +8,7 @@ Save conversations, manage notes with images, export files, and sync across devi
 
 **0.8.0** adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md).
 
-Current `main` contains the unreleased stage E implementation: a conversation sidebar, note links to sessions, selected uploaded/delivered files, references inserted into the conversation input, and background chunked imports. The public release remains 0.8.0; see the [stage E results](docs/plans/2026-11-11-stage-e-results.zh.md).
+Current `main` contains the unreleased stage E implementation: a conversation sidebar, note links to sessions, selected uploaded/delivered files, references inserted into the conversation input, and background chunked imports. Follow-up improvements add sidebar note creation, row menus, an explicit capture confirmation, and background title/summary/tag suggestions without adding chat messages. The public release remains 0.8.0; see the [follow-up results](docs/plans/2026-11-11-stage-e-follow-up-results.zh.md).
 
 ## Features
 

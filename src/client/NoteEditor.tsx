@@ -1,3 +1,4 @@
+import {TransientNotice} from './TransientNotice.js'
 import {DocumentTools} from './paper/DocumentTools.js'
 import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
@@ -43,6 +44,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
   const root=useRef<HTMLElement>(null),anchor=useRef<{pos:number;y:number}|null>(null)
   const [sourceOpen,setSourceOpen]=useState(false),[sourceVisited,setSourceVisited]=useState(false)
   const [moved,setMoved]=useState(false)
+  useEffect(()=>setMoved(false),[state.section,state.filter,state.noteId])
   const scroll=useRef({body:0,source:0}), switching=useRef(false)
   const complete=useRef<(()=>void)|null>(null)
   const writing=useRef<WritingNavigation|null>(null)
@@ -158,7 +160,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     {(mode==='edit'||draft.summary)&&<section className="paper-summary" aria-label={t('notesSummary')}>
       <label><span>{t('notesSummary')}</span>{mode==='edit'?<textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/>:<p><Highlight value={draft.summary} query={state.filter.query}/></p>}</label>
     </section>}
-    {moved&&draft.status==='trashed'&&<div role="status" className="paper-notice">{t('paperMoved')} <button onClick={()=>void move(false)}>{t('paperUndoMove')}</button></div>}
+    {moved&&draft.status==='trashed'&&<TransientNotice identity={state.noteId??'moved'} message={t('paperMoved')} close={()=>setMoved(false)} busy={state.operation} paused={!!state.error} action={()=>void move(false)}/>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
     {state.error&&<p role="alert" style={s.error}>{t(['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}

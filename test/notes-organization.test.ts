@@ -25,6 +25,15 @@ const content:NoteContent={title:'长文整理',body:'正文',summary:'',tags:['
 const select=(...notes:NoteView[])=>notes.map(n=>({noteId:n.noteId,expectedHeads:n.heads}))
 async function fixture(t:{after(fn:()=>Promise<void>):void}){const dir=await mkdtemp(join(tmpdir(),'fatfish-organize-'));t.after(()=>rm(dir,{recursive:true,force:true}));return {dir,repo:new NoteRepository(dir)}}
 
+test('row rename preserves body and notebook and rejects stale heads or another editor',async t=>{
+ const {repo}=await fixture(t),note=await repo.save({noteId:a,expectedHeads:[],content})
+ await repo.manage({notes:select(note),action:'rename',title:'新的名称'})
+ const latest=await repo.get(a);assert.equal(latest.current.title,'新的名称');assert.equal(latest.current.body,content.body);assert.equal(latest.effectiveNotebookId,note.effectiveNotebookId)
+ await assert.rejects(repo.manage({notes:select(note),action:'rename',title:'旧版本改名'}),{code:'note_conflict'})
+ repo.editGuard=()=>{throw Object.assign(new Error('busy'),{code:'note_edit_busy'})}
+ await assert.rejects(repo.manage({notes:select(latest),action:'rename',title:'覆盖'}),{code:'note_edit_busy'});assert.equal((await repo.get(a)).current.title,'新的名称')
+})
+
 test('multiword search prioritizes titles, paginates ranked matches and finds distant body context',()=>{
   const rows=Array.from({length:105},(_,i)=>{const id='01K00000000000000000000'+String(i).padStart(3,'0');return materializeNote([createNoteRevision({version:1,noteId:id,parents:[],recordedAt:'2026-11-10T00:00:00.000Z',...content,title:i===80?'月面 观测':`资料${i}`,body:'前言。'.repeat(900)+'月面 中间文字 观测'+(i===2?' 附加词':'')})],id)})
   let cursor:string|null=null;const ids:string[]=[]

@@ -326,17 +326,18 @@ export class NoteRepository {
   }
   /** All selected heads/leases and resulting content are checked before the first write. */
   async manage(request:NoteManageRequest,signal?:AbortSignal):Promise<{completed:string[];note?:NoteView}> {
-    const v=object(request),actions=['favorite','unfavorite','move','add-tags','remove-tags','duplicate','template','instantiate','revision','revision-copy']
+    const v=object(request),actions=['rename','favorite','unfavorite','move','add-tags','remove-tags','duplicate','template','instantiate','revision','revision-copy']
     if(!actions.includes(String(v.action))||!Array.isArray(v.notes)||!v.notes.length||v.notes.length>NOTE_LIMITS.notes)fail('note_schema')
     const selected=v.notes.map(raw=>{const n=object(raw);keys(n,['noteId','expectedHeads']);return {noteId:id(n.noteId),expectedHeads:sortedStrings(n.expectedHeads,NOTE_LIMITS.revisions,hash)}})
     if(new Set(selected.map(n=>n.noteId)).size!==selected.length)fail('note_schema')
-    const action=request.action,copy=['duplicate','template','instantiate','revision-copy'].includes(action),single=copy||action==='revision'
+    const action=request.action,copy=['duplicate','template','instantiate','revision-copy'].includes(action),single=copy||action==='revision'||action==='rename'
     if(single&&selected.length!==1)fail('note_schema')
     const target=copy?id(v.targetId):undefined
     const notebookId=action==='move'||v.notebookId!==undefined?id(v.notebookId):undefined
     const tags=['add-tags','remove-tags'].includes(action)?sortedStrings(v.tags,50,t=>{const value=text(t,200).trim();if(!value)fail();return value}):[]
     const revision=action.startsWith('revision')?hash(v.revision):undefined
     const title=v.title===undefined?undefined:text(v.title,1200).trim()
+    if(action==='rename'&&!title)fail('note_schema')
     const date=action==='instantiate'?text(v.date,10):''
     if(action==='instantiate'&&!/^\d{4}-\d{2}-\d{2}$/.test(date))fail('note_date')
     return this.run(async()=>{
@@ -355,6 +356,7 @@ export class NoteRepository {
         if(!old)fail('note_not_found','历史版本不存在')
         let content:NoteContent={...revisionContent(old),notebookId:notebookId??(revision?old.notebookId:view.effectiveNotebookId),status:'active'}
         if(revision){delete content.sessionLinks;content={...content,sourceId:current.sourceId,...(current.sessionLinks!==undefined?{sessionLinks:current.sessionLinks}:{}),...(current.favorite!==undefined?{favorite:current.favorite}:{}),...(current.isTemplate!==undefined?{isTemplate:current.isTemplate}:{})}}
+        if(action==='rename')content.title=title!
         if(action==='favorite'||action==='unfavorite')content.favorite=action==='favorite'
         if(action==='add-tags')content.tags=[...new Set([...current.tags,...tags])]
         if(action==='remove-tags')content.tags=current.tags.filter(t=>!tags.includes(t))

@@ -87,7 +87,7 @@
   "noteReselect": "Keep original and reselect",
   "noteRecoveryNotice": "Unconfirmed saves are retained. Checking or retrying continues each original request without creating a duplicate.",
   "noteRecoverSession": "Check conversation save {index}",
-  "noteAiDisclosure": "Selected messages and images are saved as captured. Optional AI suggestions use the conversation model for the title, summary and tags.",
+  "noteAiDisclosure": "Selected messages and images are saved as captured. Optional AI suggestions generate a short title, summary and tags in the background, without adding chat messages.",
   "noteSaveOptions": "Save options",
   "noteAutoMetadata": "Suggest a title, summary and tags with AI",
   "noteSaveWithAi": "Save and suggest note details",
@@ -586,5 +586,7 @@
   "documentShortcutsHint": "These shortcuts work in the body editor. Changes are saved automatically.",
   "documentCopyCode": "Copy code",
   "documentCopied": "Copied",
-  "documentCopyFailed": "Copy failed. Try again"
+  "documentCopyFailed": "Copy failed. Try again",
+  "captureOptions": "Save options",
+  "captureNext": "Next"
 }

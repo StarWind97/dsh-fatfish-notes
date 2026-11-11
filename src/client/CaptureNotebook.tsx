@@ -1,29 +1,17 @@
 import * as React from 'react'
 import {useEffect,useState} from 'react'
-import {Plus,Check} from 'lucide-react'
 import {api,type Api} from './api.js'
-import {importId} from './library-import.js'
 import {activeNotebook} from '../notes/notebooks.js'
 import type {NotebookView} from '../contracts/notes.js'
 import type {T} from './locale.js'
 
-export function CaptureNotebook({value,choose,workspace,t,call=api,onMapped}:{value:string|null;choose:(id:string)=>void;workspace?:{id:string;title:string}|null;t:T;call?:Api;onMapped?:(id:string)=>void}){
-  const [books,setBooks]=useState<NotebookView[]>([]),[adding,setAdding]=useState(false),[title,setTitle]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(false),[mapped,setMapped]=useState<string|null>(null)
-  useEffect(()=>{const c=new AbortController();void call('/notes/notebooks',undefined,c.signal).then(r=>setBooks(r.notebooks.filter(activeNotebook))).catch(()=>{if(!c.signal.aborted)setError(true)});if(workspace)void call('/notes/workspace-book',{workspaceId:workspace.id},c.signal).then(r=>setMapped(r.notebookId)).catch(()=>{});return()=>c.abort()},[workspace?.id,call])
-  const selected=value??books.find(b=>b.isDefault)?.notebookId??''
-  async function save(create:boolean){
-    setBusy(true);setError(false)
-    try{
-      let target=selected
-      if(create){const notebookId=importId(),r=await call('/notes/notebook',{notebookId,title:title.trim(),expectedHeads:[]});const book=r.notebooks.find(b=>b.notebookId===notebookId);if(!book)throw Error();target=book.notebookId;setBooks(r.notebooks.filter(activeNotebook));choose(target);setAdding(false)}
-      if(workspace){await call('/notes/workspace-book',{workspaceId:workspace.id,notebookId:target});setMapped(target);onMapped?.(target);window.dispatchEvent(new Event('fatfish-workspace-book'))}
-    }catch{setError(true)}finally{setBusy(false)}
-  }
-  return <div className="conversation-book-picker"><style>{captureNotebookCss}</style><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={selected} disabled={busy} onChange={e=>choose(e.target.value)}><option hidden value=""/>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
-    <div className="conversation-book-actions"><button type="button" disabled={busy} onClick={()=>{setAdding(!adding);setTitle(workspace?.title??'')}}><Plus size={14}/>{t(workspace?'sessionNewWorkspaceBook':'notesNewNotebook')}</button>{workspace&&selected&&<button type="button" disabled={busy||selected===mapped} onClick={()=>void save(false)}>{selected===mapped?<Check size={14}/>:null}{t(selected===mapped?'sessionWorkspaceDefault':'sessionSetDefault')}</button>}</div>
-    {adding&&<form className="conversation-book-new" onSubmit={e=>{e.preventDefault();void save(true)}}><input aria-label={t('notesNotebook')} placeholder={t('sessionBookName')} value={title} onChange={e=>setTitle(e.target.value)} autoFocus maxLength={180}/><button disabled={busy||!title.trim()}>{t('create')}</button><button type="button" disabled={busy} onClick={()=>setAdding(false)}>{t('cancel')}</button></form>}
-    {error&&<p role="alert">{t('notesBooksFailed')}</p>}
-  </div>
+/** Capture only chooses an existing destination; management belongs to the library/sidebar. */
+export function CaptureNotebook({value,choose,t,call=api,onValid}:{value:string|null;choose:(id:string)=>void;t:T;call?:Api;onValid?:(valid:boolean)=>void}){
+  const [books,setBooks]=useState<NotebookView[]>([]),[error,setError]=useState(false),[loaded,setLoaded]=useState(false)
+  useEffect(()=>{const c=new AbortController();void call('/notes/notebooks',undefined,c.signal).then(r=>{setBooks(r.notebooks.filter(activeNotebook));setLoaded(true)}).catch(()=>{if(!c.signal.aborted){setError(true);onValid?.(false)}});return()=>c.abort()},[call])
+  const selected=value??books.find(b=>b.isDefault)?.notebookId??'',valid=books.some(b=>b.notebookId===selected)
+  useEffect(()=>{onValid?.(loaded&&valid)},[loaded,valid,onValid])
+  return <div className="conversation-book-picker"><style>{captureNotebookCss}</style><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={valid?selected:''} onChange={e=>choose(e.target.value)}><option value="" disabled>{t(loaded?'sessionChooseBook':'loading')}</option>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>{loaded&&!valid&&<p role="alert">原来的笔记本不可用，请重新选择。</p>}{error&&<p role="alert">{t('notesBooksFailed')}</p>}</div>
 }
 
 export const captureNotebookCss=`

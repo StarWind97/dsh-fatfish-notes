@@ -1,4 +1,4 @@
-import type { CaptureRequest, CaptureResult, CaptureSource, NoteJob, NoteStage } from '../contracts/notes.js'
+import type { CaptureRequest, CaptureResult, CaptureSource, NoteJob, NoteStage, NoteStageResult } from '../contracts/notes.js'
 import { NoteRepository } from './repository.js'
 import { canonical, digest, hash, id, object, text, fail, keys, sortedStrings, assetId } from './validation.js'
 import { missing, utf8 } from './files.js'
@@ -7,7 +7,8 @@ import { AI_LIMITS, attemptId, planStages, stagePrompt, stageResult } from './en
 import { NotebookError } from '../domain/errors.js'
 
 export interface NoteModel {
-  dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<void>
+  readonly auxiliary?: boolean
+  dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<NoteStageResult | void>
   inspect(sessionId: string, requestIds: string[], signal: AbortSignal): Promise<{ active: string[]; ended: string[] }>
 }
 const safeError = (error: unknown): string => error instanceof NotebookError ? error.code : 'ai_unavailable'
@@ -17,6 +18,9 @@ const terminal = new Set(['completed','cancelled','candidate'])
  * module. Every transition, including prompt admission identity, precedes I/O. */
 export class NoteEnrichment {
   private tail: Promise<unknown> = Promise.resolve()
+  private readonly auxiliaryPending = new Set<Promise<void>>()
+  async drain(){await Promise.allSettled([...this.auxiliaryPending])}
+  async close(){for(const controller of this.dispatches.values())controller.abort();await this.drain()}
   private readonly dispatches = new Map<string, AbortController>()
   private readonly cancelIntents = new Map<string, symbol>()
   constructor(readonly repository: NoteRepository, private readonly model: NoteModel) {}
@@ -28,13 +32,14 @@ export class NoteEnrichment {
     const wrapped = object(JSON.parse(utf8(await this.repository.files.read(`jobs/${jobId}.json`, 128 * 1024 * 1024))) as unknown)
     keys(wrapped, ['job','checksum']); const v = object(wrapped.job)
     if (v.version !== 1) fail('note_version')
-    keys(v, ['version','jobId','captureRequestId','sessionId','noteId','sourceId','baseRevision','mode','autoMetadata','status','error','stages','candidate','adoption'])
+    if(v.transport!==undefined&&v.transport!=='auxiliary')fail('ai_corrupt')
+    keys(v, [...(v.transport!==undefined?['transport']:[]),'version','jobId','captureRequestId','sessionId','noteId','sourceId','baseRevision','mode','autoMetadata','status','error','stages','candidate','adoption'])
     if (wrapped.checksum !== digest(canonical(v)) || v.jobId !== jobId || digest(text(v.captureRequestId, 512)) !== jobId) fail('ai_corrupt')
     id(v.noteId); hash(v.sourceId); hash(v.baseRevision); text(v.sessionId, 512)
     if (!['metadata','organize'].includes(String(v.mode)) || typeof v.autoMetadata !== 'boolean' || !['running','failed','cancelled','candidate','completed'].includes(String(v.status)) || !(v.error === null || typeof v.error === 'string') || !Array.isArray(v.stages) || v.stages.length > 33) fail('ai_corrupt')
     const job = v as unknown as NoteJob
     // A pre-MVP body job must never dispatch, retry or replay an adoption.
-    if (v.mode === 'organize') return {...job, mode:'metadata', status:'cancelled', stages:[], candidate:null, adoption:null}
+    if (v.mode === 'organize' || this.model.auxiliary && job.transport !== 'auxiliary' && job.status !== 'completed') return {...job, mode:'metadata', status:'cancelled', stages:[], candidate:null, adoption:null}
     for (const [index, stage] of job.stages.entries()) {
       keys(object(stage), ['kind','input','assetIds','attempt','requestId','status','result','error'])
       if (!['chunk','final'].includes(stage.kind) || typeof stage.input !== 'string' || stage.input.length > AI_LIMITS.characters || !Number.isSafeInteger(stage.attempt) || stage.attempt < 1 || stage.attempt > AI_LIMITS.attempts || stage.requestId !== attemptId(jobId, index, stage.attempt) || !['ready','waiting','done','failed'].includes(stage.status) || !Array.isArray(stage.assetIds)) fail('ai_corrupt')
@@ -63,7 +68,7 @@ export class NoteEnrichment {
         return existing
       }
       const source = await this.repository.getSource(captured.sourceId, signal) as unknown as CaptureSource
-      const job: NoteJob = { version: 1, jobId, captureRequestId: request.requestId, sessionId: request.sessionId, noteId: captured.note.noteId, sourceId: captured.sourceId, baseRevision: captured.note.current.revision, mode: 'metadata', autoMetadata: request.autoMetadata, status: 'running', error: null, stages: [], candidate: null, adoption: null }
+      const job: NoteJob = { ...(this.model.auxiliary ? {transport: 'auxiliary' as const} : {}), version: 1, jobId, captureRequestId: request.requestId, sessionId: request.sessionId, noteId: captured.note.noteId, sourceId: captured.sourceId, baseRevision: captured.note.current.revision, mode: 'metadata', autoMetadata: request.autoMetadata, status: 'running', error: null, stages: [], candidate: null, adoption: null }
       try { job.stages = planStages(source, jobId) } catch (error) { job.status = 'failed'; job.error = safeError(error) }
       await this.write(job); return job
     })
@@ -78,6 +83,13 @@ export class NoteEnrichment {
       const stage = job.stages.find(s => s.status !== 'done')
       if (!stage) { await this.finish(job, signal); return job }
       if (stage.status === 'failed') return job
+      if(this.model.auxiliary){
+        if(this.dispatches.has(jobId))return job
+        if(stage.status==='waiting'){stage.status='failed';stage.error='ai_interrupted';job.status='failed';job.error='ai_interrupted';await this.write(job);return job}
+        if(stage.kind==='final'&&job.stages.length>1)stage.input=job.stages.slice(0,-1).map((s,i)=>`${i+1}: ${s.result!.summary}`).join('\n\n')
+        stage.status='waiting';await this.write(job)
+        this.startAuxiliary(job,stage);return job
+      }
       const controller = new AbortController(), active = AbortSignal.any([signal, controller.signal]); this.dispatches.set(jobId, controller)
       try {
         const inspected = await this.model.inspect(job.sessionId, [stage.requestId], active)
@@ -89,12 +101,31 @@ export class NoteEnrichment {
         // A failed HTTP receipt is UNKNOWN admission: only this exact request ID
         // may be replayed. A known ended model turn requires explicit retry.
         active.throwIfAborted(); this.checkCancelled(jobId)
-        await this.model.dispatch(job, stage, stagePrompt(job, stage), active)
+        const result = await this.model.dispatch(job, stage, stagePrompt(job, stage), active)
+        active.throwIfAborted(); this.checkCancelled(jobId)
+        if(result){stage.result=stageResult(result,stage,!!this.model.auxiliary);stage.status='done';stage.error=null;job.error=null;await this.write(job);if(job.stages.every(s=>s.status==='done'))await this.finish(job,active)}
         if (job.error) { job.error = null; await this.write(job) }
-      } catch (error) { active.throwIfAborted(); job.error = safeError(error); if (job.error === 'ai_image_budget' || job.error === 'ai_budget') { job.status = 'failed'; stage.status = 'failed'; stage.error = job.error } await this.write(job) }
+      } catch (error) { active.throwIfAborted(); job.error = safeError(error); if (this.model.auxiliary || job.error === 'ai_image_budget' || job.error === 'ai_budget') { job.status = 'failed'; stage.status = 'failed'; stage.error = job.error } await this.write(job) }
       finally { this.dispatches.delete(jobId) }
       return job
     })
+  }
+  private startAuxiliary(job:NoteJob,stage:NoteStage){
+    const controller=new AbortController(),signal=AbortSignal.any([controller.signal,AbortSignal.timeout(180_000)])
+    this.dispatches.set(job.jobId,controller)
+    const task=Promise.resolve().then(()=>this.model.dispatch(job,stage,stagePrompt(job,stage),signal)).then(result=>this.run(async()=>{
+      signal.throwIfAborted();this.checkCancelled(job.jobId)
+      const latest=await this.read(job.jobId),current=latest.stages.find(s=>s.requestId===stage.requestId)
+      if(latest.status!=='running'||!current||current.status!=='waiting')return
+      if(!result)fail('ai_no_candidate')
+      current.result=stageResult(result,current,true);current.status='done';current.error=null;latest.error=null;await this.write(latest)
+      if(latest.stages.every(s=>s.status==='done'))await this.finish(latest,signal)
+    })).catch(error=>this.run(async()=>{
+      const latest=await this.read(job.jobId),current=latest.stages.find(s=>s.requestId===stage.requestId)
+      if(latest.status!=='running'||!current||current.status!=='waiting')return
+      latest.status='failed';latest.error=signal.aborted?'ai_interrupted':safeError(error);current.status='failed';current.error=latest.error;await this.write(latest)
+    })).catch(()=>{}).finally(()=>{this.dispatches.delete(job.jobId);this.auxiliaryPending.delete(task)})
+    this.auxiliaryPending.add(task)
   }
   submit(input: unknown, sessionId: string | undefined, signal: AbortSignal): Promise<{ jobId: string; status: NoteJob['status'] }> {
     return this.run(async () => {
