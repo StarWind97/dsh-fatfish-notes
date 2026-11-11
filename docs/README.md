@@ -38,6 +38,10 @@
 
 2026-11-11 最新体验已更新为 [E 验收修正版](plans/2026-11-11-stage-e-review-results.zh.md)：修正会话保存/导出主题，完善侧栏按笔记本浏览、自动关联和工作区默认本，增加字数、快捷键说明与代码复制。[已批准规划](plans/2026-11-11-stage-e-review.zh.md)和主规划同步维护，截图见 `output/playwright/e-review/index.html`。本轮未发布，F 未启动。
 
+后续反馈已形成 [侧栏创建、浏览稳定与后台 AI 建议修正稿](plans/2026-11-11-stage-e-follow-up.zh.md)，含笔记本新建入口及成功提示自动收起的讨论。当前仅获文档落盘与持续调整授权，尚未开始这轮功能实施，不能与已交付候选混淆。
+
+每轮功能更新后由 Agent 提供体验脚本的绝对路径，必要时直接打开窗口；下一轮更新前主动核对隔离窗口、保存与传输状态，决定是否关闭并重开。纯文档讨论无需重启。具体边界见修正稿中的[体验窗口交付约定](plans/2026-11-11-stage-e-follow-up.zh.md#体验窗口交付约定用户已确认)。
+
 通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料。此入口现安装 E 阶段开发候选包，供集中验收，正式版仍为 0.8.0；新功能、实际验证和体验步骤见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)。功能说明与图册见 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)和 `output/playwright/bcd/index.html`。历史验证图册保留在 `output/playwright/`，证据及备份位于 `.dsh-home/pure-001/`，均由 Git 忽略。Windows 已验证；不将同机副本称为两台物理设备验收。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
