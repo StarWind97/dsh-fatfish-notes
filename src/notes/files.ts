@@ -94,9 +94,9 @@ export class NoteFiles {
     } finally { await unlink(temp).catch(e => { if (!missing(e)) throw e }) }
     await syncDirectory(dirname(path))
   }
-  async scan(): Promise<{ paths: string[]; bytes: number; fingerprint: string }> {
+  async scan(): Promise<{ paths: string[]; bytes: number; fingerprint: string; stamps: Map<string,string> }> {
     await safePath(this.root)
-    const paths: string[] = [], stamps: string[] = []; let bytes = 0, entries = 0
+    const paths: string[] = [], stamps = new Map<string,string>(); let bytes = 0, entries = 0
     const walk = async (directory: string, prefix: string, depth: number): Promise<void> => {
       if (depth > 8) fail('note_path')
       let listing = await readdir(directory, { withFileTypes: true }).catch(e => { if (missing(e)) return []; throw e })
@@ -123,11 +123,11 @@ export class NoteFiles {
         else if (stat.isFile()) {
           bytes += Number(stat.size); if (Number(stat.size) > NOTE_LIMITS.scan) fail('note_limit', '存在超出支持范围的单个文件'); paths.push(rel)
           // Nanosecond change time detects replacements and writes even if mtime is restored.
-          stamps.push(JSON.stringify([rel,String(stat.dev),String(stat.ino),String(stat.size),String(stat.mtimeNs),String(stat.ctimeNs)]))
+          stamps.set(rel,JSON.stringify([rel,String(stat.dev),String(stat.ino),String(stat.size),String(stat.mtimeNs),String(stat.ctimeNs)]))
         }
         else fail('note_path')
       }
     }
-    await walk(this.root, '', 0); return { paths: paths.sort(), bytes, fingerprint: createHash('sha256').update(stamps.sort().join('\n')).digest('hex') }
+    await walk(this.root, '', 0); return { paths: paths.sort(), bytes, stamps, fingerprint: createHash('sha256').update([...stamps.values()].sort().join('\n')).digest('hex') }
   }
 }

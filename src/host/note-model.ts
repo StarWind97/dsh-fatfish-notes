@@ -47,15 +47,15 @@ export class NoteModelBridge implements NoteModel {
       if(!fallback)fail('ai_unavailable');return {provider:fallback.provider,model:fallback.model}
     }finally{stop.abort();await iterator.return?.()}
   }
-  async dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal) {
-    const llm=this.services.llm?.();if(!llm)fail('ai_unavailable','后台模型服务不可用，原文已保存')
+  async dispatch(job: Pick<NoteJob,'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal, previewImages?:ReadonlyMap<string,Buffer>) {
+    const llm=this.services.llm?.();if(!llm)fail('ai_unavailable','后台模型服务不可用')
     const selected=await this.selection(job.sessionId,signal),images:ContentBlock[]=[]
     if(stage.assetIds.length){
       const store=this.services.attachments?.();if(!store)fail('ai_image_budget')
       const limits=store.imageLimits;let total=0
       if(stage.assetIds.length>limits.maxImagesPerMessage)fail('ai_image_budget')
       for(const asset of stage.assetIds){
-        const bytes=await this.repository.getAsset(asset,signal),mediaType=mediaTypeFor(asset);total+=bytes.length
+        const bytes=previewImages?.get(asset)??await this.repository.getAsset(asset,signal),mediaType=mediaTypeFor(asset);total+=bytes.length
         if(bytes.length>limits.maxImageBytes||total>limits.maxMessageImageBytes||!limits.mediaTypes.includes(mediaType))fail('ai_image_budget')
         signal.throwIfAborted();images.push({type:'image',attachment:await store.saveImage({data:bytes,mediaType,name:asset})})
       }
@@ -71,7 +71,7 @@ export class NoteModelBridge implements NoteModel {
         if(chunk.type==='finish'){if(chunk.reason.kind!=='stop')fail('ai_no_candidate');finished=true}
       }
       if(!finished)fail('ai_no_candidate')
-      try{return stageResult(JSON.parse(output.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')),stage,true)}catch{if(attempt)fail('ai_no_candidate','未得到简短有效的建议，原文仍已保存')}
+      try{return stageResult(JSON.parse(output.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')),stage,true)}catch{if(attempt)fail('ai_no_candidate','未得到简短有效的建议')}
     }
     fail('ai_no_candidate')
   }

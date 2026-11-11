@@ -11,4 +11,4 @@ export declare const attemptId: (jobId: string, index: number, attempt: number) 
  * block fails visibly rather than silently clipping code or early messages. */
 export declare function planStages(source: CaptureSource, jobId: string): NoteStage[];
 export declare function stageResult(input: unknown, stage: NoteStage, concise?: boolean): NoteStageResult;
-export declare function stagePrompt(job: NoteJob, stage: NoteStage): string;
+export declare function stagePrompt(job: Pick<NoteJob, 'sessionId'>, stage: NoteStage): string;

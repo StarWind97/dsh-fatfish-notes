@@ -6,6 +6,6 @@ export declare function validateAsset(bytes: Buffer, mediaType: ImageMediaType):
 export declare function mediaTypeFor(id: string): ImageMediaType;
 /** Only archive references are resolved here; ordinary remote links are never fetched. */
 export declare function validateBodyAssets(body: string, ids: string[]): string[];
-export declare function checkReferences(files: NoteFiles, content: NoteContent): Promise<void>;
+export declare function checkReferences(files: NoteFiles, content: NoteContent): Promise<string[]>;
 export declare function sourceBytes(value: unknown): Buffer;
 export declare function sourceAttachments(source: Record<string, unknown>): NoteAttachment[];

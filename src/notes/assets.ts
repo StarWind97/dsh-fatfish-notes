@@ -38,7 +38,8 @@ export function validateBodyAssets(body: string, ids: string[]): string[] {
   }
   return images
 }
-export async function checkReferences(files: NoteFiles, content: NoteContent): Promise<void> {
+export async function checkReferences(files: NoteFiles, content: NoteContent): Promise<string[]> {
+  const references = [...content.assetIds.map(id=>`assets/${id}`),...(content.attachments??[]).map(file=>`attachments/${file.id}.bin`)]
   validateBodyAssets(content.body, content.assetIds)
   for (const file of content.attachments ?? []) {
     await files.check(`attachments/${hash(file.id)}.bin`,file.bytes,bytes=>{if(bytes.length!==file.bytes||digest(bytes)!==file.id)fail('note_hash')})
@@ -51,10 +52,12 @@ export async function checkReferences(files: NoteFiles, content: NoteContent): P
     await files.check(`assets/${assetId(id)}`,NOTE_LIMITS.image,bytes=>{if(validateAsset(bytes,mediaTypeFor(id)).id!==id)fail('note_hash')})
   }
   if (content.sourceId !== null) {
+    references.push(`sources/${content.sourceId}.json`)
     const bytes = await files.read(`sources/${hash(content.sourceId)}.json`, NOTE_LIMITS.source)
     if (digest(bytes) !== content.sourceId) fail('note_hash')
-    try { const source=object(JSON.parse(utf8(bytes)) as unknown);for(const file of sourceAttachments(source))await files.check(`attachments/${file.id}.bin`,file.bytes,data=>{if(data.length!==file.bytes||digest(data)!==file.id)fail('note_hash')}) } catch { fail('note_source') }
+    try { const source=object(JSON.parse(utf8(bytes)) as unknown);for(const file of sourceAttachments(source)){references.push(`attachments/${file.id}.bin`);await files.check(`attachments/${file.id}.bin`,file.bytes,data=>{if(data.length!==file.bytes||digest(data)!==file.id)fail('note_hash')})} } catch { fail('note_source') }
   }
+  return references
 }
 export function sourceBytes(value: unknown): Buffer {
   object(value); const bytes = Buffer.from(canonical(value))

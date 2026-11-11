@@ -21,5 +21,6 @@ export declare class NoteFiles {
         paths: string[];
         bytes: number;
         fingerprint: string;
+        stamps: Map<string, string>;
     }>;
 }

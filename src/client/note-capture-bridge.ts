@@ -1,12 +1,13 @@
 import {materialsFor} from '../notes/capture-materials.js'
 import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
 import { api, currentRepository, type Api } from './api.js'
-import type { CaptureProgress, CaptureRequest, CaptureResult, ConversationExportFormat, NoteView, NoteJob } from '../contracts/notes.js'
+import type { CaptureProgress, CaptureRequest, CaptureResult, ConversationExportFormat, NoteView, NoteJob,NoteStageResult } from '../contracts/notes.js'
 
 import { indexCaptureTurns, type IndexedSelection } from './capture-turns.js'
 
 export interface CaptureRecovery { request: CaptureRequest; error: string | null }
 export interface NoteCaptureState {
+  metadata?:NoteStageResult;metadataTouched?:boolean;suggesting?:boolean;suggestionError?:string|null;suggestionStale?:boolean
   progress?:CaptureProgress; minimized?:boolean
   materialIds?:string[];allowLarge?:boolean
   workspace?:{id:string;title:string}|null
@@ -19,13 +20,34 @@ export interface NoteCaptureState {
   autoMetadata: boolean; job: NoteJob | null; notebookId: string | null
 }
 type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-/** Only pending operation identity/options are retained in browser storage; no
- * transcript, image, credential or note body is written there. */
+/** Pending save identity/options and confirmed metadata survive a lost receipt;
+ * no transcript, image, credential or note body is written to browser storage. */
 export class NoteCaptureBridge {
   private state: NoteCaptureState | null = null
   private readonly listeners = new Set<() => void>()
   private controller: AbortController | null = null
   private generation = 0
+  private suggestionController:AbortController|undefined
+  private suggestionGeneration=0
+  cancelSuggestion(){this.suggestionController?.abort();this.suggestionGeneration++;if(this.state?.suggesting)this.emit({...this.state,suggesting:false})}
+  metadata(patch:Partial<NoteStageResult>){if(this.state?.status==='selecting'&&!this.state.suggesting)this.emit({...this.state,metadata:{...(this.state.metadata??{title:'',summary:'',tags:[]}),...patch},metadataTouched:true})}
+  private changedSelection(patch:Partial<NoteCaptureState>){this.cancelSuggestion();const state=this.state;if(!state)return;const next={...state,...patch,suggestionStale:!!state.metadata?.summary};if(!state.metadataTouched)next.metadata=this.defaultMetadata(next);this.emit(next)}
+  private defaultMetadata(state:NoteCaptureState):NoteStageResult{
+    const first=state.selection?.messages.filter(m=>state.scope==='session'||state.selected.includes(m.id)).find(m=>m.role==='user')
+    const text=first?.blocks.filter(b=>b.type==='text').map(b=>b.text).join(' ').split(/[\r\n]/)[0]?.replace(/^[#>*\s-]+/,'').trim()??''
+    return {title:[...text].slice(0,40).join('')||'会话笔记',summary:'',tags:[]}
+  }
+  async suggest(){
+    const state=this.state;if(!state?.selection||state.status!=='selecting'||state.suggesting)return
+    const messageIds=state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected
+    if(!messageIds.length)return
+    const generation=++this.suggestionGeneration,controller=this.suggestionController=new AbortController()
+    this.emit({...state,suggesting:true,suggestionError:null})
+    try{
+      const result=await this.call('/notes/suggest',{requestId:crypto.randomUUID(),sessionId:state.sessionId,scope:'selection',messageIds,mode:'raw',autoMetadata:false,notebookId:state.notebookId,cut:state.selection.cut,...(state.materialIds?{materialIds:materialsFor(state.selection.messages.filter(m=>messageIds.includes(m.id)),state.selection.materials??[]).filter(m=>state.materialIds!.includes(m.id)).map(m=>m.id)}:{})},controller.signal)
+      if(generation===this.suggestionGeneration&&this.state)this.emit({...this.state,metadata:result.metadata,metadataTouched:false,suggesting:false,suggestionStale:false,suggestionError:null})
+    }catch(e){if(generation===this.suggestionGeneration&&this.state)this.emit({...this.state,suggesting:false,suggestionError:controller.signal.aborted?null:e instanceof Error&&'code' in e?String(e.code):'request_failed'})}
+  }
   private readonly recoveries = new Map<string, CaptureRecovery[]>()
   constructor(private readonly call: Api = api, private readonly storage?: StorageLike, private readonly navigateNote?: (noteId: string) => Promise<boolean>) {}
   getSnapshot = () => this.state
@@ -68,7 +90,7 @@ export class NoteCaptureBridge {
   async openExport(sessionId:string,anchorMessageId:string) { return this.loadSelection(sessionId,anchorMessageId,false,{dialog:true,range:'turn',format:'markdown'}) }
   private async loadSelection(sessionId: string, anchorMessageId: string | undefined, fresh: boolean, exporting?:NoteCaptureState['exporting']) {
     if(this.state?.status==='saving'){this.minimize();return}
-    this.controller?.abort(); const generation = ++this.generation, controller = this.controller = new AbortController()
+    this.cancelSuggestion();this.controller?.abort(); const generation = ++this.generation, controller = this.controller = new AbortController()
     const recoveries = exporting?[]:this.pending(sessionId), pending = fresh ? undefined : recoveries.at(-1)
     const state: NoteCaptureState = { sessionId, ...(anchorMessageId ? { anchorMessageId } : {}), scope: pending ? pending.request.scope === 'session' ? 'session' : 'selection' : anchorMessageId ? 'selection' : 'session', status: pending ? 'cancelled' : 'loading', selection: null, detail: fresh || !anchorMessageId, selected: [], request: pending?.request ?? null, result: null, openedNote: null, error: pending?.error ?? null, recoveries, autoMetadata: pending?.request.autoMetadata ?? false, job: null, notebookId: pending?.request.notebookId ?? null }
     if(exporting)state.exporting=exporting
@@ -76,7 +98,7 @@ export class NoteCaptureBridge {
     if (pending) return
     try {
       const [selection,context] = await Promise.all([this.call('/notes/selection', { sessionId, ...(anchorMessageId ? { anchorMessageId } : {}) }, controller.signal),this.call('/notes/session-context',{sessionId},controller.signal).catch(()=>null)])
-      if (generation === this.generation) this.emit({ ...state,workspace:context?.workspace??null,notebookId:context?.notebookId??null, selection: indexCaptureTurns(selection), selected: selection.defaultMessageIds,...(selection.materials?{materialIds:selection.materials.filter(m=>m.available&&m.bytes!==null&&m.bytes<=ATTACHMENT_LIMIT).map(m=>m.id)}:{}), status: 'selecting' })
+      if (generation === this.generation){const next:NoteCaptureState={ ...state,workspace:context?.workspace??null,notebookId:context?.notebookId??null, selection: indexCaptureTurns(selection), selected: selection.defaultMessageIds,...(selection.materials?{materialIds:selection.materials.filter(m=>m.available&&m.bytes!==null&&m.bytes<=ATTACHMENT_LIMIT).map(m=>m.id)}:{}), status: 'selecting' };next.metadata=this.defaultMetadata(next);this.emit(next)}
     } catch (error) { if (generation === this.generation) this.emit({ ...state, status: controller.signal.aborted ? 'cancelled' : 'failed', error: error instanceof Error && 'code' in error ? String(error.code) : 'request_failed' }) }
   }
   /** Explicit new-save path. Old requests remain individually recoverable. */
@@ -94,6 +116,7 @@ export class NoteCaptureBridge {
     return this.save()
   }
   showDetail(detail: boolean) {
+    if(!detail)this.cancelSuggestion()
     if (this.state?.status === 'selecting') this.emit({ ...this.state, detail })
   }
   exportFormat(format:ConversationExportFormat) {
@@ -112,7 +135,7 @@ export class NoteCaptureBridge {
     if(state?.exporting)this.emit({...state,detail:false,exporting:{...state.exporting,range:state.scope==='session'?'session':'custom',dialog:true}})
   }
   setScope(scope: NoteCaptureState['scope']) {
-    if (this.state?.status === 'selecting') this.emit({ ...this.state, scope })
+    if (this.state?.status === 'selecting') this.changedSelection({scope})
   }
   toggleMessages(ids: string[]) {
     if (this.state?.status !== 'selecting') return
@@ -123,18 +146,19 @@ export class NoteCaptureBridge {
       if (remove) selected.delete(id)
       else selected.add(id)
     }
-    this.emit({ ...state, scope: 'selection', selected: [...selected] })
+    this.changedSelection({scope:'selection',selected:[...selected]})
   }
   toggle(id: string) { this.toggleMessages([id]) }
   options(autoMetadata: boolean) { if (this.state?.status === 'selecting') this.emit({ ...this.state, autoMetadata }) }
   notebook(notebookId: string | null) { if (this.state?.status === 'selecting') this.emit({ ...this.state, notebookId }) }
-  materials(ids:string[]){if(this.state?.status==='selecting')this.emit({...this.state,materialIds:ids,allowLarge:false})}
+  materials(ids:string[]){if(this.state?.status==='selecting')this.changedSelection({materialIds:ids,allowLarge:false})}
   large(allowLarge:boolean){if(this.state?.status==='selecting')this.emit({...this.state,allowLarge})}
   async save() {
     const state = this.state
     if (!state || state.exporting || !['selecting','failed','cancelled'].includes(state.status)) return
+    if(state.suggesting||!state.request&&state.metadata&&!state.metadata.title.trim())return
     if (!state.request && (!state.selection || !(state.scope === 'session' ? state.selection.messages.length : state.selected.length))) return
-    const request: CaptureRequest = state.request ?? { requestId: crypto.randomUUID(), sessionId: state.sessionId, scope: state.scope, ...(state.scope === 'selection' ? { messageIds: [...state.selected] } : {}), mode: 'raw', autoMetadata: state.autoMetadata, notebookId: state.notebookId,...(state.selection?{cut:state.selection.cut}:{}),...(state.materialIds?{materialIds:materialsFor(state.selection!.messages.filter(m=>state.scope==='session'||state.selected.includes(m.id)),state.selection!.materials??[]).filter(m=>state.materialIds!.includes(m.id)).map(m=>m.id),allowLarge:state.allowLarge??false}:{}) }
+    const request: CaptureRequest = state.request ?? { requestId: crypto.randomUUID(), sessionId: state.sessionId, scope: state.scope, ...(state.scope === 'selection' ? { messageIds: [...state.selected] } : {}), mode: 'raw', autoMetadata: state.metadata?false:state.autoMetadata, ...(state.metadata?{metadata:structuredClone(state.metadata)}:{}), notebookId: state.notebookId,...(state.selection?{cut:state.selection.cut}:{}),...(state.materialIds?{materialIds:materialsFor(state.selection!.messages.filter(m=>state.scope==='session'||state.selected.includes(m.id)),state.selection!.materials??[]).filter(m=>state.materialIds!.includes(m.id)).map(m=>m.id),allowLarge:state.allowLarge??false}:{}) }
     if(state.selection?.materials?.some(m=>request.materialIds?.includes(m.id)&&Number(m.bytes)>ATTACHMENT_WARNING)&&!request.allowLarge){this.emit({...state,detail:true});return}
     const recoveries = this.retain(request, null)
     const controller = this.controller = new AbortController(), generation = ++this.generation
@@ -156,7 +180,7 @@ export class NoteCaptureBridge {
   minimize(){if(this.state)this.emit({...this.state,minimized:true})}
   expand(){if(this.state)this.emit({...this.state,minimized:false})}
   cancel() { this.controller?.abort() }
-  close() { this.controller?.abort(); this.generation++; this.emit(null) }
+  close() { this.cancelSuggestion();this.controller?.abort(); this.generation++; this.emit(null) }
   async refreshJob(action: 'get' | 'retry' | 'cancel' | 'adopt' = 'get') {
     const state = this.state, jobId = state?.result?.enrichmentJobId, generation = this.generation
     if (!state || !jobId) return

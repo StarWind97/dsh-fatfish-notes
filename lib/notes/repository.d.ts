@@ -17,6 +17,7 @@ export declare class NoteRepository {
     onChange(listener: () => void): () => void;
     private readonly now;
     private validated;
+    private readonly checkedRows;
     private readonly sourceSessions;
     private writeEpoch;
     constructor(directory: string, options?: NoteRepositoryOptions);

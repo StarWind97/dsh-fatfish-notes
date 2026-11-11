@@ -1,4 +1,5 @@
 import {TransientNotice} from './TransientNotice.js'
+import {PaperDialog} from './paper/PaperDialog.js'
 import {DocumentTools} from './paper/DocumentTools.js'
 import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
@@ -44,6 +45,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
   const root=useRef<HTMLElement>(null),anchor=useRef<{pos:number;y:number}|null>(null)
   const [sourceOpen,setSourceOpen]=useState(false),[sourceVisited,setSourceVisited]=useState(false)
   const [moved,setMoved]=useState(false)
+  const [cancelOpen,setCancelOpen]=useState(false)
   useEffect(()=>setMoved(false),[state.section,state.filter,state.noteId])
   const scroll=useRef({body:0,source:0}), switching=useRef(false)
   const complete=useRef<(()=>void)|null>(null)
@@ -107,7 +109,8 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
   const actions:NoteAction[]=[]
   if(!sourceOpen && editable) {
     if(state.editing) actions.push(
-      {label:t('paperSave'),icon:Check,disabled:state.composing,run:()=>complete.current?.()})
+      {label:t('paperSave'),icon:Check,disabled:state.composing,run:()=>complete.current?.()},
+      {label:t('cancel'),icon:RotateCcw,disabled:state.composing||controller.importing,run:()=>{if(controller.editChanged)setCancelOpen(true);else void controller.cancelEdits()}})
     else actions.push({label:t('notesEdit'),icon:Pencil,run:()=>edit()})
   }
   if(note && !sourceOpen && !state.editing) actions.push(
@@ -132,6 +135,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     <div className="paper-document-body">
     <div className="paper-pane">
     <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
+    {cancelOpen&&<PaperDialog title="放弃本次编辑？" closeLabel={t('paperClose')} locked={state.operation} onClose={()=>setCancelOpen(false)}><div className="paper-dialog-content"><p>恢复进入本次编辑前的内容。新建且已保存的笔记将移入回收站，可以恢复。</p></div><footer><button disabled={state.operation} onClick={()=>setCancelOpen(false)}>继续编辑</button><button className="paper-primary" disabled={state.operation} onClick={()=>void controller.cancelEdits().then(ok=>{if(ok){setCancelOpen(false);setTag('');undo.current=null}})}>放弃修改</button></footer></PaperDialog>}
     {panel==='export'&&note&&<NoteExport controller={controller} state={state} t={t} onClose={()=>setPanel(null)}/>}
     {panel==='history'&&note&&<HistoryDialog note={note} controller={controller} t={t} close={()=>setPanel(null)}/>}
     {panel==='template'&&note&&<ReuseDialog mode="template" state={state} controller={controller} t={t} close={()=>setPanel(null)}/>}

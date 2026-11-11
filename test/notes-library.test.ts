@@ -19,6 +19,31 @@ function saved(input: NoteSaveInput): NoteView {
 function deferred<T>() { let resolve!: (v: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
 const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0))
 
+test('cancel editing restores the entry snapshot after autosave, preserves links, and refuses a concurrent revision',async()=>{
+  const f=fixture(),c=new NotesController(f.call,{autosaveMs:100000})
+  try{
+    await c.open(a);await c.beginEdit();c.update({body:'自动保存过的修改',summary:'新摘要',tags:['新标签']});await c.flush()
+    assert.equal(f.rows.get(a)?.current.body,'自动保存过的修改')
+    assert.equal(await c.cancelEdits(),true);assert.equal(f.rows.get(a)?.current.body,'original');assert.equal(f.rows.get(a)?.current.summary,'');assert.deepEqual(f.rows.get(a)?.current.tags,[]);assert.equal(c.getSnapshot().editing,false)
+    await c.beginEdit();c.update({body:'自己的输入'});await c.flush();f.rows.set(a,note(a,'其他窗口的修改'))
+    assert.equal(await c.cancelEdits(),false);assert.equal(f.rows.get(a)?.current.body,'其他窗口的修改');assert.equal(c.getSnapshot().editing,true);assert.equal(c.getSnapshot().error,'note_conflict')
+  }finally{c.dispose()}
+})
+
+test('cancel waits for an in-flight autosave and sends an already-saved new note to trash',async()=>{
+  let hold=false,gate=deferred<void>(),trashed=''
+  const f=fixture((path,input)=>{
+    if(path==='/notes/save'&&hold){hold=false;return gate.promise.then(()=>{const v=input as NoteSaveInput,result=saved(v);f.rows.set(result.noteId,result);return {ok:true,note:result}})}
+    if(path==='/notes/trash'){trashed=(input as {noteId:string}).noteId;return Promise.resolve({ok:true})}
+    return undefined
+  }),c=new NotesController(f.call,{autosaveMs:100000})
+  try{
+    await c.open(a);await c.beginEdit();c.update({body:'在途修改'});hold=true;const writing=c.flush(),cancel=c.cancelEdits();gate.resolve();await writing;assert.equal(await cancel,true);assert.equal(f.rows.get(a)?.current.body,'original')
+    await c.create();c.update({body:'新建正文'});await c.flush();const id=c.getSnapshot().noteId;assert.equal(await c.cancelEdits(),true);assert.equal(trashed,id);assert.equal(c.getSnapshot().noteId,null)
+    await c.create();trashed='';assert.equal(await c.cancelEdits(),true);assert.equal(trashed,'')
+  }finally{c.dispose()}
+})
+
 test('sidebar new draft associates its first save and preserves the chosen notebook; empty exit writes nothing',async()=>{
   const f=fixture(),c=new NotesController(f.call)
   try{

@@ -59,5 +59,5 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
     {error&&!edit&&<p role="alert">{error} <button onClick={()=>setError('')}>{t('paperClose')}</button></p>}
     {undo&&<TransientNotice identity={undo.noteId+undo.expectedHeads.join()} message={error||t('paperMoved')} close={()=>setUndo(null)} busy={busy} paused={!!error} action={()=>void run(()=>controller.batch([undo],'restore')).then(ok=>{if(ok)setUndo(null)})}/>}
   </>
-  return {noteActions,bookActions,dialogs}
+  return {noteActions,bookActions,dialogs,exportBook:(id:string)=>setExportBook(id)}
 }

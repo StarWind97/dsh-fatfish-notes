@@ -140,6 +140,7 @@ export interface NotebookView {
 }
 export type NotebookRemoval = 'move' | 'trash';
 export interface CaptureRequest {
+    metadata?: NoteStageResult;
     requestId: string;
     sessionId: string;
     scope: 'turn' | 'selection' | 'session';
@@ -571,6 +572,13 @@ export interface NotesApiContract {
         request: CaptureRequest;
         response: CaptureResult & {
             ok: true;
+        };
+    };
+    '/notes/suggest': {
+        request: CaptureRequest;
+        response: {
+            ok: true;
+            metadata: NoteStageResult;
         };
     };
     '/notes/selection': {

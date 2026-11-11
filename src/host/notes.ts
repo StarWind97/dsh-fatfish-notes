@@ -1,4 +1,5 @@
 import {NoteUsageReader} from './note-usage.js'
+import {suggestMetadata} from './note-suggestion.js'
 import {windowRequest} from './edit-coordinator.js'
 import type {CaptureProgress} from '../contracts/notes.js'
 import {referenceNote} from './note-reference.js'
@@ -35,6 +36,7 @@ export class NotesApplication {
   private readonly pending = new Set<Promise<unknown>>()
   private closePromise: Promise<void> | null = null
   readonly enrichment: NoteEnrichment
+  private readonly model:NoteModelBridge
   private readonly timer: ReturnType<typeof setInterval>
   private ticking = false
   private captureProgress=new Map<string,{owner:string;value:CaptureProgress}>()
@@ -45,7 +47,8 @@ export class NotesApplication {
     this.transfers=new NoteTransfers(directory,this.repository)
     this.conversation = new NoteConversation(provider,services)
     this.captureService = new NoteCaptureService(this.repository, this.conversation)
-    this.enrichment = new NoteEnrichment(this.repository, new NoteModelBridge(provider, this.repository, services))
+    this.model=new NoteModelBridge(provider,this.repository,services)
+    this.enrichment = new NoteEnrichment(this.repository, this.model)
     this.timer = setInterval(() => { if (!this.ticking) { this.ticking = true; void this.run(async signal => { for (const jobId of await this.enrichment.list()) { try { await this.enrichment.drive(jobId, signal) } catch { signal.throwIfAborted() } } }).catch(() => {}).finally(() => { this.ticking = false }) } }, 2000)
     this.timer.unref()
   }
@@ -87,6 +90,7 @@ export class NotesApplication {
     const v = object(input), request: CaptureSelectionRequest = { sessionId: text(v.sessionId, 512), ...(v.anchorMessageId === undefined ? {} : { anchorMessageId: text(v.anchorMessageId, 512) }) }
     return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active) }), signal)
   }
+  suggest(input:unknown,signal?:AbortSignal){return this.run(async active=>({ok:true as const,metadata:await suggestMetadata(validateCaptureRequest(input),this.conversation,this.model,this.services,AbortSignal.any([active,AbortSignal.timeout(180_000)]))}),signal)}
   get(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, note: await this.repository.get(text(object(input).noteId, 26), active) }), signal) }
   manage(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ok:true as const,...await this.repository.manage(input as NoteManageRequest,active)}),signal) }
   catalog(signal?:AbortSignal) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active)}),signal)}

@@ -23,6 +23,7 @@ export declare class NotesApplication {
     private readonly pending;
     private closePromise;
     readonly enrichment: NoteEnrichment;
+    private readonly model;
     private readonly timer;
     private ticking;
     private captureProgress;
@@ -99,6 +100,10 @@ export declare class NotesApplication {
         issues: string[];
         materials?: import("../contracts/notes.js").CaptureMaterial[];
         ok: true;
+    }>;
+    suggest(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        metadata: import("../contracts/notes.js").NoteStageResult;
     }>;
     get(input: unknown, signal?: AbortSignal): Promise<{
         ok: true;

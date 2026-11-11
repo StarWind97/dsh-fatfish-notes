@@ -23,6 +23,7 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if(path==='/notes/import-task')return value.taskId===undefined||typeof value.taskId==='string'
   if(path==='/notes/transfer')return (value.uploadId===undefined||typeof value.uploadId==='string')&&(value.offset===undefined||Number.isSafeInteger(value.offset))&&(value.attachment===undefined||attachment(value.attachment))&&(value.asset===undefined||record(value.asset)&&typeof value.asset.id==='string')
   if(path==='/notes/associate')return note(value.note)
+  if(path==='/notes/suggest'){const m=value.metadata;return record(m)&&typeof m.title==='string'&&!!m.title.trim()&&[...m.title].length<=60&&typeof m.summary==='string'&&[...m.summary].length<=200&&!/[\r\n]/.test(m.summary)&&strings(m.tags)&&m.tags.length<=5}
   if(path==='/notes/session-context')return (value.workspace===null||record(value.workspace)&&typeof value.workspace.id==='string'&&typeof value.workspace.title==='string')&&(value.notebookId===null||id(value.notebookId))
   if(path==='/notes/workspace-book')return value.notebookId===null||id(value.notebookId)
   if (path === '/notes/attachment') return attachment(value.attachment)

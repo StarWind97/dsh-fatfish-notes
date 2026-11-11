@@ -116,19 +116,20 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
       {!inTrash&&<span className="paper-new-actions"><button title={t('reuseFromTemplate')} aria-label={t('reuseFromTemplate')} disabled={state.operation} onClick={async()=>{if(await controller.leave())setFromTemplate(true)}}><BookTemplate size={17}/></button><button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button></span>}</div>
     <div className="paper-search"><Search size={16}/><input aria-label={t('notesSearch')} type="search" placeholder={t('notesSearch')} value={query} onChange={e=>search(e.target.value)}/>
       <button aria-label={t('paperFilter')} title={t('paperFilter')} aria-expanded={booksOpen} onClick={()=>setBooksOpen(!booksOpen)}><SlidersHorizontal size={15}/></button></div>
+    <div className="paper-list-tools" data-selecting={selection.selecting}>
     {!inTrash&&<div className="paper-quick-view"><select aria-label={t('findView')} value={view} onChange={e=>chooseView(e.target.value)}><option value="all">{t('paperAll')}</option><option value="favorites">{t('findFavorites')}</option><option value="visits">{t('findRecent')}</option><option value="templates">{t('reuseTemplates')}</option></select>{view==='visits'&&<small>{t('findLocal')}</small>}</div>}
-    {state.filter.tag&&<button className="paper-filter-chip" aria-label={t('notesClearTag',{tag:state.filter.tag})} onClick={()=>filterTag()}>
-      <span>{t('notesFilterTag',{tag:state.filter.tag})}</span><X size={13} aria-hidden="true"/>
-    </button>}
     <label className="paper-order" hidden={view==='visits'}><ArrowDownUp size={14}/><select aria-label={t('paperSort')} value={state.filter.order??'recent'} onChange={e=>{
       const order=e.target.value==='oldest'?'oldest':'recent'
       clearTimeout(timer.current);writePreference('order',order);void choose({...state.filter,query,order})
-    }}><option value="recent">{t('paperRecent')}</option><option value="oldest">{t('paperOldest')}</option></select></label>
+    }}><option value="recent">{t('paperRecent')}</option><option value="oldest">{t('paperOldest')}</option></select></label>{selection.controls}</div>
+    {state.filter.tag&&<button className="paper-filter-chip" aria-label={t('notesClearTag',{tag:state.filter.tag})} onClick={()=>filterTag()}>
+      <span>{t('notesFilterTag',{tag:state.filter.tag})}</span><X size={13} aria-hidden="true"/>
+    </button>}
     {booksOpen&&<div className="paper-controls"><form onSubmit={e=>{e.preventDefault();void choose({...state.filter,query,tag})}}><label>{t('notesTag')}<input value={tag} onChange={e=>setTag(e.target.value)}/></label><button>{t('notesSearchAction')}</button></form><TagSuggestions value={tag} selected={[]} choose={value=>{setTag(value);filterTag(value)}} t={t}/>
       <button onClick={()=>void controller.refresh(true,true)}>{t('refresh')}</button></div>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
-    {selection.controls}</div><div className="paper-list-scroll"><div className="paper-rows">{state.items.map((item,i)=>{
+    </div><div className="paper-list-scroll"><div className="paper-rows">{state.items.map((item,i)=>{
       const date=noteDateTime(item.savedAt).slice(0,10),showDate=view!=='visits'&&(!i||noteDateTime(state.items[i-1]!.savedAt).slice(0,10)!==date)
       return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row"><RowMenu label={(item.title||t('notesUntitled'))+' · 操作'} actions={itemActions.noteActions(item)}>{selection.selecting&&<input type="checkbox" aria-label={item.title||t('notesUntitled')} checked={selection.selected.some(n=>n.noteId===item.noteId)} onChange={()=>selection.toggle(item)}/>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);if(selection.selecting)selection.toggle(item);else {setHistory([]);void controller.open(item.noteId)}}}>
         <strong>{item.favorite&&<Star size={12} fill="currentColor" aria-label={t('findFavorites')}/>} <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong>{(item.excerpt||item.summary)&&<span><Highlight value={item.excerpt||item.summary} query={state.filter.query}/></span>}<small>{item.conflicted?t('notesConflict'):item.isTemplate?t('reuseTemplates'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')}</small>

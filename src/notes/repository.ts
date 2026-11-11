@@ -42,6 +42,7 @@ export class NoteRepository {
   onChange(listener: () => void): () => void { this.changeListeners.add(listener); return () => { this.changeListeners.delete(listener) } }
   private readonly now: () => number
   private validated: { fingerprint: string; state: State } | undefined
+  private readonly checkedRows = new Map<string,{row:NoteRevision|NotebookRevision; stamps:Map<string,string>}>()
   private readonly sourceSessions=new Map<string,string>()
   private writeEpoch = 0
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
@@ -50,6 +51,7 @@ export class NoteRepository {
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
     this.validated = undefined
+    this.checkedRows.clear()
     this.sourceSessions.clear()
     this.files = new NoteFiles(resolve(directory, 'notes'), this.files.beforeWrite)
   }
@@ -100,6 +102,7 @@ export class NoteRepository {
     this.validated = undefined
     const state: State = { version: 1, revisions: [], notebooks: [], issues: [], blocked: new Set(), detachedRevisions: [], detachedNotebooks: [], acknowledgedPaths: [] }
     const paths = listing.paths
+    for(const path of this.checkedRows.keys())if(!listing.stamps.has(path))this.checkedRows.delete(path)
     state.deleted = []
     for (const path of paths.filter(p => p.startsWith('deleted/'))) {
       const noteId = readDeletion(JSON.parse(utf8(await this.files.read(path, 1024))) as unknown)
@@ -139,13 +142,23 @@ export class NoteRepository {
       if (path.startsWith('revisions/') && state.deleted.includes(path.split('/')[1]!)) continue
       if (path.split('/').at(-1)?.startsWith('.tmp-')) continue
       try {
-        const value: unknown = JSON.parse(utf8(await this.files.read(path, NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)))
-        if (path.startsWith('revisions/')) {
-          const row = validateNoteRevision(value); if (path !== notePath(row)) fail('note_path')
-          await checkReferences(this.files, row); state.revisions.push(row)
-        } else {
-          const row = validateNotebookRevision(value); if (path !== notebookPath(row)) fail('note_path'); state.notebooks.push(row)
+        const cached=this.checkedRows.get(path)
+        if(cached&&[...cached.stamps].every(([p,stamp])=>listing.stamps.get(p)===stamp)){
+          if(path.startsWith('revisions/'))state.revisions.push(structuredClone(cached.row) as NoteRevision)
+          else state.notebooks.push(structuredClone(cached.row) as NotebookRevision)
+          continue
         }
+        this.checkedRows.delete(path)
+        const value: unknown = JSON.parse(utf8(await this.files.read(path, NOTE_LIMITS.body * 6 + NOTE_METADATA_BYTES)))
+        let row:NoteRevision|NotebookRevision, references:string[]=[]
+        if (path.startsWith('revisions/')) {
+          row = validateNoteRevision(value); if (path !== notePath(row)) fail('note_path')
+          references=await checkReferences(this.files, row); state.revisions.push(row)
+        } else {
+          row = validateNotebookRevision(value); if (path !== notebookPath(row)) fail('note_path'); state.notebooks.push(row)
+        }
+        const dependencies=[path,...references]
+        if(dependencies.every(p=>listing.stamps.has(p)))this.checkedRows.set(path,{row:structuredClone(row),stamps:new Map(dependencies.map(p=>[p,listing.stamps.get(p)!]))})
       } catch (e) {
         if (!(e instanceof NotebookError || e instanceof SyntaxError || missing(e))) throw e
         state.issues.push({ path, code: e instanceof NotebookError ? e.code : 'note_corrupt' }); state.blocked.add(path.split('/')[1] ?? '')

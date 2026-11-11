@@ -28,7 +28,7 @@ export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Prom
 export class NotesController {
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
+  switched(){this.editStart=null;++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
@@ -66,6 +66,8 @@ export class NotesController {
   private recoveryProtected=false
   private recoveredHeads:string[]=[]
   private creating=false
+  private editStart:{noteId:string;content:NoteContent|null}|null=null
+  get editChanged(){const start=this.editStart,draft=this.state.draft;return !!start&&!!draft&&(start.content?!sameContent(start.content,draft):!!this.state.note||!!(draft.title.trim()||draft.body.trim()||draft.summary.trim()||draft.tags.length||draft.assetIds.length||draft.attachments?.length))}
   imagePickerOpen=false
   private inFlight:RecoveryRecord['inFlight']
   private readonly recovery:NoteRecovery
@@ -200,12 +202,14 @@ export class NotesController {
   }
   composition(active: boolean) { this.emit({ composing: active });if(!active){this.journal();this.schedule();if(this.finishPending)void this.leave()} }
   async beginEdit() {
-    if(!this.options.editing){this.finishPending=false;this.emit({editing:true,error:null});return}
+    if(this.state.editing)return
+    if(!this.options.editing){if(this.state.noteId)this.editStart={noteId:this.state.noteId,content:this.state.note?structuredClone(noteContent(this.state.note)):null};this.finishPending=false;this.emit({editing:true,error:null});return}
     if(!this.state.noteId)return
     const noteId=this.state.noteId
     try{
       await this.options.editing?.acquire(noteId)
       if(this.options.editing&&this.state.note&&!this.state.dirty){const latest=(await this.call('/notes/get',{noteId})).note;if(this.state.noteId!==noteId)return;this.emit({note:latest,draft:noteContent(latest)})}
+      this.editStart={noteId,content:this.state.note?structuredClone(noteContent(this.state.note)):null}
       this.finishPending=false;this.emit({editing:true,error:null})
     }catch(e){this.emit({error:errorCode(e)})}
   }
@@ -214,17 +218,44 @@ export class NotesController {
     if (!await this.flush()) return false
     try{await this.options.editing?.release(this.state.noteId??undefined)}catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     this.finishPending=false
+    this.editStart=null
     this.clearDraftImages()
     this.emit({editing:false,error:null,...(this.state.note?{draft:noteContent(this.state.note)}:{})})
     if(changed)this.options.onSettled?.()
     return true
+  }
+  async cancelEdits():Promise<boolean>{
+    const start=this.editStart,noteId=this.state.noteId
+    if(!start||start.noteId!==noteId||!this.state.editing||this.state.composing||this.state.operation||this.importing||!this.writable)return false
+    this.clearTimers();this.emit({operation:true,error:null})
+    try{
+      if(this.saving&&!await this.saving)return false
+      if(this.state.noteId!==noteId)throw new Error('changed note')
+      const saved=this.state.note
+      if(saved){
+        const latest=(await this.call('/notes/get',{noteId})).note
+        if(!equal(latest.heads,saved.heads)){this.emit({error:'note_conflict'});return false}
+        if(start.content){
+          const content={...noteContent(latest),...structuredClone(start.content)}
+          for(const key of ['sessionLinks','favorite'] as const){delete content[key];if(latest.current[key]!==undefined)Object.assign(content,{[key]:latest.current[key]})}
+          const result=sameContent(content,noteContent(latest))?latest:(await this.call('/notes/save',{noteId,expectedHeads:latest.heads,content})).note
+          this.emit({note:result,draft:noteContent(result),dirty:false})
+        }else{
+          await this.call('/notes/trash',{noteId,expectedHeads:latest.heads})
+          this.emit({noteId:null,note:null,draft:null,dirty:false})
+        }
+      }else this.emit({noteId:null,note:null,draft:null,dirty:false})
+      await this.options.editing?.release(noteId??undefined)
+      this.editStart=null;this.finishPending=false;this.clearDraftImages();this.recovery.clear();this.emit({editing:false,error:null,conflict:null})
+      void this.refresh();this.options.onSettled?.();return true
+    }catch(e){this.emit({error:errorCode(e)});return false}finally{this.emit({operation:false})}
   }
   private async prepareLeave(){
     if(this.state.operation||this.state.composing)return false
     const changed=this.state.editing||this.state.dirty
     if(!await this.flush())return false
     try{await this.options.editing?.release(this.state.noteId??undefined)}catch(e){this.emit({error:errorCode(e)});return false}
-    this.emit({editing:false});if(changed)this.options.onSettled?.();return true
+    this.editStart=null;this.emit({editing:false});if(changed)this.options.onSettled?.();return true
   }
   flush(): Promise<boolean> {
     this.clearTimers()
@@ -323,6 +354,7 @@ export class NotesController {
     const noteId=newId()
     try{await this.options.editing?.acquire(noteId)}catch(e){this.emit({error:errorCode(e)});return false}
     ++this.navigation
+    this.editStart={noteId,content:null}
     this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}

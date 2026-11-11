@@ -1,6 +1,7 @@
 import {PaperDialog} from './paper/PaperDialog.js'
 import {CaptureMaterials} from './CaptureMaterials.js'
 import {CaptureNotebook} from './CaptureNotebook.js'
+import {CaptureMetadata} from './CaptureMetadata.js'
 import {conversationNotesCss} from './ConversationNotes.js'
 import * as React from 'react'
 import { useSyncExternalStore, useEffect, useRef } from 'react'
@@ -17,7 +18,7 @@ import { notesStyles as s, notesCss } from './notes-style.js'
 
 export function NoteCaptureAction({ bridge, sessionId, messageId, openSetup, t, exporting=false }: { bridge: NoteCaptureBridge; sessionId: string; messageId: string; openSetup: () => void; t: T; exporting?:boolean }) {
   const appearance=useCaptureAppearance()
-  const active = useSyncExternalStore(bridge.subscribe,()=>bridge.getSnapshot()?.sessionId===sessionId,()=>false)
+  const active = useSyncExternalStore(bridge.subscribe,()=>{const state=bridge.getSnapshot();return state?.sessionId===sessionId&&['loading','selecting','saving'].includes(state.status)},()=>false)
   const button=useRef<HTMLButtonElement>(null), started=useRef(false)
   React.useLayoutEffect(()=>{
     if (!active && started.current) {
@@ -57,7 +58,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
   return <PaperDialog className="capture-dialog" title={t(state.exporting?'captureFine':'captureOptions')} closeLabel={t('paperClose')} onClose={()=>busy?bridge.cancel():state.status==='selecting'?bridge.showDetail(false):bridge.close()}><div className="notes-surface notes-capture capture-panel" ref={dialog} tabIndex={-1} aria-label={t(state.exporting?'captureFine':'noteCaptureReply')} onKeyDown={event => {
     if (event.key === 'Escape' && !event.nativeEvent.isComposing && !event.defaultPrevented) { if(state.status==='selecting')bridge.showDetail(false);else if(busy)bridge.cancel();else bridge.close();event.preventDefault();event.stopPropagation() }
     if (event.key === 'Tab') {
-      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),summary,a[href]')), first = controls[0], last = controls.at(-1)
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),summary,a[href]')), first = controls[0], last = controls.at(-1)
       if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus() }
       else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first?.focus() }
     }
@@ -68,8 +69,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
       <div className="capture-preview"><CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/>{state.exporting&&<CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/>}</div>
       {state.recoveries.length>0 && <p role="note">{t('noteNewSaveWarning')}</p>}
       {!state.exporting && <div className="capture-options"><CaptureNotebook value={state.notebookId} choose={id=>bridge.notebook(id)} onValid={setBookValid} t={t}/>
-      <label><input type="checkbox" checked={state.autoMetadata} onChange={e=>bridge.options(e.target.checked)}/>{t('noteAutoMetadata')}</label>
-      {state.autoMetadata && <small>{t('noteAiDisclosure')}</small>}<CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/></div>}
+      <CaptureMetadata state={state} bridge={bridge}/><CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/></div>}
     </>}
     {busy && <p className="capture-progress" role="status"><LoaderCircle size={18} aria-hidden="true"/>{t(state.status==='loading'?'noteLoadingHistory':'noteSaving')}</p>}
     {(state.status === 'failed' || state.status === 'cancelled') && <><p role="alert">{t(state.error === 'note_limit' ? 'noteLimitRecovery' : state.status === 'cancelled' ? 'noteCancelled' : 'noteFailed')}</p><button type="button" style={s.button} onClick={() => state.request ? void bridge.save() : void bridge.reselect()}>{t(state.request ? 'noteRetryOriginal' : 'noteRetry')}</button>{state.request && <button type="button" style={s.button} onClick={() => void bridge.reselect()}>{t('noteReselect')}</button>}</>}
@@ -87,7 +87,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
     </div>
     {state.status==='selecting' && <footer className="capture-foot"><span aria-live="polite">{t('noteSelectionCount',{count})}</span>
       <button type="button" className="capture-back" onClick={()=>bridge.showDetail(false)}>{t('captureBack')}</button>
-      <button type="button" style={s.button} className="notes-primary" disabled={!count||!state.exporting&&!bookValid} onClick={()=>state.exporting?bridge.exportDialog():void bridge.save()}>{t(state.exporting?'chatExportContinue':'noteCaptureReply')}</button>
+      <button type="button" style={s.button} className="notes-primary" disabled={!count||!state.exporting&&(!bookValid||state.suggesting||!state.metadata?.title.trim())} onClick={()=>state.exporting?bridge.exportDialog():void bridge.save()}>{t(state.exporting?'chatExportContinue':'noteCaptureReply')}</button>
     </footer>}
   </div></PaperDialog>
 }
@@ -95,7 +95,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
 const captureDialogCss=`
 .paper-dialog.capture-dialog{width:min(1220px,calc(100vw - 48px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 48px)}
 .capture-dialog .capture-panel{position:static;inset:auto;width:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;display:flex;flex:1;flex-direction:column;min-height:0;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222)}
-.capture-dialog .capture-scroll{padding:20px;overflow:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 280px;align-items:start;gap:20px}
+.capture-dialog .capture-scroll{padding:20px;overflow:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start;gap:20px}
 .capture-dialog .capture-preview{min-width:0}.capture-dialog .capture-options{margin:0;padding:0 0 0 20px;border:0;border-left:1px solid var(--dsw-alias-border-l2,#ddd);display:flex;flex-direction:column;gap:14px;position:sticky;top:0}.capture-dialog .capture-foot{flex:none;padding:14px 20px;background:var(--dsw-alias-bg-layer-1,#fff)}
 .capture-dialog .capture-scroll>:not(.capture-preview):not(.capture-options){grid-column:1/-1}
 .capture-dialog .capture-message-body{max-height:none;overflow:visible}.capture-dialog .capture-options select{color-scheme:inherit}

@@ -46,6 +46,7 @@ export interface NotebookView { notebookId: string; heads: string[]; current: No
 export type NotebookRemoval = 'move' | 'trash'
 
 export interface CaptureRequest {
+  metadata?: NoteStageResult
   requestId: string; sessionId: string; scope: 'turn' | 'selection' | 'session'
   anchorMessageId?: string; messageIds?: string[]
   mode: NoteMode; autoMetadata: boolean; notebookId: string | null
@@ -111,6 +112,7 @@ export interface NotesApiContract {
   '/notes/job/cancel': { request: { jobId: string }; response: { ok: true; job: NoteJob } }
   '/notes/candidate': { request: { jobId: string; expectedHeads: string[] }; response: { ok: true; job: NoteJob } }
   '/notes/capture': { request: CaptureRequest; response: CaptureResult & { ok: true } }
+  '/notes/suggest': {request:CaptureRequest;response:{ok:true;metadata:NoteStageResult}}
   '/notes/selection': { request: CaptureSelectionRequest; response: CaptureSelection & { ok: true } }
   '/notes/get': { request: { noteId: string }; response: { ok: true; note: NoteView } }
   '/notes/source': { request: { sourceId: string }; response: { ok: true; source: Record<string, unknown> } }

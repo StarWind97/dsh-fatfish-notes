@@ -34,6 +34,8 @@
 
 ## 本机隔离体验
 
+2026-11-12 已完成 [E 体验修正](plans/2026-11-12-stage-e-refinement.zh.md)：关联性能、紧凑操作、编辑取消与保存前 AI 建议。连续关联实测中位从 918 ms 降至 297 ms，最大从 1357 ms 降至 371 ms；[交付与体验入口](plans/2026-11-12-stage-e-refinement-results.zh.md)记录资料规模、实际验证与边界，待用户集中验收，尚未发布。
+
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。
 
 2026-11-11 前一轮体验为 [E 验收修正版](plans/2026-11-11-stage-e-review-results.zh.md)：修正会话保存/导出主题，完善侧栏按笔记本浏览、自动关联和工作区默认本，增加字数、快捷键说明与代码复制。[已批准规划](plans/2026-11-11-stage-e-review.zh.md)和主规划同步维护，截图见 `output/playwright/e-review/index.html`。本轮未发布，F 未启动。

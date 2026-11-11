@@ -62,7 +62,7 @@ test('cancelling inline selection discards picks and options; remounted rows rea
   assert.match(row('new',5),/checked/);bridge.dispose()
 })
 
-test('M4 independent AI options survive receipt loss/reload and keep the raw save when AI fails', async () => {
+test('confirmed metadata survives receipt loss/reload and legacy AI receipts remain recoverable', async () => {
   const data = new Map<string,string>(), storage = { getItem: (k:string) => data.get(k) ?? null, setItem: (k:string,v:string) => { data.set(k,v) }, removeItem: (k:string) => { data.delete(k) } }
   const requests: CaptureRequest[] = []; let fail = true, completed = false
   const revision = createNoteRevision({ version:1,noteId:'01K00000000000000000000000',parents:[],recordedAt:'2026-11-01T00:00:00.000Z',title:'Saved',body:'original',summary:'',tags:[],notebookId:null,status:'active',sourceId:'a'.repeat(64),assetIds:[] })
@@ -79,7 +79,7 @@ test('M4 independent AI options survive receipt loss/reload and keep the raw sav
   }
   const first = new NoteCaptureBridge(call, storage); await first.open('session'); first.options(true)
   const html = renderToStaticMarkup(createElement(NoteCaptureOverlay,{bridge:first,sessionId:'session',t:translate})); assert.doesNotMatch(html,/AI 整理正文/); assert.match(html,/建议标题/); assert.doesNotMatch(html,/暂不支持 AI/)
-  await first.save(); first.dispose(); assert.equal(requests[0]!.mode,'raw'); assert.equal(requests[0]!.autoMetadata,true)
+  await first.save(); first.dispose(); assert.equal(requests[0]!.mode,'raw'); assert.equal(requests[0]!.autoMetadata,false);assert.ok(requests[0]!.metadata?.title)
   const next = new NoteCaptureBridge(call,storage); await next.open('session'); assert.equal(next.getSnapshot()!.recoveries.length,1); fail = false; await next.save()
   assert.deepEqual(requests[0],requests[1]); assert.equal(next.getSnapshot()!.status,'saved'); assert.equal(next.getSnapshot()!.job!.status,'failed'); assert.equal(next.getSnapshot()!.recoveries.length,1)
   assert.ok(![...data.values()].some(s => s.includes('original')))

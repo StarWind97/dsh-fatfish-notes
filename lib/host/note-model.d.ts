@@ -27,5 +27,5 @@ export declare class NoteModelBridge implements NoteModel {
         ended: string[];
     }>;
     private selection;
-    dispatch(job: NoteJob, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<import("../contracts/notes.js").NoteStageResult>;
+    dispatch(job: Pick<NoteJob, 'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal, previewImages?: ReadonlyMap<string, Buffer>): Promise<import("../contracts/notes.js").NoteStageResult>;
 }

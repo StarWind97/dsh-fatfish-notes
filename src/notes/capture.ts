@@ -29,9 +29,10 @@ export interface CaptureConversation {
 const identifier = (v: unknown): string => { const s = text(v, 512); if (!s || /[\u0000-\u001f]/.test(s)) fail('capture_request'); return s }
 export function validateCaptureRequest(input: unknown): CaptureRequest {
   const v = object(input)
-  if (Object.keys(v).some(k => !['requestId','sessionId','scope','anchorMessageId','messageIds','mode','autoMetadata','notebookId','cut','materialIds','allowLarge'].includes(k))) fail('capture_request')
+  if (Object.keys(v).some(k => !['requestId','sessionId','scope','anchorMessageId','messageIds','mode','autoMetadata','notebookId','cut','materialIds','allowLarge','metadata'].includes(k))) fail('capture_request')
   if (!['turn','selection','session'].includes(String(v.scope)) || v.mode !== 'raw' || typeof v.autoMetadata !== 'boolean') fail('capture_request')
   const result: CaptureRequest = { requestId: identifier(v.requestId), sessionId: identifier(v.sessionId), scope: v.scope as CaptureRequest['scope'], mode: v.mode as CaptureRequest['mode'], autoMetadata: v.autoMetadata, notebookId: v.notebookId === null ? null : id(v.notebookId) }
+  if(v.metadata!==undefined){const m=object(v.metadata);if(Object.keys(m).some(k=>!['title','summary','tags'].includes(k)))fail('capture_request');const title=text(m.title,1200).trim();if(!title)fail('capture_title','请填写标题');result.metadata={title,summary:text(m.summary,12_000).trim(),tags:sortedStrings(m.tags,50,tag=>{const v=text(tag,200).trim();if(!v)fail('capture_request');return v})};result.autoMetadata=false}
   if (v.anchorMessageId !== undefined) result.anchorMessageId = identifier(v.anchorMessageId)
   if (v.messageIds !== undefined) result.messageIds = sortedStrings(v.messageIds, NOTE_LIMITS.messages, identifier)
   if(v.materialIds!==undefined)result.materialIds=sortedStrings(v.materialIds,256,identifier)
@@ -171,7 +172,7 @@ export class NoteCaptureService {
     const source = await this.repository.getSource(journal.sourceId, signal) as unknown as CaptureSource
     if (!journal.revision) {
       const notebookId = request.notebookId ?? (await this.repository.listNotebooks(signal)).find(book => book.isDefault)!.notebookId
-      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.scope === 'session' ? '会话笔记' : '问答笔记', body: rawBody(source), summary: '', tags: [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
+      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.metadata?.title ?? (request.scope === 'session' ? '会话笔记' : '问答笔记'), body: rawBody(source), summary: request.metadata?.summary ?? '', tags: request.metadata?.tags ?? [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
       await write(journal)
     }
     signal.throwIfAborted()

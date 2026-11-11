@@ -50,6 +50,21 @@ test('warm cache revalidates changed image bytes and switches roots',async t=>{
  assert.equal((await repo.list()).items[0]?.title,'另一库')
 })
 
+test('associations only revalidate changed revisions and still detect a changed dependency',async t=>{
+ const {repo,dir}=await fixture(t)
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64')
+ const asset=await repo.putAsset(png,'image/png')
+ let first=await repo.save({expectedHeads:[],content:{...content,assetIds:[asset.id],body:`![图](../assets/${asset.id})`}})
+ for(let i=0;i<8;i++)await repo.save({expectedHeads:[],content:{...content,title:`其他笔记 ${i}`}})
+ await repo.list()
+ const read=repo.files.read.bind(repo.files),paths:string[]=[];repo.files.read=async(...args)=>{paths.push(args[0]);return read(...args)}
+ first=await repo.associate(first.noteId,first.heads,'session',true);paths.length=0
+ await repo.list()
+ assert.deepEqual(paths.filter(p=>p.startsWith('revisions/')),[`revisions/${first.noteId}/${first.current.revision}.json`])
+ await writeFile(join(dir,'notes','assets',asset.id),Buffer.alloc(png.length))
+ await assert.rejects(repo.get(first.noteId),{code:'note_corrupt'})
+})
+
 test('unchanged sync import reuses validated objects; new remote revisions invalidate the view',async t=>{
  const {repo}=await fixture(t),other=await fixture(t)
  const first=await repo.save({expectedHeads:[],content}),objects=await repo.exportObjects()
