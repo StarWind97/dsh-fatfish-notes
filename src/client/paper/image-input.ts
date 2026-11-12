@@ -1,11 +1,11 @@
 import {uploadFile} from '../import-worker-client.js'
 import { api, type Api } from '../api.js'
 import { safePublicUrl } from '../safe-url.js'
+import {transferFiles,inlineImageType} from './file-input.js'
 
 export type ImageInput={file:File;label:string}|{url:string;label:string}
 export function clipboardImages(data:DataTransfer):ImageInput[]{
-  const files=Array.from(data.files)
-  if(!files.length)for(const entry of Array.from(data.items)){if(entry.kind==='file'){const f=entry.getAsFile();if(f)files.push(f)}}
+  const files=transferFiles(data)
   if(files.length)return files.map(file=>({file,label:file.name}))
   const html=data.getData('text/html')
   if(html){
@@ -24,8 +24,7 @@ export async function archiveInput(noteId:string,input:ImageInput,signal:AbortSi
   if('url' in input)return (await call('/notes/image',{noteId,draft,url:input.url},signal)).asset
   const {file}=input
   if(!file.size||file.size>20*1024*1024)throw new Error('image_limit')
-  const suffix=file.name.split('.').pop()?.toLowerCase()??''
-  const mediaType=file.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif'} as Record<string,string>)[suffix]
-  if(!mediaType||!['image/png','image/jpeg','image/webp','image/gif'].includes(mediaType))throw new Error('image_type')
+  const mediaType=inlineImageType(file)
+  if(!mediaType)throw new Error('image_type')
   const result=await uploadFile(file,{noteId,draft,mediaType},call,signal);if(!result.asset)throw new Error('image_limit');return result.asset
 }

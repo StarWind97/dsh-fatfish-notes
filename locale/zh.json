@@ -592,11 +592,15 @@
   "captureOptions": "保存选项",
   "captureNext": "下一步",
   "supplementTitle": "补充附件",
-  "supplementHint": "随笔记携带的材料；插入正文后会从这里移出。",
+  "supplementHint": "拖入文件，或点击此区后粘贴。插入正文后会从这里移出。",
   "supplementAdd": "添加补充附件",
   "supplementInsert": "插入正文",
   "supplementRemove": "移除补充附件",
-  "supplementEmpty": "添加参考文件、图片或其他材料",
+  "supplementEmpty": "将文件拖到这里，或点击此区后按 Ctrl / ⌘ + V 粘贴。图片也作为补充附件。",
+  "fileAddButton": "添加",
+  "fileAdding": "正在添加",
+  "fileAddCancelled": "已停止添加，保留已完成的 {count} 项。",
+  "fileAddFailures": "未能添加：{names}。请检查文件大小、格式或重试。",
   "bodyMaterials": "正文中的图片和文件",
   "supplementImageFallback": "这张图片不适合内嵌，已作为文件链接插入正文。"
 }

@@ -592,11 +592,15 @@
   "captureOptions": "Save options",
   "captureNext": "Next",
   "supplementTitle": "Supplemental files",
-  "supplementHint": "Extra materials. Inserting into the body moves them out of this section.",
+  "supplementHint": "Drop files here, or click this area and paste. Inserting into the body removes them here.",
   "supplementAdd": "Add supplemental files",
   "supplementInsert": "Insert into body",
   "supplementRemove": "Remove supplemental file",
-  "supplementEmpty": "Add reference files, images or other materials",
+  "supplementEmpty": "Drop files here, or click this area and press Ctrl / ⌘ + V. Images are supplemental files too.",
+  "fileAddButton": "Add",
+  "fileAdding": "Adding files",
+  "fileAddCancelled": "Stopped adding. Kept {count} completed items.",
+  "fileAddFailures": "Could not add: {names}. Check file size and format, or retry.",
   "bodyMaterials": "Images and files in the body",
   "supplementImageFallback": "This image cannot be embedded; inserted a file link instead."
 }
