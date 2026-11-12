@@ -70,6 +70,7 @@ test('managed HTTP mutations require a registered current window; fences and rep
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`
   const post=(path:string,body:unknown,headers:Record<string,string>={})=>fetch(origin+'/dsh-fatfish-notes'+path,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body)})
   try{
+    const recovery=await fetch(origin+'/dsh-fatfish-notes/notes/draft-recovery');assert.equal(recovery.status,200);assert.deepEqual(await recovery.json(),{ok:true,recovered:[],failed:[]})
     const payload={noteId:a,expectedHeads:[],content}
     assert.equal((await post('/notes/save',payload)).status,409)
     const windowId=randomUUID(),registration=await post('/workspace/register',{windowId,surface:'embedded'})
@@ -80,6 +81,13 @@ test('managed HTTP mutations require a registered current window; fences and rep
     assert.equal((await post('/notes/save',payload,{...writeHeaders,origin:'https://bad.example'})).status,403)
     assert.equal((await post('/notes/save',payload,{...writeHeaders,'x-notebook-repository':'999999'})).status,409)
     assert.equal((await post('/notes/save',payload,writeHeaders)).status,200)
+    const draft={action:'save',editId:b,sequence:1,request:{...payload,expectedHeads:(await app.notes.repository.get(a)).heads,content:{...content,body:'只在本机草稿'}}}
+    assert.equal((await post('/notes/draft',draft)).status,409)
+    assert.equal((await post('/notes/draft',draft,{...writeHeaders,origin:'https://bad.example'})).status,403)
+    assert.equal((await post('/notes/draft',draft,{...writeHeaders,'x-notebook-repository':'999999'})).status,409)
+    assert.equal((await post('/notes/draft',draft,writeHeaders)).status,200)
+    assert.equal((await app.notes.repository.get(a)).current.body,'正文')
+    assert.equal((await post('/notes/draft',{action:'discard',editId:b,noteId:a},writeHeaders)).status,200)
     await post('/workspace/action',{action:'release',noteId:a},writeHeaders)
     assert.equal(((await(await post('/notes/save',payload,headers)).json()) as {code:string}).code,'note_edit_lost')
     app.workspace.endLocationChange(true)
@@ -93,7 +101,7 @@ test('editor saves before lease release, waits for composition and attachment wo
   let owned=false
   const call:Api=async(path,input)=>{
     if(path==='/notes/get')return {ok:true,note:await repo.get((input as {noteId:string}).noteId)} as never
-    if(path==='/notes/save'){const result=await app.notes.save(input);events.push('saved');return result as never}
+    if(path==='/notes/draft'){const result=await app.notes.draft(input);if((input as {action:string}).action==='finish')events.push('saved');return result as never}
     if(path==='/notes')return {ok:true,...await repo.list()} as never
     if(path==='/notes/notebooks')return {ok:true,notebooks:await repo.listNotebooks()} as never
     if(path==='/notes/jobs')return {ok:true,jobs:[],cursor:null} as never

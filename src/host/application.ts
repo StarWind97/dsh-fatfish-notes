@@ -79,5 +79,5 @@ export class NotebookApplication {
 }
 export async function createApplication(options:ApplicationOptions) {
   const app=new NotebookApplication(options)
-  try {await app.backup.load();return app} catch(error) {await app.close();throw error}
+  try {await app.backup.load();if(app.backup.ready)await app.notes.recoverDrafts();return app} catch(error) {await app.close();throw error}
 }

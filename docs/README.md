@@ -34,6 +34,8 @@
 
 ## 本机隔离体验
 
+2026-11-12 已完成[本机编辑草稿](plans/2026-11-12-local-edit-drafts.zh.md)：编辑过程只保存草稿，完成或离开后统一生成正式版本并同步，取消丢弃草稿，启动自动恢复。保存实测中位 457 → 18 ms；[交付与体验步骤](plans/2026-11-12-local-edit-drafts-results.zh.md)记录 292 项全量、53 项专项及隔离退出恢复验证。本轮仍属 E 验收，不发布、不启动 F。
+
 2026-11-12 已完成 [E 体验修正](plans/2026-11-12-stage-e-refinement.zh.md)：关联性能、紧凑操作、编辑取消与保存前 AI 建议。连续关联实测中位从 918 ms 降至 297 ms，最大从 1357 ms 降至 371 ms；[交付与体验入口](plans/2026-11-12-stage-e-refinement-results.zh.md)记录资料规模、实际验证与边界，待用户集中验收，尚未发布。
 
 真实验收仅使用 `.dsh-home/pure-001/` 和指定私库 `StarWind97/dsh-community-private-test`。不改日常 DSH 资料。

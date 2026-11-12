@@ -17,6 +17,8 @@ export function validCaptureSource(value: unknown): boolean {
 export function validNotesResponse(path: ApiPath, value: unknown): boolean | undefined {
   if (path !== '/notes' && !path.startsWith('/notes/')) return undefined
   if (!record(value) || value.ok !== true) return false
+  if(path==='/notes/draft')return ['editing','finished','discarded'].includes(String(value.state))&&(value.note===null||note(value.note))
+  if(path==='/notes/draft-recovery')return Array.isArray(value.recovered)&&value.recovered.every(id)&&strings(value.failed)
   if(path==='/notes/capture-progress'){const p=value.progress;return p===null||record(p)&&typeof p.file==='string'&&['bytes','total','done','count'].every(k=>Number.isSafeInteger(p[k])&&Number(p[k])>=0)&&['reading','saving','complete'].includes(String(p.stage))}
   if(path==='/notes/usage'){const u=value.usage;return record(u)&&['bytes','gitBytes','notes','revisions'].every(k=>Number.isSafeInteger(u[k])&&Number(u[k])>=0)&&['normal','notice','large'].includes(String(u.level))&&typeof u.nearLimit==='boolean'}
   if(path==='/notes/reference')return typeof value.instruction==='string'&&Number.isSafeInteger(value.files)

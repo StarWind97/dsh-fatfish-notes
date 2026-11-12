@@ -27,6 +27,9 @@ import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../con
 /** Composed facade owns every note operation through cancellation and drain. */
 export class NotesApplication {
   readonly repository: NoteRepository
+  draftRecovery={ok:true as const,recovered:[] as string[],failed:[] as string[]}
+  async recoverDrafts(){try{this.draftRecovery=await this.repository.recoverDrafts()}catch{this.draftRecovery={ok:true,recovered:[],failed:['note_draft_invalid']}}}
+  draft(input:unknown){return this.run(()=>this.repository.draft(input as import('../contracts/notes.js').NoteDraftRequest))}
   readonly transfers:NoteTransfers
   private readonly usageReader:NoteUsageReader
   usage(signal?:AbortSignal){return this.run(async active=>({ok:true as const,usage:await this.usageReader.read(active)}),signal)}

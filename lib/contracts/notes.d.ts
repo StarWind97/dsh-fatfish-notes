@@ -63,6 +63,23 @@ export interface NoteSaveInput {
     expectedHeads: string[];
     content: NoteContent;
 }
+export type NoteDraftRequest = {
+    action: 'save' | 'finish';
+    editId: string;
+    sequence: number;
+    request: NoteSaveInput & {
+        noteId: string;
+    };
+} | {
+    action: 'discard';
+    editId: string;
+    noteId: string;
+};
+export interface NoteDraftResult {
+    ok: true;
+    state: 'editing' | 'finished' | 'discarded';
+    note: NoteView | null;
+}
 export interface NoteListItem {
     sessionRelation?: 'source' | 'manual' | null;
     excerpt?: string;
@@ -448,6 +465,18 @@ export interface NotesApiContract {
             ok: true;
             note: NoteView;
             forkedFrom?: string;
+        };
+    };
+    '/notes/draft': {
+        request: NoteDraftRequest;
+        response: NoteDraftResult;
+    };
+    '/notes/draft-recovery': {
+        request: undefined;
+        response: {
+            ok: true;
+            recovered: string[];
+            failed: string[];
         };
     };
     '/notes/image': {

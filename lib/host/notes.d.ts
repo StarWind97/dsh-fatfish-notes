@@ -11,6 +11,13 @@ export declare class NotesApplication {
     private readonly ready;
     private readonly services;
     readonly repository: NoteRepository;
+    draftRecovery: {
+        ok: true;
+        recovered: string[];
+        failed: string[];
+    };
+    recoverDrafts(): Promise<void>;
+    draft(input: unknown): Promise<import("../contracts/notes.js").NoteDraftResult>;
     readonly transfers: NoteTransfers;
     private readonly usageReader;
     usage(signal?: AbortSignal): Promise<{

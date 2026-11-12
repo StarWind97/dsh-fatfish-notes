@@ -24,7 +24,8 @@ export class NotesWorkspace implements EditAccess {
   setVisible(value:boolean){this.visible=value}
   private headers=(path:string,body:unknown)=>{
     const s=this.state.server,headers:Record<string,string>={'x-notebook-window':this.windowId,'x-notebook-epoch':s?.serviceEpoch??''}
-    const noteId=body&&typeof body==='object'&&'noteId' in body?body.noteId:undefined
+    const request=path==='/notes/draft'&&body&&typeof body==='object'&&'request' in body?body.request:body
+    const noteId=request&&typeof request==='object'&&'noteId' in request?request.noteId:undefined
     if(s?.owned&&(noteId===s.owned.noteId||path==='/workspace/action'))headers['x-notebook-lease']=s.owned.leaseId
     return headers
   }

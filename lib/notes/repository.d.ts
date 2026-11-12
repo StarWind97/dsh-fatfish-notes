@@ -2,6 +2,7 @@ import type { ImageMediaType } from '../contracts/media.js';
 import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
 import { NoteFiles } from './files.js';
 import { type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js';
+import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js';
 export interface NoteRepositoryOptions {
     now?: () => number;
     beforeWrite?: (path: string) => void | Promise<void>;
@@ -20,6 +21,7 @@ export declare class NoteRepository {
     private readonly checkedRows;
     private readonly sourceSessions;
     private writeEpoch;
+    private get drafts();
     constructor(directory: string, options?: NoteRepositoryOptions);
     /** Only before admitting any client operations, during setup or host startup. */
     useDirectory(directory: string): void;
@@ -55,6 +57,19 @@ export declare class NoteRepository {
         note?: NoteView;
     }>;
     save(input: NoteSaveInput, signal?: AbortSignal, keepBoth?: boolean): Promise<NoteView>;
+    private saveContent;
+    /** Serialized with formal writes; the local journal never increments the sync generation. */
+    draft(input: NoteDraftRequest): Promise<NoteDraftResult>;
+    private draftView;
+    private finishDraft;
+    recoverDrafts(): Promise<{
+        ok: true;
+        recovered: string[];
+        failed: string[];
+    }>;
+    private pinDraftFile;
+    private retainedFiles;
+    private cleanupDraft;
     /** A journaled AI adoption has a stable revision even if its receipt is lost. */
     adoptRevision(input: NoteRevision, persist: (revision: NoteRevision) => Promise<void>, signal?: AbortSignal): Promise<NoteView>;
     private setStatus;

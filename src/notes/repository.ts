@@ -18,6 +18,8 @@ import { deletionIds, deletionData, readDeletion, moduleVersion } from './deleti
 import { attachment } from './validation.js'
 import { ATTACHMENT_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
 import { linkedNotes, fillTemplate } from './relations.js'
+import { DraftFiles, type LocalDraft } from './drafts.js'
+import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -45,6 +47,7 @@ export class NoteRepository {
   private readonly checkedRows = new Map<string,{row:NoteRevision|NotebookRevision; stamps:Map<string,string>}>()
   private readonly sourceSessions=new Map<string,string>()
   private writeEpoch = 0
+  private get drafts(){return new DraftFiles(resolve(this.files.root,'../local-drafts'))}
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
     this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
   }
@@ -396,12 +399,15 @@ export class NoteRepository {
   async save(input: NoteSaveInput, signal?: AbortSignal, keepBoth = false): Promise<NoteView> {
     const v = object(input); if (Object.keys(v).some(k => !['noteId', 'expectedHeads', 'content'].includes(k))) fail('note_schema')
     const noteId = input.noteId === undefined ? ulid(this.now()) : id(input.noteId), rawContent = normalizeContent(input.content), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash)
-    return this.run(async () => {
+    return this.run(()=>this.saveContent(noteId,expected,rawContent,keepBoth),signal)
+  }
+  private async saveContent(noteId:string,expected:string[],rawContent:NoteContent,keepBoth:boolean,deduplicate=false):Promise<NoteView>{
       this.editGuard([noteId])
       const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId)
       const content = this.localMembership(s, rawContent)
       const exists = s.revisions.some(r => r.noteId === noteId), heads = exists ? this.view(s, noteId).heads : []
       if(exists)this.editGuard([noteId],true)
+      if(deduplicate&&exists&&canonical(revisionContent(this.view(s,noteId).current))===canonical(content))return this.view(s,noteId)
       if (!same(expected, heads) || heads.length > 1) {
         const base=expected.length===1 && s.revisions.find(r=>r.noteId===noteId&&r.revision===expected[0])
         if(!keepBoth||!base||!exists)return conflict()
@@ -418,7 +424,71 @@ export class NoteRepository {
         return this.view(s,s.revisions.some(row=>row.noteId===forkId)?forkId:noteId)
       }
       return this.append(s, createNoteRevision({ version: 1, noteId, parents: heads, recordedAt: new Date(this.now()).toISOString(), ...content }))
-    }, signal)
+  }
+  /** Serialized with formal writes; the local journal never increments the sync generation. */
+  draft(input:NoteDraftRequest):Promise<NoteDraftResult>{return this.run(async()=>{
+    const v=object(input),editId=id(v.editId),action=v.action
+    if(!['save','finish','discard'].includes(String(action)))fail('note_schema')
+    const raw=action==='discard'?null:object(v.request),noteId=id(raw?.noteId??v.noteId)
+    this.editGuard([noteId],true)
+    let row=await this.drafts.read(editId)
+    if(row&&row.noteId!==noteId)fail('note_draft_invalid')
+    if(action==='discard'){
+      if(row?.state==='finished')fail('note_draft_finished','本次编辑已经完成，请重新打开笔记')
+      row={editId,noteId,sequence:row?.sequence??0,state:'discarded',files:row?.files??[]}
+      await this.drafts.write(row);await this.cleanupDraft(row);return {ok:true,state:'discarded',note:null}
+    }
+    if(!Number.isSafeInteger(v.sequence)||Number(v.sequence)<0)fail('note_schema')
+    const sequence=Number(v.sequence),request={noteId,expectedHeads:sortedStrings(raw!.expectedHeads,100000,hash),content:normalizeContent(raw!.content)}
+    if(row?.state==='discarded')return {ok:true,state:'discarded',note:null}
+    if(row?.state==='finished'&&sequence<=row.sequence)return {ok:true,state:'finished',note:row.resultId?await this.draftView(row.resultId):null}
+    if(row?.state==='finished')request.expectedHeads=row.resultHeads??request.expectedHeads
+    // A newer browser checkpoint after a crash may contain keystrokes not delivered to the host.
+    const other=(await this.drafts.list()).some(d=>d.noteId===noteId&&d.editId!==editId&&d.state==='editing')
+    if(other)fail('note_edit_busy','这篇笔记还有未完成的本机草稿，请重新打开插件恢复')
+    if(!row||row.state==='finished'||sequence>row.sequence){
+      if(row?.state==='editing'&&!same(row.request!.expectedHeads,request.expectedHeads))fail('note_draft_invalid')
+      row={editId,noteId,sequence,state:'editing',request,files:row?.files??[]}
+      await this.drafts.write(row)
+    }
+    if(action==='save')return {ok:true,state:'editing',note:null}
+    return this.finishDraft(row)
+  })}
+  private async draftView(noteId:string):Promise<NoteView|null>{const s=await this.load();return s.revisions.some(r=>r.noteId===noteId)&&!s.deleted?.includes(noteId)?this.view(s,noteId):null}
+  private async finishDraft(row:LocalDraft):Promise<NoteDraftResult>{
+    const request=row.request!,c=request.content
+    const empty=!request.expectedHeads.length&&(!c.title.trim()||c.title==='无标题')&&!c.body.trim()&&!c.summary.trim()&&!c.tags.length&&!c.assetIds.length&&!c.attachments?.length
+    const note=empty?null:await this.saveContent(row.noteId,request.expectedHeads,c,true,true)
+    row={editId:row.editId,noteId:row.noteId,sequence:row.sequence,state:'finished',files:row.files,...(note?{resultId:note.noteId,resultHeads:note.heads}:{})}
+    await this.drafts.write(row);await this.cleanupDraft(row)
+    return {ok:true,state:'finished',note}
+  }
+  async recoverDrafts(){return this.run(async()=>{
+    const recovered:string[]=[],failed:string[]=[]
+    for(const row of await this.drafts.list(true)){
+      try{if(row.state==='editing'){const result=await this.finishDraft(row);if(result.note)recovered.push(result.note.noteId)}else if(row.files.length)await this.cleanupDraft(row)}
+      catch{failed.push(row.noteId)}
+    }
+    return {ok:true as const,recovered,failed}
+  })}
+  private async pinDraftFile(noteId:string|undefined,path:string){
+    if(!noteId)return
+    for(const row of await this.drafts.list())if(row.noteId===noteId&&row.state==='editing'&&!row.files.includes(path)){row.files.push(path);await this.drafts.write(row)}
+  }
+  private async retainedFiles(state:State){
+    const retained=new Set<string>()
+    for(const row of state.revisions){row.assetIds.forEach(a=>retained.add('assets/'+a));row.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))
+      if(row.sourceId){const source=object(JSON.parse(utf8(await this.files.read('sources/'+row.sourceId+'.json'))));sourceAttachments(source).forEach(a=>retained.add('attachments/'+a.id+'.bin'));if(source.assets)Object.values(object(source.assets)).forEach(a=>retained.add('assets/'+assetId(a)))}
+    }
+    for(const row of await this.drafts.list())if(row.state==='editing'){row.files.forEach(p=>retained.add(p));row.request?.content.assetIds.forEach(a=>retained.add('assets/'+a));row.request?.content.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))}
+    return retained
+  }
+  private async cleanupDraft(row:LocalDraft){
+    if(!row.files.length)return
+    const state=await this.load();this.complete(state);if(state.issues.length)fail('note_corrupt')
+    const retained=await this.retainedFiles(state)
+    for(const path of row.files)if(!retained.has(path))await this.files.remove(path)
+    await this.drafts.write({...row,files:[]})
   }
   /** A journaled AI adoption has a stable revision even if its receipt is lost. */
   async adoptRevision(input: NoteRevision, persist: (revision: NoteRevision) => Promise<void>, signal?: AbortSignal): Promise<NoteView> {
@@ -457,14 +527,14 @@ export class NoteRepository {
   }
   async putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?:string): Promise<NoteAsset> {
     const copy = Buffer.from(bytes), metadata = validateAsset(copy, mediaType)
-    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.pinDraftFile(noteId,`assets/${metadata.id}`); await this.files.write(`assets/${metadata.id}`, copy, true); return metadata }, signal)
   }
   async getAsset(asset: string, signal?: AbortSignal): Promise<Buffer> {
     assetId(asset); return this.run(async () => { const bytes = await this.files.read(`assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash'); return bytes }, signal)
   }
   async putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?:string): Promise<NoteAttachment> {
     const copy = Buffer.from(bytes), metadata = attachment({ id: digest(copy), name, bytes: copy.length })
-    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
+    return this.run(async () => { this.editGuard(noteId?[noteId]:[]); const state=await this.load(); await this.manifest(state); await this.pinDraftFile(noteId,`attachments/${metadata.id}.bin`); await this.files.write(`attachments/${metadata.id}.bin`, copy, true); return metadata }, signal)
   }
   async getAttachment(fileId: string, signal?: AbortSignal): Promise<Buffer> {
     hash(fileId); return this.run(async () => { const bytes = await this.files.read(`attachments/${fileId}.bin`, ATTACHMENT_LIMIT); if (digest(bytes) !== fileId) fail('note_hash'); return bytes }, signal)
@@ -512,6 +582,7 @@ export class NoteRepository {
       }
     }
     for (const row of state.revisions) await dependencies(row, retained)
+    for(const row of await this.drafts.list())if(row.state==='editing'){row.files.forEach(p=>retained.add(p));row.request?.content.assetIds.forEach(a=>retained.add('assets/'+a));row.request?.content.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))}
     for (const path of paths) {
       if (path.startsWith('revisions/') && deleted.has(path.split('/')[1]!)) {
         const row = validateNoteRevision(JSON.parse(utf8(await this.files.read(path))) as unknown)

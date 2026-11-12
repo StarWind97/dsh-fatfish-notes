@@ -25,6 +25,8 @@ export interface NoteView {
   effectiveNotebookId: string | null
 }
 export interface NoteSaveInput { noteId?: string; expectedHeads: string[]; content: NoteContent }
+export type NoteDraftRequest = {action:'save'|'finish';editId:string;sequence:number;request:NoteSaveInput & {noteId:string}} | {action:'discard';editId:string;noteId:string}
+export interface NoteDraftResult {ok:true;state:'editing'|'finished'|'discarded';note:NoteView|null}
 export interface NoteListItem {
   sessionRelation?: 'source' | 'manual' | null
   excerpt?: string
@@ -100,6 +102,8 @@ export interface NotesApiContract {
   '/notes/batch': { request: { notes: NoteSelection[]; action: 'trash' | 'restore' | 'purge' }; response: { ok: true; completed: string[] } }
   '/notes': { request: NoteListOptions; response: NoteListResult & { ok: true } }
   '/notes/save': { request: NoteSaveInput & { resolve?: boolean; keepBoth?:boolean }; response: { ok: true; note: NoteView; forkedFrom?:string } }
+  '/notes/draft': {request:NoteDraftRequest;response:NoteDraftResult}
+  '/notes/draft-recovery': {request:undefined;response:{ok:true;recovered:string[];failed:string[]}}
   '/notes/image': { request: { noteId: string; draft?: boolean } & ({url: string} | {base64: string; mediaType: string}); response: {ok: true; asset: {id: string; bytes: number; preview?: string}} }
   '/notes/trash': { request: { noteId: string; expectedHeads: string[] }; response: { ok: true; note: NoteView } }
   '/notes/restore': { request: { noteId: string; expectedHeads: string[] }; response: { ok: true; note: NoteView } }

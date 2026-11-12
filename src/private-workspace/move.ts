@@ -7,7 +7,7 @@ import { missing, safePath } from '../notes/files.js'
 import { checkFolder, distinctFolder, emptyFolder, folderMarker } from './folder.js'
 
 const receipt = '.fatfish-notes-move'
-const managed = ['notes','backup/repositories']
+const managed = ['notes','backup/repositories','local-drafts']
 function changed():never {throw new NotebookError('notebook_move_changed','资料夹内容发生变化，请检查后重试',409)}
 async function checksum(path:string) {
   const hash=createHash('sha256')
