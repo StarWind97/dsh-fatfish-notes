@@ -38,7 +38,7 @@ function Source({ note, t }: { note: NoteView; t: T }) {
   return <section aria-label={t('notesSource')}><p style={s.muted}>{t(source.complete ? 'notesSourceComplete' : 'notePartialSource')}</p>{source.messages.map(message => <article key={message.id} style={s.card}><strong>{message.role === 'user' ? t('messageUser') : 'AI'}</strong>{message.blocks.map((block, index) => block.type === 'text' ? <pre key={index} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', font: 'inherit' }}>{block.text}</pre> : source.assets[block.attachmentId] ? <img key={index} alt={t('noteImage')} src={noteAssetUrl(note, source.assets[block.attachmentId]!, note.current.sourceId!)} style={{ display: 'block', maxWidth: '100%', maxHeight: 500 }} /> : <p key={index}>{t('notesMissingImage')}</p>)}</article>)}{source.archivedMaterials?.filter(m=>!m.imageId||!!m.saved).map(m=><article key={m.id} style={s.card}>{m.assetId?<img loading="lazy" alt={m.name} src={noteAssetUrl(note,m.assetId,note.current.sourceId!)} style={{maxWidth:'100%'}}/>:m.saved?<AttachmentList note={{...note,current:{...note.current,attachments:[m.saved]}}} t={t}/>:<p>{m.name} · {t('materialOmitted')}</p>}</article>)}</section>
 }
 
-export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge}:{onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
+export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,referenceAction}:{referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read'
   const [panel,setPanel]=useState<'export'|'history'|'template'|null>(null),[tag,setTag]=useState('')
   const [allTags,setAllTags]=useState(false)
@@ -107,6 +107,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     }
   }
   const actions:NoteAction[]=[]
+  if(referenceAction&&note&&!sourceOpen&&!state.editing&&draft.status==='active')actions.push(referenceAction)
   if(!sourceOpen && editable) {
     if(state.editing) actions.push(
       {label:t('paperSave'),icon:Check,disabled:state.composing,run:()=>complete.current?.()},

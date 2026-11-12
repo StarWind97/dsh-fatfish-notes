@@ -16,7 +16,7 @@ test('M7 real HTTP exports/font retain both-prefix fences, private headers, POST
   try {
     const note = (await app.notes.save({ expectedHeads: [], content: { title: '下载 (中文)', body: '离线正文', summary: '', tags: [], notebookId: null, status: 'active', sourceId: null, assetIds: [] } })).note
     for (const prefix of ['dsh-fatfish-notes']) {
-      for (const path of ['/notes/export','/notes/export-font']) {
+      for (const path of ['/notes/export','/notes/export-font','/notes/reference-preview','/notes/reference']) {
         assert.equal((await post(prefix, path, {}, { origin: 'https://evil.example' })).status, 403)
         assert.equal((await post(prefix, path, {}, { 'sec-fetch-site': 'cross-site' })).status, 403)
       }

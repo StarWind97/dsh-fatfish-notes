@@ -43,6 +43,11 @@ export declare class NotesApplication {
         ok: true;
         instruction: string;
         files: number;
+        path: string;
+    }>;
+    referencePreview(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        plan: import("../contracts/notes.js").ReferencePlan;
     }>;
     transfer(input: unknown, signal?: AbortSignal): Promise<{
         ok: true;

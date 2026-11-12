@@ -69,14 +69,14 @@ test('E delivery reads are bounded and fail on changed versions',async()=>{
   assert.deepEqual(await files.read('session',material,ref,signal),data);assert.equal(ranges.length,3);assert.ok(ranges.every(n=>n<=2*1024*1024))
   changed=true;await assert.rejects(files.read('session',material,ref,signal),{code:'capture_file_changed'})
 })
-test('E references save independent host copies and preserve only selected links',async t=>{
+test('E references save independent host copies and always retain body resources',async t=>{
   const {repo}=await setup(t),a=await repo.putAttachment(Buffer.from('PDF'),'资料.pdf'),b=await repo.putAttachment(Buffer.from('WAV'),'声音.wav')
   const note=await repo.save({expectedHeads:[],content:{...content,body:`[PDF](../attachments/${a.id}.bin)\n\n[音频](../attachments/${b.id}.bin)`,attachments:[a,b]}})
   const copied=new Map<string,Buffer>();let i=0
   const store={saveFileStream:async({name,data}:{name:string;data:AsyncIterable<Uint8Array>})=>{const chunks:Buffer[]=[];for await(const c of data)chunks.push(Buffer.from(c));const id=String(i++);copied.set(id,Buffer.concat(chunks));return {attachmentId:id,name}},fileHostPath:(ref:{attachmentId:string})=>'D:/host/attachments/'+ref.attachmentId} as unknown as AttachmentStore
   const r=await referenceNote(repo,store,{open:async()=>cut},{sessionId:'s',noteId:note.noteId,revision:note.current.revision,assetIds:[],attachmentIds:[a.id]},new AbortController().signal)
-  assert.equal(r.files,2);assert.match(r.instruction,/@"D:\/host\/attachments\/1"/);assert.equal(copied.get('0')!.toString(),'PDF')
-  const text=copied.get('1')!.toString();assert.match(text,/D:\/host\/attachments\/0/);assert.match(text,/未包含/);assert.doesNotMatch(text,new RegExp(b.id))
+  assert.equal(r.files,3);assert.match(r.instruction,/@"D:\/host\/attachments\/2"/);assert.equal(copied.get('0')!.toString(),'PDF');assert.equal(copied.get('1')!.toString(),'WAV')
+  const text=copied.get('2')!.toString();assert.match(text,/D:\/host\/attachments\/0/);assert.match(text,/D:\/host\/attachments\/1/);assert.doesNotMatch(text,/未包含/)
 })
 test('E ZIP streams valid entries and stops subsequent file reads when cancelled',async()=>{
   const abort=new AbortController(),chunks:Buffer[]=[];let read=0

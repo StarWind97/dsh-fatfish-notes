@@ -266,6 +266,21 @@ export interface CaptureProgress {
     count: number;
     stage: 'reading' | 'saving' | 'complete';
 }
+export interface ReferencePlan {
+    noteId: string;
+    revision: string;
+    title: string;
+    required: {
+        assetIds: string[];
+        attachmentIds: string[];
+    };
+    supplements: Array<{
+        id: string;
+        name: string;
+        bytes: number | null;
+        image: boolean;
+    }>;
+}
 export interface NotesApiContract {
     '/notes/usage': {
         request: undefined;
@@ -300,6 +315,15 @@ export interface NotesApiContract {
         };
         response: never;
     };
+    '/notes/reference-preview': {
+        request: {
+            noteId: string;
+        };
+        response: {
+            ok: true;
+            plan: ReferencePlan;
+        };
+    };
     '/notes/reference': {
         request: {
             sessionId: string;
@@ -312,6 +336,7 @@ export interface NotesApiContract {
             ok: true;
             instruction: string;
             files: number;
+            path: string;
         };
     };
     '/notes/import-task': {

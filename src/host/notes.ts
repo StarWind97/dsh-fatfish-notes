@@ -2,7 +2,7 @@ import {NoteUsageReader} from './note-usage.js'
 import {suggestMetadata} from './note-suggestion.js'
 import {windowRequest} from './edit-coordinator.js'
 import type {CaptureProgress} from '../contracts/notes.js'
-import {referenceNote} from './note-reference.js'
+import {referenceNote,previewReference} from './note-reference.js'
 import type {ConversationFileServices} from './conversation-files.js'
 import type { CaptureSelectionRequest, NoteListOptions, NoteSaveInput, NoteJobOverview, NoteManageRequest } from '../contracts/notes.js'
 import {NoteTransfers} from './note-transfers.js'
@@ -56,6 +56,7 @@ export class NotesApplication {
     this.timer.unref()
   }
   reference(input:unknown,signal?:AbortSignal){return this.run(active=>referenceNote(this.repository,this.services.attachments?.(),this.conversation,input,active),signal)}
+  referencePreview(input:unknown,signal?:AbortSignal){return this.run(active=>previewReference(this.repository,input,active),signal)}
   transfer(input:unknown,signal?:AbortSignal){return this.run(active=>this.transfers.request(input,active),signal)}
   localOperation<T>(work:()=>Promise<T>,signal?:AbortSignal){return this.run(()=>work(),signal)}
   private run<T>(work: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal): Promise<T> {

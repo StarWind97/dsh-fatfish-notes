@@ -83,11 +83,17 @@ export interface ConversationExportRequest {
   materialIds?:string[]; allowLarge?:boolean
 }
 export interface CaptureProgress {file:string;bytes:number;total:number;done:number;count:number;stage:'reading'|'saving'|'complete'}
+export interface ReferencePlan {
+  noteId:string;revision:string;title:string
+  required:{assetIds:string[];attachmentIds:string[]}
+  supplements:Array<{id:string;name:string;bytes:number|null;image:boolean}>
+}
 export interface NotesApiContract {
   '/notes/usage': {request:undefined;response:{ok:true;usage:{bytes:number;gitBytes:number;notes:number;revisions:number;level:'normal'|'notice'|'large';nearLimit:boolean}}}
   '/notes/capture-progress': {request:{requestId:string};response:{ok:true;progress:CaptureProgress|null}}
   '/notes/conversation-file': {request:{sessionId:string;throughSeq:number;messageIds:string[];materialId:string;hash:string};response:never}
-  '/notes/reference': {request:{sessionId:string;noteId:string;revision:string;assetIds:string[];attachmentIds:string[]};response:{ok:true;instruction:string;files:number}}
+  '/notes/reference-preview': {request:{noteId:string};response:{ok:true;plan:ReferencePlan}}
+  '/notes/reference': {request:{sessionId:string;noteId:string;revision:string;assetIds:string[];attachmentIds:string[]};response:{ok:true;instruction:string;files:number;path:string}}
   '/notes/import-task': {request:{action:'begin'|'end'|'heartbeat';taskId?:string};response:{ok:true;taskId?:string}}
   '/notes/transfer': {request:{action:'begin'|'chunk'|'finish'|'cancel';noteId:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string};attachment?:NoteAttachment}}
   '/notes/session-context': { request: { sessionId:string }; response: { ok:true; workspace: { id:string; title:string } | null; notebookId:string|null } }
