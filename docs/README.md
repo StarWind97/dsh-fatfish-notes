@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+新会话接续见 [2026-11-12 开发交接](handoffs/2026-11-12-development.zh.md)：记录最新代码、E 验收状态、文件添加等待的证据、隔离体验与调试入口。此文是接续快照；阶段顺序仍以主规划为准。
+
 产品为 **肥鱼笔记 / Fatfish Notes**，定位为私人笔记管理。[0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0) 已按用户确认正式发布，包含独立窗口、自适应三栏、查找整理、历史恢复、模板与性能优化，沿用 [DSH 0.2.2 适配](plans/2026-11-06-dsh-022-compatibility.zh.md)。未发布 npm；公开安装、市场更新状态和校验值见[发布记录](releases/0.8.0/review.zh.md)。
 
 代码仓库、包标识统一为 `dsh-fatfish-notes`；控制目录及新建私人库建议名为 `fatfish-notes`。本地工作目录 `D:\DSH-Workspace\dsh-github-notebook` 保留，现有私人库也不强制改名。运行代码不保留旧品牌兼容分支。
