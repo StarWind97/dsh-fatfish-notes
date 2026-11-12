@@ -1,6 +1,7 @@
 import {ImportWorkerClient,type WorkerPlan,type WorkerProgress} from './import-worker-client.js'
 import {currentRepository,type Api} from './api.js'
 import {importId} from './library-import.js'
+import {importedNotebookName} from '../notes/notebooks.js'
 interface State {busy:boolean;plan:WorkerPlan|null;progress:WorkerProgress;done:number;total:number;report:string[];message:string;cancelled:boolean}
 /** One running import in this window. The server also arbitrates across windows. */
 export class ImportJob {
@@ -35,11 +36,19 @@ export class ImportJob {
     const generation=this.generation;this.emit({busy:true,done:0,total:plan.notes.filter(n=>selected.includes(n.noteId)&&!n.done).length,message:'',cancelled:false});let failed=0
     try{
       await this.claim(generation)
+      let books=folders?(await this.api!('/notes/notebooks',undefined)).notebooks:[]
       for(const note of plan.notes.filter(n=>selected.includes(n.noteId)&&!n.done)){
         if(generation!==this.generation)break
         try{
           let target=notebookId
-          if(folders&&note.path.includes('/')){const title=note.path.split('/')[0]!;target=this.books.get(title)??'';if(!target){target=importId();await this.api!('/notes/notebook',{notebookId:target,title,expectedHeads:[]});this.books.set(title,target)}}
+          if(folders&&note.path.includes('/')){
+            const folder=note.path.split('/')[0]!;target=this.books.get(folder)??''
+            if(!target){
+              const title=importedNotebookName(books,folder);target=importId()
+              books=(await this.api!('/notes/notebook',{notebookId:target,title,expectedHeads:[]})).notebooks;this.books.set(folder,target)
+              if(title!==folder)this.emit({report:[...this.state.report,`笔记本“${folder}”已存在，导入至新建的“${title}”。`]})
+            }
+          }
           const warnings=await this.worker.request<string[]>('import',{noteId:note.noteId,selected,notebookId:target,remote})
           note.done=true;this.emit({done:this.state.done+1,report:[...this.state.report,...warnings.map(w=>note.path+': '+w)]})
         }catch(e){if(generation!==this.generation)break;failed++;this.emit({report:[...this.state.report,note.path+': '+(e instanceof Error?e.message:'未完成，可重新尝试；已完成的笔记会保留。')]})}

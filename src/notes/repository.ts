@@ -13,7 +13,7 @@ import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from '.
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
 import { checkReferences, sourceAttachments, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
 import { searchNotes } from './search.js'
-import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME } from './notebooks.js'
+import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from './notebooks.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
 import { ATTACHMENT_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
@@ -668,13 +668,14 @@ export class NoteRepository {
     }, signal)
   }
   async saveNotebook(input: { notebookId?: string; expectedHeads: string[]; title: string; makeDefault?: boolean }, signal?: AbortSignal): Promise<NotebookView> {
-    const notebookId = input.notebookId === undefined ? ulid(this.now()) : id(input.notebookId), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash), title = input.title
+    const notebookId = input.notebookId === undefined ? ulid(this.now()) : id(input.notebookId), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash), title = text(input.title, 1200).trim() || '未命名笔记本'
     return this.run(async () => {
       this.editGuard([])
       const s = await this.load(); this.writable(s, notebookId)
       this.complete(s)
       const heads = s.notebooks.some(r => r.notebookId === notebookId) ? this.notebook(s, notebookId).heads : []
       if (!same(heads, expected)) conflict()
+      if (sameNamedNotebook(this.books(s), title, notebookId)) fail('notebook_name_taken', NOTEBOOK_NAME_TAKEN)
       const previous = s.notebooks.filter(r => r.notebookId === notebookId).map(r => r.defaultSelectedAt ?? '').sort().at(-1)
       const selected = input.makeDefault ? new Date(Math.max(this.now(), ...s.notebooks.map(r => r.defaultSelectedAt ? Date.parse(r.defaultSelectedAt) + 1 : 0))).toISOString() : previous
       const row = createNotebookRevision({ version: 1, notebookId, title, status: 'active', parents: heads, recordedAt: new Date(this.now()).toISOString(), ...(selected ? { defaultSelectedAt: selected } : {}) })

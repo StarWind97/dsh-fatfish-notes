@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import type { NotebookView, NotebookRemoval } from '../contracts/notes.js'
-import { activeNotebook } from '../notes/notebooks.js'
+import { activeNotebook, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from '../notes/notebooks.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { PaperDialog } from './paper/PaperDialog.js'
 import type { T } from './locale.js'
@@ -15,6 +15,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
   const [removal, setRemoval] = useState<NotebookRemoval>('move'), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const actions=useItemActions(controller,state,t,id=>controller.open(id))
   const books = state.notebooks.filter(activeNotebook), selected = books.find(b => b.isDefault)
+  const duplicate=!!sameNamedNotebook(books,title,editing?.notebookId)
   useEffect(() => { if (formOpen) { input.current?.focus(); input.current?.select() } }, [formOpen, editing])
   const closeForm = () => { setFormOpen(false); setTitle(''); setEditing(undefined); setError('') }
   const closeRemoval = () => { if (!busy) { setRemoving(undefined); setError('') } }
@@ -25,7 +26,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
       if (await work()) done()
       else {
         const code = controller.getSnapshot().error
-        setError(code==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
+        setError(code==='notebook_name_taken'?NOTEBOOK_NAME_TAKEN:code==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
         await controller.refresh()
       }
     } finally { setBusy(false) }
@@ -35,9 +36,10 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
       <header className="paper-books-heading"><div><h2 id="paper-books-title">{t('notesNotebooks')}</h2><p>{t('notesBooksHint')}</p></div>
         <button className="paper-primary" disabled={busy} onClick={() => { setEditing(undefined); setTitle(''); setError(''); setFormOpen(true); input.current?.focus() }}><Plus size={16}/>{t('notesNewBook')}</button>
       </header>
-      {formOpen && <form className="paper-book-form" onSubmit={event => { event.preventDefault(); void run(() => controller.notebook(title, editing), closeForm) }} onKeyDown={event => { if(event.key === 'Escape' && !busy) { event.preventDefault(); closeForm() } }}>
+      {formOpen && <form className="paper-book-form" onSubmit={event => { event.preventDefault(); if(!duplicate&&title.trim())void run(() => controller.notebook(title, editing), closeForm) }} onKeyDown={event => { if(event.key === 'Escape' && !busy) { event.preventDefault(); closeForm() } }}>
         <label htmlFor="notebook-name">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</label>
-        <div><input ref={input} id="notebook-name" autoComplete="off" value={title} disabled={busy} maxLength={240} placeholder={t('notesBookName')} onChange={event => setTitle(event.target.value)}/><button className="paper-primary" disabled={busy || !title.trim()} type="submit">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</button><button type="button" disabled={busy} onClick={closeForm}>{t('cancel')}</button></div>
+        <div><input ref={input} id="notebook-name" aria-invalid={duplicate||undefined} aria-describedby={duplicate?'notebook-name-error':undefined} autoComplete="off" value={title} disabled={busy} maxLength={240} placeholder={t('notesBookName')} onChange={event => {setTitle(event.target.value);setError('')}}/><button className="paper-primary" disabled={busy || duplicate || !title.trim()} type="submit">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</button><button type="button" disabled={busy} onClick={closeForm}>{t('cancel')}</button></div>
+        {duplicate&&<p id="notebook-name-error" role="alert">{NOTEBOOK_NAME_TAKEN}</p>}
       </form>}
       {state.listError && <p role="alert">{t('notesListFailed')} <button disabled={busy || state.loadingList} onClick={() => void controller.refresh()}>{t('refresh')}</button></p>}
       <div className="paper-book-list">{books.map(book => <div className="paper-book-entry" key={book.notebookId}><RowMenu label={book.current.title+' · 操作'} actions={actions.bookActions(book)}>
