@@ -1,7 +1,8 @@
 import type {MaterialReference} from '../host/conversation-files.js'
 import type {CaptureMaterial,ArchivedMaterial,CaptureProgress} from '../contracts/notes.js'
 import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
-import {materialsFor,materialMarkdown} from './capture-materials.js'
+import {bodyMaterials} from './reference-materials.js'
+import {materialsFor,captureLinks,capturedText} from './capture-materials.js'
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript, NoteRevision } from '../contracts/notes.js'
 import type { ImageMediaType } from '../contracts/media.js'
 import { NoteRepository } from './repository.js'
@@ -58,12 +59,12 @@ export function selectMessages(messages: CaptureMessage[], request: Pick<Capture
 export function rawBody(source: CaptureSource): string {
   const literal = new Set(source.textOnlyBlocks.map(b => `${b.messageId}:${b.blockIndex}`))
   const fenced = (value: string): string => { let width = 3; for (const match of value.matchAll(/`+/g)) width = Math.max(width, match[0].length + 1); const fence = '`'.repeat(width); return `${fence}text\n${value}\n${fence}` }
-  return source.messages.map(m => `## ${m.role === 'user' ? '用户' : 'AI'}\n\n${m.blocks.map((b, i) => b.type === 'text' ? literal.has(`${m.id}:${i}`) ? fenced(b.text) : b.text : source.assets[b.attachmentId] ? `![会话图片](../assets/${source.assets[b.attachmentId]})` : source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]').join('\n')}`).join('\n\n---\n\n')+materialMarkdown(source.archivedMaterials?.filter(m=>!m.imageId||!!m.saved)??[])
+  return source.messages.map(m => `## ${m.role === 'user' ? '用户' : 'AI'}\n\n${m.blocks.map((b, i) => b.type === 'text' ? literal.has(`${m.id}:${i}`) ? fenced(b.text) : capturedText(b.text,source.archivedMaterials) : source.assets[b.attachmentId] ? `![会话图片](../assets/${source.assets[b.attachmentId]})` : source.archivedMaterials?.some(m=>m.imageId===b.attachmentId&&m.saved)?'[图片原件已保存到补充附件]':source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]').join('\n')}`).join('\n\n---\n\n')
 }
 function markTextOnlyImages(source: CaptureSource): void {
   const safe = (body: string): boolean => { try { validateBodyAssets(body, Object.values(source.assets)); return true } catch (e) { if (!(e instanceof NotebookError) || e.code !== 'note_asset') throw e; return false } }
   for (const message of source.messages) message.blocks.forEach((block, blockIndex) => {
-    if (block.type === 'text' && !safe(block.text)) source.textOnlyBlocks.push({ messageId: message.id, blockIndex })
+    if (block.type === 'text' && !safe(capturedText(block.text,source.archivedMaterials))) source.textOnlyBlocks.push({ messageId: message.id, blockIndex })
   })
   // Cross-message reference definitions can also create an unsafe image link.
   // In that rare case retain all text blocks literally instead of following it.
@@ -128,10 +129,11 @@ export class NoteCaptureService {
         const available=materialsFor(messages,transcript.materials??[]),selected=new Set(request.materialIds)
         if(request.materialIds.some(id=>!available.some(m=>m.id===id)))fail('source_mismatch','材料不属于所选问答')
         for(const kind of ['image','file'])if(available.filter(m=>selected.has(m.id)&&m.kind===kind).length>128)fail('note_limit','单篇最多 128 张图片及 128 个普通附件')
+        const paths=new Map([...transcript.materialReferences??[]].flatMap(([id,ref])=>ref.kind==='delivery'?[[id,ref.path] as const]:[])),links=captureLinks(messages,available,paths)
         archivedMaterials=[];let fileCount=0,imageCount=0,done=0
         const count=selected.size,total=available.filter(m=>selected.has(m.id)).reduce((n,m)=>n+(m.bytes??0),0);let completedBytes=0
         for(const material of available){
-          const archived:ArchivedMaterial={...material};archivedMaterials.push(archived)
+          const archived:ArchivedMaterial={...material,...(links.has(material.id)?{bodyLinks:links.get(material.id)!.map(r=>r.url)}:{})};archivedMaterials.push(archived)
           if(!selected.has(material.id))continue
           if(material.bytes!==null&&material.bytes>ATTACHMENT_LIMIT)fail('attachment_limit',`“${material.name}”超过 100 MiB`)
           if(material.bytes!==null&&material.bytes>ATTACHMENT_WARNING&&!request.allowLarge)fail('attachment_large','所选文件超过 50 MiB，请确认后继续')
@@ -140,7 +142,7 @@ export class NoteCaptureService {
           progress?.({file:material.name,bytes:completedBytes,total,done,count,stage:'reading'})
           const bytes=await this.conversation.material(request.sessionId,material,ref,signal,n=>progress?.({file:material.name,bytes:completedBytes+n,total,done,count,stage:'reading'}))
           completedBytes+=bytes.length;done++;progress?.({file:material.name,bytes:completedBytes,total,done,count,stage:'saving'})
-          if(material.kind==='image'&&bytes.length<=NOTE_LIMITS.image){
+          if(material.kind==='image'&&(material.imageId||links.get(material.id)?.some(r=>r.image))&&bytes.length<=NOTE_LIMITS.image){
             const ext=material.name.split('.').at(-1)?.toLowerCase(),type=material.imageId?images.get(material.imageId)?.mediaType:ext==='jpg'||ext==='jpeg'?'image/jpeg':`image/${ext}`
             try{const asset=await this.repository.putAsset(bytes,type as ImageMediaType,signal);archived.assetId=asset.id;assets[material.imageId??material.id]=asset.id;if(++imageCount>NOTE_LIMITS.images)fail('note_limit');continue}catch(e){if(!(e instanceof NotebookError)||!['invalid_asset','image_limit','export_image_budget','export_image_type','export_image_decode','image_decode'].includes(e.code))throw e}
           }
@@ -172,7 +174,9 @@ export class NoteCaptureService {
     const source = await this.repository.getSource(journal.sourceId, signal) as unknown as CaptureSource
     if (!journal.revision) {
       const notebookId = request.notebookId ?? (await this.repository.listNotebooks(signal)).find(book => book.isDefault)!.notebookId
-      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.metadata?.title ?? (request.scope === 'session' ? '会话笔记' : '问答笔记'), body: rawBody(source), summary: request.metadata?.summary ?? '', tags: request.metadata?.tags ?? [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
+      const body=rawBody(source),used=bodyMaterials(body),attachments=[...new Map((source.archivedMaterials??[]).flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]
+      used.attachmentIds.push(...used.assetIds.map(id=>id.slice(0,64)))
+      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.metadata?.title ?? (request.scope === 'session' ? '会话笔记' : '问答笔记'), body, supplements:{assetIds:[...new Set(Object.values(source.assets))].filter(id=>!used.assetIds.includes(id)),attachmentIds:attachments.filter(f=>!used.attachmentIds.includes(f.id)).map(f=>f.id)}, summary: request.metadata?.summary ?? '', tags: request.metadata?.tags ?? [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
       await write(journal)
     }
     signal.throwIfAborted()

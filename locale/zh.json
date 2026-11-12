@@ -427,7 +427,7 @@
   "batchPurgeConfirm": "彻底删除这 {count} 篇笔记及其独有的图片、附件和原始素材？此操作不能撤销。",
   "batchTrashConfirm": "将这 {count} 篇笔记移到回收站？之后可以恢复。",
   "batchHistory": "其他笔记仍在使用的文件会保留。Git 历史中的旧内容不会被清除，仓库占用也不会立即减少。",
-  "paperAttachment": "添加附件",
+  "paperAttachment": "插入文件",
   "attachmentTitle": "附件",
   "attachmentChoose": "选择要添加的附件",
   "attachmentLimits": "单个文件超过 50 MiB 会提醒，超过 100 MiB 无法保存。大文件会增加同步时间。",
@@ -590,5 +590,13 @@
   "documentCopied": "已复制",
   "documentCopyFailed": "复制失败，请重试",
   "captureOptions": "保存选项",
-  "captureNext": "下一步"
+  "captureNext": "下一步",
+  "supplementTitle": "补充附件",
+  "supplementHint": "随笔记携带的材料；插入正文后会从这里移出。",
+  "supplementAdd": "添加补充附件",
+  "supplementInsert": "插入正文",
+  "supplementRemove": "移除补充附件",
+  "supplementEmpty": "添加参考文件、图片或其他材料",
+  "bodyMaterials": "正文中的图片和文件",
+  "supplementImageFallback": "这张图片不适合内嵌，已作为文件链接插入正文。"
 }

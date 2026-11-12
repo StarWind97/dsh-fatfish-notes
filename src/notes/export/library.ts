@@ -1,3 +1,5 @@
+import {currentMaterials,supplementMaterials} from '../note-materials.js'
+import {supplementMarkdown} from '../capture-materials.js'
 import {posix} from 'node:path'
 import {Zip,ZipPassThrough} from 'fflate'
 import {setImmediate as yieldIO} from 'node:timers/promises'
@@ -30,10 +32,11 @@ export async function exportLibrary(repository:NoteRepository,input:unknown,sign
   try{
   for(const r of rows){
     signal?.throwIfAborted();const path=notePaths.get(r.noteId)!,folder=posix.dirname(path),attachmentPaths=new Map<string,string>()
-    for(const a of r.attachments??[]){const target=`attachments/${a.id.slice(0,16)}-${exportFilename(a.name)}`;attachmentPaths.set(a.id,target);await add(target,await repository.getAttachment(a.id,signal))}
-    for(const asset of r.assetIds)if(!written.has(`assets/${asset}`))await add(`assets/${asset}`,await repository.getAsset(asset,signal))
+    const active=currentMaterials(r),extra=supplementMaterials(r)
+    for(const a of (r.attachments??[]).filter(a=>active.attachmentIds.includes(a.id))){const target=`attachments/${a.id.slice(0,16)}-${exportFilename(a.name)}`;attachmentPaths.set(a.id,target);await add(target,await repository.getAttachment(a.id,signal))}
+    for(const asset of active.assetIds)if(!written.has(`assets/${asset}`))await add(`assets/${asset}`,await repository.getAsset(asset,signal))
     const relative=(target:string)=>posix.relative(folder,target).split('/').map(encodeURIComponent).join('/')
-    const body=changeReferences(r.body,ref=>{
+    const body=changeReferences(r.body+supplementMarkdown(extra,r.attachments),ref=>{
       const targetId=noteLinkId(ref.url),file=attachmentLinkId(ref.url)
       if(targetId){const target=notePaths.get(targetId);if(target)return relative(target);warnings.push(`${path}: 链接目标未包含在此次导出中 (${targetId})`);return undefined}
       if(file&&attachmentPaths.has(file))return relative(attachmentPaths.get(file)!)
@@ -41,8 +44,7 @@ export async function exportLibrary(repository:NoteRepository,input:unknown,sign
       return undefined
     })
     const fields={title:r.title,tags:r.tags,summary:r.summary,updated:r.recordedAt,notebook:books.find(b=>b.notebookId===r.notebookId)?.current.title??'默认笔记本',...(r.originPath?{source_path:r.originPath}:{})}
-    const missing=(r.attachments??[]).filter(a=>!r.body.includes('../attachments/'+a.id+'.bin'))
-    await add(path,Buffer.from('---\n'+Object.entries(fields).map(([k,value])=>k+': '+JSON.stringify(value)).join('\n')+'\n---\n\n'+body+(missing.length?'\n\n## 附件\n\n'+missing.map(a=>`[${a.name.replace(/[\\[\]]/g,'\\$&')}](<${relative(attachmentPaths.get(a.id)!)}>)`).join('\n\n'):'')+'\n'))
+    await add(path,Buffer.from('---\n'+Object.entries(fields).map(([k,value])=>k+': '+JSON.stringify(value)).join('\n')+'\n---\n\n'+body+'\n'))
   }
   if(warnings.length)await add('导出说明.txt',Buffer.from(warnings.join('\n')))
   zip.end();await pending;if(zipError)throw zipError

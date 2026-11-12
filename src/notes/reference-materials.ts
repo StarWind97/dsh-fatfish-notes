@@ -5,7 +5,9 @@ import type {Root,RootContent,PhrasingContent} from 'mdast'
 /** Actual Markdown uses only: code and unused definitions are not document resources. */
 export function bodyMaterials(body:string){
   const root=exportTree(body),nodes:Array<Root|RootContent|PhrasingContent>=[root],definitions=new Map<string,string>()
-  for(let i=0;i<nodes.length;i++){const n=nodes[i]!;if('children'in n)nodes.push(...n.children);if(n.type==='definition'&&!definitions.has(n.identifier.toUpperCase()))definitions.set(n.identifier.toUpperCase(),n.url)}
+  for(let i=0;i<nodes.length;i++){const n=nodes[i]!;if('children'in n)nodes.push(...n.children)}
+  nodes.sort((a,b)=>(a.position?.start.offset??0)-(b.position?.start.offset??0))
+  for(const n of nodes)if(n.type==='definition'&&!definitions.has(n.identifier.toUpperCase()))definitions.set(n.identifier.toUpperCase(),n.url)
   const assetIds=new Set<string>(),attachmentIds=new Set<string>()
   for(const n of nodes){
     const url=n.type==='link'||n.type==='image'?n.url:n.type==='linkReference'||n.type==='imageReference'?definitions.get(n.identifier.toUpperCase()):undefined

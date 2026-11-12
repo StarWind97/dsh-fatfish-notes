@@ -118,10 +118,10 @@ export class NoteRepository {
       try {
         manifest = JSON.parse(utf8(await this.files.read('manifest.json'))) as unknown
         const v = object(manifest)
-        if (v.version !== undefined && ![1,2,3].includes(v.version as number)) fail('note_version', '笔记模块版本不支持，已暂停写入')
+        if (v.version !== undefined && ![1,2,3,4].includes(v.version as number)) fail('note_version', '笔记模块版本不支持，已暂停写入')
         if (Object.keys(v).some(k => !['version', 'notes', 'notebooks', 'revision', 'deleted'].includes(k))) fail('note_schema')
         const { revision, ...data } = v
-        if (![1,2,3].includes(v.version as number) || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
+        if (![1,2,3,4].includes(v.version as number) || !Array.isArray(v.notes) || !Array.isArray(v.notebooks) || revision !== digest(canonical(data))) fail('note_manifest')
         if (deletionIds(v.deleted).some(n => !state.deleted!.includes(n))) fail('note_deleted_missing', '删除记录缺失，已暂停操作')
         const claims: string[] = []
         for (const [rows, field, directory] of [[v.notes, 'noteId', 'revisions'], [v.notebooks, 'notebookId', 'notebooks']] as const) {

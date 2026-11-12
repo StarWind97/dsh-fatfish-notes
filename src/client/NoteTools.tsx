@@ -7,7 +7,7 @@ import type {NotesController,NotesState} from './notes-controller.js'
 import type {T} from './locale.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import {NoteMarkdown} from './NoteMarkdown.js'
-import {AttachmentList} from './NoteAttachments.js'
+import {Supplements} from './NoteAttachments.js'
 import {noteDateTime} from '../notes/date.js'
 export {Highlight} from './SearchText.js'
 export function TagSuggestions({value,selected,choose,t}:{value:string;selected:string[];choose:(tag:string)=>void;t:T}) {
@@ -27,7 +27,7 @@ export function HistoryDialog({note,controller,t,close}:{note:NoteView;controlle
   async function restore(copy:boolean){if(!preview)return;setBusy(true);try{if(await controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:copy?'revision-copy':'revision',revision:preview.current.revision}))close();else setError(operationError(controller,t))}finally{setBusy(false)}}
   return <PaperDialog title={t('organizeHistory')} closeLabel={t('paperClose')} onClose={close} locked={busy} className="paper-history-dialog"><div className="paper-history-body">
     <nav aria-label={t('organizeVersions')}>{rows.map(row=><button disabled={busy||loading} aria-pressed={preview?.current.revision===row.revision} key={row.revision} onClick={()=>void select(row.revision)}><strong>{noteDateTime(row.recordedAt)}</strong><span>{row.title}</span>{row.revision===note.current.revision&&<small>{t('organizeCurrent')}</small>}</button>)}{cursor&&<button disabled={loading||busy} onClick={()=>void more()}>{t('notesMore')}</button>}</nav>
-    <section className="paper-history-preview">{loading?<p role="status">{t('loading')}</p>:preview?<><h2>{preview.current.title}</h2><p className="paper-hint">{preview.current.tags.map(tag=>'#'+tag).join(' ')}</p>{preview.current.summary&&<blockquote>{preview.current.summary}</blockquote>}<NoteMarkdown body={preview.current.body} note={preview}/><AttachmentList note={preview} t={t}/></>:<p className="paper-hint">{t('organizePickVersion')}</p>}</section>
+    <section className="paper-history-preview">{loading?<p role="status">{t('loading')}</p>:preview?<><h2>{preview.current.title}</h2><p className="paper-hint">{preview.current.tags.map(tag=>'#'+tag).join(' ')}</p>{preview.current.summary&&<blockquote>{preview.current.summary}</blockquote>}<NoteMarkdown body={preview.current.body} note={preview}/><Supplements content={preview.current} note={preview} t={t}/></>:<p className="paper-hint">{t('organizePickVersion')}</p>}</section>
     </div>{error&&<p role="alert" className="paper-dialog-message">{error}</p>}{confirmation&&<p className="paper-dialog-message">{t('organizeRestoreConfirm')}</p>}<footer><button disabled={busy} onClick={close}>{t('cancel')}</button><button disabled={busy||loading||!preview} onClick={()=>void restore(true)}>{t('organizeRestoreCopy')}</button><button className="paper-primary" disabled={busy||loading||!preview||preview.current.revision===note.current.revision} onClick={()=>confirmation?void restore(false):setConfirmation(true)}>{t(confirmation?'organizeConfirmRestore':'organizeRestore')}</button></footer></PaperDialog>
 }
 

@@ -2,6 +2,7 @@ import type { RootContent, PhrasingContent } from 'mdast';
 export interface PortableReference {
     url: string;
     image: boolean;
+    used: boolean;
     start: number;
     end: number;
     node: RootContent | PhrasingContent;

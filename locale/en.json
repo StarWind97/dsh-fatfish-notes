@@ -427,7 +427,7 @@
   "batchPurgeConfirm": "Permanently delete these {count} notes and their exclusive files? This cannot be undone.",
   "batchTrashConfirm": "Move these {count} notes to trash? They can be restored.",
   "batchHistory": "Files still used by other notes are retained. Existing Git history is not erased and repository size does not immediately decrease.",
-  "paperAttachment": "Attach files",
+  "paperAttachment": "Insert file",
   "attachmentTitle": "Attachments",
   "attachmentChoose": "Choose attachments",
   "attachmentLimits": "Files over 50 MiB require confirmation; files over 100 MiB cannot be saved. Large files slow down synchronization.",
@@ -590,5 +590,13 @@
   "documentCopied": "Copied",
   "documentCopyFailed": "Copy failed. Try again",
   "captureOptions": "Save options",
-  "captureNext": "Next"
+  "captureNext": "Next",
+  "supplementTitle": "Supplemental files",
+  "supplementHint": "Extra materials. Inserting into the body moves them out of this section.",
+  "supplementAdd": "Add supplemental files",
+  "supplementInsert": "Insert into body",
+  "supplementRemove": "Remove supplemental file",
+  "supplementEmpty": "Add reference files, images or other materials",
+  "bodyMaterials": "Images and files in the body",
+  "supplementImageFallback": "This image cannot be embedded; inserted a file link instead."
 }

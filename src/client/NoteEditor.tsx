@@ -4,7 +4,7 @@ import {DocumentTools} from './paper/DocumentTools.js'
 import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, Trash2, Star, History, Copy, BookTemplate, Search } from 'lucide-react'
+import { Notebook, LockKeyhole, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, Trash2, Star, History, Copy, BookTemplate, Search, Plus } from 'lucide-react'
 import {Backlinks,Highlight,HistoryDialog,ReuseDialog,TagSuggestions} from './NoteTools.js'
 import type { CaptureSource, NoteView } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
@@ -16,7 +16,7 @@ import { notesStyles as s } from './notes-style.js'
 import type { T } from './locale.js'
 import { NoteActions, type NoteAction } from './paper/NoteActions.js'
 import { TrashAction } from './paper/TrashAction.js'
-import {AttachmentList} from './NoteAttachments.js'
+import {AttachmentList,Supplements} from './NoteAttachments.js'
 import { NoteExport } from './NoteExport.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
 import { ChapterOutline } from './paper/ChapterOutline.js'
@@ -159,7 +159,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
         {draft.tags.map(value=><button type="button" disabled={!editable} key={value} aria-label={t('notesRemoveTag',{tag:value})} onClick={()=>controller.update({tags:draft.tags.filter(tag=>tag!==value)})}>#{value} ×</button>)}
         <form onSubmit={event=>{event.preventDefault();if(!state.composing)addTag()}}>
           <input value={tag} aria-label={t('notesAddTag')} placeholder={t('notesAddTag')} disabled={!editable} onChange={event=>setTag(event.target.value)} onBlur={event=>{if(!state.composing && tag.trim()&&!(event.relatedTarget as HTMLElement)?.closest('.paper-tag-suggestions'))addTag()}}/>
-          <button type="submit" disabled={!editable||!tag.trim()||state.composing}>{t('notesAddTag')}</button>
+          <button type="submit" className="paper-tag-add" title={t('notesAddTag')} aria-label={t('notesAddTag')} disabled={!editable||!tag.trim()||state.composing}><Plus size={16}/></button>
         </form></div>{editable&&<TagSuggestions value={tag} selected={draft.tags} choose={value=>{controller.update({tags:[...new Set([...draft.tags,value])]});setTag('')}} t={t}/>}</div>
     </aside>}
     {(mode==='edit'||draft.summary)&&<section className="paper-summary" aria-label={t('notesSummary')}>
@@ -173,7 +173,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
       :<article className="paper-reading" onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('a,button,input'))edit(e.target as HTMLElement)}}>
       {state.filter.query&&<button className="paper-search-jump" onClick={nextHit}><Search size={14}/>{t('findNextMatch')}</button>}
       {note?<NoteMarkdown t={t} body={draft.body} note={note} onNoteLink={onNoteLink} query={state.filter.query}/>:<p>{draft.body}</p>}
-      {note&&<AttachmentList note={note} t={t}/>}
+      {note&&<Supplements content={note.current} note={note} t={t}/>}
       {note&&!draft.isTemplate&&<Backlinks note={note} t={t} open={onNoteLink}/>}
       {editable&&<button onClick={()=>edit()}><Pencil size={14}/> {t('notesEdit')}</button>}</article>}
     </div>

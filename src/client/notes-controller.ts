@@ -1,9 +1,10 @@
 import { api, currentRepository, type Api } from './api.js'
 import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision, NoteManageRequest } from '../contracts/notes.js'
+import {supplementMaterials,remainingSupplements} from '../notes/note-materials.js'
 import { RecentNotes } from './recent-notes.js'
 
-export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.sessionLinks!==undefined?{sessionLinks:[...note.current.sessionLinks]}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
+export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], supplements:supplementMaterials(note.current), ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.sessionLinks!==undefined?{sessionLinks:[...note.current.sessionLinks]}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
 const comparable=(c:NoteContent)=>Object.fromEntries(Object.entries({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()}).sort(([a],[b])=>a.localeCompare(b)))
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
@@ -209,7 +210,9 @@ export class NotesController {
     if(!this.writable)return
     if (!this.state.draft || this.state.loadingNote || this.state.operation || this.state.draft.status === 'trashed') return
     this.startDraft();this.draftSequence++
-    this.emit({ draft: { ...this.state.draft, ...patch }, dirty: true, error: this.state.conflict ? 'note_conflict' : null })
+    const draft={...this.state.draft,...patch}
+    if(patch.body!==undefined||patch.supplements!==undefined)draft.supplements=remainingSupplements(draft)
+    this.emit({ draft, dirty: true, error: this.state.conflict ? 'note_conflict' : null })
     this.journal();this.schedule()
   }
   composition(active: boolean) { this.emit({ composing: active });if(!active){this.journal();this.schedule();if(this.finishPending)void this.leave()} }
@@ -350,7 +353,7 @@ export class NotesController {
     try{await this.options.editing?.acquire(noteId)}catch(e){this.emit({error:errorCode(e)});return false}
     ++this.navigation
     this.editId=newId();this.draftSequence=0;this.editStart={noteId,content:null}
-    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [] }, dirty: false, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [], supplements:{assetIds:[],attachmentIds:[]} }, dirty: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}
   }

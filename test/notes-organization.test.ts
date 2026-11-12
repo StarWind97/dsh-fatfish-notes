@@ -69,7 +69,7 @@ test('batch metadata preflights stale versions, occupied notes and tag limits be
 test('history restoration appends a new revision, preserves former content and restores referenced binaries; copies remain independent',async t=>{
   const {repo}=await fixture(t),image=await repo.putAsset(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=','base64'),'image/png'),file=await repo.putAttachment(Buffer.from('video'),'视频.mp4')
   const old=await repo.save({noteId:a,expectedHeads:[],content:{...content,body:`![图](../assets/${image.id})`,assetIds:[image.id],attachments:[file]}})
-  const now=await repo.save({noteId:a,expectedHeads:old.heads,content:{...noteContent(old),body:'修改后',assetIds:[],attachments:[]}})
+  const now=await repo.save({noteId:a,expectedHeads:old.heads,content:{...noteContent(old),body:'修改后',assetIds:[],attachments:[],supplements:{assetIds:[],attachmentIds:[]}}})
   const restored=(await repo.manage({notes:select(now),action:'revision',revision:old.current.revision})).note!
   assert.deepEqual(restored.current.parents,now.heads);assert.deepEqual(restored.current.attachments,[file]);assert.equal((await repo.getRevision(a,now.current.revision)).body,'修改后');assert.equal((await repo.history(a)).items.length,3)
   const copy=(await repo.manage({notes:select(restored),action:'revision-copy',revision:now.current.revision,targetId:b})).note!

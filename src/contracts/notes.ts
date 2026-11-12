@@ -12,7 +12,10 @@ export interface NoteContent {
   notebookId: string | null; status: NoteStatus; sourceId: string | null; assetIds: string[]
   attachments?: NoteAttachment[]; originPath?: string; favorite?: boolean; isTemplate?: boolean
   sessionLinks?: string[]
+  supplements?: NoteSupplements
 }
+/** Explicit membership; removing a body link must not recreate a supplement. */
+export interface NoteSupplements { assetIds: string[]; attachmentIds: string[] }
 export interface NoteAttachment { id: string; name: string; bytes: number }
 export const ATTACHMENT_WARNING = 50 * 1024 * 1024
 export const ATTACHMENT_LIMIT = 100 * 1024 * 1024
@@ -59,8 +62,9 @@ export interface CaptureMessage { id: string; seq: number; turn?: number; role: 
 export interface CaptureMaterial {
   id:string; kind:'image'|'file'; origin:'upload'|'delivery'; name:string; bytes:number|null
   seq:number; turn?:number; messageId?:string; imageId?:string; available:boolean
+  placement?:'body'|'supplement'
 }
-export interface ArchivedMaterial extends CaptureMaterial { saved?:NoteAttachment; assetId?:string }
+export interface ArchivedMaterial extends CaptureMaterial { saved?:NoteAttachment; assetId?:string; bodyLinks?:string[] }
 export interface CaptureCut { throughSeq: number; capturedAt: string; isSeeded: boolean }
 export interface CaptureTranscript { messages: CaptureMessage[]; complete: boolean; issues: string[]; materials?:CaptureMaterial[] }
 export interface CaptureSource extends CaptureTranscript {

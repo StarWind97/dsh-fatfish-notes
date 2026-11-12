@@ -136,7 +136,7 @@ export async function createNoteDownload(identity: Frozen, options: ExportOption
     if (options.format !== 'pdf') {
       const rendered=await renderPages(value,prepared.images,options,signal)
       if(!value.attachments?.length)return rendered
-      const blob=await bundleFiles([new File([rendered.blob],rendered.filename,{type:rendered.blob.type})],value.attachments.map(f=>({name:f.id.slice(0,16)+'-'+exportFilename(f.name),path:'/notes/download',body:{...identity,attachmentId:f.id}})),signal,true)
+      const blob=await bundleFiles([new File([rendered.blob],rendered.filename,{type:rendered.blob.type})],value.attachments.map(f=>({name:f.id.slice(0,16)+'-'+exportFilename(f.name),path:f.id.includes('.')?'/notes/export':'/notes/download',body:f.id.includes('.')?{...identity,format:'original',assetId:f.id}:{...identity,attachmentId:f.id}})),signal,true)
       return {blob,filename:value.filename+'.zip'}
     }
     if (prepared.convertedImages.reduce((n, image) => n + Math.ceil(image.png.length * 3 / 4), 0) > 1024 * 1024) throw new ExportError('export_conversion_budget')

@@ -33,9 +33,9 @@ test('E materials follow selected messages/turns, deduplicate storage and surviv
   const {repo}=await setup(t),f=captureFixture(repo),progress:number[]=[]
   await assert.rejects(f.service.capture({...f.request,requestId:'wrong',materialIds:['other']}),{code:'source_mismatch'})
   const result=await f.service.capture(f.request,undefined,p=>progress.push(p.bytes)),first=result.note.current
-  assert.equal(first.attachments?.length,1);assert.ok(progress.some(n=>n>0));assert.match(first.body,/资料.pdf/);assert.match(first.body,/结果.csv/);assert.doesNotMatch(first.body,/另一轮/)
+  assert.equal(first.attachments?.length,1);assert.ok(progress.some(n=>n>0));assert.doesNotMatch(first.body,/文件与图片|资料.pdf|结果.csv|另一轮/);assert.deepEqual(first.supplements?.attachmentIds,first.attachments!.map(f=>f.id))
   const source=await repo.getSource(first.sourceId!);assert.equal(sourceAttachments(source).length,2)
-  const edited=await repo.save({noteId:result.note.noteId,expectedHeads:result.note.heads,content:{...noteContent(result.note),body:'手工正文',attachments:[]}})
+  const edited=await repo.save({noteId:result.note.noteId,expectedHeads:result.note.heads,content:{...noteContent(result.note),body:'手工正文',attachments:[],supplements:{assetIds:[],attachmentIds:[]}}})
   f.change();const retry=await f.service.capture(f.request);assert.equal(retry.sourceId,result.sourceId);assert.equal(f.reads(),2)
   assert.equal((await repo.get(result.note.noteId)).current.body,'手工正文')
   const zip=await createExport(repo,{noteId:edited.noteId,revision:edited.current.revision,format:'markdown-zip',includeSource:true})

@@ -1,4 +1,7 @@
-import {materialsFor} from '../capture-materials.js'
+import {changeReferences} from '../portable-links.js'
+import {bodyMaterials} from '../reference-materials.js'
+import type {ArchivedMaterial} from '../../contracts/notes.js'
+import {materialsFor,captureLinks,capturedText} from '../capture-materials.js'
 import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING,type CaptureMaterial} from '../../contracts/notes.js'
 import {validateAsset} from '../assets.js'
 import type {ImageMediaType} from '../../contracts/media.js'
@@ -16,7 +19,7 @@ import { renderPdfFile, renderImageBudget, type ExportFile } from './service.js'
 
 // An image typed into a chat message is a reference. Only DSH attachment blocks
 // supply local image bytes. Keep ordinary web image links readable offline.
-function messageText(body:string, prefix:string) {
+function messageText(body:string, prefix:string,knownImages:string[]=[]) {
   const tree=exportTree(body), definitions=new Map<string,string>()
   const refs:Array<{start:number;end:number;url?:string;identifier?:string;alt:string}>=[]
   const edits:Array<{start:number;end:number;value:string}>=[]
@@ -42,13 +45,20 @@ function messageText(body:string, prefix:string) {
     if('children' in node)node.children.forEach(visit)
   }
   visit(tree)
+  let linked=0
   for(const ref of refs){
-    const url=exportLink(ref.url??definitions.get(ref.identifier??'')??'')
+    const destination=ref.url??definitions.get(ref.identifier??'')??''
+    if(destination.startsWith('../assets/')&&knownImages.includes(destination.slice(10))){
+      if(ref.identifier)edits.push({start:ref.start,end:ref.end,value:'!['+ref.alt.replace(/[\\[\]]/g,'\\$&')+']['+label(ref.identifier)+']'})
+      continue
+    }
+    linked++
+    const url=exportLink(destination)
     const alt=(ref.alt||'图片链接').replace(/[\\[\]<>*_@]/g,'\\$&')
     edits.push({start:ref.start,end:ref.end,value:url?'['+alt+'](<'+url.replace(/>/g,'%3E')+'>)':alt})
   }
   for(const edit of edits.sort((a,b)=>b.start-a.start))body=body.slice(0,edit.start)+edit.value+body.slice(edit.end)
-  return {text:rewriteMarkdown(body,true),linked:refs.length}
+  return {text:rewriteMarkdown(body,true),linked}
 }
 
 export async function createConversationExport(conversation:Pick<NoteConversation,'read'|'attachment'> & Partial<Pick<NoteConversation,'material'>>, input:unknown, signal:AbortSignal,streaming=false):Promise<ExportFile & {warnings:string}> {
@@ -62,11 +72,12 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
   const messages=selectMessages(transcript.messages,{scope:'selection',messageIds:ids})
   const titleText=messages.flatMap(m=>m.blocks).find(b=>b.type==='text' && b.text.trim())
   const title=Array.from(titleText?.type==='text'?titleText.text.trim().split(/\r?\n/)[0]!:'会话记录').slice(0,56).join('')
-  const filename=exportFilename(title), sections:string[]=[], deliveryImages:string[]=[], model=exportModel('会话记录','',[])
+  const filename=exportFilename(title), sections:string[]=[], model=exportModel('会话记录','',[])
   const attachments=new Map<string,{type:string;id:string|null}>(), images:Record<string,Buffer>={}
   const files:Array<{material:CaptureMaterial;id:string;name:string;bytes:number;read:()=>Promise<Buffer>}>=[],imageReaders=new Map<string,()=>Promise<Buffer>>()
   const renderBudget=renderImageBudget()
   const picked=v.materialIds===undefined?null:new Set(sortedStrings(v.materialIds,256,x=>text(x,512)))
+  const archived:ArchivedMaterial[]=[],paths=new Map([...transcript.materialReferences??[]].flatMap(([id,ref])=>ref.kind==='delivery'?[[id,ref.path] as const]:[])),links=captureLinks(messages,materialsFor(messages,transcript.materials??[]),paths)
   if(picked){
     const candidates=materialsFor(messages,transcript.materials??[])
     if([...picked].some(id=>!candidates.some(m=>m.id===id)))throw new ExportError('source_mismatch')
@@ -78,15 +89,15 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
       const read=()=>conversation.material!(sessionId,material,ref,signal),data=await read(),sha=digest(data)
       const immutable=async()=>{const value=await read();if(digest(value)!==sha)throw new ExportError('source_mismatch');return value}
       let imageId:string|undefined
-      if(material.kind==='image'&&data.length<=NOTE_LIMITS.image){
+      if(material.kind==='image'&&(material.imageId||links.get(material.id)?.some(r=>r.image))&&data.length<=NOTE_LIMITS.image){
         const ext=material.name.split('.').at(-1)?.toLowerCase(),type=material.imageId?transcript.imageReferences?.get(material.imageId)?.mediaType:ext==='jpg'||ext==='jpeg'?'image/jpeg':`image/${ext}`
         try{imageId=validateAsset(data,type as ImageMediaType).id}catch{signal.throwIfAborted()}
       }
+      archived.push({...material,bodyLinks:links.get(material.id)?.map(r=>r.url)??[],...(imageId?{assetId:imageId}:{saved:{id:sha,name:material.name,bytes:data.length}})})
       if(imageId){
         if(imageReaders.size>=128&&!imageReaders.has(imageId))throw new ExportError('note_limit')
         if(format!=='markdown'){if(!images[imageId])renderBudget(data);images[imageId]=data}imageReaders.set(imageId,immutable)
         if(material.imageId)attachments.set(material.imageId,{type:transcript.imageReferences?.get(material.imageId)?.mediaType??'',id:imageId})
-        else deliveryImages.push(`![${material.name.replace(/[\\[\]]/g,'\\$&')}](../assets/${imageId})`)
       }else{if(files.length>=128)throw new ExportError('note_limit');files.push({material,id:sha,name:material.name,bytes:data.length,read:immutable})}
     }
   }
@@ -97,7 +108,7 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
     for(const [index,block] of message.blocks.entries()){
       signal.throwIfAborted()
       if(block.type==='text'){
-        const part=messageText(block.text,'chat-'+message.seq+'-'+index)
+        const part=messageText(capturedText(block.text,archived,false),'chat-'+message.seq+'-'+index,[...imageReaders.keys()])
         paragraphs.push(part.text);linked+=part.linked
         continue
       }
@@ -121,9 +132,11 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
     const section=paragraphs.join('\n\n')
     sections.push(section)
   }
-  if(deliveryImages.length)sections.push('## 交付图片\n\n'+deliveryImages.join('\n\n'))
-  const attachmentNames=new Map(files.map(f=>[f.id,f.id.slice(0,16)+'-'+exportFilename(f.name)]))
-  if(files.length)sections.push('## 文件附件\n\n'+files.map(f=>`[${f.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(f.id)!)}>)`).join('\n\n'))
+  const used=bodyMaterials(sections.join('\n\n')),bodyImages=new Set(used.assetIds.map(id=>id.slice(0,64)))
+  for(let i=files.length-1;i>=0;i--)if(bodyImages.has(files[i]!.id)&&!used.attachmentIds.includes(files[i]!.id))files.splice(i,1)
+  const attachmentNames=new Map(files.map(f=>[f.id,f.id.slice(0,16)+'-'+exportFilename(f.name)])),extras=files.filter(f=>!used.attachmentIds.includes(f.id))
+  for(let i=0;i<sections.length;i++)sections[i]=changeReferences(sections[i]!,ref=>{const match=/^\.\.\/attachments\/([a-f0-9]{64})\.bin$/.exec(ref.url);return match&&attachmentNames.has(match[1]!)?'attachments/'+encodeURIComponent(attachmentNames.get(match[1]!)!):undefined})
+  if(extras.length)sections.push('## 补充附件\n\n'+extras.map(f=>`[${f.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(f.id)!)}>)`).join('\n\n'))
   if(picked){const omitted=materialsFor(messages,transcript.materials??[]).filter(m=>!picked.has(m.id));if(omitted.length)sections.push('未包含：'+omitted.map(m=>m.name).join('、'))}
   model.assetIds=[...imageReaders.keys()]
   const warnings=JSON.stringify({partial:!transcript.complete,missing,linked})

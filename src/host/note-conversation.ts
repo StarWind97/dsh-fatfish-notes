@@ -1,4 +1,5 @@
 import {ConversationFiles,materialName,type ConversationFileServices,type MaterialReference} from './conversation-files.js'
+import {captureLinks} from '../notes/capture-materials.js'
 import type {FileAttachmentRef} from '@deepseek-ai/dsh-attachment'
 import type {CaptureMaterial} from '../contracts/notes.js'
 import type { SessionController, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller'
@@ -82,6 +83,8 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
     ids.add(messageId); messages.push({ id: messageId, seq: event.seq, ...(typeof data.turn==='number'?{turn:data.turn}:turn===undefined?{}:{turn}), role: event.type === 'user/message' ? 'user' : 'assistant', blocks })
     if (messages.length > NOTE_LIMITS.messages) fail('note_limit', '会话超过 20,000 条可见消息，未保存为完整笔记')
   }
+  const links=captureLinks(messages,materials,new Map([...materialReferences].flatMap(([id,ref])=>ref.kind==='delivery'?[[id,ref.path] as const]:[])))
+  for(const material of materials)material.placement=material.imageId||links.has(material.id)?'body':'supplement'
   return { messages, complete: !issues.size, issues: [...issues], imageReferences,materials,materialReferences }
 }
 

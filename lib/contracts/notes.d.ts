@@ -31,6 +31,12 @@ export interface NoteContent {
     favorite?: boolean;
     isTemplate?: boolean;
     sessionLinks?: string[];
+    supplements?: NoteSupplements;
+}
+/** Explicit membership; removing a body link must not recreate a supplement. */
+export interface NoteSupplements {
+    assetIds: string[];
+    attachmentIds: string[];
 }
 export interface NoteAttachment {
     id: string;
@@ -196,10 +202,12 @@ export interface CaptureMaterial {
     messageId?: string;
     imageId?: string;
     available: boolean;
+    placement?: 'body' | 'supplement';
 }
 export interface ArchivedMaterial extends CaptureMaterial {
     saved?: NoteAttachment;
     assetId?: string;
+    bodyLinks?: string[];
 }
 export interface CaptureCut {
     throughSeq: number;

@@ -12,4 +12,4 @@ export function withoutDeleted(objects: NoteObjects, deleted = objects.deleted ?
   return { ...objects, revisions: objects.revisions.filter(r => !set.has(r.noteId)), ...(deleted.length ? { deleted: [...set].sort() } : {}) }
 }
 /** New capacity and metadata require a writer that understands format 3. */
-export function moduleVersion(_objects: NoteObjects): 3 { return 3 }
+export function moduleVersion(objects: NoteObjects): 3|4 { return objects.revisions.some(r=>r.supplements!==undefined)?4:3 }

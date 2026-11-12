@@ -23,7 +23,7 @@ test('session associations survive editing, history and restart, but copies do n
   const copy=(await repo.manage({notes:[{noteId:a,expectedHeads:n.heads}],action:'duplicate',targetId:b})).note!
   assert.equal(copy.current.sessionLinks,undefined)
   assert.deepEqual((await new NoteRepository(dir).get(a)).current.sessionLinks,n.current.sessionLinks)
-  assert.equal(JSON.parse(await readFile(join(dir,'notes/manifest.json'),'utf8')).version,3)
+  assert.equal(JSON.parse(await readFile(join(dir,'notes/manifest.json'),'utf8')).version,4)
   n=await repo.associate(a,n.heads,'session-a',false);assert.equal((await repo.list({sessionId:'session-a'})).items.length,0)
   await assert.rejects(repo.associate(a,[first],'session-a',true),{code:'note_conflict'})
   n=await repo.trash(a,n.heads);assert.equal((await repo.list({sessionId:'session-b'})).items.length,0)

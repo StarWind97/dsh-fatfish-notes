@@ -49,7 +49,7 @@ export class NotesSyncModule {
     if (generation === this.repository.generation) this.currentToken = token(objects)
     return { objects }
   }
-  validateVersion(version: unknown): void { if (version !== undefined && ![1,2,3].includes(version as number)) fail('note_version', '远端笔记版本不支持；已暂停备份，本机编辑仍可使用') }
+  validateVersion(version: unknown): void { if (version !== undefined && ![1,2,3,4].includes(version as number)) fail('note_version', '远端笔记版本不支持；已暂停备份，本机编辑仍可使用') }
   async readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot> {
     const files = new Map<string, StoredFile>(), objects: NoteObjects = { version: 1, revisions: [], notebooks: [] }
     const prefetch = async (paths: string[], limit: number) => {
