@@ -48,6 +48,9 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   const [setupBook,setSetupBook]=useState<string|null>(null)
   const alive=useRef(false),visible=useRef(tab.visible);visible.current=tab.visible
   const outline=useRef<OutlineSession>({wide:null,open:false}),list=useRef<HTMLDivElement>(null),scroll=useRef(0),restoring=useRef(false)
+  const showDetail=reading&&!!state.draft
+  // A discarded new draft has no document; release the surrounding pane too.
+  useLayoutEffect(()=>{if(reading&&!state.draft&&!state.loadingNote){restoring.current=true;setReading(false)}},[reading,state.draft,state.loadingNote])
   const books=state.notebooks.filter(activeNotebook),mapped=context?.notebookId&&books.some(b=>b.notebookId===context.notebookId)?context.notebookId:null
   const preference=useMemo(()=>windowState.server?.repositoryId&&context?new ConversationBrowse(browserStorage(),windowState.server.repositoryId,context.workspace?.id??null):null,[windowState.server?.repositoryId,context?.workspace?.id,!!context])
   const initializedPreference=useRef<ConversationBrowse|null>(null)
@@ -73,11 +76,11 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   const browseBook=group==='workspace'?mapped:book,canBrowse=group!=='find'&&group!=='workspace'||!!browseBook||!!query.trim()
   const desiredFilter=useMemo(()=>({order:'recent' as const,sessionId,relation:group==='linked'?(sourceOnly?'source' as const:'linked' as const):'browse' as const,...(group==='find'?{query}:{}),...((group==='find'||group==='workspace')&&browseBook&&browseBook!=='all'?{notebookId:browseBook}:{})}),[query,group,sourceOnly,browseBook,sessionId])
   useEffect(()=>{
-    if(!tab.visible||reading||!canBrowse)return
+    if(!tab.visible||showDetail||!canBrowse)return
     if(JSON.stringify(controller.getSnapshot().filter)===JSON.stringify(desiredFilter))return
     const timer=setTimeout(()=>void controller.selectFilter(desiredFilter,false),query&&group==='find'?180:0)
     return()=>clearTimeout(timer)
-  },[desiredFilter,pair,tab.visible,canBrowse,reading])
+  },[desiredFilter,pair,tab.visible,canBrowse,showDetail])
   useLayoutEffect(()=>{if(!reading&&restoring.current&&!state.loadingList&&list.current){list.current.scrollTop=scroll.current;restoring.current=false}},[reading,state.loadingList,state.items])
   useEffect(()=>{const saved=(e:Event)=>{const data=(e as CustomEvent<{sessionId:string;noteId:string}>).detail;if(data.sessionId!==sessionId||!visible.current)return;setReading(true);setGroup('linked');setSourceOnly(true);scroll.current=0;void controller.leave().then(async ok=>{if(!ok||!alive.current||!visible.current)return;await controller.filter({sessionId,relation:'linked',order:'recent'});if(alive.current&&visible.current&&await controller.open(data.noteId))setReading(true)})};window.addEventListener('fatfish-notes-captured',saved);return()=>window.removeEventListener('fatfish-notes-captured',saved)},[pair,sessionId])
   function selectBook(id:string){setBook(id);setBooksOpen(false);scroll.current=0;if(id!=='all')preference?.choose(id)}
@@ -85,8 +88,8 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   async function back(){if(await controller.leave()){restoring.current=true;setReading(false)}}
   async function associate(item:Pick<NoteListItem,'noteId'|'heads'>,linked:boolean){if(pendingLinks.current.has(item.noteId)||removed)return;pendingLinks.current.add(item.noteId);setLinking(new Set(pendingLinks.current));setError(false);try{const {note}=await workspace.api('/notes/associate',{noteId:item.noteId,expectedHeads:item.heads,sessionId,linked});controller.patchAssociation(note,linked?'manual':null);setUndo(linked?null:item.noteId);notebookSync.localChanged()}catch{setError(true)}finally{pendingLinks.current.delete(item.noteId);setLinking(new Set(pendingLinks.current))}}
   async function restore(){if(!undo)return;try{const {note}=await workspace.api('/notes/get',{noteId:undo});await associate(note,true);await controller.refresh(true,false,false)}catch{setError(true)}}
-  function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);if(id&&!book){setBook(id);preference?.choose(id)}setSetup(null);window.dispatchEvent(new Event('fatfish-workspace-book'))}
-  async function create(notebookId=mapped){if(removed)return;if(await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId})){setReading(true);setGroup('linked');setSourceOnly(false)}}
+  function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);if(id&&!book){setBook(id);preference?.choose(id)}window.dispatchEvent(new Event('fatfish-workspace-book'))}
+  async function create(notebookId=mapped){if(removed)return;scroll.current=list.current?.scrollTop??scroll.current;if(await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId}))setReading(true)}
   const actions=useItemActions(controller,state,t,open,()=>setReading(true))
   const tabs:Group[]=mapped?['linked','workspace','find']:['linked','find']
   useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,reading,tab.visible])
@@ -95,12 +98,12 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   return <section ref={root} onKeyDown={e=>{if(narrow&&booksOpen&&e.key==='Escape'){e.stopPropagation();setBooksOpen(false)}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId}>
     <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+sidebarFollowupCss}</style>
     {actions.dialogs}{setup&&<WorkspaceBookDialog mode={setup} workspace={context?.workspace??null} mapped={mapped} initialSelected={setup==='workspace'?setupBook:null} controller={controller} state={state} t={t} close={()=>{setSetup(null);setSetupBook(null)}} changed={mappedBook}/>}
-    <header className="conversation-notes-head"><strong>{reading?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void back()}><ArrowLeft size={16}/></button>:<BookOpen size={17}/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
+    <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void back()}><ArrowLeft size={16}/></button>:<BookOpen size={17}/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
     <WorkspaceNotice workspace={workspace} t={t}/>
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {reading&&state.draft?<div className="paper-detail">{state.note&&<NoteReference controller={controller} available={!removed} inputActions={inputActions} useInput={useInput} sessionId={sessionId} visible={tab.visible} t={t}/>}<NoteEditor key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {showDetail?<div className="paper-detail">{state.note&&<NoteReference controller={controller} available={!removed} inputActions={inputActions} useInput={useInput} sessionId={sessionId} visible={tab.visible} t={t}/>}<NoteEditor key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
       <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{setGroup(key);scroll.current=0}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}</nav>
       {group==='find'&&<>
         <div className="conversation-notes-search"><Search size={15}/><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{setQuery(e.target.value);scroll.current=0}}/></div>
