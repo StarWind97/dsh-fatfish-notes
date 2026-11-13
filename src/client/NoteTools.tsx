@@ -48,10 +48,22 @@ export function ReuseDialog({state,controller,t,close,mode}:{state:NotesState;co
     </div><footer><button disabled={busy} onClick={close}>{t('cancel')}</button><button className="paper-primary" disabled={busy||!title.trim()||!book||mode==='instantiate'&&!selected} onClick={()=>void run()}>{t(mode==='template'?'reuseSaveTemplate':'reuseCreate')}</button></footer></PaperDialog>
 }
 
-export function Backlinks({note,t,open}:{note:NoteView;t:T;open:(id:string)=>void}) {
-  const [expanded,setExpanded]=useState(false),[items,setItems]=useState<NoteListItem[]>([]),[error,setError]=useState(false),[loading,setLoading]=useState(false)
-  useEffect(()=>{if(!expanded)return;const c=new AbortController();setLoading(true);setError(false);void api('/notes/backlinks',{noteId:note.noteId},c.signal).then(r=>setItems(r.items)).catch(()=>{if(!c.signal.aborted)setError(true)}).finally(()=>{if(!c.signal.aborted)setLoading(false)});return()=>c.abort()},[expanded,note.noteId,note.current.revision])
-  return <section className="paper-backlinks"><button aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}><Link2 size={15}/>{t('reuseBacklinks')}{expanded&&` · ${items.length}`}</button>{expanded&&(loading?<p>{t('loading')}</p>:error?<p role="alert">{t('organizeFailed')}</p>:items.length?<ul>{items.map(item=><li key={item.noteId}><button onClick={()=>open(item.noteId)}>{item.title}<ArrowUpRight size={14}/></button></li>)}</ul>:<p className="paper-hint">{t('reuseNoBacklinks')}</p>)}</section>
+export function Backlinks({note,t,open,refreshToken}:{note:NoteView;t:T;open:(id:string)=>void;refreshToken?:unknown}) {
+  const [expanded,setExpanded]=useState(true),[items,setItems]=useState<NoteListItem[]>([]),[total,setTotal]=useState<number|null>(null)
+  const [cursor,setCursor]=useState<string|null>(null),[error,setError]=useState(false),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0)
+  const active=React.useRef<AbortController|null>(null)
+  useEffect(()=>{const c=new AbortController();active.current?.abort();active.current=c;setLoading(true);setError(false)
+    void api('/notes/backlinks',{noteId:note.noteId},c.signal).then(r=>{setItems(r.items);setTotal(r.total);setCursor(r.cursor)}).catch(()=>{if(!c.signal.aborted)setError(true)}).finally(()=>{if(!c.signal.aborted)setLoading(false)})
+    return()=>{active.current?.abort()}
+  },[note.noteId,note.current.revision,refreshToken,retry])
+  async function more(){if(!cursor||loading)return;const c=new AbortController();active.current=c;setLoading(true);setError(false)
+    try{const r=await api('/notes/backlinks',{noteId:note.noteId,cursor},c.signal);if(c.signal.aborted)return;setItems(old=>[...old,...r.items.filter(item=>!old.some(v=>v.noteId===item.noteId))]);setTotal(r.total);setCursor(r.cursor)}catch{if(!c.signal.aborted)setError(true)}finally{if(!c.signal.aborted)setLoading(false)}
+  }
+  if(total===0&&!loading&&!error)return null
+  return <section className="paper-backlinks" aria-label={t('reuseBacklinks')} aria-busy={loading}><button aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}><Link2 size={15}/>{t('reuseBacklinks')}{total!==null&&` · ${total}`}</button>
+    {loading&&total===null&&<p role="status">{t('loading')}</p>}{error&&<p role="alert">{t('organizeFailed')} <button onClick={()=>setRetry(n=>n+1)}>{t('noteRetry')}</button></p>}
+    {expanded&&<>{items.length>0&&<ul>{items.map(item=><li key={item.noteId}><button onClick={()=>open(item.noteId)}>{item.title}<ArrowUpRight size={14}/></button></li>)}</ul>}{cursor&&<button disabled={loading} onClick={()=>void more()}>{t(loading?'loading':'notesMore')}</button>}</>}
+  </section>
 }
 export function LinkPreview({id,t,close,open}:{id:string;t:T;close:()=>void;open:()=>void}) {
   const [note,setNote]=useState<NoteView|null>(null),[failed,setFailed]=useState(false)

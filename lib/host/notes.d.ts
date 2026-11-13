@@ -150,8 +150,10 @@ export declare class NotesApplication {
         };
     }>;
     backlinks(input: unknown, signal?: AbortSignal): Promise<{
-        ok: true;
         items: import("../contracts/notes.js").NoteListItem[];
+        cursor: string | null;
+        total: number;
+        ok: true;
     }>;
     list(input: unknown, signal?: AbortSignal): Promise<{
         items: import("../contracts/notes.js").NoteListItem[];

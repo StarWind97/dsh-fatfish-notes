@@ -12,7 +12,7 @@ function note(v: unknown): boolean {
   return revision(v.current) && v.conflicts.every(revision) && (v.effectiveNotebookId === null || id(v.effectiveNotebookId))
 }
 export function validCaptureSource(value: unknown): boolean {
-  return record(value) && value.version === 1 && typeof value.complete === 'boolean' && Array.isArray(value.messages) && value.messages.every(m => record(m) && typeof m.id === 'string' && ['user','assistant'].includes(String(m.role)) && Array.isArray(m.blocks) && m.blocks.every(b => record(b) && (b.type === 'text' ? typeof b.text === 'string' : b.type === 'image' && typeof b.attachmentId === 'string'))) && record(value.assets) && Object.values(value.assets).every(v => typeof v === 'string' && /^[a-f0-9]{64}\.(png|jpg|gif|webp)$/.test(v))
+  return record(value) && value.version === 1 && typeof value.complete === 'boolean' && Array.isArray(value.messages) && value.messages.every(m => record(m) && typeof m.id === 'string' && ['user','assistant'].includes(String(m.role)) && Array.isArray(m.blocks) && m.blocks.every(b => record(b) && (b.type === 'text' ? typeof b.text === 'string' && (b.materialId===undefined || typeof b.materialId==='string' && /^upload:[0-9]+:[0-9]+$/.test(b.materialId) && b.materialId.length<=80) : b.type === 'image' && typeof b.attachmentId === 'string'))) && record(value.assets) && Object.values(value.assets).every(v => typeof v === 'string' && /^[a-f0-9]{64}\.(png|jpg|gif|webp)$/.test(v))
 }
 export function validNotesResponse(path: ApiPath, value: unknown): boolean | undefined {
   if (path !== '/notes' && !path.startsWith('/notes/')) return undefined
@@ -34,7 +34,7 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if (path === '/notes/manage') return strings(value.completed)&&value.completed.every(id)&&(value.note===undefined||note(value.note))
   if (path === '/notes/catalog') return Array.isArray(value.tags)&&value.tags.every(v=>record(v)&&typeof v.tag==='string'&&Number.isSafeInteger(v.count)&&Number(v.count)>0)
   if (path === '/notes/history') return Array.isArray(value.items)&&value.items.length<=30&&value.items.every(v=>record(v)&&hash(v.revision)&&typeof v.recordedAt==='string'&&typeof v.title==='string'&&typeof v.summary==='string'&&['active','trashed'].includes(String(v.status)))&&(value.cursor===null||hash(value.cursor))
-  if (path === '/notes/backlinks') return validNotesResponse('/notes',{...value,cursor:null})
+  if (path === '/notes/backlinks') return validNotesResponse('/notes',value)&&Number.isSafeInteger(value.total)&&Array.isArray(value.items)&&Number(value.total)>=value.items.length
   if (path === '/notes/revision') return note(value.note)
   if (path === '/notes/image') return record(value.asset) && typeof value.asset.id === 'string' && /^[a-f0-9]{64}\.(?:png|jpg|gif|webp)$/.test(value.asset.id) && Number.isSafeInteger(value.asset.bytes) && Number(value.asset.bytes)>0 && (value.asset.preview===undefined || typeof value.asset.preview==='string' && /^data:image\/(?:png|jpeg|webp|gif);base64,/.test(value.asset.preview))
   if (['/notes/get','/notes/save','/notes/trash','/notes/restore','/notes/resolve'].includes(path)) return note(value.note)
@@ -51,7 +51,7 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
     for (const m of value.messages) {
       if (!record(m) || typeof m.id !== 'string' || ids.has(m.id) || !Number.isSafeInteger(m.seq) || !['user','assistant'].includes(String(m.role)) || !Array.isArray(m.blocks)) return false
       ids.add(m.id)
-      if (!m.blocks.every(b => record(b) && (b.type === 'text' ? typeof b.text === 'string' : b.type === 'image' && typeof b.attachmentId === 'string' && typeof b.mediaType === 'string'))) return false
+      if (!m.blocks.every(b => record(b) && (b.type === 'text' ? typeof b.text === 'string' && (b.materialId===undefined || typeof b.materialId==='string' && /^upload:[0-9]+:[0-9]+$/.test(b.materialId) && b.materialId.length<=80) : b.type === 'image' && typeof b.attachmentId === 'string' && typeof b.mediaType === 'string'))) return false
     }
     return value.defaultMessageIds.every(messageId => ids.has(messageId))
   }

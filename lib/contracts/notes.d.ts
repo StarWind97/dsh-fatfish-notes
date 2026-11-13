@@ -181,6 +181,7 @@ export interface CaptureRequest {
 export type CaptureBlock = {
     type: 'text';
     text: string;
+    materialId?: string;
 } | {
     type: 'image';
     attachmentId: string;
@@ -459,10 +460,13 @@ export interface NotesApiContract {
     '/notes/backlinks': {
         request: {
             noteId: string;
+            cursor?: string;
         };
         response: {
             ok: true;
             items: NoteListItem[];
+            total: number;
+            cursor: string | null;
         };
     };
     '/notes/attachment': {

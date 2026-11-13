@@ -59,7 +59,7 @@ export interface CaptureRequest {
   mode: NoteMode; autoMetadata: boolean; notebookId: string | null
   cut?: CaptureCut; materialIds?: string[]; allowLarge?: boolean
 }
-export type CaptureBlock = { type: 'text'; text: string } | { type: 'image'; attachmentId: string; mediaType: string }
+export type CaptureBlock = { type: 'text'; text: string; materialId?:string } | { type: 'image'; attachmentId: string; mediaType: string }
 export interface CaptureMessage { id: string; seq: number; turn?: number; role: 'user' | 'assistant'; blocks: CaptureBlock[] }
 export interface CaptureMaterial {
   id:string; kind:'image'|'file'; origin:'upload'|'delivery'; name:string; bytes:number|null
@@ -109,7 +109,7 @@ export interface NotesApiContract {
   '/notes/catalog': { request: undefined; response: { ok: true } & NoteCatalog }
   '/notes/history': { request: { noteId: string; cursor?: string }; response: { ok: true; items: NoteHistoryItem[]; cursor: string | null } }
   '/notes/revision': { request: { noteId: string; revision: string }; response: { ok: true; note: NoteView } }
-  '/notes/backlinks': { request: { noteId: string }; response: { ok: true; items: NoteListItem[] } }
+  '/notes/backlinks': { request: { noteId: string; cursor?:string }; response: { ok: true; items: NoteListItem[]; total:number; cursor:string|null } }
   '/notes/attachment': { request: { noteId: string; draft?: boolean; name: string; base64: string; allowLarge?: boolean }; response: { ok: true; attachment: NoteAttachment } }
   '/notes/batch': { request: { notes: NoteSelection[]; action: 'trash' | 'restore' | 'purge' }; response: { ok: true; completed: string[] } }
   '/notes': { request: NoteListOptions; response: NoteListResult & { ok: true } }

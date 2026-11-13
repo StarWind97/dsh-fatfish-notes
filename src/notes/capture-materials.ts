@@ -1,7 +1,17 @@
-import type {CaptureMaterial,CaptureMessage,ArchivedMaterial} from '../contracts/notes.js'
+import type {CaptureMaterial,CaptureMessage,CaptureBlock,ArchivedMaterial} from '../contracts/notes.js'
 import {changeReferences,references} from './portable-links.js'
 import {markdownLabel} from '../contracts/note-links.js'
 const localTarget=(value:string)=>{try{value=decodeURIComponent(value)}catch{};return value.replace(/^file:\/\/\/?/i,'').replace(/\\/g,'/').replace(/^\.\//,'')}
+/** A file card has an explicit identity. Plain text and legacy sources never guess one. */
+export function capturedFile(block:CaptureBlock,message:Pick<CaptureMessage,'id'|'seq'>,materials?:ArchivedMaterial[]){
+  if(block.type!=='text'||block.materialId===undefined||materials===undefined)return null
+  const matches=materials.filter(m=>m.id===block.materialId)
+  const material=matches.length===1?matches[0]:undefined
+  if(!material||material.origin!=='upload'||material.kind!=='file'||material.messageId!==message.id||material.seq!==message.seq||!new RegExp(`^upload:${message.seq}:[0-9]+$`).test(material.id)||material.saved&&!/^[a-f0-9]{64}$/.test(material.saved.id))return {label:'上传文件（关联不可用）',markdown:'上传文件（关联不可用）',material:undefined}
+  const label=material.name.replace(/[\r\n]/g,' '),safe=label.replace(/[\\`*_[\]<>]/g,'\\$&')
+  const suffix=!material.available?'文件不可用':material.saved?'':'未包含'
+  return {material,label:label+(suffix?`（${suffix}）`:''),markdown:material.saved&&material.available?`[${safe}](../attachments/${material.saved.id}.bin)`:`${safe}（${suffix}）`}
+}
 /** Match only actual local Markdown destinations to known selected materials. No disk search. */
 export function captureLinks(messages:CaptureMessage[],materials:CaptureMaterial[],paths:ReadonlyMap<string,string>=new Map()){
   const result=new Map<string,Array<{url:string;image:boolean}>>()

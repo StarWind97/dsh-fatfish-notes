@@ -62,7 +62,7 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
         const valid=typeof ref.attachmentId==='string'&&/^sha256:[a-f0-9]{64}$/.test(ref.attachmentId)&&Number.isSafeInteger(ref.bytes)&&Number(ref.bytes)>=0
         materials.push({id,kind:'file',origin:'upload',name,bytes:valid?Number(ref.bytes):null,seq:event.seq,...(turn===undefined?{}:{turn}),messageId,available:valid})
         if(valid)materialReferences.set(id,{kind:'upload',ref:ref as unknown as FileAttachmentRef})
-        blocks.push({type:'text',text:`[上传文件：${name}]`})
+        blocks.push({type:'text',text:`[上传文件：${name}]`,materialId:id})
       }
       else if (block.type === 'image') {
         const attachment = object(block.attachment), attachmentId = text(attachment.attachmentId, 512), mediaType = text(attachment.mediaType, 100)
@@ -84,7 +84,8 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
     if (messages.length > NOTE_LIMITS.messages) fail('note_limit', '会话超过 20,000 条可见消息，未保存为完整笔记')
   }
   const links=captureLinks(messages,materials,new Map([...materialReferences].flatMap(([id,ref])=>ref.kind==='delivery'?[[id,ref.path] as const]:[])))
-  for(const material of materials)material.placement=material.imageId||links.has(material.id)?'body':'supplement'
+  const uploads=new Set(messages.flatMap(m=>m.blocks.flatMap(b=>b.type==='text'&&b.materialId?[b.materialId]:[])))
+  for(const material of materials)material.placement=material.imageId||links.has(material.id)||uploads.has(material.id)?'body':'supplement'
   return { messages, complete: !issues.size, issues: [...issues], imageReferences,materials,materialReferences }
 }
 

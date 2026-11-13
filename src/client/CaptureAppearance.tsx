@@ -1,4 +1,5 @@
 import * as React from 'react'
+import {captureCss} from './capture-style.js'
 import { useSyncExternalStore } from 'react'
 import { BookPlus, Download } from 'lucide-react'
 import type { T } from './locale.js'
@@ -23,6 +24,7 @@ export function CaptureGlyph({ appearance, t, exporting=false }: { appearance: A
 export function CaptureAppearance({t}: {t:T}) {
   const current = useCaptureAppearance(), group = React.useId()
   return <section className="setup-section capture-preferences">
+    <style>{captureCss}</style>
     <strong>{t('captureAppearance')}</strong>
     <fieldset><legend>{t('captureButtonStyle')}</legend>
       <div className="capture-styles">{(['label','icon'] as const).map(value =>
@@ -30,7 +32,7 @@ export function CaptureAppearance({t}: {t:T}) {
           <span className="capture-style-label"><input type="radio" name={group} checked={current === value} onChange={() => {
             writePreference(preference, value); window.dispatchEvent(new Event(changed))
           }}/>{t(value === 'label' ? 'captureWithText' : 'captureIconOnly')}</span>
-          <span aria-hidden="true"><span className="capture-action capture-example"><CaptureGlyph appearance={value} t={t}/></span><span className="capture-action capture-example"><CaptureGlyph appearance={value} t={t} exporting/></span></span>
+          <span aria-hidden="true"><span className="capture-action capture-example"><CaptureGlyph appearance={value} t={t}/></span></span>
         </label>
       )}</div>
     </fieldset>

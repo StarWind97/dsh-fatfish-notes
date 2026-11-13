@@ -1,4 +1,14 @@
-import type { CaptureMaterial, CaptureMessage, ArchivedMaterial } from '../contracts/notes.js';
+import type { CaptureMaterial, CaptureMessage, CaptureBlock, ArchivedMaterial } from '../contracts/notes.js';
+/** A file card has an explicit identity. Plain text and legacy sources never guess one. */
+export declare function capturedFile(block: CaptureBlock, message: Pick<CaptureMessage, 'id' | 'seq'>, materials?: ArchivedMaterial[]): {
+    label: string;
+    markdown: string;
+    material: undefined;
+} | {
+    material: ArchivedMaterial;
+    label: string;
+    markdown: string;
+} | null;
 /** Match only actual local Markdown destinations to known selected materials. No disk search. */
 export declare function captureLinks(messages: CaptureMessage[], materials: CaptureMaterial[], paths?: ReadonlyMap<string, string>): Map<string, {
     url: string;

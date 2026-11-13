@@ -1,3 +1,4 @@
+import {BacklinkIndex} from './backlinks.js'
 import { conflictForkId, conflictRevisions, revisionContent } from './conflicts.js'
 import { join, resolve } from 'node:path'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
@@ -19,7 +20,7 @@ import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
 import { ATTACHMENT_LIMIT, SINGLE_TRANSFER_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
-import { linkedNotes, fillTemplate } from './relations.js'
+import { fillTemplate } from './relations.js'
 import { DraftFiles, type LocalDraft } from './drafts.js'
 import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js'
 import {syncResource,resourceBatches,missingSyncResources,type SyncResource} from './sync-resources.js'
@@ -51,6 +52,8 @@ export class NoteRepository {
   private readonly checkedRows = new Map<string,{row:NoteRevision|NotebookRevision; stamps:Map<string,string>}>()
   private readonly sourceSessions=new Map<string,string>()
   private writeEpoch = 0
+  private backlinkIndex=new BacklinkIndex()
+  private backlinkFingerprint:string|undefined
   private get drafts(){return new DraftFiles(resolve(this.files.root,'../local-drafts'))}
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
     this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { if(/^(revisions|notebooks|deleted)\/|^manifest\.json$/.test(path))this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
@@ -61,6 +64,7 @@ export class NoteRepository {
     this.validated = undefined
     this.checkedRows.clear()
     this.sourceSessions.clear()
+    this.backlinkIndex=new BacklinkIndex();this.backlinkFingerprint=undefined
     this.files = new NoteFiles(resolve(directory, 'notes'), this.files.beforeWrite)
   }
   close():void{this.files.inventory.close()}
@@ -354,12 +358,19 @@ export class NoteRepository {
     },signal)
   }
   async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {
+    return (await this.backlinkPage(noteId,{},signal)).items
+  }
+  async backlinkPage(noteId:string,options:{cursor?:string;limit?:number}={},signal?:AbortSignal):Promise<NoteListResult & {total:number}> {
     id(noteId)
     return this.run(async()=>{
       const state=await this.load([noteId]);this.view(state,noteId)
-      const views=[...new Set(state.revisions.map(r=>r.noteId))].map(n=>this.view(state,n))
-        .filter(v=>v.noteId!==noteId&&v.current.status==='active'&&!v.current.isTemplate&&linkedNotes(v.current.body).has(noteId))
-      return searchNotes(views,{order:'recent',limit:100}).items
+      const fingerprint=this.validated?.fingerprint
+      if(!fingerprint||fingerprint!==this.backlinkFingerprint){
+        this.backlinkIndex.update([...new Set(state.revisions.map(r=>r.noteId))].map(n=>this.view(state,n)))
+        this.backlinkFingerprint=fingerprint
+      }
+      const views=this.backlinkIndex.get(noteId)
+      return {...searchNotes(views,{order:'recent',limit:options.limit??100,...(options.cursor?{cursor:options.cursor}:{})}),total:views.length}
     },signal)
   }
   /** All selected heads/leases and resulting content are checked before the first write. */

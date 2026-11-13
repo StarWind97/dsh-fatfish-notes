@@ -1,3 +1,5 @@
+import type {ReadingSnapshot} from '../src/notes/export/reading.js'
+import {NoteMarkdown} from '../src/client/NoteMarkdown.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, readFile } from 'node:fs/promises'
@@ -36,6 +38,12 @@ test('final R1 duplicate references keep the first image and link in reading, sn
       const reading = renderToStaticMarkup(React.createElement(Markdown, { children: body }))
       assert.ok(reading.includes(`src="../assets/${first.id}"`)); assert.ok(reading.includes('href="https://example.com/first"'))
       for (const format of ['snapshot', 'png-long', 'png-pages']) {
+        if(format!=='snapshot'){
+          const value=JSON.parse((await createExport(repo,{...request,format})).bytes.toString()) as ReadingSnapshot
+          assert.deepEqual(Object.keys(value.assets),[first.id]);assert.equal(value.note.current.body,body)
+          const html=renderToStaticMarkup(React.createElement(NoteMarkdown,{body:value.note.current.body,note:value.note,staticView:true,assetUrl:id=>value.assets[id]!}))
+          assert.ok(html.includes(`src="${value.assets[first.id]}"`));assert.ok(html.includes('href="https://example.com/first"'));assert.ok(!html.includes('https://example.com/later'));continue
+        }
         const snapshot = JSON.parse((await createExport(repo, { ...request, format })).bytes.toString()) as ExportSnapshot
         assert.deepEqual(snapshot.model.assetIds, [first.id], format)
         assert.deepEqual(snapshot.model.blocks.filter(b => b.type === 'image').map(b => b.assetId), [first.id], format)
@@ -73,6 +81,10 @@ test('M7 fix1 unfinished backtick/tilde note fences cannot consume explicit orig
   for (const body of ['```ts\nNOTE-UNFINISHED\n','~~~js\nNOTE-UNFINISHED\n','````js\nNOTE-UNFINISHED\n','```ts\nNOTE-UNFINISHED\n```','~~~js\nNOTE-UNFINISHED\n~~~']) {
     const note = await repo.save({ expectedHeads: [], content: { ...content, body, sourceId } }), request = { noteId: note.noteId, revision: note.current.revision, includeSource: true }
     for (const format of ['snapshot','png-long','png-pages']) {
+      if(format!=='snapshot'){
+        const value=JSON.parse((await createExport(repo,{...request,format})).bytes.toString()) as ReadingSnapshot
+        assert.equal(value.note.current.body,body);assert.equal(value.source!.messages[0]!.blocks[0]!.type,'text');assert.ok(JSON.stringify(value.source).includes('SOURCE-TEXT'));assert.ok(value.assets[asset.id]);continue
+      }
       const result = JSON.parse((await createExport(repo, { ...request, format })).bytes.toString()) as ExportSnapshot
       assert.deepEqual(result.model.assetIds, [asset.id]); assert.ok(result.model.blocks.some(b => b.type === 'image' && b.assetId === asset.id)); assert.ok(result.model.blocks.some(b => b.type === 'text' && b.kind === 'code' && b.runs.map(r => r.text).join('') === 'NOTE-UNFINISHED'))
       assert.ok(result.model.blocks.some(b => b.type === 'text' && b.runs.map(r => r.text).join('') === sourceText)); assert.ok(result.assets[asset.id]?.startsWith('data:image/png;base64,'))
@@ -111,6 +123,10 @@ test('the same selected fields reach Markdown, its ZIP and the rendered export m
     const shown=md.slice(end+6).trimEnd()
     assert.equal(shown,rows.join('\n\n'))
     for(const format of ['snapshot','png-long','png-pages']){
+      if(format!=='snapshot'){
+        const value=JSON.parse((await createExport(repo,{...options,format})).bytes.toString()) as ReadingSnapshot
+        assert.deepEqual(value.note.current.tags,includeTags?[tag]:[]);assert.equal(value.note.current.summary,includeSummary?summary:'');assert.equal(value.note.current.body,body);continue
+      }
       const snap=JSON.parse((await createExport(repo,{...options,format})).bytes.toString()) as ExportSnapshot
       assert.deepEqual(snap.model.blocks.map(b=>b.type==='text'?b.runs.map(r=>r.text).join(''):b.type),
         ['图文手记',modified,...(includeTags?['#'+tag]:[]),...(includeSummary?[summary,'rule']:[]),body])
@@ -133,8 +149,8 @@ test('M7 frozen revision exports only public metadata, two distinct local assets
   assert.deepEqual(Object.keys(files).sort(), [`assets/${a.id}`,`assets/${b.id}`,'中文 _ 导出_.md'].sort()); assert.deepEqual(Buffer.from(files[`assets/${a.id}`]!), png); assert.deepEqual(Buffer.from(files[`assets/${b.id}`]!), gif)
   const withSource = await createExport(repo, { ...request, format: 'markdown-zip', includeSource: true }), sourceText = Buffer.from(unzipSync(withSource.bytes)['中文 _ 导出_.md']!).toString('utf8')
   assert.ok(sourceText.includes('PRIVATE-SOURCE-CONTENT')); assert.ok(!sourceText.includes('PRIVATE-SESSION')); assert.ok(!sourceText.includes('PRIVATE-MESSAGE'))
-  const snap = JSON.parse((await createExport(repo, { ...request, format: 'png-long' })).bytes.toString()) as ExportSnapshot
-  assert.equal(snap.revision, old.current.revision); assert.notEqual(snap.assets[a.id], snap.assets[b.id]); assert.equal(Object.keys(snap.assets).length, 2)
+  const snap = JSON.parse((await createExport(repo, { ...request, format: 'png-long' })).bytes.toString()) as ReadingSnapshot
+  assert.equal(snap.note.current.revision, old.current.revision); assert.notEqual(snap.assets[a.id], snap.assets[b.id]); assert.equal(Object.keys(snap.assets).length, 2)
   assert.deepEqual((await createExport(repo, { ...request, format: 'original', assetId: b.id })).bytes, gif)
 })
 test('M7 raw HTML is literal; unsafe links and external/unknown images never trigger fetching', () => {

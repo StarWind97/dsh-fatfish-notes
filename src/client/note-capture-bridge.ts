@@ -34,7 +34,7 @@ export class NoteCaptureBridge {
   private changedSelection(patch:Partial<NoteCaptureState>){this.cancelSuggestion();const state=this.state;if(!state)return;const next={...state,...patch,suggestionStale:!!state.metadata?.summary};if(!state.metadataTouched)next.metadata=this.defaultMetadata(next);this.emit(next)}
   private defaultMetadata(state:NoteCaptureState):NoteStageResult{
     const first=state.selection?.messages.filter(m=>state.scope==='session'||state.selected.includes(m.id)).find(m=>m.role==='user')
-    const text=first?.blocks.filter(b=>b.type==='text').map(b=>b.text).join(' ').split(/[\r\n]/)[0]?.replace(/^[#>*\s-]+/,'').trim()??''
+    const text=first?.blocks.flatMap(b=>b.type==='text'&&!b.materialId?[b.text]:[]).join(' ').split(/[\r\n]/)[0]?.replace(/^[#>*\s-]+/,'').trim()??''
     return {title:[...text].slice(0,40).join('')||'会话笔记',summary:'',tags:[]}
   }
   async suggest(){

@@ -1,20 +1,24 @@
 import {bundleFiles} from './export-bundle.js'
-import {exportFilename} from '../notes/export/markdown.js'
+import {readingImage,type ReadingAppearance} from './note-reading-image.js'
+import type {ReadingSnapshot} from '../notes/export/reading.js'
+import {validNotesResponse,validCaptureSource} from './notes-validation.js'
 import { toBlob } from 'html-to-image'
-import { ApiError } from './api.js'
+import { ApiError,currentRepository } from './api.js'
 import { ExportError, type ExportSnapshot, type ExportImage } from '../notes/export/model.js'
 import { checkPixels, layoutExport, EXPORT_LIMITS, type ExportPage } from '../notes/export/layout.js'
 import { imageDimensions } from '../notes/export/image.js'
 import type { NoteExportRequest, NoteExportFormat } from '../contracts/notes.js'
 
 export type ExportFormat = Exclude<NoteExportFormat, 'snapshot'>
-export interface ExportOptions { format: ExportFormat; includeSource: boolean; assetIds?:string[];attachmentIds?:string[];includeTags?:boolean; includeSummary?:boolean; width: number; pixelRatio: number; background: 'light' | 'dark' | 'transparent'; assetId?: string }
+export interface ExportOptions { format: ExportFormat; includeSource: boolean; assetIds?:string[];attachmentIds?:string[];includeTags?:boolean; includeSummary?:boolean; width: number; pixelRatio: number; background: 'current' | 'light' | 'dark' | 'transparent'; appearance?:ReadingAppearance; assetId?: string }
 export interface DownloadFile { blob: Blob; filename: string }
 interface Frozen { noteId: string; revision: string }
-export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<Response> {
+export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch,repository=currentRepository()): Promise<Response> {
   signal.throwIfAborted()
-  const response = await fetcher('/dsh-fatfish-notes/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...identity, ...body }), signal })
+  if(currentRepository()!==repository)throw new ApiError('notebook_changed')
+  const response = await fetcher('/dsh-fatfish-notes/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json',...(repository===undefined?{}:{'x-notebook-repository':String(repository)}) }, body: JSON.stringify({ ...identity, ...body }), signal })
   signal.throwIfAborted()
+  if(currentRepository()!==repository)throw new ApiError('notebook_changed')
   if (!response.ok) {
     const error: unknown = await response.json().catch(() => null)
     throw new ApiError(error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' && /^[a-z_]{1,60}$/.test(error.code) ? error.code : 'export_failed')
@@ -26,8 +30,8 @@ export function downloadFilename(response: Response): string {
   try { const name = decodeURIComponent(match?.[1] ?? '笔记'); return /[\\/\x00-\x1f]/.test(name) ? '笔记' : name } catch { return '笔记' }
 }
 type ExportFields = Pick<NoteExportRequest, 'includeSource'|'includeTags'|'includeSummary'|'assetIds'|'attachmentIds'>
-async function snapshot(identity: Frozen, fields: ExportFields, signal: AbortSignal): Promise<ExportSnapshot> {
-  const value = await (await exportRequest(identity, { format: 'snapshot', ...fields }, signal)).json() as ExportSnapshot
+async function snapshot(identity: Frozen, fields: ExportFields, signal: AbortSignal, repository:number|undefined): Promise<ExportSnapshot> {
+  const value = await (await exportRequest(identity, { format: 'snapshot', ...fields }, signal,fetch,repository)).json() as ExportSnapshot
   signal.throwIfAborted()
   if (value?.noteId !== identity.noteId || value?.revision !== identity.revision || typeof value.filename !== 'string' || !Array.isArray(value.model?.blocks) || !Array.isArray(value.model?.assetIds) || !value.assets || Object.keys(value.assets).some(id => !value.model.assetIds.includes(id))) throw new ApiError('invalid_response')
   return value
@@ -128,24 +132,29 @@ export async function renderPages(value: Pick<ExportSnapshot,'model'|'filename'>
   } finally { holder.remove(); canvas.width = 0 }
 }
 export async function createNoteDownload(identity: Frozen, options: ExportOptions, signal: AbortSignal): Promise<DownloadFile> {
-  if (options.width < 480 || options.width > 2160 || !Number.isInteger(options.width) || ![1,2].includes(options.pixelRatio)) throw new ExportError('export_dimensions')
+  const repository=currentRepository()
+  const current=()=>{signal.throwIfAborted();if(currentRepository()!==repository)throw new ApiError('notebook_changed')}
   const {includeSource,includeTags,includeSummary}=options
   const fields:ExportFields={includeSource,...(options.assetIds?{assetIds:options.assetIds}:{}),...(options.attachmentIds?{attachmentIds:options.attachmentIds}:{}),...(includeTags!==undefined&&{includeTags}),...(includeSummary!==undefined&&{includeSummary})}
-  if (options.format === 'pdf' || options.format.startsWith('png-')) {
-    const value = await snapshot(identity, fields, signal), prepared = await prepareImages(value, signal)
-    if (options.format !== 'pdf') {
-      const rendered=await renderPages(value,prepared.images,options,signal)
-      if(!value.attachments?.length)return rendered
-      const blob=await bundleFiles([new File([rendered.blob],rendered.filename,{type:rendered.blob.type})],value.attachments.map(f=>({name:f.id.slice(0,16)+'-'+exportFilename(f.name),path:f.id.includes('.')?'/notes/export':'/notes/download',body:f.id.includes('.')?{...identity,format:'original',assetId:f.id}:{...identity,attachmentId:f.id}})),signal,true)
-      return {blob,filename:value.filename+'.zip'}
-    }
-    if (prepared.convertedImages.reduce((n, image) => n + Math.ceil(image.png.length * 3 / 4), 0) > 1024 * 1024) throw new ExportError('export_conversion_budget')
-    const response = await exportRequest(identity, { format: 'pdf', ...fields, convertedImages: prepared.convertedImages }, signal)
-    const blob = await response.blob(); signal.throwIfAborted(); return { blob, filename: downloadFilename(response) }
+  if(options.format.startsWith('png-')){
+    const value=await (await exportRequest(identity,{format:options.format,...fields},signal,fetch,repository)).json() as ReadingSnapshot
+    current()
+    if(value?.kind!=='reading'||typeof value.filename!=='string'||!validNotesResponse('/notes/get',{ok:true,note:value.note})||value.note.noteId!==identity.noteId||value.note.current.revision!==identity.revision||value.source!==null&&!validCaptureSource(value.source)||!value.assets||Array.isArray(value.assets)||Object.keys(value.assets).some(id=>!value.note.current.assetIds.includes(id)))throw new ApiError('invalid_response')
+    const prepared=await prepareImages({model:{title:'',blocks:[],assetIds:Object.keys(value.assets)},assets:value.assets},signal)
+    current();value.assets=Object.fromEntries(Object.entries(prepared.images).map(([id,image])=>[id,image.dataUrl]))
+    const result=await readingImage(value,options,signal);current();return result
   }
-  const response = await exportRequest(identity, { format: options.format, ...fields, ...(options.assetId ? { assetId: options.assetId } : {}) }, signal)
-  const blob = await response.blob(); signal.throwIfAborted(); return { blob, filename: downloadFilename(response) }
+  if(options.format==='pdf'){
+    const value=await snapshot(identity,fields,signal,repository),prepared=await prepareImages(value,signal)
+    current()
+    if(prepared.convertedImages.reduce((n,image)=>n+Math.ceil(image.png.length*3/4),0)>1024*1024)throw new ExportError('export_conversion_budget')
+    const response=await exportRequest(identity,{format:'pdf',...fields,convertedImages:prepared.convertedImages},signal,fetch,repository)
+    const blob=await response.blob();current();return {blob,filename:downloadFilename(response)}
+  }
+  const response=await exportRequest(identity,{format:options.format,...fields,...(options.assetId?{assetId:options.assetId}:{})},signal,fetch,repository)
+  const blob=await response.blob();current();return {blob,filename:downloadFilename(response)}
 }
+
 /** Browser/Electron own the final save; a click means download started, never disk-save verified. */
 export function startNoteDownload(file: DownloadFile): void {
   const url = URL.createObjectURL(file.blob), a = document.createElement('a'); a.href = url; a.download = file.filename; a.style.display = 'none'; document.body.append(a)

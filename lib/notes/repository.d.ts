@@ -22,6 +22,8 @@ export declare class NoteRepository {
     private readonly checkedRows;
     private readonly sourceSessions;
     private writeEpoch;
+    private backlinkIndex;
+    private backlinkFingerprint;
     private get drafts();
     constructor(directory: string, options?: NoteRepositoryOptions);
     /** Only before admitting any client operations, during setup or host startup. */
@@ -53,6 +55,12 @@ export declare class NoteRepository {
     }>;
     catalog(signal?: AbortSignal): Promise<NoteCatalog>;
     backlinks(noteId: string, signal?: AbortSignal): Promise<NoteListResult['items']>;
+    backlinkPage(noteId: string, options?: {
+        cursor?: string;
+        limit?: number;
+    }, signal?: AbortSignal): Promise<NoteListResult & {
+        total: number;
+    }>;
     /** All selected heads/leases and resulting content are checked before the first write. */
     manage(request: NoteManageRequest, signal?: AbortSignal): Promise<{
         completed: string[];

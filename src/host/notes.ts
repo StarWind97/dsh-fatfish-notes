@@ -100,7 +100,7 @@ export class NotesApplication {
   catalog(signal?:AbortSignal) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active)}),signal)}
   history(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input);return {ok:true as const,...await this.repository.history(id(v.noteId),v.cursor===undefined?undefined:hash(v.cursor),active)}},signal)}
   revision(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input),row=await this.repository.getRevision(id(v.noteId),hash(v.revision),active);return {ok:true as const,note:{noteId:row.noteId,heads:[row.revision],current:row,conflicts:[],savedAt:row.recordedAt,effectiveNotebookId:row.notebookId}}},signal)}
-  backlinks(input:unknown,signal?:AbortSignal) {return this.run(async active=>({ok:true as const,items:await this.repository.backlinks(id(object(input).noteId),active)}),signal)}
+  backlinks(input:unknown,signal?:AbortSignal) {const v=object(input);return this.run(async active=>({ok:true as const,...await this.repository.backlinkPage(id(v.noteId),{...(v.cursor!==undefined?{cursor:id(v.cursor)}:{}),limit:5},active)}),signal)}
   list(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), options: NoteListOptions = {}
     if(v.sessionId!==undefined)options.sessionId=text(v.sessionId,512)

@@ -28,7 +28,7 @@ test('supplements persist independently: body deletion does not bring moved file
   assert.deepEqual((await new NoteRepository(join(repo.files.root,'..')).get(first.noteId)).current.supplements,first.current.supplements)
   const bundle=unzipSync((await createExport(repo,{noteId:first.noteId,revision:first.current.revision,format:'markdown-zip'})).bytes)
   const markdown=Buffer.from(bundle['正文与补充.md']!).toString();assert.match(markdown,/## 补充附件/);assert.doesNotMatch(markdown,/!\[/);assert.ok(bundle['assets/'+image.id]);assert.equal(Object.keys(bundle).length,3)
-  const snapshot=JSON.parse((await createExport(repo,{noteId:first.noteId,revision:first.current.revision,format:'snapshot'})).bytes.toString());assert.deepEqual(snapshot.assets,{});assert.equal(snapshot.attachments.length,2)
+  const snapshot=JSON.parse((await createExport(repo,{noteId:first.noteId,revision:first.current.revision,format:'snapshot'})).bytes.toString());assert.deepEqual(snapshot.assets,{});assert.equal(snapshot.attachments.length,1)
   value={...value,body:`[文件](../attachments/${file.id}.bin)\n![图](../assets/${image.id})`};value.supplements=remainingSupplements(value)
   assert.deepEqual(value.supplements,empty)
   value={...value,body:'删除正文中的文件和图片引用'}
@@ -47,7 +47,7 @@ test('body download links to archived images retain the file without rendering i
   assert.deepEqual(Buffer.from(bundle['assets/'+image.id]!),png)
   assert.match(Buffer.from(bundle['正文与补充.md']!).toString(),/\[下载图片\]\(<assets\//)
   const snapshot=JSON.parse((await createExport(repo,{noteId:note.noteId,revision:note.current.revision,format:'snapshot'})).bytes.toString())
-  assert.deepEqual(snapshot.assets,{});assert.equal(snapshot.attachments.length,1)
+  assert.deepEqual(snapshot.assets,{});assert.equal(snapshot.attachments.length,0)
 })
 test('moving a supplement into body is a single undo/redo action',()=>{
   const extra={assetIds:[],attachmentIds:['a'.repeat(64)]}

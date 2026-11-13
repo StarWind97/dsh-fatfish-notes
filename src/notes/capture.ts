@@ -2,7 +2,7 @@ import type {MaterialReference} from '../host/conversation-files.js'
 import type {CaptureMaterial,ArchivedMaterial,CaptureProgress} from '../contracts/notes.js'
 import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
 import {bodyMaterials} from './reference-materials.js'
-import {materialsFor,captureLinks,capturedText} from './capture-materials.js'
+import {materialsFor,captureLinks,capturedText,capturedFile} from './capture-materials.js'
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript, NoteRevision } from '../contracts/notes.js'
 import type { ImageMediaType } from '../contracts/media.js'
 import { NoteRepository } from './repository.js'
@@ -59,12 +59,31 @@ export function selectMessages(messages: CaptureMessage[], request: Pick<Capture
 export function rawBody(source: CaptureSource): string {
   const literal = new Set(source.textOnlyBlocks.map(b => `${b.messageId}:${b.blockIndex}`))
   const fenced = (value: string): string => { let width = 3; for (const match of value.matchAll(/`+/g)) width = Math.max(width, match[0].length + 1); const fence = '`'.repeat(width); return `${fence}text\n${value}\n${fence}` }
-  return source.messages.map(m => `## ${m.role === 'user' ? '用户' : 'AI'}\n\n${m.blocks.map((b, i) => b.type === 'text' ? literal.has(`${m.id}:${i}`) ? fenced(b.text) : capturedText(b.text,source.archivedMaterials) : source.assets[b.attachmentId] ? `![会话图片](../assets/${source.assets[b.attachmentId]})` : source.archivedMaterials?.some(m=>m.imageId===b.attachmentId&&m.saved)?'[图片原件已保存到补充附件]':source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]').join('\n')}`).join('\n\n---\n\n')
+  return source.messages.map(m => {
+    const hasFiles=m.blocks.some(b=>capturedFile(b,m,source.archivedMaterials)!==null)
+    const blocks=m.blocks.map((b,i)=>{
+      const file=capturedFile(b,m,source.archivedMaterials);if(file)return file.markdown
+      if(b.type==='text')return literal.has(`${m.id}:${i}`)?fenced(b.text):capturedText(b.text,source.archivedMaterials)
+      return source.assets[b.attachmentId]?`![会话图片](../assets/${source.assets[b.attachmentId]})`:source.archivedMaterials?.some(m=>m.imageId===b.attachmentId&&m.saved)?'[图片原件已保存到补充附件]':source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]'
+    })
+    return `## ${m.role === 'user' ? '用户' : 'AI'}\n\n`+(hasFiles?blocks.map(closeCaptureFence).join('\n\n'):blocks.join('\n'))
+  }).join('\n\n---\n\n')
+}
+/** Keep a following native file card outside an unfinished text code fence. */
+function closeCaptureFence(body:string):string{
+  let open:string|undefined
+  for(const line of body.split(/\r?\n/)){
+    const match=/^[ \t]{0,3}(`{3,}|~{3,})(.*)$/.exec(line);if(!match)continue
+    const delimiter=match[1]!,rest=match[2]!
+    if(!open){if(delimiter[0]==='`'&&rest.includes('`'))continue;open=delimiter}
+    else if(delimiter[0]===open[0]&&delimiter.length>=open.length&&!rest.trim())open=undefined
+  }
+  return open?body+(body.endsWith('\n')?'':'\n')+open:body
 }
 function markTextOnlyImages(source: CaptureSource): void {
   const safe = (body: string): boolean => { try { validateBodyAssets(body, Object.values(source.assets)); return true } catch (e) { if (!(e instanceof NotebookError) || e.code !== 'note_asset') throw e; return false } }
   for (const message of source.messages) message.blocks.forEach((block, blockIndex) => {
-    if (block.type === 'text' && !safe(capturedText(block.text,source.archivedMaterials))) source.textOnlyBlocks.push({ messageId: message.id, blockIndex })
+    if (block.type === 'text' && !capturedFile(block,message,source.archivedMaterials) && !safe(capturedText(block.text,source.archivedMaterials))) source.textOnlyBlocks.push({ messageId: message.id, blockIndex })
   })
   // Cross-message reference definitions can also create an unsafe image link.
   // In that rare case retain all text blocks literally instead of following it.

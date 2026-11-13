@@ -1,3 +1,5 @@
+import type {CaptureSource} from '../../contracts/notes.js'
+import {readingProjection,readingImageIds,type ReadingSnapshot} from './reading.js'
 import {currentMaterials,supplementMaterials} from '../note-materials.js'
 import {supplementMarkdown} from '../capture-materials.js'
 import {omitMaterials} from '../material-markdown.js'
@@ -38,6 +40,14 @@ export async function createExport(repository: NoteRepository, input: unknown, s
   const selectedAssets=v.assetIds===undefined?allAssets:sortedStrings(v.assetIds,128,assetId),selectedFiles=v.attachmentIds===undefined?allFiles.map(a=>a.id):sortedStrings(v.attachmentIds,128,hash)
   if(selectedAssets.some(a=>!allAssets.includes(a))||selectedFiles.some(a=>!allFiles.some(f=>f.id===a)))throw new ExportError('export_request')
   const chosenFiles=allFiles.filter(a=>selectedFiles.includes(a.id))
+  if(format==='png-long'||format==='png-pages'){
+    const projection=readingProjection(note,original as unknown as CaptureSource|null,selectedAssets,selectedFiles,v.includeTags!==false,v.includeSummary!==false)
+    const assets:Record<string,string>={},budget=renderImageBudget()
+    for(const asset of readingImageIds(projection)){signal?.throwIfAborted();const bytes=await repository.getAsset(asset,signal);budget(bytes);assets[asset]=`data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`}
+    const snapshot:ReadingSnapshot={...projection,filename,assets}
+    return {bytes:Buffer.from(JSON.stringify(snapshot)),mediaType:'application/json; charset=utf-8',filename:filename+'.json'}
+  }
+
   const extra=supplementMarkdown({assetIds:supplement.assetIds.filter(id=>selectedAssets.includes(id)),attachmentIds:supplement.attachmentIds.filter(id=>selectedFiles.includes(id))},note.attachments)
   const body = omitMaterials(note.body,new Set(selectedAssets),new Set(selectedFiles))+extra, markdownOnly = format === 'markdown' || format === 'markdown-zip'
   const model = exportModel(note.title, body, selectedAssets, markdownOnly)
@@ -57,11 +67,8 @@ export async function createExport(repository: NoteRepository, input: unknown, s
   const missingFiles=chosenFiles.filter(a=>!(body+(appendix??'')).includes('../attachments/'+a.id+'.bin'))
   const images: Record<string, Buffer> = {},budget=renderImageBudget()
   if(!markdownOnly)for (const asset of model.assetIds) { signal?.throwIfAborted(); const data=await repository.getAsset(asset, signal);budget(data);images[asset]=data }
-  const supplementalImages=selectedAssets.filter(id=>!model.assetIds.includes(id))
-  const imageFiles=[]
-  if(!markdownOnly)for(const id of supplementalImages)imageFiles.push({id,name:`补充图片-${id.slice(0,8)}.${id.split('.')[1]}`,bytes:(await repository.getAsset(id,signal)).length})
-  if (format === 'snapshot' || format === 'png-long' || format === 'png-pages') {
-    const snapshot: ExportSnapshot = { noteId: note.noteId, revision: note.revision, filename, model, attachments:[...chosenFiles,...imageFiles], assets: Object.fromEntries(Object.entries(images).map(([asset, bytes]) => [asset, `data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`])) }
+  if (format === 'snapshot') {
+    const snapshot: ExportSnapshot = { noteId: note.noteId, revision: note.revision, filename, model, attachments:chosenFiles, assets: Object.fromEntries(Object.entries(images).map(([asset, bytes]) => [asset, `data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`])) }
     return { bytes: Buffer.from(JSON.stringify(snapshot)), mediaType: 'application/json; charset=utf-8', filename: `${filename}.json` }
   }
   const attachmentNames=new Map(chosenFiles.map(a=>[a.id,a.id.slice(0,16)+'-'+exportFilename(a.name)]))
@@ -70,10 +77,7 @@ export async function createExport(repository: NoteRepository, input: unknown, s
   const entries:ZipEntry[]=chosenFiles.map(a=>({path:'attachments/'+attachmentNames.get(a.id)!,read:()=>repository.getAttachment(a.id,signal)}))
   if (format === 'markdown') return { bytes: Buffer.from(exportMarkdown(header, portableBody, appendix)), mediaType: 'text/markdown; charset=utf-8', filename: `${filename}.md` }
   if (markdownOnly){for(const asset of selectedAssets)entries.push({path:'assets/'+asset,read:()=>repository.getAsset(asset,signal)});entries.unshift({path:filename+'.md',read:async()=>Buffer.from(exportMarkdown(header,portableBody,appendix))});return zippedFile(filename,entries,signal,streaming)}
-  const pdf=await renderPdfFile(filename, model, images, v.convertedImages, signal)
-  if(!chosenFiles.length&&!imageFiles.length)return pdf
-  for(const file of imageFiles)entries.push({path:'assets/'+file.id,read:()=>repository.getAsset(file.id,signal)})
-  entries.unshift({path:pdf.filename,read:async()=>pdf.bytes});return zippedFile(filename,entries,signal,streaming)
+  return renderPdfFile(filename, model, images, v.convertedImages, signal)
 
 }
 

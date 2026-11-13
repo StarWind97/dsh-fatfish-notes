@@ -1,3 +1,4 @@
+import {experienceCss} from './experience-style.js'
 export const paperCss = `
 .paper-list-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px}.paper-list-tools .paper-order,.paper-list-tools .paper-quick-view{margin:0;min-width:0}.paper-list-tools .paper-order select{max-width:120px}.paper-list-tools .paper-batch{margin-left:auto;padding:0;gap:4px}.paper-list-tools[data-selecting=true] .paper-batch{flex-basis:100%;margin-left:0;padding-top:5px}.paper-list .paper-rows>.paper-date:first-child{margin-top:6px}.paper-reuse-fields label:has(input[type=radio]),.paper-reuse-fields label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px}.paper-reuse-fields input:is([type=radio],[type=checkbox]){width:16px;height:16px;flex:none;padding:0;margin:0}
 
@@ -116,4 +117,5 @@ export const paperCss = `
 @container paper (max-width:750px){.paper-backup{max-width:100px}.paper-top{gap:8px}.paper-top nav{gap:4px}.paper-list{padding:15px 6px 0 10px}.paper-pane{padding:var(--paper-top-gap) 18px 18px}}
 @container paper (width < 560px){.paper-top{flex-wrap:wrap;padding:5px 10px;min-height:46px}.paper-top>strong{font-size:14px}.paper-backup{display:none}.paper-backup:has([data-attention=true]){display:block;flex-basis:100%;max-width:none}.paper-top nav button{font-size:12px}.paper-top .paper-width button{font-size:11px}.paper-split{display:flex}.paper-list,.paper-detail{width:100%}.paper-divider,.paper-split[data-selected=true] .paper-list,.paper-split[data-selected=false] .paper-detail{display:none}.paper-doc-head .paper-back{display:inline-flex}.paper-title-input{font-size:30px}.paper-actions .paper-attach{padding-inline:4px}}
 .paper-app .paper-document .paper-pane{padding-right:40px}
+${experienceCss}
 `

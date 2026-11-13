@@ -16,7 +16,7 @@ Current `main` contains the unreleased stage E implementation: a conversation si
 - Edit Markdown in place with live previews, headings, lists, code blocks, tables and images. Follow the host's light or dark appearance.
 - Open notes alongside DSH conversations in a separate window or use the adaptive three-column layout inside DSH. Hand off editing of the same note between windows.
 - Find content with favorites, recent visits, multiword search and highlighted matches. Preview and restore revisions, organize notes in batches, follow backlinks and create notes from reusable templates.
-- Export notes or conversations as Markdown, ZIP with image attachments, PDF, a long image or paginated images.
+- Export notes as Markdown resource packages, reading images or PDF. The unreleased candidate removes the separate conversation export action: save the conversation as a note first. PNG/PDF do not bundle attachment originals; 2× changes image density without reflow.
 - Organize notes in notebooks with a default destination. Import Markdown files, folders or ZIP archives; export a notebook or the library as portable Markdown with relative image, attachment and note links.
 - Save and download ordinary files including PDF, audio and video without inline preview or playback. In unreleased stage E, files over 50 MiB require confirmation and files over 100 MiB are rejected (the public 0.8.0 release uses 10/50 MiB).
 - Link notes by stable identity, and select multiple notes for trash cleanup. Permanent deletion keeps files that other notes still reference.

@@ -1,4 +1,4 @@
-import {materialMarkdown} from '../capture-materials.js'
+import {materialMarkdown,capturedFile} from '../capture-materials.js'
 import type { NoteRevision, CaptureSource } from '../../contracts/notes.js'
 import type { Root, RootContent, PhrasingContent } from 'mdast'
 import { exportTree, ExportError } from './model.js'
@@ -12,10 +12,13 @@ export function sourceMarkdown(source: Record<string, unknown>): { body: string;
   const v = source as unknown as CaptureSource
   if (v.version !== 1 || !Array.isArray(v.messages) || !v.assets || typeof v.assets !== 'object') throw new ExportError('export_source')
   const chunks = ['\n\n---\n\n# 原始素材\n'], assets = new Set<string>()
+  const inline=new Set<string>()
   for (const message of v.messages) {
     if (!['user','assistant'].includes(message.role) || !Array.isArray(message.blocks)) throw new ExportError('export_source')
     chunks.push(`\n## ${message.role === 'user' ? '用户' : 'AI'}\n`)
     for (const block of message.blocks) {
+      const file=capturedFile(block,message,v.archivedMaterials)
+      if(file){chunks.push('\n'+file.markdown+'\n');if(file.material)inline.add(file.material.id);continue}
       if (block.type === 'text' && typeof block.text === 'string') {
         const fence = '`'.repeat(Math.max(3, ...[...block.text.matchAll(/`+/g)].map(m => m[0].length + 1)))
         chunks.push(`\n${fence}text\n${block.text}\n${fence}\n`)
@@ -28,7 +31,7 @@ export function sourceMarkdown(source: Record<string, unknown>): { body: string;
     }
   }
   for(const m of v.archivedMaterials??[])if(m.assetId)assets.add(m.assetId)
-  chunks.push(materialMarkdown(v.archivedMaterials?.filter(m=>!m.imageId||!!m.saved)??[]))
+  chunks.push(materialMarkdown(v.archivedMaterials?.filter(m=>(!m.imageId||!!m.saved)&&!inline.has(m.id))??[]))
   return { body: chunks.join(''), assets: [...assets] }
 }
 const escapePunctuation = (value: string): string => value.replace(/[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]/g, '\\$&')

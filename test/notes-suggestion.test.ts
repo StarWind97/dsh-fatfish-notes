@@ -59,10 +59,10 @@ test('failed suggestion keeps manual fields editable and allows a later confirme
   let saved:CaptureRequest|undefined
   const bridge=new NoteCaptureBridge(async(path,input)=>{
     if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
-    if(path==='/notes/selection')return {ok:true,cut:{throughSeq:0,capturedAt:'2026-11-12T00:00:00Z',isSeeded:false},complete:true,issues:[],messages:[{id:'m',seq:0,role:'user',blocks:[{type:'text',text:'保存的原文'}]}],defaultMessageIds:['m']} as never
+    if(path==='/notes/selection')return {ok:true,cut:{throughSeq:0,capturedAt:'2026-11-12T00:00:00Z',isSeeded:false},complete:true,issues:[],messages:[{id:'m',seq:0,role:'user',blocks:[{type:'text',text:'[上传文件：资料.pdf]',materialId:'upload:0:0'},{type:'text',text:'保存的原文'}]}],defaultMessageIds:['m']} as never
     if(path==='/notes/suggest')throw new ApiError('ai_unavailable')
     if(path==='/notes/capture'){saved=input as CaptureRequest;return {ok:true,messageCount:1} as never}
     throw Error(path)
   })
-  try{await bridge.open('s');bridge.metadata(metadata);await bridge.suggest();assert.equal(bridge.getSnapshot()?.suggestionError,'ai_unavailable');assert.equal(bridge.getSnapshot()?.suggesting,false);assert.deepEqual(bridge.getSnapshot()?.metadata,metadata);assert.equal(saved,undefined);bridge.metadata({summary:''});await bridge.save();assert.equal(saved!.metadata?.summary,'');assert.equal(saved!.autoMetadata,false)}finally{bridge.dispose()}
+  try{await bridge.open('s');assert.equal(bridge.getSnapshot()?.metadata?.title,'保存的原文');bridge.metadata(metadata);await bridge.suggest();assert.equal(bridge.getSnapshot()?.suggestionError,'ai_unavailable');assert.equal(bridge.getSnapshot()?.suggesting,false);assert.deepEqual(bridge.getSnapshot()?.metadata,metadata);assert.equal(saved,undefined);bridge.metadata({summary:''});await bridge.save();assert.equal(saved!.metadata?.summary,'');assert.equal(saved!.autoMetadata,false)}finally{bridge.dispose()}
 })

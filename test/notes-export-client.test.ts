@@ -1,3 +1,4 @@
+import {createApi,currentRepository} from '../src/client/api.js'
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { prepareImages, exportRequest } from '../src/client/note-export.js'
@@ -47,4 +48,11 @@ test('M7 fix1 cancellation during decoder resolution closes both the returned fr
     await assert.rejects(prepareImages(value, abort.signal), { name: 'AbortError' })
     assert.equal(frameClosed, 1); assert.equal(decoderClosed, 1)
   } finally { keys.forEach((key, index) => { const original = originals[index]; if (original) Object.defineProperty(globalThis, key, original); else Reflect.deleteProperty(globalThis, key) }) }
+})
+
+test('exports pin repository identity and reject a late response from the previous library',async()=>{
+  const bind=async(id:number)=>createApi(async()=>new Response(JSON.stringify({ok:true,sync:{ready:true,folder:'x',defaultFolder:'x',enabled:true,status:'idle',binding:{repositoryId:id}}})))('/personal/sync/reset',{} as never)
+  await bind(101);assert.equal(currentRepository(),101)
+  await exportRequest({noteId:'n',revision:'r'},{format:'markdown'},new AbortController().signal,async(_url,init)=>{assert.equal(new Headers(init?.headers).get('x-notebook-repository'),'101');return new Response('ok')})
+  await assert.rejects(exportRequest({noteId:'n',revision:'r'},{format:'pdf'},new AbortController().signal,async()=>{await bind(102);return new Response('late')}),{code:'notebook_changed'})
 })

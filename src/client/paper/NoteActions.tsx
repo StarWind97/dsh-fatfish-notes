@@ -24,10 +24,10 @@ export function NoteActions({actions,t,children}:{actions:NoteAction[]; t:T;chil
     onKeyDown={e=>{
       if(!open)return
       if(e.key==='Escape'){e.preventDefault();setOpen(false);trigger.current?.focus();return}
-      if(!['ArrowUp','ArrowDown'].includes(e.key))return
+      if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return
       const buttons=Array.from(root.current!.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'))
       const i=buttons.indexOf(document.activeElement as HTMLButtonElement)
-      e.preventDefault();buttons[(i+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus()
+      e.preventDefault();buttons[e.key==='Home'?0:e.key==='End'?buttons.length-1:(i+(e.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus()
     }}>
     {actions.filter(a=>!a.menuOnly).map(a=>button(a))}
     {children}
