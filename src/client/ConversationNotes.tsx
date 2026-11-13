@@ -98,7 +98,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   async function restore(){if(!undo)return;try{const {note}=await workspace.api('/notes/get',{noteId:undo});await associate(note,true);await controller.refresh(true,false,false)}catch{setError(true)}}
   function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);if(id&&!book){setBook(id);preference?.choose(id)}window.dispatchEvent(new Event('fatfish-workspace-book'))}
   async function create(notebookId=mapped){if(removed)return;scroll.current=list.current?.scrollTop??scroll.current;if(await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId}))setReading(true)}
-  const actions=useItemActions(controller,state,t,open,()=>setReading(true))
+  const actions=useItemActions(controller,state,t,open,()=>setReading(true),root)
   const tabs:Group[]=mapped?['linked','workspace','find']:['linked','find']
   useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,reading,tab.visible])
   function resize(value:number){const width=Math.max(160,Math.min(340,value));setBookWidth(width);try{localStorage.setItem('fatfish-sidebar-books-width',String(width))}catch{}}
@@ -113,7 +113,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {showDetail?<div className="paper-detail"><NoteEditor referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:Quote,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {showDetail?<div className="paper-detail"><NoteEditor onDownloadNotice={actions.setDownloadNotice} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:Quote,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
       <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{setGroup(key);scroll.current=0}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}</nav>
       {group==='find'&&<>
         <div className="conversation-notes-search"><Search size={15}/><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{setQuery(e.target.value);scroll.current=0}}/></div>

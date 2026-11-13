@@ -14,9 +14,10 @@ import {sameNamedNotebook,NOTEBOOK_NAME_TAKEN} from '../notes/notebooks.js'
 
 type Edit={kind:'rename'|'move'|'trash'|'purge';note:NoteListItem}|{kind:'book-rename'|'book-remove';book:NotebookView}
 /** Shared row actions keep the existing revision, edit-lease and deletion checks. */
-export function useItemActions(controller:NotesController,state:NotesState,t:T,open:(id:string)=>Promise<unknown>,created?:()=>void){
+export function useItemActions(controller:NotesController,state:NotesState,t:T,open:(id:string)=>Promise<unknown>,created?:()=>void,readingRoot?:React.RefObject<HTMLElement>){
   const [edit,setEdit]=useState<Edit|null>(null),[value,setValue]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[confirmed,setConfirmed]=useState(false)
-  const [exporting,setExporting]=useState<{note:NoteView;repository:number|undefined}|null>(null),[exportBook,setExportBook]=useState<string|null>(null),[undo,setUndo]=useState<NoteSelection|null>(null)
+  const [exporting,setExporting]=useState<{note:NoteView;repository:number|undefined;readingElement:HTMLElement|null;allTags:boolean}|null>(null),[exportBook,setExportBook]=useState<string|null>(null),[undo,setUndo]=useState<NoteSelection|null>(null)
+  const [downloadStarted,setDownloadStarted]=useState(false)
   const duplicate=edit?.kind==='book-rename'&&!!sameNamedNotebook(state.notebooks,value,edit.book.notebookId)
   useEffect(()=>{setUndo(null)},[state.section,state.filter,state.noteId])
   function begin(next:Edit,text=''){setEdit(next);setValue(text);setError('');setConfirmed(false)}
@@ -30,7 +31,7 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
       {label:t(note.favorite?'findUnfavorite':'findFavorite'),run:()=>void run(()=>controller.manage({notes,action:note.favorite?'unfavorite':'favorite'}))},
       {label:t('organizeMove'),run:()=>begin({kind:'move',note},note.notebookId??'')},
       {label:'创建副本',run:()=>void run(async()=>{const ok=await controller.manage({notes,action:'duplicate'});if(ok)created?.();return ok})},
-      {label:t('notesExport'),run:()=>void run(async()=>{const repository=currentRepository();const target=state.noteId===note.noteId?(await controller.freezeExport())?.note:(await controller.api('/notes/get',{noteId:note.noteId})).note;if(!target||currentRepository()!==repository)return false;setExporting({note:target,repository});return true})},
+      {label:t('notesExport'),run:()=>void run(async()=>{const repository=currentRepository();const target=state.noteId===note.noteId?(await controller.freezeExport())?.note:(await controller.api('/notes/get',{noteId:note.noteId})).note;if(!target||currentRepository()!==repository)return false;const leaf=state.noteId===note.noteId&&!state.editing?readingRoot?.current?.querySelector<HTMLElement>('.paper-leaf')??null:null;const readingElement=leaf?.querySelector('.paper-reading')?.getClientRects().length?leaf:null;setDownloadStarted(false);setExporting({note:target,repository,readingElement,allTags:!!readingElement?.querySelector('.paper-tags [aria-expanded=true]')});return true})},
       {label:t('notesTrashAction'),danger:true,run:()=>begin({kind:'trash',note})},
     ].map(a=>({...a,disabled:locked}))
   }
@@ -47,7 +48,7 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
     else await run(()=>controller.notebook(edit.kind==='book-rename'?value.trim():edit.book.current.title,edit.book,edit.kind==='book-remove',edit.kind==='book-remove'?{removal:value as 'move'|'trash',expectedNoteCount:edit.book.noteCount??0}:{}))
   }
   const danger=edit?.kind==='purge'||edit?.kind==='book-remove'&&value==='trash'
-  const dialogs=<>{exporting&&<NoteExport controller={controller} state={{...state,noteId:exporting.note.noteId,note:exporting.note,draft:noteContent(exporting.note),loadingNote:false,operation:false,composing:false,conflict:null}} t={t} onClose={()=>setExporting(null)} freeze={async()=>({note:exporting.note,isCurrent:()=>currentRepository()===exporting.repository})}/>} {exportBook&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setExportBook(null)} initialExport={exportBook}/>}
+  const dialogs=<>{exporting&&<NoteExport readingElement={exporting.readingElement} allTags={exporting.allTags} controller={controller} state={{...state,noteId:exporting.note.noteId,note:exporting.note,draft:noteContent(exporting.note),loadingNote:false,operation:false,composing:false,conflict:null}} t={t} onClose={()=>setExporting(null)} onDownloaded={()=>{setExporting(null);setDownloadStarted(true)}} freeze={async()=>({note:exporting.note,isCurrent:()=>currentRepository()===exporting.repository})}/>} {exportBook&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setExportBook(null)} initialExport={exportBook}/>}
     {edit&&<PaperDialog title={edit.kind==='book-remove'?t('notesRemoveBook'):edit.kind==='trash'?t('notesTrashAction'):edit.kind==='purge'?t('batchPurge'):edit.kind==='move'?t('organizeMove'):'重命名'} closeLabel={t('paperClose')} locked={busy} onClose={()=>setEdit(null)}><div className="paper-dialog-content paper-reuse-fields">
       <p title={'note' in edit?edit.note.title:edit.book.current.title} style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{'note' in edit?edit.note.title:edit.book.current.title}</p>
       {(edit.kind==='rename'||edit.kind==='book-rename')&&<label>名称<input autoFocus maxLength={240} aria-invalid={duplicate||undefined} value={value} onChange={e=>{setValue(e.target.value);setError('')}}/></label>}
@@ -60,7 +61,8 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
       {danger&&<label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> {edit.kind==='purge'?'我确认永久删除笔记及不再被引用的附件，无法恢复':'我确认将此笔记本内全部笔记移入回收站'}</label>}{error&&<p role="alert">{error}</p>}
     </div><footer><button disabled={busy} onClick={()=>setEdit(null)}>{t('cancel')}</button><button className={danger?'paper-danger':'paper-primary'} disabled={busy||duplicate||danger&&!confirmed||(['rename','book-rename','move'].includes(edit.kind)&&!value.trim())} onClick={()=>void accept()}>{t(busy?'loading':edit.kind==='trash'?'notesTrashAction':'organizeApply')}</button></footer></PaperDialog>}
     {error&&!edit&&<p role="alert">{error} <button onClick={()=>setError('')}>{t('paperClose')}</button></p>}
+    {downloadStarted&&<TransientNotice identity="export-started" message={t('notesDownloadStarted')} milliseconds={5000} close={()=>setDownloadStarted(false)}/>}
     {undo&&<TransientNotice identity={undo.noteId+undo.expectedHeads.join()} message={error||t('paperMoved')} close={()=>setUndo(null)} busy={busy} paused={!!error} action={()=>void run(()=>controller.batch([undo],'restore')).then(ok=>{if(ok)setUndo(null)})}/>}
   </>
-  return {noteActions,bookActions,dialogs,exportBook:(id:string)=>setExportBook(id)}
+  return {noteActions,bookActions,dialogs,exportBook:(id:string)=>setExportBook(id),setDownloadNotice:setDownloadStarted}
 }

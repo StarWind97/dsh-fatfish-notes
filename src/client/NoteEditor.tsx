@@ -22,7 +22,7 @@ import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
 import type {ImagePresentation} from './paper/image-presentation.js'
 
-export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,referenceAction}:{referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
+export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,referenceAction,onDownloadNotice}:{onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read'
   const [presentation,setPresentation]=useState<ImagePresentation|null>(null)
   async function switchPresentation(item:ImagePresentation){
@@ -113,7 +113,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     else actions.push({label:t('notesEdit'),icon:Pencil,run:()=>edit()})
   }
   if(note && !sourceOpen && !state.editing) actions.push(
-    {label:t('notesExport'),icon:Download,run:()=>setPanel('export')},
+    {label:t('notesExport'),icon:Download,run:()=>{onDownloadNotice(false);setPanel('export')}},
     ...(draft.status==='active'?[
       {label:t('organizeHistory'),icon:History,menuOnly:true,disabled:state.operation,run:()=>setPanel('history')},
       {label:t('organizeDuplicate'),icon:Copy,menuOnly:true,disabled:state.operation,run:()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:'duplicate'})},
@@ -135,7 +135,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     <div className="paper-pane" tabIndex={mode==='read'?0:undefined} aria-label={t('notesDetail')} onKeyDown={e=>readingKey(e,state.editing)} onPointerDown={e=>{if(!state.editing&&!(e.target as HTMLElement).closest('a,button,input,textarea,select,[contenteditable=true],dialog'))e.currentTarget.focus({preventScroll:true})}}>
     <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
     {cancelOpen&&<PaperDialog title="放弃本次编辑？" closeLabel={t('paperClose')} locked={state.operation} onClose={()=>setCancelOpen(false)}><div className="paper-dialog-content"><p>放弃这次编辑的草稿，原有笔记不会改变。新建草稿将直接丢弃。</p></div><footer><button disabled={state.operation} onClick={()=>setCancelOpen(false)}>继续编辑</button><button className="paper-primary" disabled={state.operation} onClick={()=>void controller.cancelEdits().then(ok=>{if(ok){setCancelOpen(false);setTag('');undo.current=null}})}>放弃修改</button></footer></PaperDialog>}
-    {panel==='export'&&note&&<NoteExport readingElement={root.current} allTags={allTags} controller={controller} state={state} t={t} onClose={()=>setPanel(null)}/>}
+    {panel==='export'&&note&&<NoteExport readingElement={root.current} allTags={allTags} controller={controller} state={state} t={t} onClose={()=>setPanel(null)} onDownloaded={()=>{setPanel(null);onDownloadNotice(true)}}/>}
     {panel==='history'&&note&&<HistoryDialog note={note} controller={controller} t={t} close={()=>setPanel(null)}/>}
     {panel==='template'&&note&&<ReuseDialog mode="template" state={state} controller={controller} t={t} close={()=>setPanel(null)}/>}
     {draft.isTemplate&&<p className="paper-notice">{t('reuseEditingTemplate')}</p>}

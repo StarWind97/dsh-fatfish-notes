@@ -9,8 +9,8 @@ import { PaperDialog } from './paper/PaperDialog.js'
 import { notesStyles as s } from './notes-style.js'
 import type { T } from './locale.js'
 
-export function NoteExport({ controller, state, t, onClose, freeze,readingElement,allTags=false }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void; readingElement?:HTMLElement|null;allTags?:boolean;freeze?:()=>ReturnType<NotesController['freezeExport']> }) {
-  const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>((state.draft?.assetIds.length||state.draft?.attachments?.length)?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(0), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('current'), [assetId, setAssetId] = useState('')
+export function NoteExport({ controller, state, t, onClose, onDownloaded, freeze,readingElement,allTags=false }: { controller: NotesController; state: NotesState; t: T; onClose:()=>void;onDownloaded:()=>void; readingElement?:HTMLElement|null;allTags?:boolean;freeze?:()=>ReturnType<NotesController['freezeExport']> }) {
+  const [busy, setBusy] = useState(false), [status, setStatus] = useState(''), [format, setFormat] = useState<ExportFormat>((state.draft?.assetIds.length||state.draft?.attachments?.length)?'markdown-zip':'markdown'), [includeSource, setIncludeSource] = useState(false), [width, setWidth] = useState(readingElement?0:740), [pixelRatio, setRatio] = useState(1), [background, setBackground] = useState<ExportOptions['background']>('current'), [assetId, setAssetId] = useState('')
   const [includeTags,setIncludeTags]=useState(true),[includeSummary,setIncludeSummary]=useState(true)
   const [selected,setSelected]=useState(()=>noteMaterials(state.draft??undefined).map(m=>m.id))
   const [source,setSource]=useState<CaptureSource|null>(null),[sourceFailed,setSourceFailed]=useState(false)
@@ -20,20 +20,22 @@ export function NoteExport({ controller, state, t, onClose, freeze,readingElemen
   const hasTags=!!state.draft?.tags.length, hasSummary=!!state.draft?.summary
   const hasImages=!!state.draft?.attachments?.length||!!state.draft?.assetIds.length||(includeSource&&!!state.note?.current.sourceId)
   const group=format.startsWith('markdown')?'markdown':format==='pdf'?'pdf':format==='original'?'original':'png'
+  const hasReadingWidth=!!readingElement?.isConnected&&readingElement.getClientRects().length>0
+  const exportWidth=width===0&&!hasReadingWidth?740:width
   const active = useRef<AbortController | null>(null)
   useEffect(() => { active.current?.abort(); setBusy(false); setStatus(''); setIncludeSource(false); setIncludeTags(true); setIncludeSummary(true); setAssetId('');setSelected(noteMaterials(state.draft??undefined).map(m=>m.id)) }, [state.noteId])
   useEffect(() => () => active.current?.abort(), [])
   async function run() {
-    if (active.current) active.current.abort()
+    if (active.current) return
     const job = new AbortController(); active.current = job; setBusy(true); setStatus('')
     try {
-      const appearance=readingAppearance(readingElement,allTags),contentWidth=width||readingElement?.getBoundingClientRect().width||740
+      const appearance=readingAppearance(readingElement,allTags),contentWidth=exportWidth||readingElement?.getBoundingClientRect().width||740
       const frozen = await (freeze?freeze():controller.freezeExport()); job.signal.throwIfAborted()
       if (!frozen) { setStatus('notesExportSaveFirst'); return }
       const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format:format.startsWith('markdown')?(selected.length||includeSource?'markdown-zip':'markdown'):format,assetIds:materials.filter(m=>m.image&&selected.includes(m.id)).map(m=>m.id.slice(6)),attachmentIds:materials.filter(m=>!m.image&&selected.includes(m.id)).map(m=>m.id.slice(5)), includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width:contentWidth, pixelRatio, background,appearance, ...(assetId ? { assetId } : {}) }, job.signal)
       job.signal.throwIfAborted()
       if (!frozen.isCurrent()) { setStatus('notesExportChanged'); return }
-      startNoteDownload(file); setStatus('notesExportStarted')
+      startNoteDownload(file); active.current = null; onDownloaded()
     } catch (error) {
       if (job.signal.aborted) return
       const code = error instanceof Error && 'code' in error ? String(error.code) : ''
@@ -52,9 +54,9 @@ export function NoteExport({ controller, state, t, onClose, freeze,readingElemen
       <label className="paper-checkbox"><input type="checkbox" checked={hasSummary&&includeSummary} disabled={busy||!hasSummary} onChange={e=>setIncludeSummary(e.target.checked)}/>{t('exportIncludeSummary')}</label>
     </div>}
     {format === 'original' ? <label style={s.label}>{t('notesExportOriginal')}<select style={s.input} value={assetId} disabled={busy} onChange={e => setAssetId(e.target.value)}><option value="">{t('notesExportChooseImage')}</option>{activeImages.map((id, index) => <option value={id} key={id}>{t('notesExportImageNumber', { index: index + 1 })} · {id.split('.')[1]}</option>)}</select></label> : state.note?.current.sourceId && <label className="paper-checkbox"><input type="checkbox" checked={includeSource} disabled={busy || !state.note?.current.sourceId} onChange={e => {setIncludeSource(e.target.checked);if(e.target.checked&&format==='markdown')setFormat('markdown-zip')}} />{t('notesExportIncludeSource')}</label>}
-    {format==='png-long' && <><label style={s.label}>{t('notesExportWidth')}<select style={s.input} value={width} disabled={busy} onChange={e => setWidth(Number(e.target.value))}><option value={0}>{t('notesExportCurrentWidth')}</option>{[720,1080,1440,2160].map(n => <option key={n} value={n}>{n} px</option>)}</select></label><label style={s.label}>{t('notesExportRatio')}<select style={s.input} value={pixelRatio} disabled={busy} onChange={e => setRatio(Number(e.target.value))}><option value={1}>1×</option><option value={2}>2×</option></select></label><label style={s.label}>{t('notesExportBackground')}<select style={s.input} value={background} disabled={busy} onChange={e => setBackground(e.target.value as ExportOptions['background'])}><option value="current">{t('notesExportCurrentTheme')}</option><option value="light">{t('notesExportLight')}</option><option value="dark">{t('notesExportDark')}</option><option value="transparent">{t('notesExportTransparent')}</option></select></label></>}
+    {format==='png-long' && <><label style={s.label}>{t('notesExportWidth')}<select style={s.input} value={exportWidth} disabled={busy} onChange={e => setWidth(Number(e.target.value))}>{hasReadingWidth&&<option value={0}>{t('notesExportCurrentWidth')}</option>}<option value={740}>{t('notesExportDefaultWidth')}</option>{[720,1080,1440,2160].map(n => <option key={n} value={n}>{n} px</option>)}</select></label><label style={s.label}>{t('notesExportRatio')}<select style={s.input} value={pixelRatio} disabled={busy} onChange={e => setRatio(Number(e.target.value))}><option value={1}>1×</option><option value={2}>2×</option></select></label><label style={s.label}>{t('notesExportBackground')}<select style={s.input} value={background} disabled={busy} onChange={e => setBackground(e.target.value as ExportOptions['background'])}><option value="current">{t('notesExportCurrentTheme')}</option><option value="light">{t('notesExportLight')}</option><option value="dark">{t('notesExportDark')}</option><option value="transparent">{t('notesExportTransparent')}</option></select></label></>}
     {group==='png'&&<p>{t('notesExportScreenshotHint')}</p>}
     {sourceFailed&&<p role="alert">{t('notesExportFailed')}</p>}
     {status && <p role="status">{t(status as Parameters<T>[0])}</p>}
-  </div><footer><button type="button" onClick={close}>{t(busy?'notesExportCancel':'cancel')}</button><button type="button" className="paper-primary" disabled={busy || (includeSource&&!source) || state.loadingNote || state.operation || state.composing || !!state.conflict || format === 'original' && !assetId} onClick={() => void run()}>{t(busy ? 'notesExportWorking' : 'notesExportDownload')}</button></footer></PaperDialog>
+  </div><footer><button type="button" onClick={close}>{t(busy?'notesExportCancelGeneration':'cancel')}</button><button type="button" className="paper-primary" disabled={busy || (includeSource&&!source) || state.loadingNote || state.operation || state.composing || !!state.conflict || format === 'original' && !assetId} onClick={() => void run()}>{t(busy ? 'notesExportWorking' : 'notesExportDownload')}</button></footer></PaperDialog>
 }
