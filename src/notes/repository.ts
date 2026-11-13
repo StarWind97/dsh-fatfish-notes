@@ -2,6 +2,7 @@ import { conflictForkId, conflictRevisions, revisionContent } from './conflicts.
 import { join, resolve } from 'node:path'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
+import {setImmediate as yieldQueue} from 'node:timers/promises'
 import { NotebookError } from '../domain/errors.js'
 import { ulid } from '../domain/id.js'
 import type { ImageMediaType } from '../contracts/media.js'
@@ -20,6 +21,7 @@ import { ATTACHMENT_LIMIT, SINGLE_TRANSFER_LIMIT, type NoteAttachment, type Note
 import { linkedNotes, fillTemplate } from './relations.js'
 import { DraftFiles, type LocalDraft } from './drafts.js'
 import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js'
+import {syncResource,resourceBatches,missingSyncResources,type SyncResource} from './sync-resources.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -28,6 +30,7 @@ interface State extends NoteObjects {
 }
 export interface NoteRepositoryOptions { now?: () => number; beforeWrite?: (path: string) => void | Promise<void> }
 const queues = new Map<string, Promise<unknown>>()
+const syncRetentions=new Map<string,{leases:Map<symbol,Set<string>>;deferred:boolean}>()
 const conflict = (): never => { throw new NotebookError('note_conflict', '笔记已有新版本，请重新读取或明确解决冲突', 409) }
 const same = (a: string[], b: string[]): boolean => canonical([...a].sort()) === canonical([...b].sort())
 const notePath = (r: NoteRevision): string => `revisions/${r.noteId}/${r.revision}.json`
@@ -233,14 +236,14 @@ export class NoteRepository {
   private async document(state: State, noteId: string): Promise<void> {
     await this.files.write(`documents/${noteId}.md`, serializeNoteMarkdown(this.view(state, noteId).current), false)
   }
-  private async external(state: State, noteId: string, markdown?: string): Promise<void> {
+  private async external(state: State, noteId: string, markdown?: string,checkCurrent=false): Promise<boolean> {
     const path = `documents/${noteId}.md`, bytes = markdown === undefined ? await this.files.read(path, NOTE_LIMITS.body + NOTE_METADATA_BYTES).catch(e => { if (missing(e)) return null; throw e }) : Buffer.from(markdown)
-    if (!bytes) return
+    if (!bytes) return false
     const parsed = parseNoteMarkdown(utf8(bytes))
     if (parsed.revision.noteId !== noteId) fail('note_path')
     const base = state.revisions.find(r => r.noteId === noteId && r.revision === parsed.declaredRevision)
     if (!base) fail('note_parent')
-    if (!parsed.changed) return
+    if (!parsed.changed) return !checkCurrent||parsed.declaredRevision===this.view(state,noteId).current.revision
     this.complete(state)
     // External metadata may change content, but cannot rewrite ancestry/timestamps.
     if (!same(parsed.revision.parents, base.parents) || parsed.revision.recordedAt !== base.recordedAt) fail('note_frontmatter')
@@ -252,6 +255,7 @@ export class NoteRepository {
     const next = mergeNoteRevisions(state.revisions, [row]); this.limits({ ...state, revisions: next })
     await this.files.write(notePath(row), canonical(row), true); state.revisions = next
     await this.document(state, noteId); await this.manifest(state)
+    return false
   }
   private async append(state: State, row: NoteRevision, beforeAppend?: (revision: NoteRevision) => Promise<void>): Promise<NoteView> {
     this.complete(state)
@@ -476,7 +480,7 @@ export class NoteRepository {
     for(const row of await this.drafts.list())if(row.noteId===noteId&&row.state==='editing'&&!row.files.includes(path)){row.files.push(path);await this.drafts.write(row)}
   }
   private async retainedFiles(state:State){
-    const retained=new Set<string>()
+    const retained=this.syncRetainedFiles()
     for(const row of state.revisions){row.assetIds.forEach(a=>retained.add('assets/'+a));row.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))
       if(row.sourceId){const source=object(JSON.parse(utf8(await this.files.read('sources/'+row.sourceId+'.json'))));sourceAttachments(source).forEach(a=>retained.add('attachments/'+a.id+'.bin'));if(source.assets)Object.values(object(source.assets)).forEach(a=>retained.add('assets/'+assetId(a)))}
     }
@@ -488,7 +492,10 @@ export class NoteRepository {
     const state=await this.load();this.complete(state);if(state.issues.length)fail('note_corrupt')
     const retained=await this.retainedFiles(state)
     for(const path of row.files)if(!retained.has(path))await this.files.remove(path)
-    await this.drafts.write({...row,files:[]})
+    const held=this.syncRetainedFiles(),pending=row.files.filter(path=>held.has(path))
+    if(pending.length)syncRetentions.get(this.files.root)!.deferred=true
+    // Keep deferred cleanup in the durable draft, including across a host restart.
+    await this.drafts.write({...row,files:pending})
   }
   /** A journaled AI adoption has a stable revision even if its receipt is lost. */
   async adoptRevision(input: NoteRevision, persist: (revision: NoteRevision) => Promise<void>, signal?: AbortSignal): Promise<NoteView> {
@@ -602,12 +609,11 @@ export class NoteRepository {
         if (bytes) { const source = object(JSON.parse(utf8(bytes)) as unknown); sourceAttachments(source).forEach(a=>target.add(`attachments/${a.id}.bin`)); if (source.assets) Object.values(object(source.assets)).forEach(a => target.add(`assets/${assetId(a)}`)) }
       }
     }
-    for (const row of state.revisions) await dependencies(row, retained)
-    for(const row of await this.drafts.list())if(row.state==='editing'){row.files.forEach(p=>retained.add(p));row.request?.content.assetIds.forEach(a=>retained.add('assets/'+a));row.request?.content.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))}
+    const removedRevisions:NoteRevision[]=[]
     for (const path of paths) {
       if (path.startsWith('revisions/') && deleted.has(path.split('/')[1]!)) {
         const row = validateNoteRevision(JSON.parse(utf8(await this.files.read(path))) as unknown)
-        await dependencies(row, candidates); remove.push(path)
+        removedRevisions.push(row);remove.push(path)
       } else if (path.startsWith('documents/') && deleted.has(path.slice(10, -3))) remove.push(path)
       else if (/^(jobs|captures)\//.test(path)) {
         const value = object(JSON.parse(utf8(await this.files.read(path))) as unknown)
@@ -615,6 +621,13 @@ export class NoteRepository {
         if (deleted.has(String(data.noteId))) remove.push(path)
       }
     }
+    if(!remove.length)return
+    const active=syncRetentions.get(this.files.root)
+    // Only real cleanup work needs deferral. Old tombstones alone must not invalidate warm state.
+    if(active?.leases.size){active.deferred=true;return}
+    for(const row of removedRevisions)await dependencies(row,candidates)
+    for (const row of state.revisions) await dependencies(row, retained)
+    for(const row of await this.drafts.list())if(row.state==='editing'){row.files.forEach(p=>retained.add(p));row.request?.content.assetIds.forEach(a=>retained.add('assets/'+a));row.request?.content.attachments?.forEach(a=>retained.add('attachments/'+a.id+'.bin'))}
     // Keep deleted revisions until dependencies are removed, making interrupted cleanup retryable.
     for (const path of [...candidates].sort((a,b) => Number(a.startsWith('sources/')) - Number(b.startsWith('sources/')))) if (!retained.has(path)) await this.files.remove(path)
     for (const path of remove) await this.files.remove(path)
@@ -642,13 +655,30 @@ export class NoteRepository {
   }
   /** Sources/assets must already be present; imports are monotonic and may leave recoverable immutable objects on failure. */
   async importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void> {
+    await this.mergeObjects(input,signal)
+  }
+  private async mergeObjects(input:NoteObjects,signal?:AbortSignal,validateResources?:()=>Promise<void>):Promise<{objects:NoteObjects;generation:number}|undefined>{
+    const files=this.files
     const v = object(input); keys(v, ['version', 'revisions', 'notebooks', ...('deleted' in v ? ['deleted'] : [])]); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
     const copy = structuredClone(input)
     const incoming = copy.revisions.map(validateNoteRevision), incomingBooks = copy.notebooks.map(validateNotebookRevision)
     this.limits(copy)
     return this.run(async () => {
+      if(this.files!==files)fail('transfer_expired')
       const s = await this.load()
+      if(this.files!==files)fail('transfer_expired')
+      await validateResources?.()
+      if(this.files!==files)fail('transfer_expired')
       const deleted = [...new Set([...(s.deleted ?? []), ...deletionIds(copy.deleted)])].sort()
+      const knownNotes=new Set(s.revisions.map(r=>r.revision)),knownBooks=new Set(s.notebooks.map(r=>r.revision))
+      if(validateResources&&!s.issues.length&&!s.detachedRevisions.length&&!s.detachedNotebooks.length&&deleted.length===(s.deleted?.length??0)&&incoming.every(r=>deleted.includes(r.noteId)||knownNotes.has(r.revision))&&incomingBooks.every(r=>knownBooks.has(r.revision))){
+        const epoch=this.writeEpoch;let current=true
+        for(const noteId of new Set(s.revisions.map(r=>r.noteId)))if(!await this.external(s,noteId,undefined,true))current=false
+        if(this.files!==files)fail('transfer_expired')
+        signal?.throwIfAborted()
+        // A transient snapshot, not a new cache: missing/stale documents or external edits take the normal merge path.
+        if(current&&epoch===this.writeEpoch)return {objects:{version:1,revisions:s.revisions,notebooks:s.notebooks,...(s.deleted?.length?{deleted:s.deleted}:{})},generation:this.changeGeneration}
+      }
       // Individually valid orphan objects can be completed by this validated input.
       // Truly damaged files never enter these sets and remain write-protected.
       const revisions = mergeNoteRevisions([...s.revisions, ...s.detachedRevisions].filter(r => !deleted.includes(r.noteId)), incoming.filter(r => !deleted.includes(r.noteId)))
@@ -673,6 +703,39 @@ export class NoteRepository {
       await this.manifest(next)
       if (deleted.length) await this.cleanDeleted(next, (await this.files.scan()).paths)
     }, signal)
+  }
+  private syncRetainedFiles():Set<string>{return new Set([...(syncRetentions.get(this.files.root)?.leases.values()??[])].flatMap(paths=>[...paths]))}
+  /** Check once per phase, keep bounded queue turns, then merge against the latest local graph. */
+  async installSyncResources(resources:SyncResource[],objects:NoteObjects,signal?:AbortSignal):Promise<{objects:NoteObjects;generation:number}|undefined>{
+    const files=this.files,lease=Symbol('sync'),selected=resources.map(syncResource)
+    if(new Set(selected.map(r=>r.path)).size!==selected.length)fail('note_path')
+    const guard=()=>{signal?.throwIfAborted();if(this.files!==files)fail('transfer_expired');this.editGuard([])}
+    let retention:ReturnType<typeof syncRetentions.get>
+    try{
+      await this.run(async()=>{
+        guard();retention=syncRetentions.get(files.root)??{leases:new Map(),deferred:false};syncRetentions.set(files.root,retention)
+        retention.leases.set(lease,new Set(selected.map(r=>r.path)))
+        this.complete(await this.load());guard()
+      },signal)
+      for(const batch of resourceBatches(selected)){
+        const needed=await this.run(async()=>{guard();const needed=await missingSyncResources(batch,files);guard();return needed},signal)
+        const ready:Array<{resource:ReturnType<typeof syncResource>;bytes:Buffer}>=[]
+        for(const resource of needed){guard();const bytes=Buffer.from(await resource.read());guard();resource.verify(bytes);ready.push({resource,bytes})}
+        if(ready.length)await this.run(async()=>{guard();for(const {resource,bytes} of ready){guard();if(!await resource.present(files))await files.write(resource.path,bytes,true)}},signal)
+        await yieldQueue();guard()
+      }
+      return await this.mergeObjects(objects,signal,async()=>{for(const batch of resourceBatches(selected)){guard();if((await missingSyncResources(batch,files)).length)fail('note_asset')}guard()})
+    }finally{
+      retention?.leases.delete(lease)
+      if(retention&&!retention.leases.size){
+        syncRetentions.delete(files.root)
+        if(retention.deferred&&this.files===files)await this.run(async()=>{
+          if(this.files!==files)return
+          this.validated=undefined;await this.load()
+          for(const row of await this.drafts.list(true))if(row.state!=='editing'&&row.files.length)await this.cleanupDraft(row)
+        })
+      }
+    }
   }
   /** A deterministic fork root and merge commit converge on every device, even after a retry. */
   private async splitConflicts(state:State):Promise<void> {

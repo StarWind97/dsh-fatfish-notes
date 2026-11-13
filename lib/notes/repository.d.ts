@@ -3,6 +3,7 @@ import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, N
 import { NoteFiles } from './files.js';
 import { type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js';
 import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js';
+import { type SyncResource } from './sync-resources.js';
 export interface NoteRepositoryOptions {
     now?: () => number;
     beforeWrite?: (path: string) => void | Promise<void>;
@@ -100,6 +101,13 @@ export declare class NoteRepository {
     importMarkdown(noteId: string, markdown: string, signal?: AbortSignal): Promise<NoteView>;
     /** Sources/assets must already be present; imports are monotonic and may leave recoverable immutable objects on failure. */
     importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void>;
+    private mergeObjects;
+    private syncRetainedFiles;
+    /** Check once per phase, keep bounded queue turns, then merge against the latest local graph. */
+    installSyncResources(resources: SyncResource[], objects: NoteObjects, signal?: AbortSignal): Promise<{
+        objects: NoteObjects;
+        generation: number;
+    } | undefined>;
     /** A deterministic fork root and merge commit converge on every device, even after a retry. */
     private splitConflicts;
     listNotebooks(signal?: AbortSignal): Promise<NotebookView[]>;

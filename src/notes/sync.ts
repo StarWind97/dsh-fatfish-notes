@@ -12,6 +12,7 @@ import { mediaTypeFor, validateAsset, validateBodyAssets, sourceAttachments, sou
 import { utf8 } from './files.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion, withoutDeleted } from './deletion.js'
 import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
+import type {SyncResource} from './sync-resources.js'
 
 interface LazyFile {length:number;load:()=>Promise<Buffer>}
 type StoredFile=Buffer|LazyFile
@@ -131,6 +132,7 @@ export class NotesSyncModule {
     return { objects, files }
   }
   async install(remote: Snapshot, objects: NoteObjects, signal?: AbortSignal): Promise<void> {
+    const target=this.repository.files
     // Validate the whole remote first, then install dependencies before visible revisions.
     const sourceIds = new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : []))
     const assetIds = new Set(objects.revisions.flatMap(r => r.assetIds))
@@ -139,19 +141,20 @@ export class NotesSyncModule {
       const bytes = remote.files.get(`notes/sources/${sourceId}.json`)
       if (bytes){const source=object(JSON.parse(utf8(await loadFile(bytes))) as unknown);sourceAssets(source).forEach(a=>assetIds.add(a));sourceFiles.push(...sourceAttachments(source))}
     }
-    for (const [path, stored] of remote.files) {
-      if(!/^notes\/(assets|sources|attachments)\//.test(path))continue
-      const bytes=await loadFile(stored)
+    const attachments=new Map([...objects.revisions.flatMap(r=>r.attachments??[]),...sourceFiles].map(file=>[file.id,file]))
+    const resources:SyncResource[]=[]
+    for(const [path,stored]of remote.files){
       signal?.throwIfAborted()
-      if (path.startsWith('notes/assets/') && assetIds.has(path.slice(13))) await this.repository.putAsset(bytes, mediaTypeFor(path.slice(13)), signal)
-      else if (path.startsWith('notes/sources/') && sourceIds.has(path.slice(14, -5))) await this.repository.putSource(JSON.parse(utf8(bytes)) as unknown, signal)
-      else if (path.startsWith('notes/attachments/')) {
-        const file = [...objects.revisions.flatMap(r => r.attachments ?? []),...sourceFiles].find(a => path === `notes/attachments/${a.id}.bin`)
-        if (file) await this.repository.putAttachment(bytes, file.name, signal)
+      if(path.startsWith('notes/assets/')&&assetIds.has(path.slice(13))||path.startsWith('notes/sources/')&&sourceIds.has(path.slice(14,-5)))resources.push({path:path.slice(6),bytes:stored.length,read:()=>loadFile(stored)})
+      else if(path.startsWith('notes/attachments/')){
+        const file=attachments.get(path.slice(18,-4))
+        if(file&&path===`notes/attachments/${file.id}.bin`){if(stored.length!==file.bytes)fail('note_hash');resources.push({path:path.slice(6),bytes:file.bytes,read:()=>loadFile(stored)})}
       }
     }
-    await this.repository.importObjects(objects, signal)
-    await this.local(signal)
+    if(this.repository.files!==target)fail('transfer_expired')
+    const installed=await this.repository.installSyncResources(resources,objects,signal)
+    if(installed&&installed.generation===this.repository.generation)this.currentToken=token(installed.objects)
+    else await this.local(signal)
   }
   async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot) {
     const remote=verified??await this.readSnapshot(backend,snapshot,signal)
