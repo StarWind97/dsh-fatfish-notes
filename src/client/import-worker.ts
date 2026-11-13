@@ -4,7 +4,7 @@ import {scanImport,importNote,transferEntry,type ImportPlan} from './library-imp
 import {imageDimensions} from '../notes/export/image.js'
 import {ImportWorkerStore,IMPORT_CHUNK} from './import-worker-store.js'
 import type {Api} from './api.js'
-type Packet={flatten?:boolean;repository?:number;remoteFiles?:BundleRemote[];id:number;action:string;files?:File[];zip?:boolean;database?:string;noteId?:string;selected?:string[];notebookId?:string;remote?:boolean;value?:unknown;error?:string;draft?:boolean;mediaType?:string}
+type Packet={flatten?:boolean;repository?:number;remoteFiles?:BundleRemote[];id:number;action:string;files?:File[];zip?:boolean;database?:string;noteId?:string;selected?:string[];notebookId?:string;remote?:boolean;value?:unknown;error?:string;draft?:boolean;mediaType?:string;editId?:string}
 const port=globalThis as unknown as {postMessage(value:unknown):void;onmessage:((event:MessageEvent<Packet>)=>void)|null}
 let plan:ImportPlan|null=null,store:ImportWorkerStore|null=null,serial=Promise.resolve(),sequence=0
 const calls=new Map<number,{resolve:(v:unknown)=>void;reject:(e:Error)=>void}>()
@@ -31,7 +31,7 @@ async function run(m:Packet){
   if(m.action==='file'){
     const file=m.files![0]!
     if(m.mediaType){if(file.size>20*1024*1024)throw Error('image_limit');try{imageDimensions(new Uint8Array(await file.arrayBuffer()),{side:Number.MAX_SAFE_INTEGER,imagePixels:32_000_000})}catch{throw Error('image_limit')}}
-    return transferEntry({path:file.name,bytes:file.size,read:async()=>new Uint8Array(await file.arrayBuffer()),chunks:async function*(){for(let at=0;at<file.size;at+=IMPORT_CHUNK)yield new Uint8Array(await file.slice(at,at+IMPORT_CHUNK).arrayBuffer())}},{noteId:m.noteId!,draft:!!m.draft,...(m.mediaType?{mediaType:m.mediaType}:{})},api,undefined,progress)
+    return transferEntry({path:file.name,bytes:file.size,read:async()=>new Uint8Array(await file.arrayBuffer()),chunks:async function*(){for(let at=0;at<file.size;at+=IMPORT_CHUNK)yield new Uint8Array(await file.slice(at,at+IMPORT_CHUNK).arrayBuffer())}},{noteId:m.noteId!,draft:!!m.draft,...(m.editId?{editId:m.editId}:{}),...(m.mediaType?{mediaType:m.mediaType}:{})},api,undefined,progress)
   }
   if(m.action==='scan'){
     await store?.close();store=new ImportWorkerStore(m.database!);await store.open()

@@ -4,7 +4,7 @@ import {exportTree} from '../notes/export/model.js'
 import {changeReferences,references} from '../notes/portable-links.js'
 import {markdownLabel} from '../contracts/note-links.js'
 import type {NoteContent,NoteAttachment} from '../contracts/notes.js'
-import {ATTACHMENT_LIMIT} from '../contracts/notes.js'
+import {ATTACHMENT_LIMIT,SINGLE_TRANSFER_LIMIT} from '../contracts/notes.js'
 import type {Root,RootContent,PhrasingContent} from 'mdast'
 import type {Api} from './api.js'
 export interface ImportEntry {path:string;bytes:number;read:()=>Promise<Uint8Array>;chunks?:()=>AsyncIterable<Uint8Array>}
@@ -125,7 +125,13 @@ export async function importNote(plan:ImportPlan,note:ImportNote,notebookId:stri
   note.done=true;return warnings
 }
 
-export async function transferEntry(entry:ImportEntry,options:{noteId:string;draft:boolean;mediaType?:string},api:Api,signal?:AbortSignal,progress?:(bytes:number,total:number,path:string)=>void){
+export async function transferEntry(entry:ImportEntry,options:{noteId:string;draft:boolean;mediaType?:string;editId?:string},api:Api,signal?:AbortSignal,progress?:(bytes:number,total:number,path:string)=>void){
+  if(options.editId&&entry.bytes>0&&entry.bytes<=SINGLE_TRANSFER_LIMIT){
+    signal?.throwIfAborted();const bytes=await entry.read();signal?.throwIfAborted()
+    if(bytes.length!==entry.bytes)throw Error('transfer_incomplete')
+    const result=await api('/notes/transfer',{action:'single',...options,name:entry.path.split('/').at(-1)!,size:entry.bytes,base64:encoded(bytes)},signal)
+    progress?.(entry.bytes,entry.bytes,entry.path);return result
+  }
   const {uploadId}=await api('/notes/transfer',{action:'begin',...options,name:entry.path.split('/').at(-1)!,size:entry.bytes},signal)
   if(!uploadId)throw Error('Missing upload')
   let finished=false,offset=0

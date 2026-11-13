@@ -76,6 +76,12 @@ export declare class NoteRepository {
     trash(noteId: string, expectedHeads: string[], signal?: AbortSignal): Promise<NoteView>;
     restore(noteId: string, expectedHeads: string[], signal?: AbortSignal): Promise<NoteView>;
     resolve(noteId: string, expectedHeads: string[], content: NoteContent, signal?: AbortSignal): Promise<NoteView>;
+    /** A durable editing journal owns small uploads through cancellation and recovery. */
+    putDraftFile(noteId: string, editId: string, bytes: Uint8Array, name: string, mediaType?: ImageMediaType, signal?: AbortSignal): Promise<{
+        asset: NoteAsset;
+    } | {
+        attachment: NoteAttachment;
+    }>;
     putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?: string): Promise<NoteAsset>;
     getAsset(asset: string, signal?: AbortSignal): Promise<Buffer>;
     putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?: string): Promise<NoteAttachment>;

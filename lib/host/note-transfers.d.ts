@@ -12,6 +12,7 @@ export declare class NoteTransfers {
         taskId?: never;
     };
     private uploads;
+    private singles;
     private timer;
     private cleanup;
     private clearAbandoned;

@@ -14,6 +14,8 @@ export declare class NoteFiles {
     /** Content-addressed references are rechecked whenever the file identity or timestamp changes. */
     check(relative: string, limit: number, verify: (bytes: Buffer) => void): Promise<number>;
     path(relative: string): string;
+    /** Job discovery never walks documents or immutable revision history. */
+    listJobs(): Promise<string[]>;
     read(relative: string, limit?: number): Promise<Buffer>;
     remove(relative: string): Promise<void>;
     write(relative: string, data: string | Buffer, immutable: boolean): Promise<void>;

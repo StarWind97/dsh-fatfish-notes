@@ -68,6 +68,19 @@ export class NoteFiles {
     this.checked.set(key,{stamp:before,bytes:bytes.length});return bytes.length
   }
   path(relative: string): string { return join(this.root, relativePath(relative)) }
+  /** Job discovery never walks documents or immutable revision history. */
+  async listJobs():Promise<string[]> {
+    const folder=join(this.root,'jobs');await safePath(folder)
+    const entries=await readdir(folder,{withFileTypes:true}).catch(e=>{if(missing(e))return [];throw e}),ids:string[]=[]
+    for(const entry of entries){
+      const info=await lstat(join(folder,entry.name))
+      if(info.isSymbolicLink()||(info.isFile()&&info.nlink>1))fail('note_path')
+      if(!/^[a-f0-9]{64}\.json$/.test(entry.name))continue
+      if(!info.isFile()||info.size>NOTE_LIMITS.scan)fail('note_path')
+      ids.push(entry.name.slice(0,-5))
+    }
+    return ids.sort()
+  }
   async read(relative: string, limit = NOTE_LIMITS.scan): Promise<Buffer> { return readBytes(this.path(relative), limit) }
   async remove(relative: string): Promise<void> {
     const path = this.path(relative); await safePath(path)

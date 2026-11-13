@@ -56,7 +56,7 @@ export class NoteEnrichment {
     if (job.adoption) { const r = validateNoteRevision(job.adoption); if (r.noteId !== job.noteId || r.sourceId !== job.sourceId) fail('ai_corrupt') }
     return job
   }
-  async list(): Promise<string[]> { return (await this.repository.files.scan()).paths.filter(p => /^jobs\/[a-f0-9]{64}\.json$/.test(p)).map(p => p.slice(5, -5)) }
+  async list(): Promise<string[]> { return this.repository.files.listJobs() }
   ensure(request: CaptureRequest, captured: CaptureResult, signal: AbortSignal): Promise<NoteJob | null> {
     if (!request.autoMetadata) return Promise.resolve(null)
     return this.run(async () => {

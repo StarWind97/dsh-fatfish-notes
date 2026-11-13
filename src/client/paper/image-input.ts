@@ -20,11 +20,11 @@ export function clipboardImages(data:DataTransfer):ImageInput[]{
   const url=/^https:\/\/\S+$/i.test(raw)?safePublicUrl(raw):null
   return url&&(/\.(png|jpe?g|gif|webp)$/i.test(new URL(url).pathname)||/[?&](?:format|fm)=(?:png|jpe?g|gif|webp)(?:&|$)/i.test(url))?[{url,label:''}]:[]
 }
-export async function archiveInput(noteId:string,input:ImageInput,signal:AbortSignal,draft:boolean,call:Api=api){
+export async function archiveInput(noteId:string,input:ImageInput,signal:AbortSignal,draft:boolean,call:Api=api,editId?:string){
   if('url' in input)return (await call('/notes/image',{noteId,draft,url:input.url},signal)).asset
   const {file}=input
   if(!file.size||file.size>20*1024*1024)throw new Error('image_limit')
   const mediaType=inlineImageType(file)
   if(!mediaType)throw new Error('image_type')
-  const result=await uploadFile(file,{noteId,draft,mediaType},call,signal);if(!result.asset)throw new Error('image_limit');return result.asset
+  const result=await uploadFile(file,{noteId,draft,mediaType,...(editId?{editId}:{})},call,signal);if(!result.asset)throw new Error('image_limit');return result.asset
 }

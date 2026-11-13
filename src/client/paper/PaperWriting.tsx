@@ -70,11 +70,11 @@ export function PaperWriting(props:Props){
     const {from,to}=view.state.selection.main,original=view.state.sliceDoc(from,to),at={from,to}
     pending.current.add(at);setInfo(t('paperImporting'))
     const inserts:string[]=[],fallback:File[]=[];let failed=false
-    return controller.queueImageImport(async signal=>{
+    return controller.queueImageImport(async (signal,editId)=>{
     try{
       for(const input of inputs){
         try{
-          const asset=await archiveInput(noteId,input,signal,!controller.getSnapshot().note,controller.api);signal.throwIfAborted()
+          const asset=await archiveInput(noteId,input,signal,!controller.getSnapshot().note,controller.api,editId);signal.throwIfAborted()
           known.current.add(asset.id)
           if('file' in input)controller.rememberImage(asset.id,input.file)
           else if('preview' in asset&&asset.preview)controller.rememberImage(asset.id,asset.preview)
@@ -112,7 +112,7 @@ export function PaperWriting(props:Props){
   async function attachFiles(batch:FileBatch){
     const local=new AbortController();fileJobs.current.add(local)
     const previous=fileTail.current
-    const job=controller.queueImageImport(async queueSignal=>{
+    const job=controller.queueImageImport(async (queueSignal,editId)=>{
       await previous
       const signal=AbortSignal.any([queueSignal,local.signal]),inserts:string[]=[],records:NoteAttachment[]=[],failures:string[]=[]
       let offset=0,added=0
@@ -125,7 +125,7 @@ export function PaperWriting(props:Props){
           try{
             if(!file.size||file.size>ATTACHMENT_LIMIT)throw Error('file_size')
             const mediaType=batch.destination==='body'&&file.size<=20*1024*1024?inlineImageType(file):undefined
-            const options={noteId,draft:!controller.getSnapshot().note}
+            const options={noteId,draft:!controller.getSnapshot().note,editId}
             let result
             try{result=await uploadFile(file,{...options,...(mediaType?{mediaType}:{})},controller.api,signal,p=>progress(offset+p.bytes,file.name))}
             catch(error){signal.throwIfAborted();if(!mediaType||!/invalid_asset|image_decode|image_type|image_limit|export_image/.test(String(error)))throw error;result=await uploadFile(file,options,controller.api,signal,p=>progress(offset+p.bytes,file.name))}
@@ -164,7 +164,7 @@ export function PaperWriting(props:Props){
   async function insertSupplement(id:string,image:boolean){
     const v=editor.current;if(!v||!controller.writable)return
     const {from,to}=v.state.selection.main,at={from,to};pending.current.add(at)
-    await controller.queueImageImport(async signal=>{
+    await controller.queueImageImport(async (signal,editId)=>{
       try{
         const current=controller.getSnapshot(),file=current.draft?.attachments?.find(f=>f.id===id)
         let target=image?'../assets/'+id:'../attachments/'+id+'.bin',inline=image,label=file?.name||t('noteImage')
@@ -176,7 +176,7 @@ export function PaperWriting(props:Props){
             original=new File([await response.blob()],file.name)
           }
           try{
-            const asset=await archiveInput(noteId,{file:original,label:file.name},signal,!current.note,controller.api)
+            const asset=await archiveInput(noteId,{file:original,label:file.name},signal,!current.note,controller.api,editId)
             known.current.add(asset.id);controller.rememberImage(asset.id,original);target='../assets/'+asset.id;inline=true
           }catch(error){signal.throwIfAborted();if(!/image_limit|image_type|invalid_asset|image_decode|export_image/.test(String(error)))throw error;setInfo(t('supplementImageFallback'))}
         }

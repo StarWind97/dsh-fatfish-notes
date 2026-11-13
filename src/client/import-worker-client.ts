@@ -42,7 +42,7 @@ export class ImportWorkerClient {
   async cancel(error:Error=new DOMException('Cancelled','AbortError')){clearTimeout(this.progressTimer);this.controller.abort();this.worker?.terminate();this.worker=null;for(const call of this.calls.values())call.reject(error);this.calls.clear();indexedDB.deleteDatabase(this.database);for(const [uploadId,noteId]of this.uploads)void this.api('/notes/transfer',{action:'cancel',uploadId,noteId}).catch(()=>{});this.uploads.clear();await Promise.all([...this.commits])}
 }
 
-export async function uploadFile(file:File,options:{noteId:string;draft:boolean;mediaType?:string},api:Api,signal?:AbortSignal,progress:(value:WorkerProgress)=>void=()=>{}){
+export async function uploadFile(file:File,options:{noteId:string;draft:boolean;mediaType?:string;editId?:string},api:Api,signal?:AbortSignal,progress:(value:WorkerProgress)=>void=()=>{}){
   const worker=new ImportWorkerClient(api,progress),cancel=()=>worker.cancel()
   signal?.throwIfAborted();signal?.addEventListener('abort',cancel,{once:true})
   try{await worker.start();return await worker.request<import('../contracts/notes.js').NotesApiContract['/notes/transfer']['response']>('file',{files:[file],...options})}

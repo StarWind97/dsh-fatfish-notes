@@ -45,6 +45,8 @@ export interface NoteAttachment {
 }
 export declare const ATTACHMENT_WARNING: number;
 export declare const ATTACHMENT_LIMIT: number;
+/** Fits the existing 2 MiB JSON request budget after base64 encoding. */
+export declare const SINGLE_TRANSFER_LIMIT: number;
 export interface NoteSelection {
     noteId: string;
     expectedHeads: string[];
@@ -359,8 +361,9 @@ export interface NotesApiContract {
     };
     '/notes/transfer': {
         request: {
-            action: 'begin' | 'chunk' | 'finish' | 'cancel';
+            action: 'single' | 'begin' | 'chunk' | 'finish' | 'cancel';
             noteId: string;
+            editId?: string;
             draft?: boolean;
             name?: string;
             size?: number;

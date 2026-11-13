@@ -19,6 +19,8 @@ export interface NoteSupplements { assetIds: string[]; attachmentIds: string[] }
 export interface NoteAttachment { id: string; name: string; bytes: number }
 export const ATTACHMENT_WARNING = 50 * 1024 * 1024
 export const ATTACHMENT_LIMIT = 100 * 1024 * 1024
+/** Fits the existing 2 MiB JSON request budget after base64 encoding. */
+export const SINGLE_TRANSFER_LIMIT = 1024 * 1024
 export interface NoteSelection { noteId: string; expectedHeads: string[] }
 export interface NoteRevision extends NoteContent {
   version: 1; noteId: string; revision: string; parents: string[]; recordedAt: string
@@ -99,7 +101,7 @@ export interface NotesApiContract {
   '/notes/reference-preview': {request:{noteId:string};response:{ok:true;plan:ReferencePlan}}
   '/notes/reference': {request:{sessionId:string;noteId:string;revision:string;assetIds:string[];attachmentIds:string[]};response:{ok:true;instruction:string;files:number;path:string}}
   '/notes/import-task': {request:{action:'begin'|'end'|'heartbeat';taskId?:string};response:{ok:true;taskId?:string}}
-  '/notes/transfer': {request:{action:'begin'|'chunk'|'finish'|'cancel';noteId:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string};attachment?:NoteAttachment}}
+  '/notes/transfer': {request:{action:'single'|'begin'|'chunk'|'finish'|'cancel';noteId:string;editId?:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string};attachment?:NoteAttachment}}
   '/notes/session-context': { request: { sessionId:string }; response: { ok:true; workspace: { id:string; title:string } | null; notebookId:string|null } }
   '/notes/associate': { request: { noteId: string; expectedHeads: string[]; sessionId: string; linked: boolean }; response: { ok: true; note: NoteView } }
   '/notes/workspace-book': { request: { workspaceId: string; notebookId?: string | null }; response: { ok: true; notebookId: string | null } }

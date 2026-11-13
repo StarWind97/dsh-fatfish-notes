@@ -55,9 +55,9 @@ export class NotesController {
     this.draftImages.clear()
   }
   get importing(){return this.imageImports.size>0}
-  queueImageImport(work:(signal:AbortSignal)=>Promise<void>){
+  queueImageImport(work:(signal:AbortSignal,editId:string)=>Promise<void>){
     const signal=this.imageAbort.signal
-    const job=Promise.resolve().then(async()=>{if(!await this.checkpoint())throw new Error('note_draft_failed');return work(signal)}).finally(()=>{this.imageImports.delete(job)})
+    const job=Promise.resolve().then(async()=>{signal.throwIfAborted();if(!await this.checkpoint()||!this.editId)throw new Error('note_draft_failed');signal.throwIfAborted();return work(signal,this.editId)}).finally(()=>{this.imageImports.delete(job)})
     this.imageImports.add(job)
     return job
   }
