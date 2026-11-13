@@ -1,0 +1,22 @@
+import * as React from 'react'
+import {createPortal} from 'react-dom'
+import {useEffect,useLayoutEffect,useRef,useState} from 'react'
+import {MoreHorizontal} from 'lucide-react'
+import type {T} from '../locale.js'
+
+export interface ImageMenuPosition {x:number;y:number}
+export function ImageMenu({at,image,download,name,t,change,close}:{at:ImageMenuPosition;image:boolean;download?:string|undefined;name?:string|undefined;t:T;change?:(()=>void)|undefined;close:()=>void}){
+ const menu=useRef<HTMLSpanElement>(null)
+ useLayoutEffect(()=>{const el=menu.current!;const r=el.getBoundingClientRect();el.style.left=Math.max(8,Math.min(at.x,innerWidth-r.width-8))+'px';el.style.top=Math.max(8,Math.min(at.y,innerHeight-r.height-8))+'px';el.querySelector<HTMLElement>('button,a')?.focus({preventScroll:true})},[])
+ useEffect(()=>{const outside=(e:PointerEvent)=>{if(!menu.current?.contains(e.target as Node))close()},dismiss=()=>close();document.addEventListener('pointerdown',outside,true);window.addEventListener('resize',dismiss);return()=>{document.removeEventListener('pointerdown',outside,true);window.removeEventListener('resize',dismiss)}},[close])
+ return createPortal(<span ref={menu} className="paper-image-menu" role="menu" aria-label={t('imagePresentation')} style={{left:at.x,top:at.y}} onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close()}if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const items=Array.from(menu.current!.querySelectorAll<HTMLElement>('button,a')),index=items.indexOf(document.activeElement as HTMLElement);items[(index+1)%items.length]?.focus()}}}>
+  {change&&<button type="button" role="menuitem" onClick={()=>{close();change()}}>{t(image?'imageShowLink':'imageShowImage')}</button>}
+  {download&&<a role="menuitem" href={download} download={name||true} onClick={close}>{t('attachmentDownload')}</a>}
+ </span>,document.body)
+}
+export function ImageActions({children,image,download,name,t,change}:{children:React.ReactNode;image:boolean;download?:string|undefined;name?:string|undefined;t:T;change?:(()=>void)|undefined}){
+ const [at,setAt]=useState<ImageMenuPosition|null>(null),trigger=useRef<HTMLButtonElement>(null)
+ const close=()=>{setAt(null);trigger.current?.focus({preventScroll:true})}
+ return <span className={'paper-presented-media'+(image?' is-image':'')} onContextMenu={e=>{e.preventDefault();e.stopPropagation();setAt({x:e.clientX,y:e.clientY})}}>{children}<button type="button" className="paper-media-more" ref={trigger} title={t('imagePresentation')} aria-label={t('imagePresentation')} aria-haspopup="menu" aria-expanded={!!at} onClick={e=>{e.preventDefault();e.stopPropagation();const r=trigger.current!.getBoundingClientRect();setAt({x:r.left,y:r.bottom})}}><MoreHorizontal size={16}/></button>{at&&<ImageMenu at={at} image={image} download={download} name={name} t={t} change={change} close={close}/>}</span>
+}
+export const imageActionsCss=`.paper-presented-media{display:inline-flex;align-items:center;position:relative;max-width:100%;gap:4px}.paper-presented-media.is-image{display:inline-block;width:max-content}.paper-presented-media.is-image>img{display:block;max-width:100%}.paper-media-more{display:inline-flex!important;align-items:center;justify-content:center;min-width:26px;height:26px;padding:3px!important;border:1px solid var(--rule)!important;border-radius:5px;background:var(--base)!important;color:var(--ink);cursor:pointer}.is-image>.paper-media-more{position:absolute;right:5px;top:5px;opacity:.6}.is-image:hover>.paper-media-more,.is-image:focus-within>.paper-media-more{opacity:1}.paper-image-menu{display:flex;flex-direction:column;position:fixed;z-index:2300;min-width:165px;padding:5px;border:1px solid var(--dsw-alias-border-l2,#ccc);border-radius:8px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222);box-shadow:0 5px 20px #0003;font:13px/1.6 system-ui}.paper-image-menu>button,.paper-image-menu>a{padding:8px 10px;text-align:left;text-decoration:none;color:inherit;background:transparent;border:0;border-radius:4px;cursor:pointer}.paper-image-menu>:hover,.paper-image-menu>:focus-visible{background:var(--dsw-alias-bg-layer-2,#eee)}.paper-media-selection{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;background:var(--shelf);font-size:12px}.paper-media-selection button{padding:3px 8px}.paper-media-selection a{color:inherit}`

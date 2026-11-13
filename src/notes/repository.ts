@@ -6,6 +6,7 @@ import {setImmediate as yieldQueue} from 'node:timers/promises'
 import { NotebookError } from '../domain/errors.js'
 import { ulid } from '../domain/id.js'
 import type { ImageMediaType } from '../contracts/media.js'
+import {detectImageType} from '../media/images.js'
 import type { NoteObjects, NoteRevision, NotebookRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js'
 import { NOTE_LIMITS } from './types.js'
 import { canonical, digest, fail, hash, id, normalizeContent, object, keys, sortedStrings, assetId, text } from './validation.js'
@@ -568,6 +569,30 @@ export class NoteRepository {
       if(!row.files.includes(path)){row.files.push(path);await this.drafts.write(row)}
       guard();await this.files.write(path,copy,true)
       return asset?{asset}:{attachment:file!}
+    },signal)
+  }
+  /** Promote only an attachment recorded in this durable edit; never reopen a caller path. */
+  promoteDraftImage(noteId:string,editId:string,attachmentId:string,signal?:AbortSignal){
+    id(noteId);id(editId);hash(attachmentId);const root=this.files.root
+    return this.run(async()=>{
+      const guard=()=>{signal?.throwIfAborted();if(this.files.root!==root)fail('transfer_expired');this.editGuard([noteId],true)}
+      guard();const row=await this.drafts.read(editId)
+      if(!row||row.noteId!==noteId||row.state!=='editing')fail('note_draft_invalid')
+      const file=row.request!.content.attachments?.find(f=>f.id===attachmentId)
+      if(!file)fail('note_asset')
+      if(row.request!.content.status!=='active')fail('note_trashed')
+      if(file.bytes>NOTE_LIMITS.image)fail('image_limit')
+      const state=await this.load([noteId]);this.complete(state);this.writable(state,noteId)
+      if(state.revisions.some(r=>r.noteId===noteId)){await this.external(state,noteId);if(this.view(state,noteId).current.status!=='active')fail('note_trashed')}
+      else if(row.request!.expectedHeads.length)fail('note_not_found')
+      const bytes=await this.files.read(`attachments/${attachmentId}.bin`,NOTE_LIMITS.image)
+      if(bytes.length!==file.bytes||digest(bytes)!==attachmentId)fail('note_hash')
+      const mediaType=detectImageType(bytes);if(!mediaType)fail('image_type')
+      const asset=validateAsset(bytes,mediaType),path=`assets/${asset.id}`
+      if(!row.request!.content.assetIds.includes(asset.id)&&row.request!.content.assetIds.length>=128)fail('image_limit')
+      guard();if(!row.files.includes(path)){row.files.push(path);await this.drafts.write(row)}
+      guard();await this.files.write(path,bytes,true)
+      return {...asset,preview:`data:${mediaType};base64,${bytes.toString('base64')}`}
     },signal)
   }
   async putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?:string): Promise<NoteAsset> {

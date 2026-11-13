@@ -10,7 +10,7 @@ export function normalizeAssetId(value: unknown): string {
   if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(value.trim())) throw new NotebookError('invalid_asset', '图片标识格式无效')
   return value.trim()
 }
-function detectType(bytes: Buffer): ImageMediaType | null {
+export function detectImageType(bytes: Buffer): ImageMediaType | null {
   if (bytes.length >= 24 && bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) && bytes.toString('ascii', 12, 16) === 'IHDR' && bytes.readUInt32BE(16) > 0 && bytes.readUInt32BE(20) > 0) return 'image/png'
   if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff && bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9) return 'image/jpeg'
   if (bytes.length >= 13 && ['GIF87a', 'GIF89a'].includes(bytes.toString('ascii', 0, 6)) && bytes.readUInt16LE(6) > 0 && bytes.readUInt16LE(8) > 0) return 'image/gif'
@@ -32,7 +32,7 @@ export function normalizeImageAssets(value: unknown): ImageAsset[] {
     const bytes = Buffer.from(encoded, 'base64')
     if (bytes.toString('base64').replace(/=+$/, '') !== encoded.replace(/=+$/, '')) throw new NotebookError('invalid_asset', '图片 base64 编码无效')
     if (bytes.length > MAX_IMAGE_BYTES) throw new NotebookError('image_limit', '正文图片不能超过 20 MiB')
-    const mediaType = detectType(bytes)
+    const mediaType = detectImageType(bytes)
     if (!mediaType || mediaType !== raw.mediaType) throw new NotebookError('invalid_asset', '图片内容与声明类型不符，仅支持 PNG、JPEG、WebP 和 GIF')
     try{imageDimensions(bytes,{side:Number.MAX_SAFE_INTEGER,imagePixels:32_000_000})}catch{throw new NotebookError('image_limit','图片超过 3200 万像素或无法读取尺寸，请作为普通附件保存')}
     return { id, mediaType, base64: bytes.toString('base64') }

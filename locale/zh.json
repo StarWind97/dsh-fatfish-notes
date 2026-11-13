@@ -545,6 +545,7 @@
   "libraryMinimize": "收起，继续其他工作",
   "libraryShowProgress": "查看进度",
   "imageAsFile": "这张图片不适合在正文中显示，可在弹出的窗口中作为普通附件保留原图。",
+  "fileImageFallback": "以下图片的格式、大小或内容不符合正文展示要求，已保留原件下载链接：{names}",
   "captureMaterials": "图片与文件",
   "captureMaterialsHint": "只保存选中项；大图或不支持预览的图片将按普通附件保存原件。AI 交付文件保存的是现在的内容。",
   "captureUpload": "用户上传",
@@ -602,5 +603,11 @@
   "fileAddCancelled": "已停止添加，保留已完成的 {count} 项。",
   "fileAddFailures": "未能添加：{names}。请检查文件大小、格式或重试。",
   "bodyMaterials": "正文中的图片和文件",
-  "supplementImageFallback": "这张图片不适合内嵌，已作为文件链接插入正文。"
+  "supplementImageFallback": "这张图片不适合内嵌，已作为文件链接插入正文。",
+  "imagePresentation": "图片显示方式",
+  "imageShowLink": "显示为下载链接",
+  "imageShowImage": "显示为图片",
+  "imageSwitchFailed": "未能切换图片显示方式，原内容已保留。请检查格式、大小或重试。",
+  "imageSwitchChanged": "这处内容已改变，请重新选择后切换。",
+  "imageSwitchWorking": "正在准备图片…"
 }

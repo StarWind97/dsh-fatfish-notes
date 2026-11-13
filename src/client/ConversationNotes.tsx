@@ -18,6 +18,7 @@ import {organizationCss} from './organization-style.js'
 import {transferCss} from './NoteAttachments.js'
 import {WorkspaceBookDialog} from './WorkspaceBookDialog.js'
 import {RowMenu} from './RowMenu.js'
+import {NoteSelectionRow} from './NoteSelectionRow.js'
 import {useItemActions} from './ItemActions.js'
 import {TransientNotice} from './TransientNotice.js'
 import {ConversationBrowse} from './conversation-browse.js'
@@ -130,17 +131,13 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
           {!canBrowse?<p className="conversation-empty">{t('sessionChooseBookHint')}</p>:state.listError?<p role="alert">{t('sessionLoadFailed')}</p>:!state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='find'||group==='workspace'?'notesEmpty':'sessionEmpty')}</p>:state.items.map(item=>{
             const selected=chosen.some(row=>row.noteId===item.noteId)
             return <article key={item.noteId} data-selected={selected&&selecting}>
-              <RowMenu label={item.title+' · 操作'} actions={selecting&&selected?[
-                {label:`引用所选 ${chosen.length} 篇笔记`,disabled:!reference.enabled,run:()=>reference.open(chosen)},
-                {label:'取消选择此篇',run:()=>toggleChosen(item)}
-              ]:[
+              <NoteSelectionRow selecting={selecting} selected={selected} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void open(item.noteId)} actions={[
                 {label:'引用到当前会话',disabled:!reference.enabled,run:()=>reference.open([item])},
                 {label:'加入多选',disabled:!!removed,run:()=>{setSelecting(true);if(!selected)toggleChosen(item)}},
                 ...(item.sessionRelation==='source'?[]:[{label:t(item.sessionRelation?'sessionDissociate':'sessionAssociate'),run:()=>void associate(item,!item.sessionRelation),disabled:linking.has(item.noteId)||!!removed}]),...actions.noteActions(item)
               ]}>
-                {selecting&&<input className="conversation-note-check" type="checkbox" checked={selected} aria-label={`选择笔记：${item.title}`} onChange={()=>toggleChosen(item)}/>}
-                <button className="conversation-note-row" onClick={()=>void open(item.noteId)}><strong>{item.title}</strong><p>{item.summary||item.excerpt}</p><small>{noteDateTime(item.savedAt)}</small></button>
-              </RowMenu>
+                <strong>{item.title}</strong><p>{item.summary||item.excerpt}</p><small>{noteDateTime(item.savedAt)}</small>
+              </NoteSelectionRow>
               {!selecting&&<div className="conversation-relation">
                 <button className="conversation-quote" title={referenceTooltip} aria-label={`引用《${item.title}》`} disabled={!reference.enabled} onClick={()=>reference.open([item])}><Quote size={16}/></button>
                 {item.sessionRelation==='source'?<span className="conversation-association" data-linked tabIndex={0} title="从本会话转存，已自动关联" aria-label="从本会话转存，已自动关联"><BookPlus size={16}/></span>:<button className="conversation-association" data-linked={!!item.sessionRelation} disabled={linking.has(item.noteId)||!!removed} title={linking.has(item.noteId)?'正在处理':item.sessionRelation?'已关联，点击解除关联':'关联到本会话'} aria-label={t(item.sessionRelation?'sessionDissociate':'sessionAssociate')} aria-pressed={!!item.sessionRelation} onClick={()=>void associate(item,!item.sessionRelation)}>{linking.has(item.noteId)?<LoaderCircle className="conversation-link-spinner" size={16}/>:item.sessionRelation?<Check size={17}/>:<><Link2 size={16}/><span className="conversation-link-plus">+</span></>}</button>}

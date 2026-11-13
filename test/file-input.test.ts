@@ -2,6 +2,19 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {transferFiles,inlineImageType,needsFileConfirmation} from '../src/client/paper/file-input.js'
 import {ATTACHMENT_WARNING} from '../src/contracts/notes.js'
+import {bodyFilePresentation} from '../src/client/paper/file-input.js'
+
+test('body defaults distinguish pure images from mixed files, with explicit choices taking priority',()=>{
+ const picture={name:'截图.png',type:'image/png'},other={name:'记录.txt',type:'text/plain'},unsupported={name:'原图.heic',type:''}
+ assert.equal(bodyFilePresentation([picture],'body'),'image')
+ assert.equal(bodyFilePresentation([picture,picture],'body'),'image')
+ assert.equal(bodyFilePresentation([picture,unsupported],'body'),'image')
+ assert.equal(bodyFilePresentation([picture,other],'body'),'link')
+ assert.equal(bodyFilePresentation([picture,other],'picture'),'image')
+ assert.equal(bodyFilePresentation([picture],'file'),'link')
+ assert.equal(bodyFilePresentation([picture],'supplement'),'link')
+ assert.equal(bodyFilePresentation([{name:'x.png',type:'application/pdf'},picture],'body'),'link')
+})
 
 test('file transfers keep mixed file order without duplicating items exposed twice',()=>{
   const files=[new File(['text'],'a.txt',{type:'text/plain'}),new File(['image'],'b.png',{type:'image/png'}),new File(['data'],'c.pdf')]

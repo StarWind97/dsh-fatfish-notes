@@ -11,3 +11,11 @@ export function inlineImageType(file:Pick<File,'type'|'name'>):string|undefined{
   return type&&['image/png','image/jpeg','image/gif','image/webp'].includes(type)?type:undefined
 }
 export const needsFileConfirmation=(files:readonly Pick<File,'size'>[])=>files.some(file=>file.size>ATTACHMENT_WARNING)
+
+export type FileDestination='body'|'picture'|'file'|'supplement'
+/** Decide once for the accepted batch; failed files must not change the remaining presentation. */
+export function bodyFilePresentation(files:readonly Pick<File,'type'|'name'>[],destination:FileDestination):'image'|'link'{
+  if(destination==='picture')return 'image'
+  if(destination!=='body')return 'link'
+  return files.length&&files.every(file=>file.type?file.type.startsWith('image/'):/\.(png|jpe?g|gif|webp|svg|heic|heif|avif|bmp|tiff?|ico)$/i.test(file.name))?'image':'link'
+}

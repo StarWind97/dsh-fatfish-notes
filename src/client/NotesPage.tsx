@@ -1,4 +1,4 @@
-import {RowMenu} from './RowMenu.js'
+import {NoteSelectionRow} from './NoteSelectionRow.js'
 import {useItemActions} from './ItemActions.js'
 import {NoteUsage} from './NoteUsage.js'
 import * as React from 'react'
@@ -131,9 +131,9 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
     </div><div className="paper-list-scroll"><div className="paper-rows">{state.items.map((item,i)=>{
       const date=noteDateTime(item.savedAt).slice(0,10),showDate=view!=='visits'&&(!i||noteDateTime(state.items[i-1]!.savedAt).slice(0,10)!==date)
-      return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row"><RowMenu label={(item.title||t('notesUntitled'))+' · 操作'} actions={itemActions.noteActions(item)}>{selection.selecting&&<input type="checkbox" aria-label={item.title||t('notesUntitled')} checked={selection.selected.some(n=>n.noteId===item.noteId)} onChange={()=>selection.toggle(item)}/>}<button className="paper-row" aria-current={item.noteId===state.noteId?'true':undefined} onClick={()=>{clearTimeout(timer.current);if(selection.selecting)selection.toggle(item);else {setHistory([]);void controller.open(item.noteId)}}}>
+      return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row"><NoteSelectionRow selecting={selection.selecting} selected={selection.selected.some(n=>n.noteId===item.noteId)} label={item.title||t('notesUntitled')} actions={itemActions.noteActions(item)} rowClass="paper-row" current={item.noteId===state.noteId} toggle={()=>selection.toggle(item)} open={()=>{clearTimeout(timer.current);setHistory([]);void controller.open(item.noteId)}}>
         <strong>{item.favorite&&<Star size={12} fill="currentColor" aria-label={t('findFavorites')}/>} <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong>{(item.excerpt||item.summary)&&<span><Highlight value={item.excerpt||item.summary} query={state.filter.query}/></span>}<small>{item.conflicted?t('notesConflict'):item.isTemplate?t('reuseTemplates'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')}</small>
-      </button></RowMenu></div></React.Fragment>
+      </NoteSelectionRow></div></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash)&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss}</style>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}

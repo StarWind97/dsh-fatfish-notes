@@ -21,15 +21,17 @@ import { livePreview,refreshMedia } from './decorations.js'
 import { ancestor,format,selectionFormat,type Format } from './format.js'
 import { FormatBar,type Action } from './FormatBar.js'
 import { archiveInput,clipboardImages,type ImageInput } from './image-input.js'
-import {transferFiles,inlineImageType,needsFileConfirmation} from './file-input.js'
+import {transferFiles,inlineImageType,needsFileConfirmation,bodyFilePresentation,type FileDestination} from './file-input.js'
+import {presentationAt,presentationChange,presentationAvailable,type ImagePresentation} from './image-presentation.js'
+import {ImageMenu,imageActionsCss,type ImageMenuPosition} from './ImageActions.js'
+import {attachmentLinkId} from '../../contracts/note-links.js'
 import { applyEditorChanges,editorOffset,editorText,sourceOffset } from './line-endings.js'
 import type { WritingNavigation } from './use-outline.js'
 
 const undoHistory=(state:EditorState)=>state.field(historyField)
 export interface UndoSnapshot{body:string;history:ReturnType<typeof undoHistory>}
-interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;navigation?:React.Ref<WritingNavigation>;done:(pos:number,y:number)=>void}
+interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;navigation?:React.Ref<WritingNavigation>;presentation?:ImagePresentation|null;presentationHandled?:()=>void;done:(pos:number,y:number)=>void}
 interface LinkFields{from:number;to:number;label:string;url:string}
-type FileDestination='body'|'file'|'supplement'
 interface FileBatch{files:File[];destination:FileDestination;at:{from:number;to:number};original:string;view:EditorView}
 function writingEdge(pane:HTMLElement){
   return pane.getBoundingClientRect().top+parseFloat(getComputedStyle(pane).paddingTop)
@@ -46,13 +48,14 @@ export function PaperWriting(props:Props){
   const editability=useRef(new Compartment())
   const linkRange=useRef<{from:number;to:number;original:string}|null>(null)
   const attachmentPicker=useRef<HTMLInputElement>(null)
-  const fileDestination=useRef<FileDestination>('file'),uploadedFiles=useRef(new Map<string,File>())
+  const fileDestination=useRef<FileDestination>('file')
   const [fileBatch,setFileBatch]=useState<FileBatch|null>(null),fileTail=useRef(Promise.resolve()),fileJobs=useRef(new Set<AbortController>())
   const [fileProgress,setFileProgress]=useState<{bytes:number;total:number;path:string}|null>(null)
   const [fileFeedback,setFileFeedback]=useState({destination:'body' as FileDestination,message:''})
   const [noteQuery,setNoteQuery]=useState(''),[noteResults,setNoteResults]=useState<NoteListItem[]>([]),[noteSearch,setNoteSearch]=useState(false)
   useEffect(()=>{if(!link||!noteSearch)return;const abort=new AbortController(),timer=setTimeout(()=>{void api('/notes',{query:noteQuery,limit:30},abort.signal).then(page=>setNoteResults(page.items.filter(n=>n.noteId!==noteId))).catch(()=>{})},180);return()=>{clearTimeout(timer);abort.abort()}},[link!==null,noteSearch,noteQuery])
   const [remote,setRemote]=useState('')
+  const [imageMenu,setImageMenu]=useState<{at:ImageMenuPosition;item:ImagePresentation}|null>(null),[switchingImage,setSwitchingImage]=useState(false)
   const known=useRef(new Set(state.draft!.assetIds)), keep=useRef(new Set(state.draft!.assetIds.filter(id=>!state.draft!.body.includes('../assets/'+id))))
   const noteId=state.noteId!
   const body=state.draft!.body
@@ -66,7 +69,7 @@ export function PaperWriting(props:Props){
   }
   async function importPictures(inputs:ImageInput[],view:EditorView){
     if(!inputs.length)return
-    if(inputs.every(input=>'file'in input)){chooseAttachments(inputs.map(input=>(input as {file:File}).file),'body');return}
+    if(inputs.every(input=>'file'in input)){chooseAttachments(inputs.map(input=>(input as {file:File}).file),'picture');return}
     const {from,to}=view.state.selection.main,original=view.state.sliceDoc(from,to),at={from,to}
     pending.current.add(at);setInfo(t('paperImporting'))
     const inserts:string[]=[],fallback:File[]=[];let failed=false
@@ -110,11 +113,12 @@ export function PaperWriting(props:Props){
   }
   function closeAttachments(){if(fileBatch)pending.current.delete(fileBatch.at);setFileBatch(null)}
   async function attachFiles(batch:FileBatch){
+    const presentation=bodyFilePresentation(batch.files,batch.destination)
     const local=new AbortController();fileJobs.current.add(local)
     const previous=fileTail.current
     const job=controller.queueImageImport(async (queueSignal,editId)=>{
       await previous
-      const signal=AbortSignal.any([queueSignal,local.signal]),inserts:string[]=[],records:NoteAttachment[]=[],failures:string[]=[]
+      const signal=AbortSignal.any([queueSignal,local.signal]),inserts:string[]=[],records:NoteAttachment[]=[],failures:string[]=[],fallbacks:string[]=[]
       let offset=0,added=0
       const total=batch.files.reduce((n,f)=>n+f.size,0)
       const progress=(bytes:number,path:string)=>{const value={bytes,total,path};setFileProgress(value)}
@@ -124,14 +128,14 @@ export function PaperWriting(props:Props){
           signal.throwIfAborted();progress(offset,file.name)
           try{
             if(!file.size||file.size>ATTACHMENT_LIMIT)throw Error('file_size')
-            const mediaType=batch.destination==='body'&&file.size<=20*1024*1024?inlineImageType(file):undefined
+            const mediaType=(batch.destination==='body'||batch.destination==='picture')&&file.size<=20*1024*1024?inlineImageType(file):undefined
             const options={noteId,draft:!controller.getSnapshot().note,editId}
             let result
             try{result=await uploadFile(file,{...options,...(mediaType?{mediaType}:{})},controller.api,signal,p=>progress(offset+p.bytes,file.name))}
             catch(error){signal.throwIfAborted();if(!mediaType||!/invalid_asset|image_decode|image_type|image_limit|export_image/.test(String(error)))throw error;result=await uploadFile(file,options,controller.api,signal,p=>progress(offset+p.bytes,file.name))}
             signal.throwIfAborted()
-            if(result.asset){known.current.add(result.asset.id);controller.rememberImage(result.asset.id,file);inserts.push(`![${markdownLabel(file.name)}](../assets/${result.asset.id})`)}
-            else if(result.attachment){const f=result.attachment;records.push(f);uploadedFiles.current.set(f.id,file);inserts.push(`[${markdownLabel(f.name)}](../attachments/${f.id}.bin)`)}
+            if(result.asset){known.current.add(result.asset.id);controller.rememberImage(result.asset.id,file);inserts.push(`${presentation==='image'?'!':''}[${markdownLabel(file.name)}](../assets/${result.asset.id})`)}
+            else if(result.attachment){const f=result.attachment;records.push(f);inserts.push(`[${markdownLabel(f.name)}](../attachments/${f.id}.bin)`);if(presentation==='image')fallbacks.push(file.name)}
             else throw Error('attachment_failed')
             added++
           }catch(error){signal.throwIfAborted();failures.push(file.name)}
@@ -156,7 +160,7 @@ export function PaperWriting(props:Props){
           }else{const nextBody=current.body+'\n\n'+inserts.join('\n\n');controller.update({body:nextBody,assetIds:[...new Set([...current.assetIds,...[...known.current].filter(id=>nextBody.includes('../assets/'+id))])],supplements:remainingSupplements({...current,body:nextBody})})}
         }
       }
-      setFileFeedback({destination:batch.destination,message:failures.length?t('fileAddFailures',{names:failures.join('、')}):signal.aborted?t('fileAddCancelled',{count:added}):''})
+      setFileFeedback({destination:batch.destination,message:[failures.length?t('fileAddFailures',{names:failures.join('、')}):signal.aborted?t('fileAddCancelled',{count:added}):'',fallbacks.length?t('fileImageFallback',{names:fallbacks.join('、')}):''].filter(Boolean).join(' ')})
     }).catch(()=>{setFileFeedback({destination:batch.destination,message:t('attachmentFailed')})}).finally(()=>{pending.current.delete(batch.at);fileJobs.current.delete(local);setFileProgress(null)})
     fileTail.current=job
     await job
@@ -167,17 +171,12 @@ export function PaperWriting(props:Props){
     await controller.queueImageImport(async (signal,editId)=>{
       try{
         const current=controller.getSnapshot(),file=current.draft?.attachments?.find(f=>f.id===id)
-        let target=image?'../assets/'+id:'../attachments/'+id+'.bin',inline=image,label=file?.name||t('noteImage')
+          let target=image?'../assets/'+id:'../attachments/'+id+'.bin',inline=image,label=file?.name||t('noteImage')
         if(!image&&file&&/\.(png|jpe?g|gif|webp)$/i.test(file.name)&&file.bytes<=20*1024*1024){
-          let original=uploadedFiles.current.get(id)
-          if(!original){
-            if(!current.note?.current.attachments?.some(f=>f.id===id))throw Error('attachment_unavailable')
-            const response=await fetch(attachmentUrl(current.note,id),{signal});if(!response.ok)throw Error('attachment_unavailable')
-            original=new File([await response.blob()],file.name)
-          }
           try{
-            const asset=await archiveInput(noteId,{file:original,label:file.name},signal,!current.note,controller.api,editId)
-            known.current.add(asset.id);controller.rememberImage(asset.id,original);target='../assets/'+asset.id;inline=true
+              const {asset}=await controller.api('/notes/transfer',{action:'promote-image',noteId,editId,attachmentId:id},signal)
+              if(!asset)throw Error('attachment_unavailable')
+              known.current.add(asset.id);if(asset.preview)controller.rememberImage(asset.id,asset.preview);target='../assets/'+asset.id;inline=true
           }catch(error){signal.throwIfAborted();if(!/image_limit|image_type|invalid_asset|image_decode|export_image/.test(String(error)))throw error;setInfo(t('supplementImageFallback'))}
         }
         signal.throwIfAborted();if(editor.current!==v||controller.getSnapshot().noteId!==noteId)throw Error('editor_changed')
@@ -199,6 +198,36 @@ export function PaperWriting(props:Props){
     if(action==='link'){openLink();return}
     format(v,action,t('paperText'));if(action!=='find')v.focus()
   }
+  function mediaDownload(item:ImagePresentation){
+    const current=controller.getSnapshot(),file=attachmentLinkId(item.url)
+    if(file)return current.note?.current.attachments?.some(f=>f.id===file)?attachmentUrl(current.note,file):undefined
+    return (current.note&&resolveNoteImage(item.url,current.note))||controller.previewImage(item.url.slice(10))||undefined
+  }
+  function openImageMenu(position:number,at:ImageMenuPosition){
+    const v=editor.current,current=controller.getSnapshot();if(!v||!current.draft||!controller.writable)return false
+    const item=presentationAt(v.state.doc.toString(),position)
+    if(!item||!presentationAvailable(item,current.draft))return false
+    setImageMenu({at,item});return true
+  }
+  async function switchImage(item:ImagePresentation){
+    const v=editor.current;if(!v||!controller.writable||switchingImage)return
+    const at={from:item.from,to:item.to};if(v.state.sliceDoc(at.from,at.to)!==item.original){setInfo(t('imageSwitchChanged'));return}
+    const apply=(url=item.url)=>{
+      if(editor.current!==v||controller.getSnapshot().noteId!==noteId||!controller.writable||v.state.sliceDoc(at.from,at.to)!==item.original)throw Error('editor_changed')
+      const change=presentationChange({...item,...at},!item.image,url)
+      v.dispatch({changes:change,selection:{anchor:change.from+change.insert.length},annotations:isolateHistory.of('full'),userEvent:'input'});v.focus();setInfo('')
+    }
+    const file=attachmentLinkId(item.url)
+    if(!file){try{apply()}catch{setInfo(t('imageSwitchChanged'))}return}
+    pending.current.add(at);setSwitchingImage(true);setInfo(t('imageSwitchWorking'))
+    try{await controller.queueImageImport(async(signal,editId)=>{
+      const {asset}=await controller.api('/notes/transfer',{action:'promote-image',noteId,editId,attachmentId:file},signal);signal.throwIfAborted()
+      if(!asset)throw Error('image_type');known.current.add(asset.id);if(asset.preview)controller.rememberImage(asset.id,asset.preview)
+      apply('../assets/'+asset.id)
+    })}catch(error){if(editor.current===v)setInfo(t(String(error).includes('editor_changed')?'imageSwitchChanged':'imageSwitchFailed'))}
+    finally{pending.current.delete(at);setSwitchingImage(false)}
+  }
+  useEffect(()=>{const item=props.presentation;if(!item||!editor.current)return;props.presentationHandled?.();const v=editor.current,from=editorOffset(raw.current,item.from),to=editorOffset(raw.current,item.to);void switchImage({...item,from,to,original:editorText(item.original).toString()})},[props.presentation])
   useLayoutEffect(()=>{
     const el=mount.current!,abort=new AbortController();active.current=abort
     const image=(path:string)=>{
@@ -210,8 +239,8 @@ export function PaperWriting(props:Props){
     const view=new EditorView({parent:el,state:EditorState.create({doc,selection:{anchor:start},extensions:[
       markdown({base:markdownLanguage}),history(),supplementHistory,supplementField.init(()=>supplementMaterials(state.draft!)),...(props.undo.current?.body===body?[historyField.init(()=>props.undo.current!.history)]:[]),editability.current.of([]),search({top:true}),keymap.of([...shortcuts,{key:'Mod-Shift-z',run:redo},...searchKeymap,...markdownKeymap,...defaultKeymap,...historyKeymap]),drawSelection(),EditorView.lineWrapping,
       EditorState.phrases.of(t('paperDone')==='完成'?{Find:'查找',Replace:'替换',next:'下一个',previous:'上一个',all:'全选匹配',replace:'替换','replace all':'全部替换','match case':'区分大小写',regexp:'正则表达式','by word':'全词',close:'关闭'}:{}),
-      EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')]),
-      EditorView.domEventHandlers({paste(event,v){
+      EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')],{label:t('imagePresentation'),open:(position,x,y)=>openImageMenu(position,{x,y})}),
+      EditorView.domEventHandlers({contextmenu(event,v){const pos=v.posAtCoords({x:event.clientX,y:event.clientY});if(pos!==null&&openImageMenu(pos,{x:event.clientX,y:event.clientY})){event.preventDefault();return true}return false},paste(event,v){
         const data=event.clipboardData;if(!data)return false
         const files=transferFiles(data);if(files.length){event.preventDefault();chooseAttachments(files);return true}
         const inputs=clipboardImages(data)
@@ -284,7 +313,10 @@ export function PaperWriting(props:Props){
     }
   }))
   const fileStatus=<>{fileFeedback.message&&<p className="paper-hint" role="status">{fileFeedback.message}</p>}{fileProgress&&!fileBatch&&<div className="paper-file-progress" role="status"><span>{t('fileAdding')} · {fileProgress.path} · {fileSize(fileProgress.bytes)} / {fileSize(fileProgress.total)}</span><progress value={fileProgress.bytes} max={fileProgress.total||1}/><button type="button" onClick={()=>{for(const job of fileJobs.current)job.abort()}}>{t('cancel')}</button></div>}</>
-  return <>{fileBatch&&<AttachmentDialog files={fileBatch.files} t={t} close={closeAttachments} add={files=>{const batch={...fileBatch,files};setFileBatch(null);void attachFiles(batch)}}/>}<input ref={attachmentPicker} type="file" hidden multiple onChange={e=>{controller.imagePickerOpen=false;chooseAttachments(Array.from(e.target.files??[]),fileDestination.current);e.target.value=''}}/><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
+  const selectedNode=editor.current&&ancestor(editor.current.state,['Image','Link']),selectedUrl=selectedNode?.getChild('URL'),selectedPath=selectedUrl&&editor.current?.state.sliceDoc(selectedUrl.from,selectedUrl.to).replace(/^<|>$/g,'')
+  const selectedMedia=selectedPath&&(/^\.\.\/assets\//.test(selectedPath)||state.draft?.attachments?.some(f=>f.id===attachmentLinkId(selectedPath)&&!!inlineImageType({name:f.name,type:''})))
+  return <><style>{imageActionsCss}</style>{imageMenu&&<ImageMenu at={imageMenu.at} image={imageMenu.item.image} download={mediaDownload(imageMenu.item)} name={imageMenu.item.label} t={t} change={()=>void switchImage(imageMenu.item)} close={()=>{setImageMenu(null);editor.current?.focus()}}/>}{fileBatch&&<AttachmentDialog files={fileBatch.files} t={t} close={closeAttachments} add={files=>{const batch={...fileBatch,files};setFileBatch(null);void attachFiles(batch)}}/>}<input ref={attachmentPicker} type="file" hidden multiple onChange={e=>{controller.imagePickerOpen=false;chooseAttachments(Array.from(e.target.files??[]),fileDestination.current);e.target.value=''}}/><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
+    {selectedMedia&&<div className="paper-media-selection"><button type="button" disabled={switchingImage||!controller.writable} onMouseDown={e=>e.preventDefault()} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();openImageMenu(selectedNode!.from,{x:r.left,y:r.bottom})}}>{t('imagePresentation')}</button></div>}
     <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{controller.imagePickerOpen=false;const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
     {info&&<p className="paper-hint" role="status">{info}</p>}
     {fileFeedback.destination!=='supplement'&&fileStatus}

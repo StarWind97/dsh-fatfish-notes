@@ -2,7 +2,7 @@ import {mkdir,open,unlink,readFile,readdir,lstat,type FileHandle} from 'node:fs/
 import {join} from 'node:path'
 import {randomUUID} from 'node:crypto'
 import {NoteRepository} from '../notes/repository.js'
-import {object,text,id,fail} from '../notes/validation.js'
+import {object,text,id,hash,fail} from '../notes/validation.js'
 import {ATTACHMENT_LIMIT,SINGLE_TRANSFER_LIMIT} from '../contracts/notes.js'
 import {NOTE_LIMITS} from '../notes/types.js'
 import type {ImageMediaType} from '../contracts/media.js'
@@ -35,6 +35,11 @@ export class NoteTransfers {
   async request(input:unknown,signal?:AbortSignal){
     const raw=object(input),noteId=id(raw.noteId),owner=windowRequest.getStore()?.windowId??'local',action=text(raw.action,20)
     signal?.throwIfAborted()
+    if(action==='promote-image'){
+      if(this.uploads.size+this.singles.size>=16)fail('notebook_busy')
+      const pending=this.repository.promoteDraftImage(noteId,id(raw.editId),hash(raw.attachmentId),signal);this.singles.add(pending)
+      try{return {ok:true as const,asset:await pending}}finally{this.singles.delete(pending)}
+    }
     if(action==='single'){
       const size=Number(raw.size),editId=id(raw.editId),name=text(raw.name,1000)
       if(!Number.isSafeInteger(size)||size<=0||size>SINGLE_TRANSFER_LIMIT)fail('attachment_limit')

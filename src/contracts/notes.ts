@@ -101,7 +101,7 @@ export interface NotesApiContract {
   '/notes/reference-preview': {request:{noteId:string};response:{ok:true;plan:ReferencePlan}}
   '/notes/reference': {request:{sessionId:string;noteId:string;revision:string;assetIds:string[];attachmentIds:string[]};response:{ok:true;instruction:string;files:number;path:string}}
   '/notes/import-task': {request:{action:'begin'|'end'|'heartbeat';taskId?:string};response:{ok:true;taskId?:string}}
-  '/notes/transfer': {request:{action:'single'|'begin'|'chunk'|'finish'|'cancel';noteId:string;editId?:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string};attachment?:NoteAttachment}}
+  '/notes/transfer': {request:{action:'single'|'begin'|'chunk'|'finish'|'cancel'|'promote-image';noteId:string;editId?:string;attachmentId?:string;draft?:boolean;name?:string;size?:number;mediaType?:string;uploadId?:string;offset?:number;base64?:string};response:{ok:true;uploadId?:string;offset?:number;asset?:{id:string;bytes:number;mediaType:string;preview?:string};attachment?:NoteAttachment}}
   '/notes/session-context': { request: { sessionId:string }; response: { ok:true; workspace: { id:string; title:string } | null; notebookId:string|null } }
   '/notes/associate': { request: { noteId: string; expectedHeads: string[]; sessionId: string; linked: boolean }; response: { ok: true; note: NoteView } }
   '/notes/workspace-book': { request: { workspaceId: string; notebookId?: string | null }; response: { ok: true; notebookId: string | null } }

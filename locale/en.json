@@ -602,5 +602,12 @@
   "fileAddCancelled": "Stopped adding. Kept {count} completed items.",
   "fileAddFailures": "Could not add: {names}. Check file size and format, or retry.",
   "bodyMaterials": "Images and files in the body",
-  "supplementImageFallback": "This image cannot be embedded; inserted a file link instead."
+  "supplementImageFallback": "This image cannot be embedded; inserted a file link instead.",
+  "fileImageFallback": "These images could not be displayed because of their format, size or content. Original download links were kept: {names}",
+  "imagePresentation": "Image display",
+  "imageShowLink": "Show as download link",
+  "imageShowImage": "Show as image",
+  "imageSwitchFailed": "Could not change image display. The original content is intact. Check the format and size, or retry.",
+  "imageSwitchChanged": "This content has changed. Select it again to change its display.",
+  "imageSwitchWorking": "Preparing image…"
 }

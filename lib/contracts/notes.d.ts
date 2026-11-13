@@ -361,9 +361,10 @@ export interface NotesApiContract {
     };
     '/notes/transfer': {
         request: {
-            action: 'single' | 'begin' | 'chunk' | 'finish' | 'cancel';
+            action: 'single' | 'begin' | 'chunk' | 'finish' | 'cancel' | 'promote-image';
             noteId: string;
             editId?: string;
+            attachmentId?: string;
             draft?: boolean;
             name?: string;
             size?: number;
@@ -380,6 +381,7 @@ export interface NotesApiContract {
                 id: string;
                 bytes: number;
                 mediaType: string;
+                preview?: string;
             };
             attachment?: NoteAttachment;
         };

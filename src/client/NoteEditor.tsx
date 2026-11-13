@@ -21,6 +21,7 @@ import { NoteExport } from './NoteExport.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
 import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
+import type {ImagePresentation} from './paper/image-presentation.js'
 
 function Source({ note, t }: { note: NoteView; t: T }) {
   const [source, setSource] = useState<CaptureSource | null>(null), [failed, setFailed] = useState(false)
@@ -40,6 +41,14 @@ function Source({ note, t }: { note: NoteView; t: T }) {
 
 export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,referenceAction}:{referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read'
+  const [presentation,setPresentation]=useState<ImagePresentation|null>(null)
+  async function switchPresentation(item:ImagePresentation){
+    const before=controller.getSnapshot(),body=before.draft?.body
+    if(!body||!editable)return
+    await controller.beginEdit()
+    const current=controller.getSnapshot()
+    if(current.noteId===before.noteId&&current.editing&&controller.writable&&current.draft?.body===body)setPresentation(item)
+  }
   const [panel,setPanel]=useState<'export'|'history'|'template'|null>(null),[tag,setTag]=useState('')
   const [allTags,setAllTags]=useState(false)
   const root=useRef<HTMLElement>(null),anchor=useRef<{pos:number;y:number}|null>(null)
@@ -169,10 +178,10 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
     {state.error&&<p role="alert" style={s.error}>{t(state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}
-    {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} done={(pos,y)=>void finish(pos,y)}/>
+    {mode==='edit'&&draft.status==='active'?<PaperWriting controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} presentation={presentation} presentationHandled={()=>setPresentation(null)} done={(pos,y)=>void finish(pos,y)}/>
       :<article className="paper-reading" onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('a,button,input'))edit(e.target as HTMLElement)}}>
       {state.filter.query&&<button className="paper-search-jump" onClick={nextHit}><Search size={14}/>{t('findNextMatch')}</button>}
-      {note?<NoteMarkdown t={t} body={draft.body} note={note} onNoteLink={onNoteLink} query={state.filter.query}/>:<p>{draft.body}</p>}
+      {note?<NoteMarkdown t={t} body={draft.body} note={note} onNoteLink={onNoteLink} {...(editable?{onPresentation:(item:ImagePresentation)=>void switchPresentation(item)}:{})} query={state.filter.query}/>:<p>{draft.body}</p>}
       {note&&<Supplements content={note.current} note={note} t={t}/>}
       {note&&!draft.isTemplate&&<Backlinks note={note} t={t} open={onNoteLink}/>}
       {editable&&<button onClick={()=>edit()}><Pencil size={14}/> {t('notesEdit')}</button>}</article>}

@@ -84,6 +84,13 @@ export declare class NoteRepository {
     } | {
         attachment: NoteAttachment;
     }>;
+    /** Promote only an attachment recorded in this durable edit; never reopen a caller path. */
+    promoteDraftImage(noteId: string, editId: string, attachmentId: string, signal?: AbortSignal): Promise<{
+        preview: string;
+        id: string;
+        mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+        bytes: number;
+    }>;
     putAsset(bytes: Uint8Array, mediaType: ImageMediaType, signal?: AbortSignal, noteId?: string): Promise<NoteAsset>;
     getAsset(asset: string, signal?: AbortSignal): Promise<Buffer>;
     putAttachment(bytes: Uint8Array, name: string, signal?: AbortSignal, noteId?: string): Promise<NoteAttachment>;
