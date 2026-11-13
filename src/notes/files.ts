@@ -4,6 +4,7 @@ import { resolve, dirname, join, parse } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fail, relativePath } from './validation.js'
 import { NOTE_LIMITS } from './types.js'
+import {FileInventory,inventoryStamp,type FileInventorySnapshot} from './inventory.js'
 
 export const missing = (e: unknown): boolean => e instanceof Error && 'code' in e && e.code === 'ENOENT'
 /** Retry the same atomic replacement when Windows briefly denies delete sharing. */
@@ -55,7 +56,8 @@ export async function syncDirectory(path: string): Promise<void> {
 }
 export class NoteFiles {
   private checked=new Map<string,{stamp:string;bytes:number}>()
-  constructor(readonly root: string, readonly beforeWrite?: (path: string) => void | Promise<void>) {}
+  readonly inventory:FileInventory
+  constructor(readonly root: string, readonly beforeWrite?: (path: string) => void | Promise<void>) {this.inventory=new FileInventory(root,()=>this.scan(),safePath)}
   /** Content-addressed references are rechecked whenever the file identity or timestamp changes. */
   async check(relative:string,limit:number,verify:(bytes:Buffer)=>void):Promise<number>{
     const path=this.path(relative);await safePath(path)
@@ -85,7 +87,8 @@ export class NoteFiles {
   async remove(relative: string): Promise<void> {
     const path = this.path(relative); await safePath(path)
     await this.beforeWrite?.(relative)
-    await unlink(path).catch(e => { if (!missing(e)) throw e })
+    this.inventory.changed(relative)
+    try{await unlink(path).catch(e => { if (!missing(e)) throw e })}finally{this.inventory.changed(relative)}
   }
   async write(relative: string, data: string | Buffer, immutable: boolean): Promise<void> {
     const path = this.path(relative), bytes = Buffer.isBuffer(data) ? data : Buffer.from(data)
@@ -94,6 +97,7 @@ export class NoteFiles {
     if (previous?.equals(bytes)) return
     if (immutable && previous) fail('note_corrupt', '已有不可变文件与新内容不一致，原件已保留')
     await this.beforeWrite?.(relative)
+    this.inventory.changed(relative)
     await mkdir(dirname(path), { recursive: true }); await safePath(path)
     const temp = join(dirname(path), `.tmp-${randomUUID()}`), handle = await open(temp, 'wx', 0o600)
     try { await handle.writeFile(bytes); await handle.sync() } finally { await handle.close() }
@@ -104,14 +108,16 @@ export class NoteFiles {
           if (!(e instanceof Error && 'code' in e && e.code === 'EEXIST') || !(await this.read(relative)).equals(bytes)) throw e
         }
       } else await replaceFile(temp, path)
-    } finally { await unlink(temp).catch(e => { if (!missing(e)) throw e }) }
+    } finally { await unlink(temp).catch(e => { if (!missing(e)) throw e });this.inventory.changed(relative) }
     await syncDirectory(dirname(path))
   }
-  async scan(): Promise<{ paths: string[]; bytes: number; fingerprint: string; stamps: Map<string,string> }> {
+  async scan(): Promise<FileInventorySnapshot> {
     await safePath(this.root)
-    const paths: string[] = [], stamps = new Map<string,string>(); let bytes = 0, entries = 0
+    const paths: string[] = [], stamps = new Map<string,string>(),directories=new Map<string,string>(); let bytes = 0, entries = 0
     const walk = async (directory: string, prefix: string, depth: number): Promise<void> => {
       if (depth > 8) fail('note_path')
+      const directoryStat=await lstat(directory,{bigint:true}).catch(e=>{if(missing(e))return null;throw e})
+      if(directoryStat)directories.set(prefix.replace(/\/$/,''),inventoryStamp(prefix.replace(/\/$/,''),directoryStat))
       let listing = await readdir(directory, { withFileTypes: true }).catch(e => { if (missing(e)) return []; throw e })
       // A crash between link(temp, target) and unlink(temp) leaves exactly two
       // links. Remove only our recognizable staging link to the same owned inode.
@@ -136,11 +142,11 @@ export class NoteFiles {
         else if (stat.isFile()) {
           bytes += Number(stat.size); if (Number(stat.size) > NOTE_LIMITS.scan) fail('note_limit', '存在超出支持范围的单个文件'); paths.push(rel)
           // Nanosecond change time detects replacements and writes even if mtime is restored.
-          stamps.set(rel,JSON.stringify([rel,String(stat.dev),String(stat.ino),String(stat.size),String(stat.mtimeNs),String(stat.ctimeNs)]))
+          stamps.set(rel,inventoryStamp(rel,stat))
         }
         else fail('note_path')
       }
     }
-    await walk(this.root, '', 0); return { paths: paths.sort(), bytes, stamps, fingerprint: createHash('sha256').update([...stamps.values()].sort().join('\n')).digest('hex') }
+    await walk(this.root, '', 0); return { paths: paths.sort(), bytes, stamps,directories, fingerprint: createHash('sha256').update([...stamps.values()].sort().join('\n')).digest('hex') }
   }
 }

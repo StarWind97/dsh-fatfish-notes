@@ -25,13 +25,13 @@ async function fixture(t:{after(fn:()=>Promise<void>):void}){
  const input=(bytes:Buffer=Buffer.from('new file'))=>({action:'single',noteId:note.noteId,editId,name:'材料.txt',size:bytes.length,base64:bytes.toString('base64')})
  return {dir,repo,note,editId,request,transfers,input}
 }
-test('editor small upload uses one request and one state load; discard cleans only unreferenced files',async t=>{
+test('warm editor small upload uses one request without a full scan; discard cleans only unreferenced files',async t=>{
  const {repo,note,editId,transfers,dir}=await fixture(t),bytes=Buffer.from('single request bytes'),actions:string[]=[]
  await repo.get(note.noteId);let scans=0;const scan=repo.files.scan.bind(repo.files);repo.files.scan=async()=>{scans++;return scan()}
  const api:Api=async(path,body)=>{assert.equal(path,'/notes/transfer');actions.push((body as {action:string}).action);return await transfers.request(body) as never}
  const options={noteId:note.noteId,draft:false,editId}
  const result=await transferEntry({path:'材料.txt',bytes:bytes.length,read:async()=>bytes},options,api)
- assert.deepEqual(actions,['single']);assert.equal(scans,1);assert.equal(result.attachment?.id,digest(bytes))
+ assert.deepEqual(actions,['single']);assert.equal(scans,0);assert.equal(result.attachment?.id,digest(bytes))
  const journal=await new DraftFiles(join(dir,'local-drafts')).read(editId);assert.ok(journal?.files.includes('attachments/'+digest(bytes)+'.bin'))
  assert.deepEqual((await repo.get(note.noteId)).heads,note.heads)
  const shared=await repo.putAttachment(Buffer.from('shared'),'shared.txt',undefined,note.noteId)

@@ -13,6 +13,7 @@ import { utf8 } from './files.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion, withoutDeleted } from './deletion.js'
 import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
 import type {SyncResource} from './sync-resources.js'
+import {VerifiedSnapshotFiles} from './sync-cache.js'
 
 interface LazyFile {length:number;load:()=>Promise<Buffer>}
 type StoredFile=Buffer|LazyFile
@@ -39,10 +40,11 @@ export class NotesSyncModule {
   readonly name = 'notes'; readonly version = 1
   private currentToken: string | null = null
   private readonly unsubscribe: () => void
+  private verified:{key:string;root:NoteRepository['files'];files:VerifiedSnapshotFiles}|undefined
   constructor(readonly repository: NoteRepository, changed: () => void) {
     this.unsubscribe = repository.onChange(() => { this.currentToken = null; changed() })
   }
-  close(): void { this.unsubscribe() }
+  close(): void { this.unsubscribe();this.verified=undefined }
   pending(acknowledged: string | null): boolean { return this.currentToken === null || this.currentToken !== acknowledged }
   async initialize(): Promise<void> { await this.local() }
   private async local(signal?: AbortSignal): Promise<Pick<Snapshot, 'objects'>> {
@@ -52,8 +54,22 @@ export class NotesSyncModule {
   }
   validateVersion(version: unknown): void { if (version !== undefined && ![1,2,3,4].includes(version as number)) fail('note_version', '远端笔记版本不支持；已暂停备份，本机编辑仍可使用') }
   async readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot> {
+    const root=this.repository.files,key=JSON.stringify([backend.directory,backend.target.key,backend.target.remote])
+    const cache=this.verified?.key===key&&this.verified.root===root?this.verified.files:undefined
+    try{
+      signal?.throwIfAborted()
+      const result=await this.readValidatedSnapshot(backend,snapshot,signal,cache)
+      signal?.throwIfAborted()
+      const files=new VerifiedSnapshotFiles()
+      for(const [path,file]of result.files)files.remember(snapshot,path,file)
+      if(this.repository.files===root)this.verified={key,root,files}
+      return result
+    }catch(error){this.verified=undefined;throw error}
+  }
+  private async readValidatedSnapshot(backend:GitBackend,snapshot:GitSnapshot,signal?:AbortSignal,cache?:VerifiedSnapshotFiles):Promise<Snapshot>{
     const files = new Map<string, StoredFile>(), objects: NoteObjects = { version: 1, revisions: [], notebooks: [] }
     const prefetch = async (paths: string[], limit: number) => {
+      for(const path of paths){const cached=cache?.get(snapshot,path,limit);if(cached?.bytes)files.set(path,cached.bytes)}
       // Binary bodies are validated sequentially and retained as immutable Git references.
       const selected=paths.filter(p=>!files.has(p)&&!/^notes\/(assets|attachments)\//.test(p))
       for(let at=0;at<selected.length;at+=8){
@@ -62,10 +78,19 @@ export class NotesSyncModule {
       }
     }
     const read = async (path: string, limit: number) => {
+      signal?.throwIfAborted()
       const existing=files.get(path);if(existing){if(existing.length>limit)fail('note_limit');return loadFile(existing)}
+      const cached=cache?.get(snapshot,path,limit)
+      if(cached?.bytes){files.set(path,cached.bytes);return cached.bytes}
       const load=()=>backend.readBytes(snapshot,path,limit,signal),bytes=await load()
       files.set(path,/^notes\/(assets|attachments)\//.test(path)?{length:bytes.length,load}:bytes)
       return bytes
+    }
+    const reuseBinary=(path:string,limit:number)=>{
+      signal?.throwIfAborted()
+      const cached=cache?.get(snapshot,path,limit)
+      if(cached)files.set(path,{length:cached.length,load:()=>backend.readBytes(snapshot,path,limit,signal)})
+      return cached
     }
     const paths = [...snapshot.entries.keys()].filter(path => /^notes\/(revisions|notebooks)\//.test(path) && snapshot.entries.get(path)?.type !== 'tree')
     if (paths.length > NOTE_LIMITS.revisions) fail('note_limit')
@@ -101,10 +126,12 @@ export class NotesSyncModule {
       sourceAssets(parsed).forEach(id => assets.add(id))
     }
     await prefetch([...assets].map(id=>`notes/assets/${id}`),NOTE_LIMITS.image)
-    for (const asset of assets) { const bytes = await read(`notes/assets/${asset}`, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash') }
+    for (const asset of assets) {const path=`notes/assets/${asset}`;if(reuseBinary(path,NOTE_LIMITS.image))continue;const bytes = await read(path, NOTE_LIMITS.image); if (validateAsset(bytes, mediaTypeFor(asset)).id !== asset) fail('note_hash') }
     const attachments = [...objects.revisions.flatMap(r => r.attachments ?? []),...sourceFiles]
     await prefetch([...new Set(attachments.map(a => `notes/attachments/${a.id}.bin`))], ATTACHMENT_LIMIT)
     for (const attachment of new Map(attachments.map(a=>[a.id,a])).values()) {
+      const cached=reuseBinary(`notes/attachments/${attachment.id}.bin`,ATTACHMENT_LIMIT)
+      if(cached){if(cached.length!==attachment.bytes)fail('note_hash');continue}
       const bytes = await read(`notes/attachments/${attachment.id}.bin`, ATTACHMENT_LIMIT)
       if (bytes.length !== attachment.bytes || digest(bytes) !== attachment.id) fail('note_hash')
     }

@@ -32,7 +32,7 @@ export class NotebookApplication {
     this.workspaceBooks=new WorkspaceBooks(options.dir,this.notes.repository,()=>this.backup.state().binding?.repositoryId??null)
     this.notes.repository.editGuard=(ids,required)=>this.workspace.check(ids,windowRequest.getStore(),required)
   }
-  workspaceRequest(path:string,input:unknown){return this.notes.repository.coordinate(()=>{
+  workspaceRequest(path:string,input:unknown){const request=()=>{
     const v=object(input),actor=windowRequest.getStore()
     if(path==='/workspace/register')return this.workspace.register(text(v.windowId,36),v.surface as 'embedded'|'standalone'|'conversation')
     if(!actor)throw new NotebookError('window_expired','请重新打开笔记窗口',409)
@@ -51,7 +51,11 @@ export class NotebookApplication {
     if(v.action==='cancel')return this.workspace.cancel(actor,text(v.requestId,36))
     if(v.action==='ack')return this.workspace.acknowledge(actor,text(v.requestId,36))
     throw new NotebookError('window_invalid','窗口操作无效')
-  })}
+  }
+    // State/heartbeat work is synchronous and cannot expose a partial disk write.
+    // Ownership transitions remain ordered with writes; writers recheck the lease inside that queue.
+    return path==='/workspace/state'?Promise.resolve().then(request):this.notes.repository.coordinate(request)
+  }
   async changeLocation<T>(work:()=>Promise<T>){
     await this.notes.repository.coordinate(()=>{if(this.notes.transfers.active)throw new NotebookError('notebook_busy','文件正在处理中，请先完成或取消',409);return this.workspace.beginLocationChange()})
     const before=this.backup.state().binding?.repositoryId

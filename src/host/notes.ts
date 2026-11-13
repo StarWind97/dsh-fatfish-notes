@@ -225,7 +225,7 @@ export class NotesApplication {
   },signal) }
   async drain():Promise<void>{await Promise.allSettled([...this.pending,this.enrichment.drain()])}
   close(): Promise<void> {
-    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending,this.enrichment.close()]).then(() => this.transfers.close()) }
+    if (!this.closePromise) { clearInterval(this.timer); this.controller.abort(); this.closePromise = Promise.allSettled([...this.pending,this.enrichment.close()]).then(() => this.transfers.close()).finally(()=>this.repository.close()) }
     return this.closePromise
   }
 }

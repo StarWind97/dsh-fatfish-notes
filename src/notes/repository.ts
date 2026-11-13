@@ -52,15 +52,17 @@ export class NoteRepository {
   private writeEpoch = 0
   private get drafts(){return new DraftFiles(resolve(this.files.root,'../local-drafts'))}
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
-    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
+    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { if(/^(revisions|notebooks|deleted)\/|^manifest\.json$/.test(path))this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
   }
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
+    this.files.inventory.close()
     this.validated = undefined
     this.checkedRows.clear()
     this.sourceSessions.clear()
     this.files = new NoteFiles(resolve(directory, 'notes'), this.files.beforeWrite)
   }
+  close():void{this.files.inventory.close()}
   private run<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T> {
     const result = (queues.get(this.files.root) ?? Promise.resolve()).then(() => { signal?.throwIfAborted(); return work() })
     const tail = result.catch(() => { this.validated = undefined }); queues.set(this.files.root, tail)
@@ -102,9 +104,19 @@ export class NoteRepository {
       await this.append(state, createNoteRevision({ ...data, parents: latest.heads, notebookId: this.defaultBook(state)!.notebookId }))
     }
   }
-  private async load(): Promise<State> {
-    const listing = await this.files.scan(), epoch = this.writeEpoch
-    if (this.validated?.fingerprint === listing.fingerprint) return structuredClone(this.validated.state)
+  private async load(noteIds:string[]=[],audit=false): Promise<State> {
+    const selected=new Set(noteIds),verify=noteIds.flatMap(n=>[`revisions/${n}`,`documents/${n}.md`,`deleted/${n}.json`])
+    // Targeted checks do not rely on notification delivery, including restored-mtime edits.
+    if(selected.size)for(const [path,cached]of this.checkedRows)if(path.startsWith('notebooks/')||('noteId'in cached.row&&selected.has(cached.row.noteId)))verify.push(...cached.stamps.keys())
+    const listing = await this.files.inventory.snapshot([...new Set(verify)],audit), epoch = this.writeEpoch
+    // Unpublished draft resources and job receipts do not alter the formal graph.
+    // Every referenced resource remains part of its validation identity.
+    const graphFingerprint=(stamps:Map<string,string>)=>{
+      const paths=new Set([...stamps.keys()].filter(p=>/^(revisions|notebooks|deleted)\/|^manifest\.json$/.test(p)))
+      for(const cached of this.checkedRows.values())for(const path of cached.stamps.keys())paths.add(path)
+      return digest([...paths].sort().map(p=>stamps.get(p)??`missing:${p}`).join('\n'))
+    }
+    if (this.validated?.fingerprint === graphFingerprint(listing.stamps)) return structuredClone(this.validated.state)
     this.validated = undefined
     const state: State = { version: 1, revisions: [], notebooks: [], issues: [], blocked: new Set(), detachedRevisions: [], detachedNotebooks: [], acknowledgedPaths: [] }
     const paths = listing.paths
@@ -194,12 +206,17 @@ export class NoteRepository {
       state.issues.push({ path, code: 'note_missing' }); state.blocked.add(path.split('/')[1]!)
     }
     this.limits(state)
-    if (state.deleted.length && !state.issues.length) await this.cleanDeleted(state, paths)
+    if (state.deleted.length && !state.issues.length) {
+      // A lost notification must never hide a new reference during physical cleanup.
+      if(!audit&&!syncRetentions.get(this.files.root)?.leases.size&&paths.some(p=>p.startsWith('revisions/')&&state.deleted!.includes(p.split('/')[1]!)))return this.load(noteIds,true)
+      await this.cleanDeleted(state, paths)
+    }
     await this.ensureNotebooks(state)
     // Never retain an interrupted/migrated/externally changing graph. Return a separate
     // copy so callers and write operations cannot mutate the cached validation result.
-    if (!state.issues.length && epoch === this.writeEpoch && (await this.files.scan()).fingerprint === listing.fingerprint)
-      this.validated = { fingerprint: listing.fingerprint, state: structuredClone(state) }
+    const fingerprint=graphFingerprint(listing.stamps)
+    if (!state.issues.length && epoch === this.writeEpoch && graphFingerprint((await this.files.inventory.snapshot()).stamps) === fingerprint)
+      this.validated = { fingerprint, state: structuredClone(state) }
     return state
   }
   private limits(state: NoteObjects): void {
@@ -296,7 +313,7 @@ export class NoteRepository {
   async associate(noteId:string,heads:string[],sessionId:string,linked:boolean,signal?:AbortSignal):Promise<NoteView>{
     id(noteId);text(sessionId,512);if(!sessionId.trim())fail('note_schema')
     return this.run(async()=>{
-      this.editGuard([noteId]);const state=await this.load();this.complete(state);this.writable(state,noteId);await this.external(state,noteId)
+      this.editGuard([noteId]);const state=await this.load([noteId]);this.complete(state);this.writable(state,noteId);await this.external(state,noteId)
       const view=this.view(state,noteId);if(!same(view.heads,heads)||view.conflicts.length)conflict()
       if(view.current.status!=='active'||view.current.isTemplate)fail('note_trashed')
       const links=new Set(view.current.sessionLinks??[]);if(linked)links.add(sessionId);else links.delete(sessionId)
@@ -306,12 +323,12 @@ export class NoteRepository {
     },signal)
   }
   async get(noteId: string, signal?: AbortSignal): Promise<NoteView> {
-    id(noteId); return this.run(async () => { const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); return this.view(s, noteId) }, signal)
+    id(noteId); return this.run(async () => { const s = await this.load([noteId]); this.writable(s, noteId); await this.external(s, noteId); return this.view(s, noteId) }, signal)
   }
   async getRevision(noteId: string, revision: string, signal?: AbortSignal): Promise<NoteRevision> {
     id(noteId); hash(revision)
     return this.run(async () => {
-      const s = await this.load(), row = s.revisions.find(r => r.noteId === noteId && r.revision === revision)
+      const s = await this.load([noteId]), row = s.revisions.find(r => r.noteId === noteId && r.revision === revision)
       if (!row) fail('note_not_found', '笔记修订不存在或已损坏')
       return row
     }, signal)
@@ -319,7 +336,7 @@ export class NoteRepository {
   async history(noteId:string,cursor?:string,signal?:AbortSignal):Promise<{items:NoteHistoryItem[];cursor:string|null}> {
     id(noteId);if(cursor)hash(cursor)
     return this.run(async()=>{
-      const state=await this.load();this.writable(state,noteId);this.view(state,noteId)
+      const state=await this.load([noteId]);this.writable(state,noteId);this.view(state,noteId)
       const rows=state.revisions.filter(r=>r.noteId===noteId).sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt)||b.revision.localeCompare(a.revision))
       const start=cursor?rows.findIndex(r=>r.revision===cursor)+1:0,page=rows.slice(start,start+30)
       return {items:page.map(({revision,recordedAt,title,summary,status})=>({revision,recordedAt,title,summary,status})),cursor:rows.length>start+30?page.at(-1)!.revision:null}
@@ -338,7 +355,7 @@ export class NoteRepository {
   async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {
     id(noteId)
     return this.run(async()=>{
-      const state=await this.load();this.view(state,noteId)
+      const state=await this.load([noteId]);this.view(state,noteId)
       const views=[...new Set(state.revisions.map(r=>r.noteId))].map(n=>this.view(state,n))
         .filter(v=>v.noteId!==noteId&&v.current.status==='active'&&!v.current.isTemplate&&linkedNotes(v.current.body).has(noteId))
       return searchNotes(views,{order:'recent',limit:100}).items
@@ -362,7 +379,7 @@ export class NoteRepository {
     if(action==='instantiate'&&!/^\d{4}-\d{2}-\d{2}$/.test(date))fail('note_date')
     return this.run(async()=>{
       this.editGuard([...selected.map(n=>n.noteId),...(target?[target]:[])])
-      const state=await this.load();this.complete(state)
+      const state=await this.load([...selected.map(n=>n.noteId),...(target?[target]:[])]);this.complete(state)
       if(state.issues.length)fail('note_corrupt')
       if(notebookId&&!activeNotebook(this.notebook(state,notebookId)))fail('notebook_trashed','目标笔记本已被移除，请重新选择')
       if(target&&(state.deleted?.includes(target)||state.revisions.some(r=>r.noteId===target)))fail('note_conflict','副本已存在，请刷新笔记库核对')
@@ -407,7 +424,7 @@ export class NoteRepository {
   }
   private async saveContent(noteId:string,expected:string[],rawContent:NoteContent,keepBoth:boolean,deduplicate=false):Promise<NoteView>{
       this.editGuard([noteId])
-      const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId)
+      const s = await this.load([noteId]); this.writable(s, noteId); await this.external(s, noteId)
       const content = this.localMembership(s, rawContent)
       const exists = s.revisions.some(r => r.noteId === noteId), heads = exists ? this.view(s, noteId).heads : []
       if(exists)this.editGuard([noteId],true)
@@ -458,7 +475,7 @@ export class NoteRepository {
     if(action==='save')return {ok:true,state:'editing',note:null}
     return this.finishDraft(row)
   })}
-  private async draftView(noteId:string):Promise<NoteView|null>{const s=await this.load();return s.revisions.some(r=>r.noteId===noteId)&&!s.deleted?.includes(noteId)?this.view(s,noteId):null}
+  private async draftView(noteId:string):Promise<NoteView|null>{const s=await this.load([noteId]);return s.revisions.some(r=>r.noteId===noteId)&&!s.deleted?.includes(noteId)?this.view(s,noteId):null}
   private async finishDraft(row:LocalDraft):Promise<NoteDraftResult>{
     const request=row.request!,c=request.content
     const empty=!request.expectedHeads.length&&(!c.title.trim()||c.title==='无标题')&&!c.body.trim()&&!c.summary.trim()&&!c.tags.length&&!c.assetIds.length&&!c.attachments?.length
@@ -489,7 +506,7 @@ export class NoteRepository {
   }
   private async cleanupDraft(row:LocalDraft){
     if(!row.files.length)return
-    const state=await this.load();this.complete(state);if(state.issues.length)fail('note_corrupt')
+    const state=await this.load([],true);this.complete(state);if(state.issues.length)fail('note_corrupt')
     const retained=await this.retainedFiles(state)
     for(const path of row.files)if(!retained.has(path))await this.files.remove(path)
     const held=this.syncRetainedFiles(),pending=row.files.filter(path=>held.has(path))
@@ -502,7 +519,7 @@ export class NoteRepository {
     const row = validateNoteRevision(input)
     return this.run(async () => {
       this.editGuard([row.noteId])
-      const state = await this.load(); this.writable(state, row.noteId); await this.external(state, row.noteId)
+      const state = await this.load([row.noteId]); this.writable(state, row.noteId); await this.external(state, row.noteId)
       if (state.revisions.some(r => r.revision === row.revision)) {
         await this.document(state, row.noteId); await this.manifest(state); return this.view(state, row.noteId)
       }
@@ -515,7 +532,7 @@ export class NoteRepository {
     id(noteId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       this.editGuard([noteId])
-      const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
+      const s = await this.load([noteId]); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
       if (!same(view.heads, expected) || view.heads.length > 1) conflict()
       const { revision: _revision, ...data } = view.current
       return this.append(s, createNoteRevision({ ...data, notebookId: view.effectiveNotebookId, parents: view.heads, status, recordedAt: new Date(this.now()).toISOString() }))
@@ -527,7 +544,7 @@ export class NoteRepository {
     id(noteId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash), normalized = normalizeContent(content)
     return this.run(async () => {
       this.editGuard([noteId])
-      const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
+      const s = await this.load([noteId]); this.writable(s, noteId); await this.external(s, noteId); const view = this.view(s, noteId)
       if (!same(view.heads, expected)) conflict()
       return this.append(s, createNoteRevision({ version: 1, noteId, parents: view.heads, recordedAt: new Date(this.now()).toISOString(), ...normalized }))
     }, signal)
@@ -543,10 +560,10 @@ export class NoteRepository {
       guard()
       const row=await this.drafts.read(editId)
       if(!row||row.noteId!==noteId||row.state!=='editing')fail('note_draft_invalid')
-      const state=await this.load();this.complete(state);this.writable(state,noteId)
+      const state=await this.load([noteId]);this.complete(state);this.writable(state,noteId)
       if(state.revisions.some(r=>r.noteId===noteId)){await this.external(state,noteId);this.view(state,noteId)}
       else if(row.request!.expectedHeads.length)fail('note_not_found')
-      guard();await this.manifest(state)
+      guard()
       // Pin before publishing: a lost response must not leave an unowned file.
       if(!row.files.includes(path)){row.files.push(path);await this.drafts.write(row)}
       guard();await this.files.write(path,copy,true)
@@ -574,7 +591,7 @@ export class NoteRepository {
     if (new Set(selected.map(n => n.noteId)).size !== selected.length) fail('note_schema')
     return this.run(async () => {
       this.editGuard(selected.map(n=>n.noteId))
-      const s = await this.load(); this.complete(s)
+      const s = await this.load(selected.map(n=>n.noteId),action==='purge'); this.complete(s)
       if (s.issues.length) fail('note_corrupt')
       for (const item of selected) {
         this.writable(s, item.noteId); await this.external(s, item.noteId)
@@ -643,7 +660,7 @@ export class NoteRepository {
   /** Import local Markdown edits in the same short queue turn as the frozen identity set. */
   async exportSyncSnapshot(signal?: AbortSignal): Promise<{ objects: NoteObjects; generation: number }> {
     return this.run(async () => {
-      const state = await this.load()
+      const state = await this.load([],true)
       if (state.issues.length) fail('note_corrupt', '笔记存在损坏文件，请恢复后再同步')
       for (const noteId of new Set(state.revisions.map(row => row.noteId))) await this.external(state, noteId)
       return { objects: { version: 1, revisions: state.revisions, notebooks: state.notebooks, ...(state.deleted?.length ? { deleted: state.deleted } : {}) }, generation: this.changeGeneration }
@@ -651,7 +668,7 @@ export class NoteRepository {
   }
   async importMarkdown(noteId: string, markdown: string, signal?: AbortSignal): Promise<NoteView> {
     id(noteId); parseNoteMarkdown(markdown)
-    return this.run(async () => { this.editGuard([noteId]); const s = await this.load(); this.writable(s, noteId); await this.external(s, noteId); await this.external(s, noteId, markdown); return this.view(s, noteId) }, signal)
+    return this.run(async () => { this.editGuard([noteId]); const s = await this.load([noteId]); this.writable(s, noteId); await this.external(s, noteId); await this.external(s, noteId, markdown); return this.view(s, noteId) }, signal)
   }
   /** Sources/assets must already be present; imports are monotonic and may leave recoverable immutable objects on failure. */
   async importObjects(input: NoteObjects, signal?: AbortSignal): Promise<void> {
@@ -665,7 +682,7 @@ export class NoteRepository {
     this.limits(copy)
     return this.run(async () => {
       if(this.files!==files)fail('transfer_expired')
-      const s = await this.load()
+      const s = await this.load([],!validateResources&&!!copy.deleted?.length)
       if(this.files!==files)fail('transfer_expired')
       await validateResources?.()
       if(this.files!==files)fail('transfer_expired')
@@ -731,7 +748,7 @@ export class NoteRepository {
         syncRetentions.delete(files.root)
         if(retention.deferred&&this.files===files)await this.run(async()=>{
           if(this.files!==files)return
-          this.validated=undefined;await this.load()
+          this.validated=undefined;await this.load([],true)
           for(const row of await this.drafts.list(true))if(row.state!=='editing'&&row.files.length)await this.cleanupDraft(row)
         })
       }
@@ -755,7 +772,7 @@ export class NoteRepository {
     const notebookId = input.notebookId === undefined ? ulid(this.now()) : id(input.notebookId), expected = sortedStrings(input.expectedHeads, NOTE_LIMITS.revisions, hash), title = text(input.title, 1200).trim() || '未命名笔记本'
     return this.run(async () => {
       this.editGuard([])
-      const s = await this.load(); this.writable(s, notebookId)
+      const s = await this.load([],true); this.writable(s, notebookId)
       this.complete(s)
       const heads = s.notebooks.some(r => r.notebookId === notebookId) ? this.notebook(s, notebookId).heads : []
       if (!same(heads, expected)) conflict()
@@ -770,7 +787,7 @@ export class NoteRepository {
   async deleteNotebook(notebookId: string, expectedHeads: string[], signal?: AbortSignal, options: { removal?: NotebookRemoval; expectedNoteCount?: number } = {}): Promise<void> {
     id(notebookId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
-      const s = await this.load(); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
+      const s = await this.load([],true); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
       this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>{const v=this.view(s,n);return !v.current.isTemplate&&v.effectiveNotebookId===notebookId}))
       this.complete(s)
       if (!same(book.heads, expected)) conflict()
@@ -802,7 +819,7 @@ export class NoteRepository {
   }
   async recover(signal?: AbortSignal): Promise<RecoveryIssue[]> {
     return this.run(async () => {
-      const s = await this.load()
+      const s = await this.load([],true)
       for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
         if (s.blocked.has(noteId)) continue
         try { await this.external(s, noteId); await this.document(s, noteId) }

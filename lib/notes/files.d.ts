@@ -1,3 +1,4 @@
+import { FileInventory, type FileInventorySnapshot } from './inventory.js';
 export declare const missing: (e: unknown) => boolean;
 /** Retry the same atomic replacement when Windows briefly denies delete sharing. */
 export declare function replaceFile(temp: string, target: string): Promise<void>;
@@ -10,6 +11,7 @@ export declare class NoteFiles {
     readonly root: string;
     readonly beforeWrite?: ((path: string) => void | Promise<void>) | undefined;
     private checked;
+    readonly inventory: FileInventory;
     constructor(root: string, beforeWrite?: ((path: string) => void | Promise<void>) | undefined);
     /** Content-addressed references are rechecked whenever the file identity or timestamp changes. */
     check(relative: string, limit: number, verify: (bytes: Buffer) => void): Promise<number>;
@@ -19,10 +21,5 @@ export declare class NoteFiles {
     read(relative: string, limit?: number): Promise<Buffer>;
     remove(relative: string): Promise<void>;
     write(relative: string, data: string | Buffer, immutable: boolean): Promise<void>;
-    scan(): Promise<{
-        paths: string[];
-        bytes: number;
-        fingerprint: string;
-        stamps: Map<string, string>;
-    }>;
+    scan(): Promise<FileInventorySnapshot>;
 }

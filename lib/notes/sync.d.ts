@@ -20,6 +20,7 @@ export declare class NotesSyncModule {
     readonly version = 1;
     private currentToken;
     private readonly unsubscribe;
+    private verified;
     constructor(repository: NoteRepository, changed: () => void);
     close(): void;
     pending(acknowledged: string | null): boolean;
@@ -27,6 +28,7 @@ export declare class NotesSyncModule {
     private local;
     validateVersion(version: unknown): void;
     readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot>;
+    private readValidatedSnapshot;
     install(remote: Snapshot, objects: NoteObjects, signal?: AbortSignal): Promise<void>;
     prepare(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal, verified?: Snapshot): Promise<{
         files: PrivateFiles;

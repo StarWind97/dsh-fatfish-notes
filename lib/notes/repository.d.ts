@@ -26,6 +26,7 @@ export declare class NoteRepository {
     constructor(directory: string, options?: NoteRepositoryOptions);
     /** Only before admitting any client operations, during setup or host startup. */
     useDirectory(directory: string): void;
+    close(): void;
     private run;
     private view;
     private notebook;
