@@ -37,7 +37,7 @@ test('final R1 duplicate references keep the first image and link in reading, sn
       const note = await repo.save({ expectedHeads: [], content: { ...content, body, assetIds: [first.id, later.id] } }), request = { noteId: note.noteId, revision: note.current.revision }
       const reading = renderToStaticMarkup(React.createElement(Markdown, { children: body }))
       assert.ok(reading.includes(`src="../assets/${first.id}"`)); assert.ok(reading.includes('href="https://example.com/first"'))
-      for (const format of ['snapshot', 'png-long', 'png-pages']) {
+      for (const format of ['snapshot', 'png-long']) {
         if(format!=='snapshot'){
           const value=JSON.parse((await createExport(repo,{...request,format})).bytes.toString()) as ReadingSnapshot
           assert.deepEqual(Object.keys(value.assets),[first.id]);assert.equal(value.note.current.body,body)
@@ -80,7 +80,7 @@ test('M7 fix1 unfinished backtick/tilde note fences cannot consume explicit orig
   const sourceId = await repo.putSource({ version: 1, sessionId: 'PRIVATE-SESSION', assets: { photo: asset.id }, messages: [{ id: 'PRIVATE-MESSAGE', role: 'user', blocks: [{ type: 'text', text: sourceText }, { type: 'image', attachmentId: 'photo' }] }] })
   for (const body of ['```ts\nNOTE-UNFINISHED\n','~~~js\nNOTE-UNFINISHED\n','````js\nNOTE-UNFINISHED\n','```ts\nNOTE-UNFINISHED\n```','~~~js\nNOTE-UNFINISHED\n~~~']) {
     const note = await repo.save({ expectedHeads: [], content: { ...content, body, sourceId } }), request = { noteId: note.noteId, revision: note.current.revision, includeSource: true }
-    for (const format of ['snapshot','png-long','png-pages']) {
+    for (const format of ['snapshot','png-long']) {
       if(format!=='snapshot'){
         const value=JSON.parse((await createExport(repo,{...request,format})).bytes.toString()) as ReadingSnapshot
         assert.equal(value.note.current.body,body);assert.equal(value.source!.messages[0]!.blocks[0]!.type,'text');assert.ok(JSON.stringify(value.source).includes('SOURCE-TEXT'));assert.ok(value.assets[asset.id]);continue
@@ -122,7 +122,7 @@ test('the same selected fields reach Markdown, its ZIP and the rendered export m
     const rows=['# 图文手记',modified,...(includeTags?['#'+tag]:[]),...(includeSummary?['> '+summary,'---']:[]),body]
     const shown=md.slice(end+6).trimEnd()
     assert.equal(shown,rows.join('\n\n'))
-    for(const format of ['snapshot','png-long','png-pages']){
+    for(const format of ['snapshot','png-long']){
       if(format!=='snapshot'){
         const value=JSON.parse((await createExport(repo,{...options,format})).bytes.toString()) as ReadingSnapshot
         assert.deepEqual(value.note.current.tags,includeTags?[tag]:[]);assert.equal(value.note.current.summary,includeSummary?summary:'');assert.equal(value.note.current.body,body);continue

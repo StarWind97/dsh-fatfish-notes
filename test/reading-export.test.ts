@@ -28,7 +28,7 @@ test('reading PNG freezes selected content and handles table images and external
   const html=renderToStaticMarkup(React.createElement(ReadingBody,{note:value.note,t:translate,staticView:true,assetUrl:id=>value.assets[id]!}))
   assert.match(html,/<table[ >]/);assert.match(html,/data:image\/png;base64/);assert.match(html,/href="https:\/\/example.com\/image.png"/);assert.doesNotMatch(html,/<img[^>]+src="https:/);assert.doesNotMatch(html,/class="paper-copy-code"|class="paper-media-more"|后来编辑/)
   await assert.rejects(createExport(repo,{...identity,format:'png-long',assetIds:['a'.repeat(64)+'.png']}),{code:'export_request'})
-  const omitted=JSON.parse((await createExport(repo,{...identity,format:'png-pages',assetIds:[],attachmentIds:[]})).bytes.toString()) as ReadingSnapshot
+  const omitted=JSON.parse((await createExport(repo,{...identity,format:'png-long',assetIds:[],attachmentIds:[]})).bytes.toString()) as ReadingSnapshot
   assert.deepEqual(omitted.assets,{});assert.doesNotMatch(omitted.note.current.body,/\.\.\/assets\/|\.\.\/attachments\//);assert.deepEqual(omitted.note.current.attachments,[])
 })
 test('PDF and PNG retain supplement labels without bundling originals; Markdown alone carries selected bytes',async t=>{
@@ -50,4 +50,10 @@ test('reading source remains separate from an unfinished note fence and filters 
   assert.equal(value.note.current.body,note.current.body);assert.ok(value.assets[image.id]);assert.equal(value.source!.archivedMaterials![0]!.saved,undefined)
   const html=renderToStaticMarkup(React.createElement(SourceContent,{source:value.source!,note:value.note,t:translate,staticView:true,assetUrl:id=>value.assets[id]!}));assert.match(html,/上传.txt（未包含）/);assert.match(html,/原始文字/);assert.doesNotMatch(html,/notes\/download/)
   assert.deepEqual(await repo.getSource(sourceId),source)
+})
+
+test('retired paginated PNG requests are rejected before reading notes or resources',async t=>{
+  const repo=await fixture(t)
+  repo.getRevision=async()=>{throw Error('retired format must not read a revision')}
+  await assert.rejects(createExport(repo,{noteId:'0'.repeat(26),revision:'a'.repeat(64),format:'png-pages'}),{code:'export_request'})
 })

@@ -3,7 +3,7 @@ import {exportFilename} from '../notes/export/markdown.js'
 import type { ConversationExportFormat, ConversationExportRequest } from '../contracts/notes.js'
 import type { ExportSnapshot } from '../notes/export/model.js'
 import { ApiError, currentRepository } from './api.js'
-import { downloadFilename, prepareImages, renderPages, type DownloadFile } from './note-export.js'
+import { downloadFilename, prepareImages, renderImage, type DownloadFile } from './note-export.js'
 
 export interface ConversationFile extends DownloadFile {warnings:{partial:boolean;missing:number;linked:number}}
 export async function downloadConversation(source:Pick<ConversationExportRequest,'sessionId'|'messageIds'|'throughSeq'|'materialIds'|'allowLarge'>, format:ConversationExportFormat, signal:AbortSignal):Promise<ConversationFile> {
@@ -27,7 +27,7 @@ export async function downloadConversation(source:Pick<ConversationExportRequest
     const file=await request({format:'pdf',snapshotHash:snapshot.snapshotHash,convertedImages:prepared.convertedImages})
     return {blob:await file.blob(),filename:downloadFilename(file),warnings}
   }
-  const rendered=await renderPages(snapshot,prepared.images,{format,width:1080,pixelRatio:1,background:'light'},signal)
+  const rendered=await renderImage(snapshot,prepared.images,{width:1080,pixelRatio:1,background:'light'},signal)
   if(!snapshot.attachments?.length)return {...rendered,warnings}
   const blob=await bundleFiles([new File([rendered.blob],rendered.filename,{type:rendered.blob.type})],snapshot.attachments.map(f=>({name:f.id.slice(0,16)+'-'+exportFilename(f.name),path:'/notes/conversation-file',body:{sessionId:source.sessionId,throughSeq:source.throughSeq,messageIds:source.messageIds,materialId:f.materialId,hash:f.id}})),signal,true)
   return {blob,filename:snapshot.filename+'.zip',warnings}

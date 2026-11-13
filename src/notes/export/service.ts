@@ -22,7 +22,7 @@ export interface ExportFile { bytes: Buffer; mediaType: string; filename: string
 export async function createExport(repository: NoteRepository, input: unknown, signal?: AbortSignal,streaming=false): Promise<ExportFile> {
   const v = object(input), format = text(v.format, 30)
   if (Object.keys(v).some(key => !['noteId','revision','format','includeSource','includeTags','includeSummary','convertedImages','assetId','assetIds','attachmentIds'].includes(key))) throw new ExportError('export_request')
-  if (!['markdown','markdown-zip','pdf','png-long','png-pages','snapshot','original'].includes(format)) throw new ExportError('export_request')
+  if (!['markdown','markdown-zip','pdf','png-long','snapshot','original'].includes(format)) throw new ExportError('export_request')
   for (const flag of [v.includeSource,v.includeTags,v.includeSummary]) {
     if (flag !== undefined && typeof flag !== 'boolean') throw new ExportError('export_request')
   }
@@ -40,7 +40,7 @@ export async function createExport(repository: NoteRepository, input: unknown, s
   const selectedAssets=v.assetIds===undefined?allAssets:sortedStrings(v.assetIds,128,assetId),selectedFiles=v.attachmentIds===undefined?allFiles.map(a=>a.id):sortedStrings(v.attachmentIds,128,hash)
   if(selectedAssets.some(a=>!allAssets.includes(a))||selectedFiles.some(a=>!allFiles.some(f=>f.id===a)))throw new ExportError('export_request')
   const chosenFiles=allFiles.filter(a=>selectedFiles.includes(a.id))
-  if(format==='png-long'||format==='png-pages'){
+  if(format==='png-long'){
     const projection=readingProjection(note,original as unknown as CaptureSource|null,selectedAssets,selectedFiles,v.includeTags!==false,v.includeSummary!==false)
     const assets:Record<string,string>={},budget=renderImageBudget()
     for(const asset of readingImageIds(projection)){signal?.throwIfAborted();const bytes=await repository.getAsset(asset,signal);budget(bytes);assets[asset]=`data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`}

@@ -1,4 +1,3 @@
-import {bundleFiles} from './export-bundle.js'
 import {readingImage,type ReadingAppearance} from './note-reading-image.js'
 import type {ReadingSnapshot} from '../notes/export/reading.js'
 import {validNotesResponse,validCaptureSource} from './notes-validation.js'
@@ -105,30 +104,26 @@ function pageElement(page: ExportPage, images: Record<string, ExportImage>, back
   }
   return root
 }
-export async function renderPages(value: Pick<ExportSnapshot,'model'|'filename'>, images: Record<string, ExportImage>, options: Pick<ExportOptions,'width'|'pixelRatio'|'background'|'format'>, signal: AbortSignal): Promise<DownloadFile> {
+export async function renderImage(value: Pick<ExportSnapshot,'model'|'filename'>, images: Record<string, ExportImage>, options: Pick<ExportOptions,'width'|'pixelRatio'|'background'>, signal: AbortSignal): Promise<DownloadFile> {
   const font = await loadFont(signal), canvas = document.createElement('canvas'), context = canvas.getContext('2d')
   if (!context) throw new ExportError('export_failed')
   context.fontKerning = 'none'
   const measures = new Map<string, number>()
   const measure = (text: string, size: number) => { const key = `${size}:${text}`; const known = measures.get(key); if (known !== undefined) return known; context.font = `${size}px DSHExportNoto`; const n = context.measureText(text).width; measures.set(key, n); return n }
-  const pages = layoutExport(value.model, images, measure, options.width, options.format === 'png-pages' ? Math.round(options.width * Math.SQRT2) : null)
-  for (const page of pages) checkPixels(page.width, page.height, options.pixelRatio)
-  const files: File[] = [], holder = document.createElement('div'); let totalBytes = 0
+  const page = layoutExport(value.model, images, measure, options.width, null)[0]!
+  checkPixels(page.width, page.height, options.pixelRatio)
+  const holder = document.createElement('div')
   Object.assign(holder.style, { position: 'fixed', left: '-100000px', top: '0', pointerEvents: 'none', zIndex: '-1' }); holder.setAttribute('aria-hidden', 'true'); document.body.append(holder)
   try {
-    for (let i = 0; i < pages.length; i++) {
-      signal.throwIfAborted(); const page = pages[i]!, node = pageElement(page, images, options.background); holder.replaceChildren(node)
-      await Promise.all([...node.querySelectorAll('img')].map(image => image.decode()))
-      signal.throwIfAborted()
-      const blob = await toBlob(node, { width: page.width, height: page.height, pixelRatio: options.pixelRatio, skipAutoScale: true, fontEmbedCSS: font.css, includeQueryParams: true, cacheBust: false })
-      signal.throwIfAborted(); if (!blob || blob.size < 32) throw new ExportError('export_failed')
-      if ((totalBytes += blob.size) > 128 * 1024 * 1024) throw new ExportError('export_output_limit')
-      const bitmap = await createImageBitmap(blob)
-      try { if (bitmap.width !== Math.floor(page.width * options.pixelRatio) || bitmap.height !== Math.floor(page.height * options.pixelRatio)) throw new ExportError('export_dimensions') } finally { bitmap.close() }
-      if (options.format === 'png-long') return { blob, filename: `${value.filename}-长图.png` }
-      files.push(new File([blob],`${String(i+1).padStart(3,'0')}.png`,{type:'image/png'}))
-    }
-    signal.throwIfAborted(); return { blob: await bundleFiles(files,[],signal), filename: `${value.filename}-分页图片.zip` }
+    signal.throwIfAborted(); const node = pageElement(page, images, options.background); holder.replaceChildren(node)
+    await Promise.all([...node.querySelectorAll('img')].map(image => image.decode()))
+    signal.throwIfAborted()
+    const blob = await toBlob(node, { width: page.width, height: page.height, pixelRatio: options.pixelRatio, skipAutoScale: true, fontEmbedCSS: font.css, includeQueryParams: true, cacheBust: false })
+    signal.throwIfAborted(); if (!blob || blob.size < 32) throw new ExportError('export_failed')
+    if (blob.size > 128 * 1024 * 1024) throw new ExportError('export_output_limit')
+    const bitmap = await createImageBitmap(blob)
+    try { if (bitmap.width !== Math.floor(page.width * options.pixelRatio) || bitmap.height !== Math.floor(page.height * options.pixelRatio)) throw new ExportError('export_dimensions') } finally { bitmap.close() }
+    signal.throwIfAborted(); return { blob, filename: `${value.filename}-长图.png` }
   } finally { holder.remove(); canvas.width = 0 }
 }
 export async function createNoteDownload(identity: Frozen, options: ExportOptions, signal: AbortSignal): Promise<DownloadFile> {
@@ -136,7 +131,7 @@ export async function createNoteDownload(identity: Frozen, options: ExportOption
   const current=()=>{signal.throwIfAborted();if(currentRepository()!==repository)throw new ApiError('notebook_changed')}
   const {includeSource,includeTags,includeSummary}=options
   const fields:ExportFields={includeSource,...(options.assetIds?{assetIds:options.assetIds}:{}),...(options.attachmentIds?{attachmentIds:options.attachmentIds}:{}),...(includeTags!==undefined&&{includeTags}),...(includeSummary!==undefined&&{includeSummary})}
-  if(options.format.startsWith('png-')){
+  if(options.format==='png-long'){
     const value=await (await exportRequest(identity,{format:options.format,...fields},signal,fetch,repository)).json() as ReadingSnapshot
     current()
     if(value?.kind!=='reading'||typeof value.filename!=='string'||!validNotesResponse('/notes/get',{ok:true,note:value.note})||value.note.noteId!==identity.noteId||value.note.current.revision!==identity.revision||value.source!==null&&!validCaptureSource(value.source)||!value.assets||Array.isArray(value.assets)||Object.keys(value.assets).some(id=>!value.note.current.assetIds.includes(id)))throw new ApiError('invalid_response')

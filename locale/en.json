@@ -8,7 +8,7 @@
   "feedbackShort": "Feedback",
   "feedbackHint": "Report an issue or suggest an improvement on GitHub (opens a new page)",
   "chatExportRange": "Export range",
-  "chatExportOverflow": "This conversation exceeds the single-image limit. Choose paginated images.",
+  "chatExportOverflow": "This content exceeds the single-image limit. Select less content, or use PDF / Markdown.",
   "chatExport": "Export",
   "chatExportTitle": "Export conversation",
   "chatExportTurn": "Current exchange",
@@ -177,7 +177,6 @@
   "notesExportZip": "Markdown and images ZIP",
   "notesExportPdf": "PDF document",
   "notesExportLong": "Single long PNG",
-  "notesExportPages": "Paginated PNGs (ZIP)",
   "notesExportOriginal": "Original image",
   "notesExportMarkdownHint": "The file contains text and relative image paths. Choose ZIP for offline images.",
   "notesExportChooseImage": "Choose an image",
@@ -196,7 +195,7 @@
   "notesExportStarted": "Download started. Check the browser or system download window.",
   "notesExportSaveFirst": "Finish typing, saving or resolving conflicts before exporting.",
   "notesExportChanged": "The selection or revision changed. No file was downloaded; export again.",
-  "notesExportOverflow": "The long image exceeds the 32767 pixel side or 32 megapixel limit. Reduce width/resolution or choose paginated images.",
+  "notesExportOverflow": "This content exceeds the single-image limit. Lower the resolution, include fewer images or original materials, or use PDF / Markdown.",
   "notesExportConversionBudget": "WebP/GIF previews exceed the 1 MiB PDF conversion limit. Reduce images, or download originals/Markdown ZIP.",
   "notesExportUnarchived": "The note contains unarchived images. Archive them or remove external image references before offline export.",
   "notesExportImageFailed": "An image is missing, cannot be decoded, or exceeds 32 megapixels. Check originals and retry.",
@@ -262,7 +261,6 @@
   "paperSummaryHint": "Write a short summary…",
   "paperMoved": "Moved to trash",
   "paperUndoMove": "Undo",
-  "notesExportContents": "File layout",
   "paperSave": "Done editing",
   "paperLeaveDraft": "Saving. Please wait.",
   "noteModifiedAt": "Last modified",
@@ -622,5 +620,5 @@
   "notesExportCurrentTheme": "Current reading theme",
   "exportVisualFiles": "Show selected content or file cards, without bundling original files. Use a Markdown resource package for originals.",
   "notesExportReadingWidth": "A table exceeds the content width. Choose a wider layout and try again.",
-  "notesExportScreenshotHint": "Uses the reading layout with 24 px outer padding. 2× increases pixel density only. Pages are continuous screenshot slices and may split a paragraph or image."
+  "notesExportScreenshotHint": "Exports one PNG using the reading layout with 24 px outer padding. 2× increases pixel density only."
 }

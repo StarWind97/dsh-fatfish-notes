@@ -10,7 +10,7 @@ import { PaperDialog } from './paper/PaperDialog.js'
 import type { T, LocaleKey } from './locale.js'
 import type { NoteCaptureBridge, NoteCaptureState } from './note-capture-bridge.js'
 
-const formats:Array<[ConversationExportFormat,string]>=[['markdown','Markdown'],['pdf','PDF'],['png-long',''],['png-pages','']]
+const formats:Array<[ConversationExportFormat,string]>=[['markdown','Markdown'],['pdf','PDF'],['png-long','']]
 export function ConversationExportDialog({state,bridge,t}:{state:NoteCaptureState;bridge:NoteCaptureBridge;t:T}) {
   const options=state.exporting!, selection=state.selection
   const [busy,setBusy]=React.useState(false), [error,setError]=React.useState<LocaleKey|null>(null)
@@ -48,7 +48,7 @@ export function ConversationExportDialog({state,bridge,t}:{state:NoteCaptureStat
         </div></fieldset>
         <span className="chat-export-count">{t('noteSelectionCount',{count:ids.length})}</span>
         <label>{t('notesExportFormat')}<select value={options.format} disabled={busy} onChange={e=>{reset();bridge.exportFormat(e.target.value as ConversationExportFormat)}}>
-          {formats.map(([value,label])=><option key={value} value={value}>{label||t(value==='png-long'?'notesExportLong':'notesExportPages')}</option>)}
+          {formats.map(([value,label])=><option key={value} value={value}>{label||t('notesExportLong')}</option>)}
         </select></label>
         <CaptureMaterials state={state} bridge={bridge} t={t} messageIds={ids} disabled={busy}/><p>{t('exportFilesBundle')}</p>
         <p className="chat-export-hint">{t(options.format==='markdown'?'chatExportMarkdownHint':'chatExportFileHint')}</p>

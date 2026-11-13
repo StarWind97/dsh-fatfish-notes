@@ -1,6 +1,8 @@
 # 肥鱼笔记开发入口
 
-2026-11-14 最新交付：[界面体验、会话转存与导出简化规划](plans/2026-11-13-experience-capture-export.zh.md)已完成，见[验证与隔离体验](plans/2026-11-13-experience-capture-export-results.zh.md)。覆盖主界面、独立窗口和会话侧栏实际操作；357 项全量通过，最后局部收尾另通过 17 项专项及实际验收。上传文件原位链接、引用计数/分页、阅读键及阅读式 PNG 导出已装入原体验入口；未发布，AI 会话写入继续暂缓。
+2026-11-14 最新交付：[移除分页图片导出规划](plans/2026-11-14-single-image-export.zh.md)已完成，见[验证与体验](plans/2026-11-14-single-image-export-results.zh.md)。图片只输出单张 PNG，PDF 文档分页和 Markdown 资源包保持；35 项相关测试及主界面、独立窗口、会话侧栏实际验收通过，原隔离入口已更新，未发布。网页导出只记为候选，暂不开发。
+
+2026-11-14 前序交付：[界面体验、会话转存与导出简化规划](plans/2026-11-13-experience-capture-export.zh.md)已完成，见[验证与隔离体验](plans/2026-11-13-experience-capture-export-results.zh.md)。覆盖主界面、独立窗口和会话侧栏实际操作；357 项全量通过，最后局部收尾另通过 17 项专项及实际验收。上传文件原位链接、引用计数/分页、阅读键及阅读式 PNG 导出已装入原体验入口；未发布，AI 会话写入继续暂缓。
 
 2026-11-13 前序交付：[图片展示切换与笔记多选规划](plans/2026-11-13-image-presentation-and-selection.zh.md)及[验证与体验记录](plans/2026-11-13-image-presentation-and-selection-results.zh.md)。已实施截图 / 纯图片默认展示、混合文件默认链接、正文单处双向切换及所有笔记列表整行多选。348 项全量通过，已在隔离入口完成安装、交互、导出、指定私库同步与重启验收；未发布。
 

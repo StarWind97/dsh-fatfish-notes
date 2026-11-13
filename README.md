@@ -54,7 +54,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
 
 当前未发布候选移除回答下独立「导出」按钮；先将会话保存为笔记，再选择 Markdown 资源包、阅读图片或 PDF。图片默认按当前阅读宽度和主题生成，2× 不改变排版；PNG/PDF 不额外打包附件原件。具体范围见[统一体验规划](docs/plans/2026-11-13-experience-capture-export.zh.md)。
 
-点击顶部「编辑」即可手动修改标题、标签、摘要和 Markdown 正文。从 `0.5.1` 起自动保存，「完成编辑」或离开后回来均从最新内容的阅读态继续，详见[使用说明](docs/user-guide.zh.md)。列表宽度可拖动，正文可切换标准宽度与全宽，配色跟随宿主。「导出」提供 Markdown、PDF、长图及分页图片。带图片的 Markdown 推荐用 ZIP，解压后可离线阅读。导出时可分别选择包含标签、包含摘要。阅读双击用于选择文字，Home/End/Page Up/Page Down 用于滚动。点击笔记标签可以筛选列表，点击搜索框下的筛选标记即可清除。
+点击顶部「编辑」即可手动修改标题、标签、摘要和 Markdown 正文。从 `0.5.1` 起自动保存，「完成编辑」或离开后回来均从最新内容的阅读态继续，详见[使用说明](docs/user-guide.zh.md)。列表宽度可拖动，正文可切换标准宽度与全宽，配色跟随宿主。「导出」提供 Markdown、PDF 及单张 PNG 图片。带图片的 Markdown 推荐用 ZIP，解压后可离线阅读。导出时可分别选择包含标签、包含摘要。阅读双击用于选择文字，Home/End/Page Up/Page Down 用于滚动。点击笔记标签可以筛选列表，点击搜索框下的筛选标记即可清除。
 
 ## 导入、附件与整库导出
 

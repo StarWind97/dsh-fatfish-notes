@@ -1,7 +1,7 @@
 export type NoteMode = 'raw'
 export type NoteStatus = 'active' | 'trashed'
 /** Binary export endpoint is handled separately from the JSON NotesApiContract. */
-export type NoteExportFormat = 'markdown' | 'markdown-zip' | 'pdf' | 'png-long' | 'png-pages' | 'snapshot' | 'original'
+export type NoteExportFormat = 'markdown' | 'markdown-zip' | 'pdf' | 'png-long' | 'snapshot' | 'original'
 export interface NoteExportRequest {
   noteId: string; revision: string; format: NoteExportFormat; includeSource?: boolean; includeTags?: boolean; includeSummary?: boolean
   assetId?: string; convertedImages?: Array<{ assetId: string; png: string }>
@@ -82,7 +82,7 @@ export interface CaptureResult {
 }
 export interface CaptureSelectionRequest { sessionId: string; anchorMessageId?: string }
 export interface CaptureSelection extends CaptureTranscript { cut: CaptureCut; defaultMessageIds: string[] }
-export type ConversationExportFormat = 'markdown' | 'pdf' | 'png-long' | 'png-pages'
+export type ConversationExportFormat = 'markdown' | 'pdf' | 'png-long'
 export interface ConversationExportRequest {
   sessionId:string; throughSeq:number; messageIds:string[]; format:'markdown'|'snapshot'|'pdf'
   snapshotHash?:string; convertedImages?:Array<{assetId:string;png:string}>

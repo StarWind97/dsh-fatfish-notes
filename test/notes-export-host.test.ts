@@ -21,6 +21,8 @@ test('M7 real HTTP exports/font retain both-prefix fences, private headers, POST
         assert.equal((await post(prefix, path, {}, { 'sec-fetch-site': 'cross-site' })).status, 403)
       }
       assert.equal((await fetch(`${origin}/${prefix}/notes/export`)).status, 405)
+      const retired = await post(prefix, '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'png-pages' })
+      assert.equal(retired.status, 400); assert.equal((await retired.json() as {code:string}).code, 'export_request')
       assert.equal((await post(prefix, '/notes/export', { padding: 'x'.repeat(2 * 1024 * 1024) })).status, 413)
       const result = await post(prefix, '/notes/export', { noteId: note.noteId, revision: note.current.revision, format: 'markdown' })
       assert.equal(result.status, 200); assert.equal(result.headers.get('cache-control'), 'no-store'); assert.equal(result.headers.get('x-content-type-options'), 'nosniff'); assert.ok(result.headers.get('content-disposition')?.startsWith("attachment; filename*=UTF-8''")); assert.ok((await result.text()).includes('离线正文'))

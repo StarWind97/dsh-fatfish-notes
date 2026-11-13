@@ -8,7 +8,7 @@
   "feedbackShort": "反馈",
   "feedbackHint": "前往 GitHub 反馈问题或提出建议（打开新页面）",
   "chatExportRange": "导出范围",
-  "chatExportOverflow": "整段内容超出单张长图的大小限制，请改选分页图片。",
+  "chatExportOverflow": "内容超出单张图片的大小限制，请减少所选内容，或改用 PDF / Markdown。",
   "chatExport": "导出",
   "chatExportTitle": "导出会话",
   "chatExportTurn": "当前问答",
@@ -177,7 +177,6 @@
   "notesExportZip": "Markdown 与图片 ZIP",
   "notesExportPdf": "PDF 文档",
   "notesExportLong": "一张 PNG 长图",
-  "notesExportPages": "多张分页 PNG（ZIP）",
   "notesExportOriginal": "原图下载",
   "notesExportMarkdownHint": "单文件只含文字与图片相对路径；需要离线图片请选择 ZIP。",
   "notesExportChooseImage": "选择原图",
@@ -196,7 +195,7 @@
   "notesExportStarted": "已开始下载，请在浏览器或系统下载窗口核对文件。",
   "notesExportSaveFirst": "请先完成输入、保存或处理版本冲突，再导出。",
   "notesExportChanged": "当前选择或版本已改变，本次文件未下载，请重新导出。",
-  "notesExportOverflow": "长图超过 32767 像素边长或 3200 万像素上限。请降低宽度/清晰度或选择分页图片。",
+  "notesExportOverflow": "内容超出单张图片的大小限制。请降低清晰度、减少所选图片或原始素材，或改用 PDF / Markdown。",
   "notesExportConversionBudget": "WebP/GIF 静态预览超过本次 PDF 的 1 MiB 转换上限。请缩小图片后重试，或下载原图/带图 ZIP。",
   "notesExportUnarchived": "正文含未归档图片，无法离线导出。请先归档图片或移除外部图片引用。",
   "notesExportImageFailed": "图片缺失、无法解码或超过 3200 万像素，导出未完成；请检查原图后重试。",
@@ -262,7 +261,6 @@
   "paperSummaryHint": "写一段摘要…",
   "paperMoved": "已移到回收站",
   "paperUndoMove": "撤销",
-  "notesExportContents": "文件形式",
   "paperSave": "完成编辑",
   "paperLeaveDraft": "正在保存，请稍候。",
   "noteModifiedAt": "最后修改时间",
@@ -622,5 +620,5 @@
   "notesExportCurrentTheme": "当前阅读主题",
   "exportVisualFiles": "显示选中材料的内容或文件卡片，不附带文件原件。需要原件时请使用 Markdown 资源包。",
   "notesExportReadingWidth": "表格超出正文宽度，请选择更宽的排版后重试。",
-  "notesExportScreenshotHint": "沿用阅读排版，正文四周留 24 px。2× 仅提高像素密度。分页图片连续截取内容，可能在段落或图片中间分开。"
+  "notesExportScreenshotHint": "输出一张 PNG，沿用阅读排版，正文四周留 24 px。2× 仅提高像素密度。"
 }
