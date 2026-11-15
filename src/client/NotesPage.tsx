@@ -26,13 +26,15 @@ import type { OutlineSession } from './paper/use-outline.js'
 import type { T } from './locale.js'
 import type {NotesWorkspace} from './workspace.js'
 import {WindowButton,WorkspaceNotice} from './WorkspaceNotice.js'
-import {AppearanceSettings,AppearanceStyle,useAppearanceProps,useAppearance,setAppearance} from './paper/appearance.js'
+import {AppearanceSettings,AppearanceStyle,useAppearanceProps,useAppearance,AppearanceScope,useAppearanceTheme} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {NotebookTree} from './paper/NotebookTree.js'
 
 const noWorkspaceSubscribe=()=>()=>{}
 const noWorkspaceState=()=>null
-export function NotesPage({ controller, t, surface='embedded',workspace }: { controller: NotesController; t: T; surface?:PaperSurface;workspace?:NotesWorkspace }) {
+type NotesPageProps={ controller: NotesController; t: T; surface?:PaperSurface;workspace?:NotesWorkspace }
+export function NotesPage(props:NotesPageProps){return <AppearanceScope><NotesPageView {...props}/></AppearanceScope>}
+function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPageProps) {
   const windowState=useSyncExternalStore(workspace?.subscribe??noWorkspaceSubscribe,workspace?.getSnapshot??noWorkspaceState)
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const selection=useNoteSelection(controller,state,t)
@@ -46,7 +48,7 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
   const noteTabs=useNoteTabs(controller,state,app)
-  const appearance=useAppearanceProps()
+  const appearance=useAppearanceProps(),theme=useAppearanceTheme()
   const appearanceValue=useAppearance()
   const columns=usePaperColumns(app,surface)
   const outlineSession=useRef<OutlineSession>({wide:null,open:false})
@@ -146,7 +148,7 @@ export function NotesPage({ controller, t, surface='embedded',workspace }: { con
   return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss}</style><AppearanceStyle/>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BookOpen size={20}/>{t('nav')}</strong>{!['tree','ribbon','archive'].includes(appearanceValue.layout)&&<button className="paper-global-books" title={columns.expanded?'收起笔记本':'展开笔记本'} aria-label={columns.expanded?'收起笔记本':'展开笔记本'} aria-expanded={columns.expanded} onClick={toggleNotebooks}><PanelLeftOpen size={17}/></button>}<nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesLibrary':section==='notebooks'?'notesNotebooks':'notesSettings')}</button>)}</nav>
-    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>setAppearance({mode:appearance['data-theme']==='dark'?'light':'dark'})}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
+    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void controller.navigate('settings')} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>theme.setMode(appearance['data-theme']==='dark'?'light':'dark')}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     <PaperColumns t={t} section={state.section} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns} rail={<><button title="展开笔记本" aria-label="展开笔记本" onClick={toggleNotebooks}><PanelLeftOpen size={17}/></button>{activeBooks.map(book=><button key={book.notebookId} title={book.current.title} aria-label={book.current.title} aria-current={state.filter.notebookId===book.notebookId?'page':undefined} onClick={()=>chooseNotebook(book.notebookId)}>{book.current.title.slice(0,1)}</button>)}</>} other={state.section==='settings'?<div className="paper-other" style={s.page}><AppearanceSettings/><h2>{t('notesSettings')}</h2><SettingsPage t={t} showFeedback={false}/></div>:state.section==='notebooks'?<NotebookManager controller={controller} state={state} t={t} onOpen={openNotebook}/>:null}>
       <NoteTabBar controller={controller} state={state} {...noteTabs} beforeSelect={()=>clearTimeout(timer.current)}/>
       {state.draft?<NoteEditor onDownloadNotice={itemActions.setDownloadNotice} onNoteLink={setPreviewLink} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty"><BookOpen size={32}/><h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}

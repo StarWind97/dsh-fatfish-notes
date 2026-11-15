@@ -8,13 +8,13 @@ const previewCleanup=new WeakMap<HTMLElement,()=>void>()
 
 export const refreshMedia=StateEffect.define<void>()
 class Preview extends WidgetType {
-  constructor(readonly type:'image'|'code'|'table'|'rule'|'marker'|'task',readonly value:string,readonly extra='',readonly rows:readonly string[][]=[],readonly copyLabels:readonly string[]=[],readonly media?:{label:string;open:(position:number,x:number,y:number)=>void}) {super()}
+  constructor(readonly type:'image'|'code'|'table'|'rule'|'marker'|'task',readonly value:string,readonly extra='',readonly rows:readonly string[][]=[],readonly copyLabels:readonly string[]=[],readonly media?:{label:string;open:(position:number,x:number,y:number,trigger:HTMLButtonElement)=>void}) {super()}
   eq(other:Preview){return this.type===other.type&&this.value===other.value&&this.extra===other.extra&&JSON.stringify(this.rows)===JSON.stringify(other.rows)}
   toDOM(view:EditorView):HTMLElement{
     let el:HTMLElement
     if(this.type==='image'){
       const img=document.createElement('img');img.src=this.value;img.alt=this.extra;img.className='paper-image';img.onload=()=>view.requestMeasure();el=img
-      if(this.media){const media=this.media;el=document.createElement('span');el.className='paper-presented-media is-image';el.append(img);const button=document.createElement('button');button.type='button';button.className='paper-media-more';button.textContent='⋯';button.title=media.label;button.setAttribute('aria-label',media.label);button.setAttribute('aria-haspopup','menu');button.onmousedown=e=>{e.preventDefault();e.stopPropagation()};button.onclick=e=>{e.preventDefault();e.stopPropagation();const r=button.getBoundingClientRect();media.open(view.posAtDOM(el),r.left,r.bottom)};el.append(button)}
+      if(this.media){const media=this.media;el=document.createElement('span');el.className='paper-presented-media is-image';el.append(img);const button=document.createElement('button');button.type='button';button.className='paper-media-more';button.textContent='⋯';button.title=media.label;button.setAttribute('aria-label',media.label);button.setAttribute('aria-haspopup','menu');button.setAttribute('aria-expanded','false');button.onmousedown=e=>{e.preventDefault();e.stopPropagation()};button.onclick=e=>{e.preventDefault();e.stopPropagation();const r=button.getBoundingClientRect();media.open(view.posAtDOM(el),r.left,r.bottom,button)};el.append(button)}
     }else if(this.type==='code'){
       el=document.createElement('div');el.className='paper-code'
       if(this.extra){const label=document.createElement('small');label.className='paper-code-label';label.textContent=this.extra;el.append(label)}
@@ -43,7 +43,7 @@ class Preview extends WidgetType {
   destroy(dom:HTMLElement){previewCleanup.get(dom)?.();previewCleanup.delete(dom)}
 }
 
-export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string,copyLabels:readonly string[]=[],media?:{label:string;open:(position:number,x:number,y:number)=>void}){
+export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string,copyLabels:readonly string[]=[],media?:{label:string;open:(position:number,x:number,y:number,trigger:HTMLButtonElement)=>void}){
   function build(state:EditorState){
     const ranges:ReturnType<Decoration['range']>[]=[], sel=state.selection.main,doc=state.doc
     const text=(n:SyntaxNode)=>state.sliceDoc(n.from,n.to)

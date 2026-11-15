@@ -13,7 +13,7 @@ import {createNoteRevision,materializeNote} from '../src/notes/revisions.js'
 test('appearance accepts independent valid choices and rejects corrupted or future preferences',()=>{
   for(const raw of [null,'oops','[]','42','{"version":2,"layout":"island"}'])assert.deepEqual(parseAppearance(raw),defaultAppearance)
   const value=appearanceValue({layout:'island',palette:'native',size:999,codeWeight:400,mode:'dark',tabs:'false',arbitrary:'ignored'})
-  assert.equal(value.layout,'island');assert.equal(value.size,17);assert.equal(value.tabs,true);assert.equal(value.mode,'dark');assert.equal('arbitrary' in value,false)
+  assert.equal(value.layout,'island');assert.equal(value.size,17);assert.equal(value.tabs,true);assert.equal(value.mode,'host');assert.equal('arbitrary' in value,false)
   assert.equal(appearanceValue({...value,palette:'rose'}).layout,'island')
 })
 test('native standard palette consumes host semantic roles; explicit contrasts remain distinct',()=>{
@@ -24,6 +24,11 @@ test('native standard palette consumes host semantic roles; explicit contrasts r
     assert.notEqual(day.paper,night.paper);assert.notEqual(day.ink,day.paper);assert.notEqual(night.ink,night.paper)
   }
   assert.notEqual(appearanceColors(defaultAppearance,false).selected,appearanceColors({...defaultAppearance,contrast:'strong'},false).selected)
+})
+test('legacy fixed light/dark preferences reopen following DSH without losing layout, fonts or materials',()=>{
+  const chosen=appearanceValue({...defaultAppearance,layout:'island',palette:'clearblue',fontCjk:'kai',fontLatin:'georgia',materials:'right',codeWeight:300})
+  for(const mode of ['light','dark','host'])assert.deepEqual(parseAppearance(JSON.stringify({...chosen,mode})),chosen)
+  assert.deepEqual(appearanceValue({...chosen,mode:'dark'}),chosen)
 })
 test('highlight admission preserves unknown and large text for plain display instead of trimming source',()=>{
   for(const name of ['js','TS','json','py','bash','yml','html','css','sql'])assert.ok(codeLanguage(name))

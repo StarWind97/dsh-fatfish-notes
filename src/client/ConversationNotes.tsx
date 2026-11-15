@@ -7,7 +7,7 @@ import {useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} 
 import type {PropsRuntime} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import {BookOpen,ArrowLeft,Search,Link2,LoaderCircle,Download,BookPlus,Check,Notebook,ChevronDown,SquarePen,Plus,Settings,Quote,ListChecks,X,Star,Pin} from 'lucide-react'
+import {BookOpen,ArrowLeft,Search,Link2,LoaderCircle,Download,BookPlus,Check,Notebook,ChevronDown,SquarePen,Plus,Settings,MessageSquarePlus,ListChecks,X,Star,Pin} from 'lucide-react'
 import {NotesWorkspace} from './workspace.js'
 import {NotesController} from './notes-controller.js'
 import {NoteEditor} from './NoteEditor.js'
@@ -15,7 +15,7 @@ import {WorkspaceNotice,WindowButton} from './WorkspaceNotice.js'
 import {bindLibraryLifecycle} from './library-lifecycle.js'
 import {notesCss} from './notes-style.js'
 import {paperCss} from './paper/style.js'
-import {AppearanceSettings,AppearanceStyle,useAppearanceProps} from './paper/appearance.js'
+import {AppearanceSettings,AppearanceStyle,useAppearanceProps,AppearanceScope} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {organizationCss} from './organization-style.js'
 import {transferCss} from './NoteAttachments.js'
@@ -35,7 +35,9 @@ import type {NoteCaptureBridge} from './note-capture-bridge.js'
 import type {NoteListItem,NotesApiContract} from '../contracts/notes.js'
 
 type Group='linked'|'workspace'|'find'
-export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,useInput,bridge,t}:PropsRuntime<'sidebar.right.pane.tab'>&{bridge:NoteCaptureBridge;t:T}){
+type ConversationProps=PropsRuntime<'sidebar.right.pane.tab'>&{bridge:NoteCaptureBridge;t:T}
+export function ConversationNotes(props:ConversationProps){return <AppearanceScope followHost><ConversationNotesView {...props}/></AppearanceScope>}
+function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,useInput,bridge,t}:ConversationProps){
   const {tab}=useTabInfo(),removed=useSession((s:{removed:boolean})=>s.removed)
   const appearance=useAppearanceProps(),[appearanceOpen,setAppearanceOpen]=useState(false)
   const pair=useMemo(()=>{
@@ -122,7 +124,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {showDetail?<div className="paper-detail"><NoteEditor onDownloadNotice={actions.setDownloadNotice} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:Quote,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {showDetail?<div className="paper-detail"><NoteEditor onDownloadNotice={actions.setDownloadNotice} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
 
       <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{setGroup(key);scroll.current=0}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}<div className="conversation-sort"><select aria-label={t('paperSort')} value={order} onChange={e=>{setOrder(e.target.value as NoteOrder);scroll.current=0}}><option value="recent">修改时间：从新到旧</option><option value="oldest">修改时间：从旧到新</option><option value="created-recent">创建时间：从新到旧</option><option value="created-oldest">创建时间：从旧到新</option><option value="title-asc">标题：升序</option><option value="title-desc">标题：降序</option></select></div></nav>
       {group==='find'&&<>
@@ -133,7 +135,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
       {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={books.find(b=>b.notebookId===mapped)?.current.title}>{books.find(b=>b.notebookId===mapped)?.current.title}</strong><button title="新建笔记" aria-label="在工作区笔记本新建笔记" disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title="工作区笔记本设置" aria-label="工作区笔记本设置" onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title="导出此笔记本" aria-label="导出此笔记本" onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
       <div className="conversation-selection-bar" data-selecting={selecting}>
-        {selecting?<><strong>已选 {chosen.length} 篇</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>查看已选</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><Quote size={14}/>引用所选</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>清空</button><button onClick={exitSelection}>退出多选</button></>:<button aria-label="多选笔记" disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>多选</button>}
+        {selecting?<><strong>已选 {chosen.length} 篇</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>查看已选</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>引用所选</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>清空</button><button onClick={exitSelection}>退出多选</button></>:<button aria-label="多选笔记" disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>多选</button>}
       </div>
       <div className="conversation-browse" style={{'--conversation-books-width':bookWidth+'px'} as React.CSSProperties} data-browser={group==='find'} data-books-open={narrow&&booksOpen}>
         {group==='find'&&<><nav className="conversation-books" aria-label={t('notesNotebook')}><div className="conversation-books-scroll"><button aria-current={book==='all'?'page':undefined} onClick={()=>selectBook('all')}><BookOpen size={14}/>{t('paperAll')}</button><button aria-current={book==='favorites'?'page':undefined} onClick={()=>selectBook('favorites')}><Star size={14}/>{t('findFavorites')}</button>{books.map(b=><RowMenu key={b.notebookId} label={b.current.title+' · 操作'} actions={sideBookActions(b)}><button title={b.current.title} aria-current={book===b.notebookId?'page':undefined} onClick={()=>selectBook(b.notebookId)}><Notebook size={14}/><span>{b.current.title}</span><small>{b.noteCount}</small></button></RowMenu>)}</div><footer><button onClick={()=>setSetup('new')}><Plus size={15}/>{t('notesNewNotebook')}</button></footer></nav><div className="conversation-book-divider" role="separator" aria-label="调整笔记本列宽" aria-orientation="vertical" aria-valuemin={160} aria-valuemax={340} aria-valuenow={bookWidth} tabIndex={0} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();resize(bookWidth+(e.key==='ArrowRight'?10:-10))}}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.dataset.start=String(e.clientX);e.currentTarget.dataset.width=String(bookWidth)}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))resize(Number(e.currentTarget.dataset.width)+e.clientX-Number(e.currentTarget.dataset.start))}} onPointerUp={e=>e.currentTarget.releasePointerCapture(e.pointerId)}/></>}
@@ -149,7 +151,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
                 <strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} aria-label="已收藏"/>}{item.title}</strong><p>{item.summary||item.excerpt}</p><small>{noteDateTime(item.savedAt)}</small>
               </NoteSelectionRow>
               {!selecting&&<div className="conversation-relation">
-                <button className="conversation-quote" title={referenceTooltip} aria-label={`引用《${item.title}》`} disabled={!reference.enabled} onClick={()=>reference.open([item])}><Quote size={16}/></button>
+                <button className="conversation-quote" title={referenceTooltip} aria-label={`引用《${item.title}》`} disabled={!reference.enabled} onClick={()=>reference.open([item])}><MessageSquarePlus size={16}/></button>
                 {item.sessionRelation==='source'?<span className="conversation-association" data-linked tabIndex={0} title="从本会话转存，已自动关联" aria-label="从本会话转存，已自动关联"><BookPlus size={16}/></span>:<button className="conversation-association" data-linked={!!item.sessionRelation} disabled={linking.has(item.noteId)||!!removed} title={linking.has(item.noteId)?'正在处理':item.sessionRelation?'已关联，点击解除关联':'关联到本会话'} aria-label={t(item.sessionRelation?'sessionDissociate':'sessionAssociate')} aria-pressed={!!item.sessionRelation} onClick={()=>void associate(item,!item.sessionRelation)}>{linking.has(item.noteId)?<LoaderCircle className="conversation-link-spinner" size={16}/>:item.sessionRelation?<Check size={17}/>:<><Link2 size={16}/><span className="conversation-link-plus">+</span></>}</button>}
               </div>}
             </article>

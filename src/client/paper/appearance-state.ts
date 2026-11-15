@@ -16,7 +16,8 @@ export function appearanceValue(raw:unknown):Appearance {
   const value=raw as Record<string,unknown>
   if(value.version!==undefined&&value.version!==1)return result
   for(const key of Object.keys(result) as (keyof Appearance)[]){
-    if(key==='version')continue
+    // Legacy fixed modes are retired; retain every other local preference.
+    if(key==='version'||key==='mode')continue
     const next=value[key],valid=options[key]?.includes(next)??(typeof next==='boolean')
     if(valid)(result as unknown as Record<string,unknown>)[key]=next
   }

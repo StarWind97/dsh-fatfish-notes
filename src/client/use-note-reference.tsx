@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type {PropsRuntime} from '@deepseek-ai/dsh-client-ui-slots'
 import type {InputState} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import {Check,LoaderCircle,Paperclip,Image,Quote} from 'lucide-react'
+import {Check,LoaderCircle,Paperclip,Image,MessageSquarePlus} from 'lucide-react'
 import type {NotesController} from './notes-controller.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import {TransientNotice} from './TransientNotice.js'
@@ -57,7 +57,7 @@ export function useNoteReference({controller,inputActions,useInput,sessionId,vis
         <p className="reference-intro">正文及其中的图片、文件完整引用。准备完成后加入读取提示词，由你检查并发送。</p>
         {(loading||busy)&&<p className="reference-progress" role="status"><LoaderCircle className="conversation-link-spinner" size={16}/><span>{progress}</span></p>}
         {!loading&&choices.map(({plan,selected})=><section key={plan.noteId} className="reference-note">
-          <div className="reference-note-title"><Quote size={15}/><strong title={plan.title}>{plan.title}</strong>{receipts.has(plan,input?.draft??'')&&<small>已加入</small>}</div>
+          <div className="reference-note-title"><MessageSquarePlus size={15}/><strong title={plan.title}>{plan.title}</strong>{receipts.has(plan,input?.draft??'')&&<small>已加入</small>}</div>
           <p className="reference-included"><Check size={14}/> 全文{plan.required.assetIds.length?` · ${plan.required.assetIds.length} 张正文图片`:''}{plan.required.attachmentIds.length?` · ${plan.required.attachmentIds.length} 个正文文件`:''} · 完整引用</p>
           {!!plan.supplements.length&&<details className="reference-supplements" open={choices.length===1?true:undefined}><summary>补充附件 · 已选 {selected.length} / {plan.supplements.length}</summary>
             <div className="reference-select-actions"><button disabled={busy} onClick={()=>setChoices(cs=>cs.map(c=>c.plan.noteId===plan.noteId?{...c,selected:plan.supplements.map(m=>m.id)}:c))}>全选</button><button disabled={busy} onClick={()=>setChoices(cs=>cs.map(c=>c.plan.noteId===plan.noteId?{...c,selected:[]}:c))}>全不选</button></div>
