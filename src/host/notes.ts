@@ -1,4 +1,5 @@
 import {NoteUsageReader} from './note-usage.js'
+import {openHandbook} from '../notes/handbook.js'
 import {suggestMetadata} from './note-suggestion.js'
 import {windowRequest} from './edit-coordinator.js'
 import type {CaptureProgress} from '../contracts/notes.js'
@@ -27,6 +28,13 @@ import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../con
 /** Composed facade owns every note operation through cancellation and drain. */
 export class NotesApplication {
   readonly repository: NoteRepository
+  handbook(input:unknown,signal?:AbortSignal){return this.run(async active=>{
+    const value=object(input)
+    if(!['open','add'].includes(String(value.action))||Object.keys(value).some(key=>key!=='action'))throw new NotebookError('invalid_request','手册操作无效')
+    const claim=await this.repository.coordinate(()=>{if(this.ready()!==true)throw new NotebookError('notebook_busy','笔记库正在切换');return this.transfers.task({action:'begin'})})
+    try{return {ok:true as const,...await openHandbook(this.repository,value.action==='add',active)}}
+    finally{this.transfers.task({action:'end',taskId:claim.taskId})}
+  },signal)}
   draftRecovery={ok:true as const,recovered:[] as string[],failed:[] as string[]}
   async recoverDrafts(){try{this.draftRecovery=await this.repository.recoverDrafts()}catch{this.draftRecovery={ok:true,recovered:[],failed:['note_draft_invalid']}}}
   draft(input:unknown){return this.run(()=>this.repository.draft(input as import('../contracts/notes.js').NoteDraftRequest))}

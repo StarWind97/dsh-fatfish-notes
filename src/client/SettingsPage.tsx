@@ -1,4 +1,5 @@
 import {NoteUsage} from './NoteUsage.js'
+import {HandbookHelp} from './HandbookHelp.js'
 import * as React from 'react'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { BookOpen, CheckCircle2, Folder, GitBranch } from 'lucide-react'
@@ -127,6 +128,7 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   return <main className="notes-setup" aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
     <header><span className="setup-icon"><BookOpen size={22}/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
+    {sync?.ready&&!wizard&&<HandbookHelp/>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}
     {wizard && (preview?<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupReview')}</strong>
       {resetting&&<small>{t('resetFrom',{repo:repoLabel})}</small>}

@@ -10,6 +10,8 @@ export async function createBoundApplication(options:ApplicationOptions) {
   await runGit(['init','--bare','--initial-branch=main',remote])
   let repo:GitHubRepository|null=null
   const app=await createApplication({...options,personal:{
+    // These fixtures exercise ordinary operations on an existing library; handbook tests cover onboarding.
+    initialNotes:async()=>undefined,
     remoteForTest:()=>pathToFileURL(remote).href,
     gateway:{available:async()=>true,account:async()=>account,repository:async()=>repo,
       createPrivate:async()=>repo={id:2,name:'test',owner:account.login,ownerId:account.id,visibility:'private'}}

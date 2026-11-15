@@ -95,6 +95,7 @@ export interface ReferencePlan {
   supplements:Array<{id:string;name:string;bytes:number|null;image:boolean}>
 }
 export interface NotesApiContract {
+  '/notes/handbook': {request:{action:'open'|'add'};response:{ok:true;noteId:string|null;created:boolean}}
   '/notes/usage': {request:undefined;response:{ok:true;usage:{bytes:number;gitBytes:number;notes:number;revisions:number;level:'normal'|'notice'|'large';nearLimit:boolean}}}
   '/notes/capture-progress': {request:{requestId:string};response:{ok:true;progress:CaptureProgress|null}}
   '/notes/conversation-file': {request:{sessionId:string;throughSeq:number;messageIds:string[];materialId:string;hash:string};response:never}

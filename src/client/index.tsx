@@ -45,9 +45,11 @@ export function apply(ctx:Context): void {
   ctx.effect(()=>{
     const check=(event:Event)=>{const s=library.getSnapshot();if(s.dirty||s.saving||s.operation||library.importing)event.preventDefault()}
     const switched=()=>{notes.switched();library.switched()}
+    const handbook=(event:Event)=>{const noteId=(event as CustomEvent<{noteId:string}>).detail.noteId;ctx.layout.selectPanel(NS as MainPanelId);void library.refresh().then(async()=>{if(await library.open(noteId))await library.revealCurrent(noteId)})}
+    window.addEventListener('fatfish-notes-open-handbook',handbook)
     window.addEventListener('fatfish-notes-before-reset',check)
     window.addEventListener('fatfish-notes-switched',switched)
-    return()=>{window.removeEventListener('fatfish-notes-before-reset',check);window.removeEventListener('fatfish-notes-switched',switched)}
+    return()=>{window.removeEventListener('fatfish-notes-before-reset',check);window.removeEventListener('fatfish-notes-switched',switched);window.removeEventListener('fatfish-notes-open-handbook',handbook)}
   },'notebook changes')
   ctx.effect(()=>{const unbind=bindLibraryLifecycle(library);return()=>{unbind();library.dispose();workspace.dispose();notebookSync.dispose()}},'notes library')
   ctx.effect(()=>()=>notes.dispose(),'note capture bridge')

@@ -14,6 +14,7 @@ import { deletionIds, deletionData, readDeletion, moduleVersion, withoutDeleted 
 import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
 import type {SyncResource} from './sync-resources.js'
 import {VerifiedSnapshotFiles} from './sync-cache.js'
+import type {InitialNotesProvider} from './handbook.js'
 
 interface LazyFile {length:number;load:()=>Promise<Buffer>}
 type StoredFile=Buffer|LazyFile
@@ -183,9 +184,12 @@ export class NotesSyncModule {
     if(installed&&installed.generation===this.repository.generation)this.currentToken=token(installed.objects)
     else await this.local(signal)
   }
-  async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot) {
+  async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot,initialContent?:InitialNotesProvider) {
     const remote=verified??await this.readSnapshot(backend,snapshot,signal)
     const local=(await this.local(signal)).objects
+    const initial=await initialContent?.(local,remote.objects)
+    signal?.throwIfAborted()
+    if(initial){local.revisions=mergeNoteRevisions(local.revisions,initial.objects.revisions);local.notebooks=mergeNotebookRevisions(local.notebooks,initial.objects.notebooks)}
     const deleted = [...new Set([...(local.deleted ?? []), ...(remote.objects.deleted ?? [])])].sort()
     const revisions=mergeNoteRevisions(withoutDeleted(local, deleted).revisions,withoutDeleted(remote.objects, deleted).revisions)
     const objects:NoteObjects={version:1,revisions:mergeNoteRevisions(revisions,conflictRevisions(revisions).filter(r => !deleted.includes(r.noteId))),notebooks:mergeNotebookRevisions(local.notebooks,remote.objects.notebooks), ...(deleted.length ? { deleted } : {})}
@@ -198,15 +202,16 @@ export class NotesSyncModule {
       const bytes=remote.files.get('notes/sources/'+sourceId+'.json')
       const source=bytes?JSON.parse(utf8(await loadFile(bytes))) as unknown:await this.repository.getSource(sourceId,signal); set(`notes/sources/${sourceId}.json`, sourceBytes(source)); sourceAssets(source).forEach(id => assets.add(id));sourceFiles.push(...sourceAttachments(object(source)))
     }
-    for (const asset of assets){const path=`notes/assets/${asset}`;retained.add(path);if(!remote.files.has(path))files.set(path,()=>this.repository.getAsset(asset,signal))}
-    for (const file of new Map([...objects.revisions.flatMap(r=>r.attachments??[]),...sourceFiles].map(a=>[a.id,a])).values()){const path=`notes/attachments/${file.id}.bin`;retained.add(path);if(!remote.files.has(path))files.set(path,()=>this.repository.getAttachment(file.id,signal))}
+    for (const asset of assets){const path=`notes/assets/${asset}`;retained.add(path);if(!remote.files.has(path))files.set(path,initial?.files.get(path)??(()=>this.repository.getAsset(asset,signal)))}
+    for (const file of new Map([...objects.revisions.flatMap(r=>r.attachments??[]),...sourceFiles].map(a=>[a.id,a])).values()){const path=`notes/attachments/${file.id}.bin`;retained.add(path);if(!remote.files.has(path))files.set(path,initial?.files.get(path)??(()=>this.repository.getAttachment(file.id,signal)))}
     for (const row of objects.revisions) set(revisionPath(row), canonical(row))
     for (const row of objects.notebooks) set(bookPath(row), canonical(row))
     for (const noteId of new Set(objects.revisions.map(r => r.noteId))) set(`notes/documents/${noteId}.md`, serializeNoteMarkdown(materializeNote(objects.revisions.filter(r => r.noteId === noteId), noteId).current))
     for (const noteId of deleted) set(`notes/deleted/${noteId}.json`, deletionData(noteId))
     set('notes/manifest.json', manifest(objects, moduleVersion(objects)))
     if (deleted.length) for (const path of snapshot.entries.keys()) if (/^notes\/(documents|revisions|sources|assets|attachments)\//.test(path) && snapshot.entries.get(path)?.type !== 'tree' && !retained.has(path)) files.set(path, null)
-    return {files,acknowledged:token(objects),install:()=>this.install(remote,objects,signal)}
+    const dependencies=initial?{objects:remote.objects,files:new Map([...remote.files,...initial.files])}:remote
+    return {files,acknowledged:token(objects),install:()=>this.install(dependencies,objects,signal)}
   }
 }
 

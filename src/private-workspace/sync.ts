@@ -11,6 +11,7 @@ import { copyForMove } from './move.js';
 import type { GitHubGateway, GitHubRepository } from '../onboarding/types.js';
 import { DEFAULT_PRIVATE_REPO_NAME, type PersonalBinding, type PersonalPreview, type PersonalSyncState } from '../contracts/personal.js';
 import { NotesSyncModule, noteSyncError } from '../notes/sync.js';
+import type {InitialNotesProvider} from '../notes/handbook.js';
 import { NoteRepository } from '../notes/repository.js';
 import type { PrivateFiles } from './types.js';
 interface Config {
@@ -43,6 +44,7 @@ export interface PrivateWorkspaceSyncOptions {
     batchMs?: number;
     retryMs?: readonly number[];
     drainNotes?: () => Promise<void>;
+    initialNotes?: InitialNotesProvider;
 }
 const MANIFEST = 'notebook.json';
 type VerifiedNotes = { revision: string; data: Awaited<ReturnType<NotesSyncModule['readSnapshot']>> };
@@ -616,7 +618,7 @@ export class PrivateWorkspaceSync {
                 const folder=this.config.folder??this.options.dir;
                 if(this.returning)await verifyRememberedFolder(this.options.dir,this.returning);
                 else if(this.config.initializing || this.stagingFile)await markFolder(locationOf(bound,folder));
-                const notes = await this.notes.prepare(backend, snapshot, signal, verified?.revision === snapshot.revision ? verified?.data : undefined).catch(error => { cancelled(signal); throw noteSyncError(error) });
+                const notes = await this.notes.prepare(backend, snapshot, signal, verified?.revision === snapshot.revision ? verified?.data : undefined,this.config.initializing?this.options.initialNotes:undefined).catch(error => { cancelled(signal); throw noteSyncError(error) });
                 const files: PrivateFiles = new Map(notes.files);
                 if (!snapshot.entries.has(MANIFEST) || manifest.modules.notes !== this.notes.version) {
                     manifest.modules.notes = this.notes.version;

@@ -2,6 +2,7 @@ import { type GitRunner } from '../git/backend.js';
 import { type NotebookLocation } from './folder.js';
 import type { GitHubGateway } from '../onboarding/types.js';
 import { type PersonalBinding, type PersonalPreview, type PersonalSyncState } from '../contracts/personal.js';
+import type { InitialNotesProvider } from '../notes/handbook.js';
 import { NoteRepository } from '../notes/repository.js';
 export interface PrivateWorkspaceSyncOptions {
     dir: string;
@@ -13,6 +14,7 @@ export interface PrivateWorkspaceSyncOptions {
     batchMs?: number;
     retryMs?: readonly number[];
     drainNotes?: () => Promise<void>;
+    initialNotes?: InitialNotesProvider;
 }
 /** Owns only scheduling/transport. Mutations stay independent of the network lock. */
 export declare class PrivateWorkspaceSync {

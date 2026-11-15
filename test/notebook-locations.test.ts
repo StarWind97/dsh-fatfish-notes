@@ -46,7 +46,8 @@ async function fixture(){
   const gateway:GitHubGateway={available:async()=>true,account:async()=>owner,repository:async(_owner,name)=>repos.get(name)??null,
     createPrivate:async(_owner,name)=>{await runGit(['init','--bare','--initial-branch=main',join(root,name+'.git')]);const r:GitHubRepository={name,id:repos.size+101,owner:owner.login,ownerId:owner.id,visibility:'private'};repos.set(name,r);return r}}
   let git:GitRunner=runGit
-  const open=(dir=home)=>createApplication({dir,personal:{gateway,gitRunner:(args,o)=>git(args,o),remoteForTest:b=>pathToFileURL(join(root,b.repo+'.git')).href}})
+  // Model existing libraries without sample content; handbook.test.ts exercises production onboarding.
+  const open=(dir=home)=>createApplication({dir,personal:{initialNotes:async()=>undefined,gateway,gitRunner:(args,o)=>git(args,o),remoteForTest:b=>pathToFileURL(join(root,b.repo+'.git')).href}})
   let app=await open()
   return {root,home,open,repos,get app(){return app},set git(r:GitRunner){git=r},async restart(){await app.close();app=await open()},
     async connect(folder?:string){const {preview}=await app.backup.preview({repo:'alpha',mode:'create',folder:folder??''});await app.backup.connect({previewId:preview.id,confirmPrivate:true});return app.personalState().sync},

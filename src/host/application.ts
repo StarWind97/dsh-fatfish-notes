@@ -1,5 +1,6 @@
 import type {ConversationFileServices} from './conversation-files.js'
 import { NotesApplication } from './notes.js'
+import {initialHandbook} from '../notes/handbook.js'
 import { GitHubCli } from '../onboarding/cli.js'
 import { PrivateWorkspaceSync, type PrivateWorkspaceSyncOptions } from '../private-workspace/sync.js'
 import type { NoteModelController } from './note-model.js'
@@ -15,7 +16,7 @@ export interface ApplicationOptions extends ConversationFileServices {
   conversation?: () => NoteModelController | undefined
   workspaces?:()=>Pick<WorkspaceRegistry,'list'>|undefined
   pickFolder?: (signal?:AbortSignal)=>Promise<string|null>
-  personal?: Pick<PrivateWorkspaceSyncOptions,'gateway'|'gitRunner'|'remoteForTest'|'batchMs'|'retryMs'>
+  personal?: Pick<PrivateWorkspaceSyncOptions,'gateway'|'gitRunner'|'remoteForTest'|'batchMs'|'retryMs'|'initialNotes'>
 }
 export class NotebookApplication {
   readonly notes: NotesApplication
@@ -27,7 +28,7 @@ export class NotebookApplication {
   closeWindowService:(()=>Promise<void>)|undefined
   constructor(private readonly options:ApplicationOptions) {
     this.notes=new NotesApplication(options.dir,options.conversation??(()=>undefined),()=>this.backup.changingLocation?'busy':this.backup.ready,options)
-    this.backup=new PrivateWorkspaceSync({dir:options.dir,notes:this.notes.repository,drainNotes:()=>this.notes.drain(),gateway:options.personal?.gateway??new GitHubCli(),...options.personal})
+    this.backup=new PrivateWorkspaceSync({dir:options.dir,notes:this.notes.repository,drainNotes:()=>this.notes.drain(),initialNotes:initialHandbook,gateway:options.personal?.gateway??new GitHubCli(),...options.personal})
     this.workspace=new EditCoordinator(()=>this.backup.state().binding?.repositoryId??null,()=>this.notes.repository.generation)
     this.workspaceBooks=new WorkspaceBooks(options.dir,this.notes.repository,()=>this.backup.state().binding?.repositoryId??null)
     this.notes.repository.editGuard=(ids,required)=>this.workspace.check(ids,windowRequest.getStore(),required)

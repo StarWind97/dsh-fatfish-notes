@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+2026-11-15 最新交付：[开发手册、用户手册与首次使用体验](plans/2026-11-15-handbooks-onboarding.zh.md)已按批准规划完成，见[验证与隔离体验](plans/2026-11-15-handbooks-onboarding-results.zh.md)。两册归并、六章原生图文手册、首次接入一次性加入与设置入口已实现；382 项全量回归、实际三入口与指定私库恢复通过。隔离入口已更新，未发布。
+
 2026-11-15 示例内容已整理：[规划](plans/2026-11-15-demo-content-refresh.zh.md)与[交付和体验](plans/2026-11-15-demo-content-results.zh.md)。新增三个笔记本、十二篇技术和使用说明笔记（含两次实际会话转存）、配图与有效附件；旧资料保持，未发布。后续示例统一遵循[内容准则](demo-content.zh.md)。
 
 2026-11-15 最新交付：[界面主题、阅读排版与工作区规划](plans/2026-11-15-appearance-reading-workspace.zh.md)已完成，见[验证与隔离体验](plans/2026-11-15-appearance-reading-workspace-results.zh.md)及[分轮记录](plans/2026-11-15-appearance-reading-workspace-worklog.zh.md)。八主题、十配色、代码与阅读、资料面板、临时标签已落到三种实际入口；366 项全量及收尾 25 项专项通过，原隔离入口已更新，未发布。

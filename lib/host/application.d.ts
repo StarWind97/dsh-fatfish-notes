@@ -11,7 +11,7 @@ export interface ApplicationOptions extends ConversationFileServices {
     conversation?: () => NoteModelController | undefined;
     workspaces?: () => Pick<WorkspaceRegistry, 'list'> | undefined;
     pickFolder?: (signal?: AbortSignal) => Promise<string | null>;
-    personal?: Pick<PrivateWorkspaceSyncOptions, 'gateway' | 'gitRunner' | 'remoteForTest' | 'batchMs' | 'retryMs'>;
+    personal?: Pick<PrivateWorkspaceSyncOptions, 'gateway' | 'gitRunner' | 'remoteForTest' | 'batchMs' | 'retryMs' | 'initialNotes'>;
 }
 export declare class NotebookApplication {
     private readonly options;

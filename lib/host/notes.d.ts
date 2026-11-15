@@ -11,6 +11,11 @@ export declare class NotesApplication {
     private readonly ready;
     private readonly services;
     readonly repository: NoteRepository;
+    handbook(input: unknown, signal?: AbortSignal): Promise<{
+        noteId: string | null;
+        created: boolean;
+        ok: true;
+    }>;
     draftRecovery: {
         ok: true;
         recovered: string[];

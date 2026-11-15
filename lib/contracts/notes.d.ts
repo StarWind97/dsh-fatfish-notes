@@ -293,6 +293,16 @@ export interface ReferencePlan {
     }>;
 }
 export interface NotesApiContract {
+    '/notes/handbook': {
+        request: {
+            action: 'open' | 'add';
+        };
+        response: {
+            ok: true;
+            noteId: string | null;
+            created: boolean;
+        };
+    };
     '/notes/usage': {
         request: undefined;
         response: {
