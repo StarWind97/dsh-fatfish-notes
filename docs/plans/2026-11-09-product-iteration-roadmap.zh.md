@@ -1,6 +1,8 @@
 # 肥鱼笔记常用功能与迭代参考规划
 
-2026-11-15 最新交付：[两本手册与首次使用体验规划](2026-11-15-handbooks-onboarding.zh.md)已完成，见[验证与隔离体验](2026-11-15-handbooks-onboarding-results.zh.md)。六章原生图文、两册整理、首次接入与手动获取已实现；382 项全量、实际三入口和指定私库恢复通过。未发布，不进入其他候选。
+2026-11-16 最新交付：[阅读空间、列表组织与操作精简](2026-11-15-reading-organization-refinement.zh.md)已按批准范围完成，见[验证与隔离体验](2026-11-16-reading-organization-results.zh.md)。387 项全量、实际主界面/独立窗口/会话侧栏及真实指定私库恢复通过，未发布。
+
+2026-11-15 前序交付：[两本手册与首次使用体验规划](2026-11-15-handbooks-onboarding.zh.md)已完成，见[验证与隔离体验](2026-11-15-handbooks-onboarding-results.zh.md)。六章原生图文、两册整理、首次接入与手动获取已实现；382 项全量、实际三入口和指定私库恢复通过。未发布，不进入其他候选。
 
 2026-11-15 最新交付：[界面主题、阅读排版与工作区交互重构](2026-11-15-appearance-reading-workspace.zh.md)已按整轮批准完成，[分轮记录](2026-11-15-appearance-reading-workspace-worklog.zh.md)及[验证与隔离体验](2026-11-15-appearance-reading-workspace-results.zh.md)保留取舍与证据。八主题/十配色、资料面板、临时标签、代码和阅读已完成真实三入口验收；未发布，不进入 AI 写笔记能力。
 

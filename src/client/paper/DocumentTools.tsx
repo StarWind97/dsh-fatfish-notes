@@ -6,7 +6,7 @@ import type {T,LocaleKey} from '../locale.js'
 export function shortcutLabel(value:string){return /Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'')?value.replace('Ctrl','⌘'):value}
 const shortcuts:Array<[LocaleKey,string]>=[['paperBold','Ctrl+B'],['paperItalic','Ctrl+I'],['paperLink','Ctrl+K'],['paperUndo','Ctrl+Z'],['paperRedo','Ctrl+Shift+Z'],['paperFind','Ctrl+F'],['paperIndent','Tab'],['paperOutdent','Shift+Tab']]
 const readingShortcuts:Array<[LocaleKey,string]>=[['readingStart','Home / Ctrl+Home'],['readingEnd','End / Ctrl+End'],['readingPrevious','Page Up'],['readingNext','Page Down']]
-export function DocumentTools({body,t}:{body:string;t:T}){
+export function DocumentTools({body,t,materials}:{body:string;t:T;materials?:React.ReactNode}){
   const [count,setCount]=React.useState<number|null>(null),[failed,setFailed]=React.useState(false),[help,setHelp]=React.useState(false)
   const worker=React.useRef<Worker|null>(null),sequence=React.useRef(0)
   React.useEffect(()=>{
@@ -17,7 +17,7 @@ export function DocumentTools({body,t}:{body:string;t:T}){
     }catch{setFailed(true);return undefined}
   },[])
   React.useEffect(()=>{const id=++sequence.current;const timer=setTimeout(()=>worker.current?.postMessage({id,body}),350);return()=>clearTimeout(timer)},[body])
-  return <><div className="paper-document-tools"><span title={t(failed?'documentStatsFailed':'documentCountHint')}>{failed?'—':count===null?'…':t('documentCount',{count:count.toLocaleString()})}</span><button title={t('documentShortcuts')} onClick={()=>setHelp(true)}><Keyboard size={14}/>{t('documentShortcuts')}</button></div>
+  return <><div className="paper-document-tools"><span className="paper-word-count" title={t(failed?'documentStatsFailed':'documentCountHint')}>{failed?'—':count===null?'…':t('documentCount',{count:count.toLocaleString()})}</span><div className="paper-status-materials">{materials}</div><button title={t('documentShortcuts')} aria-label={t('documentShortcuts')} onClick={()=>setHelp(true)}><Keyboard size={14}/><span className="paper-shortcuts-label">{t('documentShortcuts')}</span></button></div>
     {help&&<PaperDialog title={t('documentShortcuts')} closeLabel={t('paperClose')} onClose={()=>setHelp(false)}><div className="paper-dialog-content">
       <h3>{t('documentReadingKeys')}</h3><dl className="paper-shortcuts">{readingShortcuts.map(([label,key])=><div key={key}><dt>{t(label)}</dt><dd><kbd>{shortcutLabel(key)}</kbd></dd></div>)}</dl><p className="paper-dialog-sub">{t('documentReadingKeysHint')}</p>
       <h3>{t('documentEditingKeys')}</h3><dl className="paper-shortcuts">{shortcuts.map(([label,key])=><div key={key}><dt>{t(label)}</dt><dd><kbd>{shortcutLabel(key)}</kbd></dd></div>)}</dl><p>{t('documentShortcutsHint')}</p><p className="paper-dialog-sub">{t('documentNavigationKeys')}</p>

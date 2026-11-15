@@ -27,7 +27,7 @@ export interface NoteRevision extends NoteContent {
 }
 export interface NoteView {
   noteId: string; heads: string[]; current: NoteRevision; conflicts: NoteRevision[]; savedAt: string
-  effectiveNotebookId: string | null
+  effectiveNotebookId: string | null; pinned?:boolean; createdAt?:string
 }
 export interface NoteSaveInput { noteId?: string; expectedHeads: string[]; content: NoteContent }
 export type NoteDraftRequest = {action:'save'|'finish';editId:string;sequence:number;request:NoteSaveInput & {noteId:string}} | {action:'discard';editId:string;noteId:string}
@@ -35,13 +35,14 @@ export interface NoteDraftResult {ok:true;state:'editing'|'finished'|'discarded'
 export interface NoteListItem {
   sessionRelation?: 'source' | 'manual' | null
   excerpt?: string
-  favorite?: boolean; isTemplate?: boolean
+  favorite?: boolean; isTemplate?: boolean; pinned?:boolean; createdAt?:string
   noteId: string; heads: string[]; title: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: 'recent' | 'oldest'; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
+export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title-asc'|'title-desc'
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
-export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
+export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
 export interface NoteHistoryItem { revision: string; recordedAt: string; title: string; summary: string; status: NoteStatus }
 export interface NoteCatalog { tags: Array<{tag: string; count: number}> }
@@ -49,7 +50,7 @@ export interface NotebookRevision {
   version: 1; notebookId: string; revision: string; parents: string[]; recordedAt: string
   title: string; status: NoteStatus; defaultSelectedAt?: string
 }
-export interface NotebookView { notebookId: string; heads: string[]; current: NotebookRevision; conflicts: NotebookRevision[]; isDefault?: boolean; noteCount?: number }
+export interface NotebookView { notebookId: string; heads: string[]; current: NotebookRevision; conflicts: NotebookRevision[]; isDefault?: boolean; noteCount?: number; createdAt?:string }
 export type NotebookRemoval = 'move' | 'trash'
 
 export interface CaptureRequest {
@@ -121,6 +122,7 @@ export interface NotesApiContract {
   '/notes/trash': { request: { noteId: string; expectedHeads: string[] }; response: { ok: true; note: NoteView } }
   '/notes/restore': { request: { noteId: string; expectedHeads: string[] }; response: { ok: true; note: NoteView } }
   '/notes/resolve': { request: NoteSaveInput & { noteId: string }; response: { ok: true; note: NoteView } }
+  '/notes/book-order': {request:{ids:string[];expected:string[]};response:{ok:true;notebooks:NotebookView[]}}
   '/notes/notebooks': { request: undefined; response: { ok: true; notebooks: NotebookView[] } }
   '/notes/notebook': { request: { notebookId?: string; expectedHeads: string[]; title: string; remove?: boolean; makeDefault?: boolean; removal?: NotebookRemoval; expectedNoteCount?: number }; response: { ok: true; notebooks: NotebookView[] } }
   '/notes/jobs': { request: { noteId: string; cursor?: string }; response: { ok: true; jobs: NoteJobOverview[]; cursor: string | null } }

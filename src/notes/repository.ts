@@ -1,3 +1,4 @@
+import {createOrganization,mergeOrganization,organizationPath,organizationState,organizationManifest,validateOrganization,validateOrganizationManifest} from './organization.js'
 import {BacklinkIndex} from './backlinks.js'
 import { conflictForkId, conflictRevisions, revisionContent } from './conflicts.js'
 import { join, resolve } from 'node:path'
@@ -20,7 +21,6 @@ import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
 import { ATTACHMENT_LIMIT, SINGLE_TRANSFER_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
-import { fillTemplate } from './relations.js'
 import { DraftFiles, type LocalDraft } from './drafts.js'
 import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js'
 import {syncResource,resourceBatches,missingSyncResources,type SyncResource} from './sync-resources.js'
@@ -56,7 +56,7 @@ export class NoteRepository {
   private backlinkFingerprint:string|undefined
   private get drafts(){return new DraftFiles(resolve(this.files.root,'../local-drafts'))}
   constructor(directory: string, options: NoteRepositoryOptions = {}) {
-    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { if(/^(revisions|notebooks|deleted)\/|^manifest\.json$/.test(path))this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
+    this.files = new NoteFiles(resolve(join(directory, 'notes')), async path => { if(/^(revisions|notebooks|deleted|organization)\/|^manifest\.json$/.test(path))this.validated = undefined; this.writeEpoch++; await options.beforeWrite?.(path); if (/^(revisions|notebooks|deleted|organization)\//.test(path)) { this.changeGeneration++; this.changeListeners.forEach(listener => listener()) } }); this.now = options.now ?? Date.now
   }
   /** Only before admitting any client operations, during setup or host startup. */
   useDirectory(directory: string): void {
@@ -84,10 +84,16 @@ export class NoteRepository {
       else { const book = materializeNotebook(rows, notebookId); if ([book.current, ...book.conflicts].some(r => r.status === 'trashed')) view.effectiveNotebookId = null }
     }
     if (view.effectiveNotebookId === null) view.effectiveNotebookId = this.defaultBook(state)?.notebookId ?? null
+    view.pinned=this.organized(state).pins.get(noteId)??false
     return view
   }
   private notebook(state: State, notebookId: string): NotebookView { return materializeNotebook(state.notebooks.filter(r => r.notebookId === notebookId), notebookId) }
-  private books(state: State): NotebookView[] { return [...new Set(state.notebooks.map(r => r.notebookId))].sort().map(n => this.notebook(state, n)) }
+  private organizationCache=new WeakMap<NoteObjects,ReturnType<typeof organizationState>>()
+  private organized(state:NoteObjects){let value=this.organizationCache.get(state);if(!value){value=organizationState(state.organization);this.organizationCache.set(state,value)}return value}
+  private books(state: State): NotebookView[] {
+    const order=this.organized(state).order,index=new Map(order.map((id,i)=>[id,i]))
+    return [...new Set(state.notebooks.map(r=>r.notebookId))].map(n=>this.notebook(state,n)).sort((a,b)=>(index.get(a.notebookId)??Infinity)-(index.get(b.notebookId)??Infinity)||(a.createdAt??'').localeCompare(b.createdAt??'')||a.notebookId.localeCompare(b.notebookId))
+  }
   private defaultBook(state: State): NotebookView | undefined { return defaultNotebook(this.books(state)) }
   private async ensureNotebooks(state: State): Promise<void> {
     if (state.issues.length) return
@@ -117,7 +123,7 @@ export class NoteRepository {
     // Unpublished draft resources and job receipts do not alter the formal graph.
     // Every referenced resource remains part of its validation identity.
     const graphFingerprint=(stamps:Map<string,string>)=>{
-      const paths=new Set([...stamps.keys()].filter(p=>/^(revisions|notebooks|deleted)\/|^manifest\.json$/.test(p)))
+      const paths=new Set([...stamps.keys()].filter(p=>/^(revisions|notebooks|deleted|organization)\/|^manifest\.json$/.test(p)))
       for(const cached of this.checkedRows.values())for(const path of cached.stamps.keys())paths.add(path)
       return digest([...paths].sort().map(p=>stamps.get(p)??`missing:${p}`).join('\n'))
     }
@@ -160,6 +166,11 @@ export class NoteRepository {
         state.issues.push({ path: 'manifest.json', code: 'note_manifest' })
       }
     }
+    const organizationPaths=paths.filter(p=>p.startsWith('organization/')&&p!=='organization/manifest.json'&&!p.split('/').at(-1)?.startsWith('.tmp-'))
+    if(organizationPaths.length>100000)fail('note_limit')
+    state.organization=[]
+    for(const path of organizationPaths){const row=validateOrganization(JSON.parse(utf8(await this.files.read(path,256*1024))));if(path!==organizationPath(row))fail('note_path');state.organization.push(row)}
+    if(paths.includes('organization/manifest.json'))validateOrganizationManifest(JSON.parse(utf8(await this.files.read('organization/manifest.json',8*1024*1024))),state.organization,false)
     for (const path of paths) {
       if (!path.startsWith('revisions/') && !path.startsWith('notebooks/')) continue
       if (path.startsWith('revisions/') && state.deleted.includes(path.split('/')[1]!)) continue
@@ -308,7 +319,7 @@ export class NoteRepository {
           }
         }
         const relation=(v:NoteView):'source'|'manual'|null=>v.current.sourceId&&origins.get(v.current.sourceId)===input.sessionId?'source':v.current.sessionLinks?.includes(input.sessionId!)?'manual':null
-        views=views.filter(v=>v.current.status==='active'&&!v.current.isTemplate&&(input.relation==='browse'||(input.relation==='source'?relation(v)==='source':!!relation(v))))
+        views=views.filter(v=>v.current.status==='active'&&(input.relation==='browse'||(input.relation==='source'?relation(v)==='source':!!relation(v))))
         const page=searchNotes(views,input),byId=new Map(views.map(v=>[v.noteId,v]))
         return {...page,items:page.items.map(item=>({...item,sessionRelation:relation(byId.get(item.noteId)!)}))}
       }
@@ -320,7 +331,7 @@ export class NoteRepository {
     return this.run(async()=>{
       this.editGuard([noteId]);const state=await this.load([noteId]);this.complete(state);this.writable(state,noteId);await this.external(state,noteId)
       const view=this.view(state,noteId);if(!same(view.heads,heads)||view.conflicts.length)conflict()
-      if(view.current.status!=='active'||view.current.isTemplate)fail('note_trashed')
+      if(view.current.status!=='active')fail('note_trashed')
       const links=new Set(view.current.sessionLinks??[]);if(linked)links.add(sessionId);else links.delete(sessionId)
       const content=normalizeContent({...revisionContent(view.current),sessionLinks:[...links]})
       if(canonical(content)===canonical(revisionContent(view.current)))return view
@@ -352,7 +363,7 @@ export class NoteRepository {
       const state=await this.load(),tags=new Map<string,number>()
       for(const noteId of new Set(state.revisions.map(r=>r.noteId))) {
         const row=this.view(state,noteId).current
-        if(row.status==='active'&&!row.isTemplate)row.tags.forEach(tag=>tags.set(tag,(tags.get(tag)??0)+1))
+        if(row.status==='active')row.tags.forEach(tag=>tags.set(tag,(tags.get(tag)??0)+1))
       }
       return {tags:[...tags].map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))}
     },signal)
@@ -375,11 +386,11 @@ export class NoteRepository {
   }
   /** All selected heads/leases and resulting content are checked before the first write. */
   async manage(request:NoteManageRequest,signal?:AbortSignal):Promise<{completed:string[];note?:NoteView}> {
-    const v=object(request),actions=['rename','favorite','unfavorite','move','add-tags','remove-tags','duplicate','template','instantiate','revision','revision-copy']
+    const v=object(request),actions=['rename','favorite','unfavorite','pin','unpin','move','add-tags','remove-tags','duplicate','revision','revision-copy']
     if(!actions.includes(String(v.action))||!Array.isArray(v.notes)||!v.notes.length||v.notes.length>NOTE_LIMITS.notes)fail('note_schema')
     const selected=v.notes.map(raw=>{const n=object(raw);keys(n,['noteId','expectedHeads']);return {noteId:id(n.noteId),expectedHeads:sortedStrings(n.expectedHeads,NOTE_LIMITS.revisions,hash)}})
     if(new Set(selected.map(n=>n.noteId)).size!==selected.length)fail('note_schema')
-    const action=request.action,copy=['duplicate','template','instantiate','revision-copy'].includes(action),single=copy||action==='revision'||action==='rename'
+    const action=request.action,copy=['duplicate','revision-copy'].includes(action),single=copy||action==='revision'||action==='rename'
     if(single&&selected.length!==1)fail('note_schema')
     const target=copy?id(v.targetId):undefined
     const notebookId=action==='move'||v.notebookId!==undefined?id(v.notebookId):undefined
@@ -387,20 +398,22 @@ export class NoteRepository {
     const revision=action.startsWith('revision')?hash(v.revision):undefined
     const title=v.title===undefined?undefined:text(v.title,1200).trim()
     if(action==='rename'&&!title)fail('note_schema')
-    const date=action==='instantiate'?text(v.date,10):''
-    if(action==='instantiate'&&!/^\d{4}-\d{2}-\d{2}$/.test(date))fail('note_date')
     return this.run(async()=>{
       this.editGuard([...selected.map(n=>n.noteId),...(target?[target]:[])])
       const state=await this.load([...selected.map(n=>n.noteId),...(target?[target]:[])]);this.complete(state)
       if(state.issues.length)fail('note_corrupt')
       if(notebookId&&!activeNotebook(this.notebook(state,notebookId)))fail('notebook_trashed','目标笔记本已被移除，请重新选择')
       if(target&&(state.deleted?.includes(target)||state.revisions.some(r=>r.noteId===target)))fail('note_conflict','副本已存在，请刷新笔记库核对')
-      const rows:NoteRevision[]=[]
+      const rows:NoteRevision[]=[],organizations:import('./organization.js').OrganizationEvent[]=[]
       for(const item of selected) {
         this.writable(state,item.noteId);await this.external(state,item.noteId)
         const view=this.view(state,item.noteId),current=view.current
         if(!same(view.heads,item.expectedHeads)||view.conflicts.length)conflict()
         if(current.status!=='active')fail('note_trashed','请先恢复回收站中的笔记')
+        if(action==='pin'||action==='unpin'){
+          const pinned=action==='pin';if(view.pinned!==pinned)organizations.push(createOrganization({version:1,kind:'pin',noteId:item.noteId,pinned,clock:(state.organization??[]).reduce((max,r)=>Math.max(max,r.clock),0)+1,recordedAt:new Date(this.now()).toISOString()}))
+          continue
+        }
         const old=revision?state.revisions.find(r=>r.noteId===item.noteId&&r.revision===revision):current
         if(!old)fail('note_not_found','历史版本不存在')
         let content:NoteContent={...revisionContent(old),notebookId:notebookId??(revision?old.notebookId:view.effectiveNotebookId),status:'active'}
@@ -410,20 +423,16 @@ export class NoteRepository {
         if(action==='add-tags')content.tags=[...new Set([...current.tags,...tags])]
         if(action==='remove-tags')content.tags=current.tags.filter(t=>!tags.includes(t))
         if(copy){
-          delete content.originPath;delete content.favorite;delete content.sessionLinks;content.isTemplate=action==='template'
-          const suffix=`（${action==='template'?'模板':'副本'}）`,chars=Array.from(old.title)
+          delete content.originPath;delete content.favorite;delete content.sessionLinks;delete content.isTemplate
+          const suffix='（副本）',chars=Array.from(old.title)
           while(Buffer.byteLength(chars.join('')+suffix)>1200)chars.pop()
           content.title=title||chars.join('')+suffix
-        }
-        if(action==='template')content.sourceId=null
-        if(action==='instantiate'){
-          if(!current.isTemplate)fail('note_schema')
-          content.title=title||current.title;content.body=fillTemplate(content.body,content.title,date);content.summary=fillTemplate(content.summary,content.title,date);content.sourceId=null
         }
         content=normalizeContent(this.localMembership(state,content))
         await checkReferences(this.files,content);await this.verifyNotebook(state,content)
         rows.push(createNoteRevision({version:1,noteId:target??item.noteId,parents:target?[]:view.heads,recordedAt:new Date(this.now()).toISOString(),...content}))
       }
+      if(action==='pin'||action==='unpin'){if(organizations.length)await this.writeOrganization(state,organizations);return {completed:selected.map(n=>n.noteId)}}
       let note:NoteView|undefined
       for(const row of rows)note=await this.append(state,row)
       return {completed:rows.map(r=>r.noteId),...(single&&note?{note}: {})}
@@ -699,7 +708,7 @@ export class NoteRepository {
       const state = await this.load([],true)
       if (state.issues.length) fail('note_corrupt', '笔记存在损坏文件，请恢复后再同步')
       for (const noteId of new Set(state.revisions.map(row => row.noteId))) await this.external(state, noteId)
-      return { objects: { version: 1, revisions: state.revisions, notebooks: state.notebooks, ...(state.deleted?.length ? { deleted: state.deleted } : {}) }, generation: this.changeGeneration }
+      return { objects: { version: 1, revisions: state.revisions, notebooks: state.notebooks, ...(state.organization?.length?{organization:state.organization}:{}), ...(state.deleted?.length ? { deleted: state.deleted } : {}) }, generation: this.changeGeneration }
     }, signal)
   }
   async importMarkdown(noteId: string, markdown: string, signal?: AbortSignal): Promise<NoteView> {
@@ -712,9 +721,10 @@ export class NoteRepository {
   }
   private async mergeObjects(input:NoteObjects,signal?:AbortSignal,validateResources?:()=>Promise<void>):Promise<{objects:NoteObjects;generation:number}|undefined>{
     const files=this.files
-    const v = object(input); keys(v, ['version', 'revisions', 'notebooks', ...('deleted' in v ? ['deleted'] : [])]); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
+    const v = object(input); keys(v, ['version', 'revisions', 'notebooks', ...('deleted' in v ? ['deleted'] : []),...('organization' in v?['organization']:[])]); if (v.version !== 1 || !Array.isArray(v.revisions) || !Array.isArray(v.notebooks)) fail('note_version')
     const copy = structuredClone(input)
     const incoming = copy.revisions.map(validateNoteRevision), incomingBooks = copy.notebooks.map(validateNotebookRevision)
+    const incomingOrganization=mergeOrganization(copy.organization)
     this.limits(copy)
     return this.run(async () => {
       if(this.files!==files)fail('transfer_expired')
@@ -724,13 +734,13 @@ export class NoteRepository {
       if(this.files!==files)fail('transfer_expired')
       const deleted = [...new Set([...(s.deleted ?? []), ...deletionIds(copy.deleted)])].sort()
       const knownNotes=new Set(s.revisions.map(r=>r.revision)),knownBooks=new Set(s.notebooks.map(r=>r.revision))
-      if(validateResources&&!s.issues.length&&!s.detachedRevisions.length&&!s.detachedNotebooks.length&&deleted.length===(s.deleted?.length??0)&&incoming.every(r=>deleted.includes(r.noteId)||knownNotes.has(r.revision))&&incomingBooks.every(r=>knownBooks.has(r.revision))){
+      if(validateResources&&!s.issues.length&&!s.detachedRevisions.length&&!s.detachedNotebooks.length&&deleted.length===(s.deleted?.length??0)&&incoming.every(r=>deleted.includes(r.noteId)||knownNotes.has(r.revision))&&incomingBooks.every(r=>knownBooks.has(r.revision))&&incomingOrganization.every(r=>s.organization?.some(o=>o.revision===r.revision))){
         const epoch=this.writeEpoch;let current=true
         for(const noteId of new Set(s.revisions.map(r=>r.noteId)))if(!await this.external(s,noteId,undefined,true))current=false
         if(this.files!==files)fail('transfer_expired')
         signal?.throwIfAborted()
         // A transient snapshot, not a new cache: missing/stale documents or external edits take the normal merge path.
-        if(current&&epoch===this.writeEpoch)return {objects:{version:1,revisions:s.revisions,notebooks:s.notebooks,...(s.deleted?.length?{deleted:s.deleted}:{})},generation:this.changeGeneration}
+        if(current&&epoch===this.writeEpoch)return {objects:{version:1,revisions:s.revisions,notebooks:s.notebooks,...(s.organization?.length?{organization:s.organization}:{}),...(s.deleted?.length?{deleted:s.deleted}:{})},generation:this.changeGeneration}
       }
       // Individually valid orphan objects can be completed by this validated input.
       // Truly damaged files never enter these sets and remain write-protected.
@@ -738,7 +748,7 @@ export class NoteRepository {
       const notebooks = mergeNotebookRevisions([...s.notebooks, ...s.detachedNotebooks], incomingBooks)
       const available = new Set([...revisions.map(notePath), ...notebooks.map(notebookPath)])
       const issues = s.issues.filter(issue => !deleted.includes(issue.path.split('/')[1] ?? '') && (!(issue.code === 'note_parent' || issue.code === 'note_missing') || !available.has(issue.path)))
-      const next: State = { ...s, revisions, notebooks, deleted, detachedRevisions: [], detachedNotebooks: [], issues, blocked: new Set(issues.map(i => i.path.split('/')[1] ?? '')) }
+      const next: State = { ...s, revisions, notebooks, organization:mergeOrganization(s.organization,incomingOrganization), deleted, detachedRevisions: [], detachedNotebooks: [], issues, blocked: new Set(issues.map(i => i.path.split('/')[1] ?? '')) }
       this.limits(next); this.complete(next)
       for (const r of incoming.filter(r => !deleted.includes(r.noteId))) this.writable(next, r.noteId)
       for (const r of incomingBooks) this.writable(next, r.notebookId)
@@ -753,6 +763,7 @@ export class NoteRepository {
       for (const noteId of new Set([...incoming, ...s.detachedRevisions].map(r => r.noteId).filter(n => !deleted.includes(n)))) { await this.external(next, noteId); await this.document(next, noteId) }
       await this.splitConflicts(next)
       await this.ensureNotebooks(next)
+      await this.writeOrganization(next,incomingOrganization)
       await this.manifest(next)
       if (deleted.length) await this.cleanDeleted(next, (await this.files.scan()).paths)
     }, signal)
@@ -794,12 +805,29 @@ export class NoteRepository {
   private async splitConflicts(state:State):Promise<void> {
     for(const row of conflictRevisions(state.revisions))if(!state.deleted?.includes(row.noteId))await this.append(state,row)
   }
+  private async writeOrganization(state:State,rows:import('./organization.js').OrganizationEvent[]){
+    const paths=new Set((await this.files.inventory.snapshot()).paths)
+    for(const row of rows)if(!paths.has(organizationPath(row)))await this.files.write(organizationPath(row),canonical(row),true)
+    state.organization=mergeOrganization(state.organization,rows);this.organizationCache.delete(state)
+    if(state.organization.length)await this.files.write('organization/manifest.json',organizationManifest(state.organization),false)
+  }
+  async reorderNotebooks(ids:string[],expected:string[],signal?:AbortSignal):Promise<void>{
+    if(!Array.isArray(ids)||!Array.isArray(expected)||ids.length>5000)fail('note_schema')
+    ids=ids.map(id);expected=expected.map(id)
+    await this.run(async()=>{const s=await this.load();this.complete(s);if(s.issues.length)fail('note_corrupt')
+      const current=this.books(s).filter(activeNotebook).map(b=>b.notebookId)
+      if(canonical(current)!==canonical(expected)||!same(current,ids)||new Set(ids).size!==ids.length)conflict()
+      if(canonical(current)===canonical(ids))return
+      const clock=(s.organization??[]).reduce((max,r)=>Math.max(max,r.clock),0)+1
+      await this.writeOrganization(s,[createOrganization({version:1,kind:'book-order',clock,recordedAt:new Date(this.now()).toISOString(),ids})])
+    },signal)
+  }
   async listNotebooks(signal?: AbortSignal): Promise<NotebookView[]> {
     return this.run(async () => {
       const s = await this.load(), selected = this.defaultBook(s)?.notebookId, counts = new Map<string, number>()
       for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
         const note = this.view(s, noteId)
-        if (note.current.status === 'active' && !note.current.isTemplate && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
+        if (note.current.status === 'active' && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
       }
       return this.books(s).map(book => ({ ...book, isDefault: book.notebookId === selected, noteCount: counts.get(book.notebookId) ?? 0 }))
     }, signal)
@@ -824,7 +852,7 @@ export class NoteRepository {
     id(notebookId); const expected = sortedStrings(expectedHeads, NOTE_LIMITS.revisions, hash)
     return this.run(async () => {
       const s = await this.load([],true); this.writable(s, notebookId); const book = this.notebook(s, notebookId)
-      this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>{const v=this.view(s,n);return !v.current.isTemplate&&v.effectiveNotebookId===notebookId}))
+      this.editGuard([...new Set(s.revisions.map(r=>r.noteId))].filter(n=>{const v=this.view(s,n);return v.effectiveNotebookId===notebookId}))
       this.complete(s)
       if (!same(book.heads, expected)) conflict()
       const destination = this.defaultBook(s)!
@@ -833,7 +861,7 @@ export class NoteRepository {
       const members: NoteView[] = []
       for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
         const member=this.view(s,noteId)
-        if (member.current.isTemplate || member.effectiveNotebookId !== notebookId) continue
+        if (member.effectiveNotebookId !== notebookId) continue
         this.writable(s, noteId); await this.external(s, noteId)
         const note = this.view(s, noteId)
         if (note.effectiveNotebookId !== notebookId) continue

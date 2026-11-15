@@ -8,7 +8,7 @@ export class BacklinkIndex {
   update(views:NoteView[]):void {
     const outgoing=new Map<string,{revision:string;targets:Set<string>}>(),incoming=new Map<string,NoteView[]>()
     for(const view of views){
-      if(view.current.status!=='active'||view.current.isTemplate)continue
+      if(view.current.status!=='active')continue
       const previous=this.outgoing.get(view.noteId)
       const entry=previous?.revision===view.current.revision?previous:{revision:view.current.revision,targets:linkedNotes(view.current.body)}
       outgoing.set(view.noteId,entry)

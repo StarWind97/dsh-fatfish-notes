@@ -12,12 +12,12 @@ const content:NoteContent={title:'引用',body:'正文',summary:'',tags:[],noteb
 const body=`[一次](fatfish-note:${target}) [再次](fatfish-note:${target})`
 function view(n:number,extra:Partial<NoteContent>={}){const row=createNoteRevision({...content,body,...extra,version:1,noteId:id(n),parents:[],recordedAt:'2026-11-13T00:00:00.000Z'});return materializeNote([row],row.noteId)}
 
-test('reverse links retain all sources above one page and update only from current active non-template content',()=>{
+test('reverse links retain all sources above one page and update only from current active content including legacy templates',()=>{
   const index=new BacklinkIndex(),views=Array.from({length:108},(_,i)=>view(i+2))
   index.update([...views,view(1),view(120,{isTemplate:true}),view(121,{status:'trashed'}),view(122,{body:`\`[code](fatfish-note:${target})\``})])
-  assert.equal(index.get(target).length,108)
+  assert.equal(index.get(target).length,109)
   index.update([view(2,{body:'removed'}),view(3,{status:'trashed'}),view(4,{title:'renamed'}),view(5,{isTemplate:true})])
-  assert.deepEqual(index.get(target).map(v=>[v.noteId,v.current.title]),[[id(4),'renamed']])
+  assert.deepEqual(index.get(target).map(v=>[v.noteId,v.current.title]),[[id(4),'renamed'],[id(5),'引用']])
   index.update([view(3)])
   assert.deepEqual(index.get(target).map(v=>v.noteId),[id(3)])
   index.update([]);assert.deepEqual(index.get(target),[])

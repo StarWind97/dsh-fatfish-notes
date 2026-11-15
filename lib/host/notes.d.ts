@@ -208,6 +208,10 @@ export declare class NotesApplication {
         ok: true;
         notebooks: import("../contracts/notes.js").NotebookView[];
     }>;
+    reorderNotebooks(input: unknown, signal?: AbortSignal): Promise<{
+        ok: true;
+        notebooks: import("../contracts/notes.js").NotebookView[];
+    }>;
     notebook(input: unknown, signal?: AbortSignal): Promise<{
         ok: true;
         notebooks: import("../contracts/notes.js").NotebookView[];

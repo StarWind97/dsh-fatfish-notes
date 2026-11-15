@@ -5,6 +5,7 @@ export interface NoteObjects {
     revisions: NoteRevision[];
     notebooks: NotebookRevision[];
     deleted?: string[];
+    organization?: import('./organization.js').OrganizationEvent[];
 }
 export interface RecoveryIssue {
     path: string;

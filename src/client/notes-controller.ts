@@ -342,19 +342,19 @@ export class NotesController {
       const result = await this.call('/notes/get', { noteId },abort.signal)
       if (generation !== this.navigation) return false
       const accepted=this.accept(result.note, request)
-      if(accepted&&result.note.current.status==='active'&&!result.note.current.isTemplate)this.visits().visit(noteId)
+      if(accepted&&result.note.current.status==='active')this.visits().visit(noteId)
       return accepted
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
   /** Reveal an already opened note without traversing every page of its notebook. */
   async revealCurrent(noteId:string):Promise<void>{
     const note=this.state.note;if(!note||note.noteId!==noteId||this.state.loadingNote)return
-    const filter:NoteListOptions={order:this.state.filter.order??'recent',status:note.current.status,...(note.current.isTemplate?{templates:true}:{notebookId:note.effectiveNotebookId})}
+    const filter:NoteListOptions={order:this.state.filter.order??'recent',status:note.current.status,notebookId:note.effectiveNotebookId}
     if(equal(filter,this.state.filter)&&this.state.items.some(n=>n.noteId===noteId))return
     const generation=++this.listing,navigation=this.navigation,epoch=this.libraryEpoch
     this.listAbort?.abort();const abort=this.listAbort=new AbortController()
     const {title,summary,tags,status,favorite,isTemplate}=note.current
-    const selected:NoteListItem={noteId,heads:note.heads,title,summary,tags,status,notebookId:note.effectiveNotebookId,savedAt:note.savedAt,conflicted:note.heads.length>1,...(favorite!==undefined?{favorite}:{}),...(isTemplate!==undefined?{isTemplate}:{})}
+    const selected:NoteListItem={noteId,heads:note.heads,title,summary,tags,status,notebookId:note.effectiveNotebookId,savedAt:note.savedAt,pinned:!!note.pinned,createdAt:note.createdAt??note.savedAt,conflicted:note.heads.length>1,...(favorite!==undefined?{favorite}:{}),...(isTemplate!==undefined?{isTemplate}:{})}
     this.emit({filter,items:[selected],cursor:null,loadingList:true,listError:false})
     try{const page=await this.call('/notes',{...filter,limit:50},abort.signal)
       if(generation!==this.listing||navigation!==this.navigation||epoch!==this.libraryEpoch||this.state.noteId!==noteId)return
@@ -408,9 +408,16 @@ export class NotesController {
     }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
   }
+  async reorderNotebooks(ids:string[]):Promise<boolean>{
+    if(this.state.operation||this.state.composing||!await this.prepareLeave())return false
+    const expected=this.state.notebooks.filter(b=>[b.current,...b.conflicts].every(r=>r.status==='active')).map(b=>b.notebookId)
+    this.emit({operation:true,error:null})
+    try{const result=await this.call('/notes/book-order',{ids,expected});this.emit({notebooks:result.notebooks});return true}
+    catch(e){this.emit({error:errorCode(e)});return false}finally{this.emit({operation:false});await this.refresh()}
+  }
   async manage(input:NoteManageRequest):Promise<boolean> {
     if(this.state.operation||this.state.loadingNote||!await this.prepareLeave())return false
-    const copy=['duplicate','template','instantiate','revision-copy'].includes(input.action)
+    const copy=['duplicate','revision-copy'].includes(input.action)
     this.emit({operation:true,error:null});let created:string|undefined
     try {
       const result=await this.call('/notes/manage',{...input,...(copy&&!input.targetId?{targetId:newId()}: {})})
@@ -421,7 +428,7 @@ export class NotesController {
       }
     }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
-    if(created){await this.filter({order:'recent',...(input.action==='template'?{templates:true}:{})});await this.open(created);if(input.action==='instantiate')await this.beginEdit()}
+    if(created){await this.filter({order:'recent'});await this.open(created)}
     return true
   }
   private async loadConflict(request: DetailRequest) { try { const latest = await this.call('/notes/get', { noteId: request.noteId }); if (this.ownsDetail(request)) this.emit({ conflict: latest.note }) } catch { /* retain text */ } }

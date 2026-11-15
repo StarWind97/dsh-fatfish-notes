@@ -1,3 +1,4 @@
+import {mergeOrganization,organizationPath,organizationManifest,validateOrganization,validateOrganizationManifest} from './organization.js'
 import { conflictRevisions } from './conflicts.js'
 import { NotebookError } from '../domain/errors.js'
 import type { GitBackend } from '../git/backend.js'
@@ -29,7 +30,7 @@ function manifest(objects: NoteObjects, version: number): string {
   return canonical({ ...data, revision: digest(canonical(data)) })
 }
 function token(objects: NoteObjects): string {
-  return digest(canonical([...objects.revisions.map(revisionPath), ...objects.notebooks.map(bookPath), ...(objects.deleted ?? []).map(n => `notes/deleted/${n}.json`)].sort()))
+  return digest(canonical([...objects.revisions.map(revisionPath), ...objects.notebooks.map(bookPath),...(objects.organization??[]).map(r=>'notes/'+organizationPath(r)), ...(objects.deleted ?? []).map(n => `notes/deleted/${n}.json`)].sort()))
 }
 function sourceAssets(source: unknown): string[] {
   const value = object(source).assets
@@ -116,6 +117,14 @@ export class NotesSyncModule {
     objects.revisions = mergeNoteRevisions(objects.revisions, []); objects.notebooks = mergeNotebookRevisions(objects.notebooks, [])
     if (objects.revisions.some(r => deleted.includes(r.noteId))) fail('note_manifest')
     if (new Set(objects.revisions.map(r => r.noteId)).size > NOTE_LIMITS.notes || canonical(remoteManifest) !== manifest(objects, Number(remoteManifest.version))) fail('note_manifest', '远端笔记清单与修订集合不一致；已暂停备份')
+    const organizationPaths=[...snapshot.entries.keys()].filter(p=>p.startsWith('notes/organization/')&&snapshot.entries.get(p)?.type!=='tree'&&p!=='notes/organization/manifest.json')
+    if(organizationPaths.length>100000)fail('note_limit')
+    if(organizationPaths.length||snapshot.entries.has('notes/organization/manifest.json')){
+      const rows=[]
+      for(const path of organizationPaths){const row=validateOrganization(JSON.parse(utf8(await read(path,256*1024))));if(path!=='notes/'+organizationPath(row))fail('note_path');rows.push(row)}
+      validateOrganizationManifest(JSON.parse(utf8(await read('notes/organization/manifest.json',8*1024*1024))),rows,true)
+      objects.organization=mergeOrganization(rows)
+    }
     const sources = new Set(objects.revisions.flatMap(r => r.sourceId ? [r.sourceId] : [])), assets = new Set(objects.revisions.flatMap(r => r.assetIds))
     await prefetch([...sources].map(id=>`notes/sources/${id}.json`),NOTE_LIMITS.source)
     const sourceFiles:import('../contracts/notes.js').NoteAttachment[]=[]
@@ -192,7 +201,7 @@ export class NotesSyncModule {
     if(initial){local.revisions=mergeNoteRevisions(local.revisions,initial.objects.revisions);local.notebooks=mergeNotebookRevisions(local.notebooks,initial.objects.notebooks)}
     const deleted = [...new Set([...(local.deleted ?? []), ...(remote.objects.deleted ?? [])])].sort()
     const revisions=mergeNoteRevisions(withoutDeleted(local, deleted).revisions,withoutDeleted(remote.objects, deleted).revisions)
-    const objects:NoteObjects={version:1,revisions:mergeNoteRevisions(revisions,conflictRevisions(revisions).filter(r => !deleted.includes(r.noteId))),notebooks:mergeNotebookRevisions(local.notebooks,remote.objects.notebooks), ...(deleted.length ? { deleted } : {})}
+    const objects:NoteObjects={version:1,revisions:mergeNoteRevisions(revisions,conflictRevisions(revisions).filter(r => !deleted.includes(r.noteId))),notebooks:mergeNotebookRevisions(local.notebooks,remote.objects.notebooks),organization:mergeOrganization(local.organization,remote.objects.organization), ...(deleted.length ? { deleted } : {})}
     const files:PrivateFiles=new Map()
     const retained = new Set<string>()
     const set = (path: string, data: string | Buffer) => { retained.add(path); const bytes = Buffer.isBuffer(data) ? data : Buffer.from(data); const old=remote.files.get(path);if (!old||!Buffer.isBuffer(old)||!old.equals(bytes)) files.set(path, bytes) }
@@ -208,6 +217,7 @@ export class NotesSyncModule {
     for (const row of objects.notebooks) set(bookPath(row), canonical(row))
     for (const noteId of new Set(objects.revisions.map(r => r.noteId))) set(`notes/documents/${noteId}.md`, serializeNoteMarkdown(materializeNote(objects.revisions.filter(r => r.noteId === noteId), noteId).current))
     for (const noteId of deleted) set(`notes/deleted/${noteId}.json`, deletionData(noteId))
+    if(objects.organization?.length){for(const row of objects.organization)set('notes/'+organizationPath(row),canonical(row));set('notes/organization/manifest.json',organizationManifest(objects.organization))}
     set('notes/manifest.json', manifest(objects, moduleVersion(objects)))
     if (deleted.length) for (const path of snapshot.entries.keys()) if (/^notes\/(documents|revisions|sources|assets|attachments)\//.test(path) && snapshot.entries.get(path)?.type !== 'tree' && !retained.has(path)) files.set(path, null)
     const dependencies=initial?{objects:remote.objects,files:new Map([...remote.files,...initial.files])}:remote

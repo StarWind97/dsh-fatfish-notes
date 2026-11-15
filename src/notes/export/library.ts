@@ -13,7 +13,7 @@ import type {ExportFile} from './service.js'
 
 export async function exportLibrary(repository:NoteRepository,input:unknown,signal?:AbortSignal,sink?:{start:(filename:string)=>void;write:(data:Uint8Array)=>Promise<void>}):Promise<ExportFile>{
   const v=object(input),bookId=v.notebookId===undefined?undefined:id(v.notebookId),books=await repository.listNotebooks(signal),snapshot=await repository.exportObjects(signal)
-  const rows=[...new Set(snapshot.revisions.map(r=>r.noteId))].map(id=>materializeNote(snapshot.revisions.filter(r=>r.noteId===id),id).current).filter(r=>r.status==='active'&&!r.isTemplate&&(!bookId||r.notebookId===bookId))
+  const rows=[...new Set(snapshot.revisions.map(r=>r.noteId))].map(id=>materializeNote(snapshot.revisions.filter(r=>r.noteId===id),id).current).filter(r=>r.status==='active'&&(!bookId||r.notebookId===bookId))
   const bookPaths=new Map<string,string>(),notePaths=new Map<string,string>(),used=new Set<string>(),warnings:string[]=[]
   function unique(value:string,extension=''){let path=value+extension,n=2;while(used.has(path.toLocaleLowerCase()))path=`${value} (${n++})${extension}`;used.add(path.toLocaleLowerCase());return path}
   used.add('assets');used.add('attachments')

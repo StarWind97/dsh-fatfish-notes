@@ -35,12 +35,18 @@ export class NoteTabs {
     return generation===this.generation&&this.controller.getSnapshot().noteId===id
   }
   async close(id:string){
+    if(this.controller.getSnapshot().composing||this.controller.getSnapshot().operation||this.controller.importing)return false
     const index=this.tabs.findIndex(t=>t.id===id);if(index<0)return true
     if(this.controller.getSnapshot().noteId===id){
       const next=this.tabs[index+1]??this.tabs[index-1]
       if(next?!await this.select(next.id):!await this.controller.back())return false
     }
     this.positions.delete(id);this.emit(this.tabs.filter(t=>t.id!==id));return true
+  }
+  async closeOthers(id:string){
+    if(!this.tabs.some(t=>t.id===id)||!await this.select(id))return false
+    for(const key of this.positions.keys())if(key!==id)this.positions.delete(key)
+    this.emit(this.tabs.filter(t=>t.id===id));return true
   }
 }
 const sessions=new WeakMap<NotesController,NoteTabs>()

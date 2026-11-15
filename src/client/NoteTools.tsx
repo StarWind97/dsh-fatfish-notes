@@ -31,23 +31,6 @@ export function HistoryDialog({note,controller,t,close}:{note:NoteView;controlle
     </div>{error&&<p role="alert" className="paper-dialog-message">{error}</p>}{confirmation&&<p className="paper-dialog-message">{t('organizeRestoreConfirm')}</p>}<footer><button disabled={busy} onClick={close}>{t('cancel')}</button><button disabled={busy||loading||!preview} onClick={()=>void restore(true)}>{t('organizeRestoreCopy')}</button><button className="paper-primary" disabled={busy||loading||!preview||preview.current.revision===note.current.revision} onClick={()=>confirmation?void restore(false):setConfirmation(true)}>{t(confirmation?'organizeConfirmRestore':'organizeRestore')}</button></footer></PaperDialog>
 }
 
-export function ReuseDialog({state,controller,t,close,mode}:{state:NotesState;controller:NotesController;t:T;close:()=>void;mode:'template'|'instantiate'}) {
-  const [templates,setTemplates]=useState<NoteListItem[]>([]),[selected,setSelected]=useState<NoteListItem|null>(null),[title,setTitle]=useState(mode==='template'?state.note?.current.title??'':''),[book,setBook]=useState(state.filter.notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??'')
-  const [busy,setBusy]=useState(false),[error,setError]=useState('')
-  useEffect(()=>{if(mode!=='instantiate')return;let live=true;void controller.matching({templates:true,order:'recent'}).then(r=>{if(live)setTemplates(r)}).catch(()=>{if(live)setError(t('organizeFailed'))});return()=>{live=false}},[])
-  async function run(){const source=mode==='template'?state.note:selected;if(!source)return;setBusy(true);setError('')
-    const date=noteDateTime(new Date().toISOString()).slice(0,10)
-    const request:NoteManageRequest={action:mode,notes:[{noteId:source.noteId,expectedHeads:source.heads}],title,notebookId:book,date}
-    try{if(await controller.manage(request))close();else setError(operationError(controller,t))}finally{setBusy(false)}
-  }
-  return <PaperDialog title={t(mode==='template'?'reuseSaveTemplate':'reuseFromTemplate')} closeLabel={t('paperClose')} onClose={close} locked={busy}><div className="paper-dialog-content paper-reuse-fields">
-    {mode==='instantiate'&&<><label>{t('reuseChooseTemplate')}<select value={selected?.noteId??''} disabled={busy} onChange={e=>{const item=templates.find(n=>n.noteId===e.target.value)??null;setSelected(item);setTitle(item?.title??'')}}><option value="">{t('reuseChooseTemplate')}</option>{templates.map(n=><option key={n.noteId} value={n.noteId}>{n.title}</option>)}</select></label>{!templates.length&&<p className="paper-hint">{t('reuseEmpty')}</p>}</>}
-    <label>{t('notesTitle')}<input disabled={busy} value={title} onChange={e=>setTitle(e.target.value)}/></label>
-    {mode==='instantiate'&&<label>{t('notesNotebook')}<select disabled={busy} value={book} onChange={e=>setBook(e.target.value)}>{state.notebooks.filter(b=>b.current.status==='active').map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}</option>)}</select></label>}
-    <p className="paper-hint">{t('reuseVariables')}</p>{mode==='template'&&<p className="paper-hint">{t('reuseIndependent')}</p>}{error&&<p role="alert">{error}</p>}
-    </div><footer><button disabled={busy} onClick={close}>{t('cancel')}</button><button className="paper-primary" disabled={busy||!title.trim()||!book||mode==='instantiate'&&!selected} onClick={()=>void run()}>{t(mode==='template'?'reuseSaveTemplate':'reuseCreate')}</button></footer></PaperDialog>
-}
-
 export function Backlinks({note,t,open,refreshToken,onTotal}:{note:NoteView;t:T;open:(id:string)=>void;refreshToken?:unknown;onTotal?:(total:number|null)=>void}) {
   const [expanded,setExpanded]=useState(true),[items,setItems]=useState<NoteListItem[]>([]),[total,setTotal]=useState<number|null>(null)
   const [cursor,setCursor]=useState<string|null>(null),[error,setError]=useState(false),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0)

@@ -6,7 +6,7 @@ export interface InitialNotes {
 }
 export type InitialNotesProvider = (local: NoteObjects, remote: NoteObjects) => Promise<InitialNotes | undefined>;
 /** Stable identities are independent of titles, installation date and device. */
-export declare function handbookId(generation: number, key: string): string;
+export declare function handbookId(generation: number, key: string, version?: number): string;
 export declare function pristineNotes(objects: NoteObjects): boolean;
 export declare function handbookBundle(generation?: number, title?: string): Promise<InitialNotes>;
 export declare const initialHandbook: InitialNotesProvider;

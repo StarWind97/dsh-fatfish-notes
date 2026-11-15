@@ -119,7 +119,7 @@ export class NotesApplication {
     for(const key of ['favorite','templates'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
     if(v.recentIds!==undefined){if(!Array.isArray(v.recentIds)||v.recentIds.length>100)throw new NotebookError('note_schema','访问记录无效');options.recentIds=v.recentIds.map(id)}
     if (v.tag !== undefined) options.tag = text(v.tag, 200)
-    if (v.order === 'recent' || v.order === 'oldest') options.order = v.order
+    if(v.order!==undefined){if(!['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(String(v.order)))throw new NotebookError('note_schema','排序无效');options.order=v.order as NonNullable<NoteListOptions['order']>}
     if (v.notebookId !== undefined) options.notebookId = v.notebookId === null || v.notebookId === 'null' ? null : id(v.notebookId)
     if (v.status !== undefined) { if (!['active','trashed','all'].includes(String(v.status))) throw new NotebookError('note_schema','笔记筛选不正确'); options.status = v.status as NoteListOptions['status'] & string }
     return { ok: true as const, ...await this.repository.list(options, active) }
@@ -181,6 +181,7 @@ export class NotesApplication {
     return { ok: true as const, note: await this.repository.resolve(id(v.noteId), v.expectedHeads, v.content, active) }
   }, signal) }
   notebooks(signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, notebooks: await this.repository.listNotebooks(active) }), signal) }
+  reorderNotebooks(input:unknown,signal?:AbortSignal){return this.run(async active=>{const v=object(input);await this.repository.reorderNotebooks(v.ids as string[],v.expected as string[],active);return {ok:true as const,notebooks:await this.repository.listNotebooks(active)}},signal)}
   notebook(input: unknown, signal?: AbortSignal) { return this.run(async active => {
     const v = object(input), heads = sortedStrings(v.expectedHeads, 100_000, hash)
     if (v.remove === true) {

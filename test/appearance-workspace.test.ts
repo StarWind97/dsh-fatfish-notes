@@ -54,7 +54,7 @@ function fixture(){
     if(path==='/notes'){lists++;return {ok:true,items:[],cursor:'next'} as never}
     if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
     if(path==='/notes/jobs')return {ok:true,jobs:[],cursor:null} as never
-    if(path==='/notes/draft'){if(failSave)throw new ApiError('network');const v=input as {request:{noteId:string;content:NoteView['current']}};const previous=notes.get(v.request.noteId)!;const note={...previous,current:{...previous.current,...v.request.content}};notes.set(note.noteId,note);return {ok:true,state:'finished',note} as never}
+    if(path==='/notes/draft'){if(failSave)throw new ApiError('network');const v=input as {action:string;request:{noteId:string;content:NoteView['current']}};if(v.action==='save')return {ok:true,state:'editing',note:null} as never;const previous=notes.get(v.request.noteId)!;const note={...previous,current:{...previous.current,...v.request.content}};notes.set(note.noteId,note);return {ok:true,state:'finished',note} as never}
     throw Error(path)
   }
   const controller=new NotesController(call,{autosaveMs:100000,storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}),tabs=new NoteTabs(controller),unbind=controller.subscribe(tabs.reconcile)
@@ -78,3 +78,13 @@ test('tabs have no cross-controller state and repository switch clears metadata 
   const f=fixture(),other=fixture();try{await f.tabs.select(f.ids[0]!);f.tabs.positions.set(f.ids[0]!,200);assert.equal(other.tabs.getSnapshot().length,0);f.controller.switched();assert.equal(f.tabs.getSnapshot().length,0);assert.equal(f.tabs.positions.size,0)}finally{f.dispose();other.dispose()}
 })
 
+
+
+test('closing other tabs saves active edits, retains all tabs on failure and keeps the requested background tab',async()=>{
+ const f=fixture();try{
+  for(const id of f.ids)await f.tabs.select(id)
+  await f.controller.beginEdit();f.controller.update({body:'unsaved edit'});f.fail=true
+  assert.equal(await f.tabs.closeOthers(f.ids[0]!),false);assert.equal(f.tabs.getSnapshot().length,3);assert.equal(f.controller.getSnapshot().noteId,f.ids[2]);assert.equal(f.controller.getSnapshot().draft?.body,'unsaved edit')
+  f.fail=false;assert.equal(await f.tabs.closeOthers(f.ids[0]!),true);assert.deepEqual(f.tabs.getSnapshot().map(t=>t.id),[f.ids[0]]);assert.equal(f.notes.get(f.ids[2]!)?.current.body,'unsaved edit')
+ }finally{f.dispose()}
+})

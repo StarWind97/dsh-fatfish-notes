@@ -12,24 +12,22 @@ import type { SyncResource } from './sync-resources.js'
 export interface InitialNotes { objects: NoteObjects; files: Map<string, Buffer> }
 export type InitialNotesProvider = (local: NoteObjects, remote: NoteObjects) => Promise<InitialNotes | undefined>
 const chapters = [
-  ['welcome','01-welcome.md','01 从这里开始','写下想法，留下对话，让资料在下一次需要时找得到。'],
-  ['write','02-write.md','02 把一个想法写成好读的笔记','用一份项目上手说明，练习标题、清单、表格与目录。'],
-  ['materials','03-materials.md','03 图片和文件，各有合适的位置','配图帮助理解，文件便于取用；试一次真正的下载。'],
-  ['capture','04-capture.md','04 把一次有价值的对话留下来','把问题、限制和做法一起留下，再整理成自己的答案。'],
-  ['find','05-find.md','05 找得回来，也能接着使用','标题、标签、笔记链接与代码，让资料可以反复取用。'],
-  ['deliver','06-deliver.md','06 调整阅读，保存并交付','读得舒服，分清保存与同步，选择适合的交付格式。'],
+  ['welcome','v2/01-welcome.md','01 开始使用','创建、查找与整理，让常用内容随手可得。'],
+  ['materials','v2/02-materials.md','02 资料与交付','添加图片和文件，转存会话，选择合适的导出形式。'],
+  ['deliver','v2/03-deliver.md','03 保存与注意事项','分清草稿、正式保存和同步，按自己的习惯阅读。'],
 ] as const
+const legacyKeys=['welcome','write','materials','capture','find','deliver']
 const root = new URL('../../assets/handbook/', import.meta.url)
 const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 /** Stable identities are independent of titles, installation date and device. */
-export function handbookId(generation: number, key: string): string {
-  let value=BigInt('0x'+digest(`fatfish-user-handbook/1/${generation}/${key}`).slice(0,32)),result=''
+export function handbookId(generation: number, key: string,version=2): string {
+  let value=BigInt('0x'+digest(`fatfish-user-handbook/${version}/${generation}/${key}`).slice(0,32)),result=''
   for(let at=0;at<26;at++){result=alphabet[Number(value&31n)]+result;value>>=5n}
   return result
 }
 export function pristineNotes(objects:NoteObjects):boolean {
   const seed=createNotebookRevision({version:1,notebookId:DEFAULT_NOTEBOOK_ID,title:'默认笔记本',status:'active',parents:[],recordedAt:DEFAULT_NOTEBOOK_TIME,defaultSelectedAt:DEFAULT_NOTEBOOK_TIME})
-  return !objects.revisions.length&&!objects.deleted?.length&&objects.notebooks.every(book=>book.revision===seed.revision)
+  return !objects.revisions.length&&!objects.deleted?.length&&!objects.organization?.length&&objects.notebooks.every(book=>book.revision===seed.revision)
 }
 export async function handbookBundle(generation=0,title='用户手册'):Promise<InitialNotes> {
   const files=new Map<string,Buffer>()
@@ -48,23 +46,23 @@ export async function handbookBundle(generation=0,title='用户手册'):Promise<
       .replace(/handbook-asset:desk/g,`../assets/${asset.id}`)
       .replace(/handbook-file:([a-z]+)/g,(_,key:string)=>{const file=attachments.find(a=>a.key===key);if(!file)fail('note_asset');return `../attachments/${file.id}.bin`})
     const used=key==='materials'?attachments.map(({key:_key,...file})=>file):[]
-    objects.revisions.push(createNoteRevision({version:1,noteId:handbookId(generation,key),parents:[],recordedAt:time(index),title,summary,body,tags:['用户手册',...(key==='write'?['上手说明']:[])],notebookId,status:'active',sourceId:null,assetIds:body.includes(asset.id)?[asset.id]:[],...(used.length?{attachments:used,supplements:{assetIds:[],attachmentIds:[attachments[1]!.id]}}:{})}))
+    objects.revisions.push(createNoteRevision({version:1,noteId:handbookId(generation,key),parents:[],recordedAt:time(index),title,summary,body,tags:['用户手册'],notebookId,status:'active',sourceId:null,assetIds:body.includes(asset.id)?[asset.id]:[],...(used.length?{attachments:used,supplements:{assetIds:[],attachmentIds:[attachments[1]!.id]}}:{})}))
   }
   return {objects,files}
 }
 export const initialHandbook:InitialNotesProvider=async(local,remote)=>pristineNotes(local)&&pristineNotes(remote)?handbookBundle():undefined
 
-function generations(objects:NoteObjects):number[]{
+function generations(objects:NoteObjects,version=2):number[]{
   const books=new Set(objects.notebooks.map(b=>b.notebookId)),found:number[]=[]
   // Generations are contiguous; notebook revisions survive notebook removal and note purge.
-  for(let n=0;books.has(handbookId(n,'book'));n++)found.push(n)
+  for(let n=0;books.has(handbookId(n,'book',version));n++)found.push(n)
   return found
 }
 export function existingHandbook(objects:NoteObjects):string|null {
   const rows=new Map<string,typeof objects.revisions>()
   for(const row of objects.revisions){const list=rows.get(row.noteId)??[];list.push(row);rows.set(row.noteId,list)}
-  for(const n of generations(objects).reverse())for(const [key]of chapters){
-    const id=handbookId(n,key),revisions=rows.get(id)
+  for(const version of [2,1])for(const n of generations(objects,version).reverse())for(const key of version===2?chapters.map(row=>row[0]):legacyKeys){
+    const id=handbookId(n,key,version),revisions=rows.get(id)
     if(!objects.deleted?.includes(id)&&revisions&&materializeNote(revisions,id).current.status==='active')return id
   }
   return null

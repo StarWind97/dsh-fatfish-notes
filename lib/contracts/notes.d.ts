@@ -65,6 +65,8 @@ export interface NoteView {
     conflicts: NoteRevision[];
     savedAt: string;
     effectiveNotebookId: string | null;
+    pinned?: boolean;
+    createdAt?: string;
 }
 export interface NoteSaveInput {
     noteId?: string;
@@ -93,6 +95,8 @@ export interface NoteListItem {
     excerpt?: string;
     favorite?: boolean;
     isTemplate?: boolean;
+    pinned?: boolean;
+    createdAt?: string;
     noteId: string;
     heads: string[];
     title: string;
@@ -103,6 +107,7 @@ export interface NoteListItem {
     savedAt: string;
     conflicted: boolean;
 }
+export type NoteOrder = 'recent' | 'oldest' | 'created-recent' | 'created-oldest' | 'title-asc' | 'title-desc';
 export interface NoteListOptions {
     cursor?: string;
     limit?: number;
@@ -110,7 +115,7 @@ export interface NoteListOptions {
     tag?: string;
     notebookId?: string | null;
     status?: NoteStatus | 'all';
-    order?: 'recent' | 'oldest';
+    order?: NoteOrder;
     favorite?: boolean;
     templates?: boolean;
     recentIds?: string[];
@@ -121,7 +126,7 @@ export interface NoteListResult {
     items: NoteListItem[];
     cursor: string | null;
 }
-export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
+export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
 export interface NoteManageRequest {
     notes: NoteSelection[];
     action: NoteManageAction;
@@ -162,6 +167,7 @@ export interface NotebookView {
     conflicts: NotebookRevision[];
     isDefault?: boolean;
     noteCount?: number;
+    createdAt?: string;
 }
 export type NotebookRemoval = 'move' | 'trash';
 export interface CaptureRequest {
@@ -577,6 +583,16 @@ export interface NotesApiContract {
         response: {
             ok: true;
             note: NoteView;
+        };
+    };
+    '/notes/book-order': {
+        request: {
+            ids: string[];
+            expected: string[];
+        };
+        response: {
+            ok: true;
+            notebooks: NotebookView[];
         };
     };
     '/notes/notebooks': {

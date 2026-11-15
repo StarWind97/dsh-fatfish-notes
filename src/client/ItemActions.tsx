@@ -27,6 +27,7 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
     const notes=[{noteId:note.noteId,expectedHeads:note.heads}],locked=busy||state.operation
     if(note.status==='trashed')return [{label:t('notesRestore'),disabled:locked,run:()=>void run(()=>controller.batch(notes,'restore'))},{label:t('batchPurge'),disabled:locked,danger:true,run:()=>begin({kind:'purge',note})}]
     return [
+      {label:note.pinned?'取消置顶':'置顶笔记',run:()=>void run(()=>controller.manage({notes,action:note.pinned?'unpin':'pin'}))},
       {label:'重命名',run:()=>begin({kind:'rename',note},note.title)},
       {label:t(note.favorite?'findUnfavorite':'findFavorite'),run:()=>void run(()=>controller.manage({notes,action:note.favorite?'unfavorite':'favorite'}))},
       {label:t('organizeMove'),run:()=>begin({kind:'move',note},note.notebookId??'')},
@@ -35,7 +36,11 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
       {label:t('notesTrashAction'),danger:true,run:()=>begin({kind:'trash',note})},
     ].map(a=>({...a,disabled:locked}))
   }
-  function bookActions(book:NotebookView):RowAction[]{return [
+  function bookActions(book:NotebookView):RowAction[]{const books=state.notebooks.filter(b=>[b.current,...b.conflicts].every(r=>r.status==='active')),index=books.findIndex(b=>b.notebookId===book.notebookId)
+    const move=(delta:number)=>{const ids=books.map(b=>b.notebookId),other=index+delta;[ids[index],ids[other]]=[ids[other]!,ids[index]!];void run(()=>controller.reorderNotebooks(ids))}
+    return [
+    {label:'上移',disabled:index<=0,run:()=>move(-1)},
+    {label:'下移',disabled:index<0||index===books.length-1,run:()=>move(1)},
     {label:t('notesNew'),run:()=>void controller.create({notebookId:book.notebookId}).then(ok=>{if(ok)created?.()})},
     {label:t('notesRenameBook'),run:()=>begin({kind:'book-rename',book},book.current.title)},
     {label:'设为全局默认笔记本',disabled:book.isDefault,run:()=>void run(()=>controller.notebook(book.current.title,book,false,{makeDefault:true}))},

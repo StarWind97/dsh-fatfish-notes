@@ -77,6 +77,6 @@ export function canonical(value: unknown): string {
 }
 export function digest(value: string | Uint8Array): string { return createHash('sha256').update(value).digest('hex') }
 export function relativePath(value: string): string {
-  if (typeof value !== 'string' || !/^(?:documents\/[0-7][0-9A-HJKMNP-TV-Z]{25}\.md|deleted\/[0-7][0-9A-HJKMNP-TV-Z]{25}\.json|(?:revisions|notebooks)\/[0-7][0-9A-HJKMNP-TV-Z]{25}\/[a-f0-9]{64}\.json|(?:sources|captures|jobs)\/[a-f0-9]{64}\.json|(?:quarantine|attachments)\/[a-f0-9]{64}\.bin|assets\/[a-f0-9]{64}\.(?:png|jpg|webp|gif)|manifest\.json)$/.test(value)) fail('note_path', '笔记路径不安全')
+  if (typeof value !== 'string' || !/^(?:documents\/[0-7][0-9A-HJKMNP-TV-Z]{25}\.md|deleted\/[0-7][0-9A-HJKMNP-TV-Z]{25}\.json|(?:revisions|notebooks)\/[0-7][0-9A-HJKMNP-TV-Z]{25}\/[a-f0-9]{64}\.json|(?:sources|captures|jobs)\/[a-f0-9]{64}\.json|organization\/(?:[a-f0-9]{64}|manifest)\.json|(?:quarantine|attachments)\/[a-f0-9]{64}\.bin|assets\/[a-f0-9]{64}\.(?:png|jpg|webp|gif)|manifest\.json)$/.test(value)) fail('note_path', '笔记路径不安全')
   return value
 }

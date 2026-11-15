@@ -23,9 +23,9 @@ async function fixture(t:{after(fn:()=>Promise<void>):void},beforeWrite?:(path:s
   t.after(async()=>{repo.close();await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})})
   return {dir,repo}
 }
-test('bundled handbook is deterministic, contains six linked editable chapters and valid local resources',async t=>{
+test('bundled handbook is deterministic, contains three linked editable chapters and valid local resources',async t=>{
   const {repo}=await fixture(t),a=await handbookBundle(),b=await handbookBundle()
-  assert.deepEqual(a,b);assert.equal(a.objects.revisions.length,6);assert.equal(a.files.size,3)
+  assert.deepEqual(a,b);assert.equal(a.objects.revisions.length,3);assert.equal(a.files.size,3)
   const {noteId,created}=await openHandbook(repo,true);assert.equal(created,true);assert.equal(noteId,handbookId(0,'welcome'))
   const notes=(await repo.list({order:'recent'})).items;assert.equal(notes[0]!.noteId,noteId)
   for(const row of a.objects.revisions){
@@ -35,7 +35,7 @@ test('bundled handbook is deterministic, contains six linked editable chapters a
     for(const file of row.attachments??[])assert.equal((await repo.getAttachment(file.id)).length,file.bytes)
   }
   assert.equal((await repo.listNotebooks()).find(b=>b.isDefault)!.notebookId,DEFAULT_NOTEBOOK_ID)
-  assert.ok((await repo.backlinks(handbookId(0,'write'))).length>=2)
+  assert.ok((await repo.backlinks(handbookId(0,'materials'))).length>=2)
   const current=await repo.get(noteId!);await repo.save({noteId:current.noteId,expectedHeads:current.heads,content:{...revisionContent(current.current),body:'用户自己的开头'}})
   assert.equal((await repo.get(noteId!)).current.body,'用户自己的开头')
 })
@@ -57,13 +57,13 @@ test('purged handbook stays deleted; manual addition uses new identities and rem
   assert.equal(pristineNotes(await repo.exportObjects()),false)
   assert.equal(await initialHandbook(await repo.exportObjects(),{version:1,revisions:[],notebooks:[]}),undefined)
   const next=await openHandbook(repo,true);assert.equal(next.noteId,handbookId(1,'welcome'))
-  const body=(await repo.get(next.noteId!)).current.body;assert.ok(body.includes(handbookId(1,'write')));assert.ok(!body.includes(handbookId(0,'write')))
+  const body=(await repo.get(next.noteId!)).current.body;assert.ok(body.includes(handbookId(1,'materials')));assert.ok(!body.includes(handbookId(0,'materials')))
   await assert.rejects(repo.get(handbookId(0,'welcome')))
 })
 test('simultaneous add requests share one copy, and a different repository never inherits its state',async t=>{
   const {repo}=await fixture(t),other=(await fixture(t)).repo
   const result=await Promise.all([openHandbook(repo,true),openHandbook(repo,true),openHandbook(repo,true)])
-  assert.equal(result.filter(r=>r.created).length,1);assert.equal((await repo.list()).items.length,6)
+  assert.equal(result.filter(r=>r.created).length,1);assert.equal((await repo.list()).items.length,3)
   assert.equal((await openHandbook(other,false)).noteId,null)
 })
 for(const boundary of ['assets/','notebooks/','revisions/','manifest.json'])test(`manual addition recovers after interruption at ${boundary} without duplicate chapters`,async t=>{
@@ -73,14 +73,14 @@ for(const boundary of ['assets/','notebooks/','revisions/','manifest.json'])test
   await assert.rejects(openHandbook(repo,true));assert.equal(hit,true)
   const restarted=new NoteRepository(dir);t.after(async()=>restarted.close())
   assert.equal((await openHandbook(restarted,true)).noteId,handbookId(0,'welcome'))
-  assert.equal((await restarted.list()).items.length,6)
+  assert.equal((await restarted.list()).items.length,3)
   await assert.rejects(readFile(join(dir,'handbook-import/manifest.json')))
 })
 test('automatic eligibility excludes local history, tombstones and changed default notebooks',async t=>{
   const {repo}=await fixture(t),empty=await repo.exportObjects();assert.equal(pristineNotes(empty),true)
   const def=(await repo.listNotebooks())[0]!;await repo.saveNotebook({notebookId:def.notebookId,expectedHeads:def.heads,title:'收件箱'})
   assert.equal(await initialHandbook(await repo.exportObjects(),empty),undefined)
-  assert.equal(await initialHandbook(empty,{...empty,deleted:[handbookId(0,'write')]}),undefined)
+  assert.equal(await initialHandbook(empty,{...empty,deleted:[handbookId(0,'materials')]}),undefined)
   assert.equal(await initialHandbook(empty,(await handbookBundle()).objects),undefined)
   assert.equal(validNotesResponse('/notes/handbook',{ok:true,noteId:'bad',created:true}),false)
   assert.equal(validNotesResponse('/notes/handbook',{ok:true,noteId:null,created:false}),true)
@@ -94,7 +94,7 @@ test('an interrupted handbook import travels with an offline library move and ca
   const outer=await mkdtemp(join(tmpdir(),'handbook-move-'));t.after(()=>rm(outer,{recursive:true,force:true,maxRetries:10,retryDelay:100}))
   const target=join(outer,'library');await copyForMove(dir,dir,target,123,new AbortController().signal)
   const moved=new NoteRepository(target);t.after(async()=>moved.close())
-  assert.equal((await openHandbook(moved,true)).noteId,handbookId(0,'welcome'));assert.equal((await moved.list()).items.length,6)
+  assert.equal((await openHandbook(moved,true)).noteId,handbookId(0,'welcome'));assert.equal((await moved.list()).items.length,3)
 })
 
 async function syncFixture(t:{after(fn:()=>Promise<void>):void}){
@@ -109,7 +109,7 @@ async function syncFixture(t:{after(fn:()=>Promise<void>):void}){
 }
 test('production initialization and another device produce one handbook, preserve edits and never refill a cleared library',async t=>{
   const f=await syncFixture(t),a=await f.instance('a');await f.connect(a.sync)
-  assert.equal((await a.notes.list()).items.length,6)
+  assert.equal((await a.notes.list()).items.length,3)
   const first=await a.notes.get(handbookId(0,'welcome'));await a.notes.save({noteId:first.noteId,expectedHeads:first.heads,content:{...revisionContent(first.current),body:'我的版本'}});await a.sync.sync()
   const b=await f.instance('b');await f.connect(b.sync);assert.equal((await b.notes.get(first.noteId)).current.body,'我的版本')
   assert.equal((await b.notes.listNotebooks()).length,2)
@@ -121,13 +121,13 @@ test('existing untouched empty library receives the handbook only on new first c
   const f=await syncFixture(t),old=await f.instance('old',false);await f.connect(old.sync);assert.equal((await old.notes.list()).items.length,0)
   await old.sync.close();old.notes.close()
   const upgrade=await f.instance('old');await upgrade.sync.sync();assert.equal((await upgrade.notes.list()).items.length,0)
-  const fresh=await f.instance('fresh');await f.connect(fresh.sync);assert.equal((await fresh.notes.list()).items.length,6)
+  const fresh=await f.instance('fresh');await f.connect(fresh.sync);assert.equal((await fresh.notes.list()).items.length,3)
 })
 test('failed first push leaves no visible handbook; retry and a second clone converge',async t=>{
   const f=await syncFixture(t),a=await f.instance('retry');f.runner=async(args,options)=>{if(args.includes('push'))throw Error('network unavailable');return runGit(args,options)}
   await assert.rejects(f.connect(a.sync));assert.equal((await a.notes.list()).items.length,0)
   f.runner=runGit;await a.sync.sync();const b=await f.instance('other');await f.connect(b.sync)
-  assert.equal((await b.notes.list()).items.length,6);assert.equal(existingHandbook(await b.notes.exportObjects()),handbookId(0,'welcome'))
+  assert.equal((await b.notes.list()).items.length,3);assert.equal(existingHandbook(await b.notes.exportObjects()),handbookId(0,'welcome'))
 })
 test('application wires the real handbook provider and manual help requires completed setup',async t=>{
   const f=await syncFixture(t),app=await createApplication({dir:join(f.dir,'application'),personal:{gateway:f.gateway,remoteForTest:()=>pathToFileURL(f.remote).href}})
@@ -150,7 +150,7 @@ test('application wires the real handbook provider and manual help requires comp
 test('two first connections to an untouched empty remote converge without conflicts',async t=>{
   const f=await syncFixture(t),old=await f.instance('seed-empty',false);await f.connect(old.sync)
   const a=await f.instance('left'),b=await f.instance('right');await Promise.all([f.connect(a.sync),f.connect(b.sync)]);await a.sync.sync();await b.sync.sync()
-  assert.deepEqual(await a.notes.exportObjects(),await b.notes.exportObjects());assert.equal((await a.notes.list()).items.length,6)
+  assert.deepEqual(await a.notes.exportObjects(),await b.notes.exportObjects());assert.equal((await a.notes.list()).items.length,3)
   assert((await a.notes.list()).items.every(n=>!n.conflicted))
 })
 test('local empty state restores a populated or trashed remote without adding a handbook',async t=>{
@@ -160,4 +160,11 @@ test('local empty state restores a populated or trashed remote without adding a 
   const fresh=await f.instance('restore-used');await f.connect(fresh.sync)
   assert.equal((await fresh.notes.list({status:'all'})).items.length,1);assert.equal((await fresh.notes.list()).items.length,0)
   assert.equal(existingHandbook(await fresh.notes.exportObjects()),null)
+})
+
+
+test('previous handbook identities remain discoverable and an edited copy is never silently replaced',async t=>{
+ const {repo}=await fixture(t),book=await repo.saveNotebook({notebookId:handbookId(0,'book',1),expectedHeads:[],title:'我的旧手册'})
+ const note=await repo.save({noteId:handbookId(0,'welcome',1),expectedHeads:[],content:{title:'用户改过的开头',body:'我的补充',summary:'',tags:[],status:'active',notebookId:book.notebookId,sourceId:null,assetIds:[]}})
+ assert.notEqual(note.noteId,handbookId(0,'welcome'));assert.equal((await openHandbook(repo,true)).noteId,note.noteId);assert.deepEqual((await repo.get(note.noteId)).heads,note.heads);assert.equal((await repo.list()).items.length,1)
 })

@@ -6,7 +6,7 @@ import {join} from 'node:path'
 import {randomUUID} from 'node:crypto'
 import {NoteRepository} from '../src/notes/repository.js'
 import {revisionContent} from '../src/notes/conflicts.js'
-import {linkedNotes,fillTemplate} from '../src/notes/relations.js'
+import {linkedNotes} from '../src/notes/relations.js'
 import {RecentNotes} from '../src/client/recent-notes.js'
 import {createNoteRevision,materializeNote} from '../src/notes/revisions.js'
 import {searchNotes} from '../src/notes/search.js'
@@ -20,6 +20,7 @@ import {createElement} from 'react'
 import {NoteMarkdown} from '../src/client/NoteMarkdown.js'
 import {exportLibrary} from '../src/notes/export/library.js'
 import {unzipSync} from 'fflate'
+import {createOrganization,mergeOrganization,organizationState,organizationManifest,validateOrganizationManifest} from '../src/notes/organization.js'
 const a='01K00000000000000000000000',b='01K00000000000000000000001',c='01K00000000000000000000002',d='01K00000000000000000000003'
 const content:NoteContent={title:'长文整理',body:'正文',summary:'',tags:['保留'],notebookId:null,status:'active',sourceId:null,assetIds:[]}
 const select=(...notes:NoteView[])=>notes.map(n=>({noteId:n.noteId,expectedHeads:n.heads}))
@@ -77,34 +78,58 @@ test('history restoration appends a new revision, preserves former content and r
   const trash=await repo.trash(a,restored.heads);await repo.batch(select(trash),'purge')
   assert.equal((await repo.get(b)).current.body,'修改后')
 })
-test('template snapshots retain media, expand only safe variables, sync and do not leak into normal library results',async t=>{
-  const {repo}=await fixture(t),other=(await fixture(t)).repo,file=await repo.putAttachment(Buffer.from('pdf'),'资料.pdf')
-  const original=await repo.save({noteId:a,expectedHeads:[],content:{...content,body:'# {{标题}}\n{{date}}\n{{unknown}}',summary:'{{日期}}',attachments:[file],favorite:true}})
-  const template=(await repo.manage({notes:select(original),action:'template',targetId:b,title:'项目小结'})).note!
-  assert.equal(template.current.sourceId,null);assert.equal(template.current.favorite,undefined);assert.equal((await repo.list({templates:true})).items.length,1);assert.equal((await repo.list()).items.length,1)
-  await repo.save({noteId:a,expectedHeads:original.heads,content:{...noteContent(original),body:'原笔记修改'}})
-  assert.match((await repo.get(b)).current.body,/标题/)
-  const created=(await repo.manage({notes:select(template),action:'instantiate',targetId:c,title:'本周',date:'2026-11-10'})).note!
-  assert.equal(created.current.body,'# 本周\n2026-11-10\n{{unknown}}');assert.deepEqual(created.current.attachments,[file]);assert.equal(created.current.isTemplate,false)
-  // Synchronize payload objects only after transferring content-addressed attachments.
-  await other.putAttachment(Buffer.from('pdf'),'资料.pdf');await other.importObjects(await repo.exportObjects());assert.equal((await other.get(b)).current.isTemplate,true)
-  await assert.rejects(repo.manage({notes:select(created),action:'instantiate',targetId:d,title:'非法',date:'2026-11-10'}))
-  assert.equal(fillTemplate('{{title}} {{标题}}','{{date}}','2026-11-10'),'{{date}} {{date}}')
+test('legacy templates remain ordinary notes with unchanged history, files and literal placeholders',async t=>{
+ const {repo}=await fixture(t),other=(await fixture(t)).repo,file=await repo.putAttachment(Buffer.from('pdf'),'资料.pdf'),book=await repo.saveNotebook({title:'旧资料',expectedHeads:[]})
+ const legacy=await repo.save({noteId:a,expectedHeads:[],content:{...content,isTemplate:true,notebookId:book.notebookId,body:'# {{标题}}\n{{date}}',attachments:[file]}})
+ assert.equal((await repo.list()).items.length,1);assert.equal((await repo.listNotebooks()).find(b=>b.notebookId===book.notebookId)?.noteCount,1)
+ assert.equal(Object.keys(unzipSync((await exportLibrary(repo,{})).bytes)).filter(n=>n.endsWith('.md')).length,1)
+ const copy=(await repo.manage({notes:select(legacy),action:'duplicate',targetId:b})).note!
+ assert.equal(copy.current.body,legacy.current.body);assert.equal(copy.current.isTemplate,undefined)
+ await assert.rejects(repo.manage({notes:select(legacy),action:'template',targetId:c}),{code:'note_schema'})
+ await assert.rejects(repo.manage({notes:select(legacy),action:'instantiate',targetId:c}),{code:'note_schema'})
+ await other.putAttachment(Buffer.from('pdf'),'资料.pdf');await other.importObjects(await repo.exportObjects())
+ assert.deepEqual((await other.get(a)).heads,legacy.heads);assert.deepEqual(await other.getAttachment(file.id),Buffer.from('pdf'))
+ await repo.deleteNotebook(book.notebookId,book.heads,undefined,{removal:'move',expectedNoteCount:2})
+ assert.notEqual((await repo.get(a)).effectiveNotebookId,book.notebookId);assert.equal((await repo.getRevision(a,legacy.current.revision)).body,legacy.current.body)
 })
-test('templates stay separate from notebook counts, removal and library export; explicit stale move destinations fail',async t=>{
-  const {repo}=await fixture(t),book=await repo.saveNotebook({title:'可移除本',expectedHeads:[]})
-  const original=await repo.save({noteId:a,expectedHeads:[],content:{...content,notebookId:book.notebookId}})
-  const template=(await repo.manage({notes:select(original),action:'template',targetId:b,title:'独立模板'})).note!
-  assert.equal((await repo.listNotebooks()).find(n=>n.notebookId===book.notebookId)?.noteCount,1)
-  assert.equal(Object.keys(unzipSync((await exportLibrary(repo,{})).bytes)).filter(n=>n.endsWith('.md')).length,1)
-  await repo.deleteNotebook(book.notebookId,book.heads,undefined,{removal:'move',expectedNoteCount:1})
-  assert.equal((await repo.get(b)).current.status,'active');assert.deepEqual((await repo.get(b)).heads,template.heads)
-  await assert.rejects(repo.manage({notes:select(await repo.get(a)),action:'move',notebookId:book.notebookId}),{code:'notebook_trashed'})
-  const long=await repo.save({noteId:c,expectedHeads:[],content:{...content,title:'长'.repeat(400)}})
-  const copy=(await repo.manage({notes:select(long),action:'duplicate',targetId:d})).note!
-  assert.ok(Buffer.byteLength(copy.current.title)<=1200);assert.match(copy.current.title,/副本/)
+
+test('pin and custom book order sync independently, append new books, and preserve document modification time',async t=>{
+ const {repo}=await fixture(t),other=(await fixture(t)).repo
+ const one=await repo.save({noteId:a,expectedHeads:[],content:{...content,title:'A'}}),two=await repo.save({noteId:b,expectedHeads:[],content:{...content,title:'B'}})
+ await repo.manage({notes:select(one),action:'favorite'});assert.equal((await repo.get(a)).savedAt,one.savedAt)
+ await repo.manage({notes:select(two),action:'pin'});assert.deepEqual((await repo.get(b)).heads,two.heads);assert.equal((await repo.list({order:'title-asc'})).items[0]?.noteId,b)
+ await repo.saveNotebook({title:'后建',expectedHeads:[]});const original=(await repo.listNotebooks()).map(b=>b.notebookId),ordered=[...original].reverse()
+ await repo.reorderNotebooks(ordered,original);await assert.rejects(repo.reorderNotebooks(original,original),{code:'note_conflict'})
+ const appended=await repo.saveNotebook({title:'最后追加',expectedHeads:[]});assert.deepEqual((await repo.listNotebooks()).map(b=>b.notebookId),[...ordered,appended.notebookId])
+ await other.importObjects(await repo.exportObjects());assert.equal((await other.get(b)).pinned,true);assert.deepEqual((await other.listNotebooks()).map(b=>b.notebookId),[...ordered,appended.notebookId])
+ await other.manage({notes:select(await other.get(b)),action:'unpin'});await repo.importObjects(await other.exportObjects());assert.equal((await repo.get(b)).pinned,false);assert.deepEqual((await repo.get(b)).heads,two.heads)
 })
-test('backlinks include actual and reference links, exclude code, unused definitions, images, trash and templates',async t=>{
+
+test('concurrent organization changes converge, later observed choices win, and missing events are rejected',()=>{
+ const base={version:1 as const,clock:1,recordedAt:'2026-11-15T00:00:00.000Z'}
+ const pin=createOrganization({...base,kind:'pin',noteId:a,pinned:true}),unpin=createOrganization({...base,kind:'pin',noteId:a,pinned:false})
+ const first=createOrganization({...base,kind:'book-order',ids:[a,b]}),second=createOrganization({...base,kind:'book-order',ids:[b,a]})
+ const left=mergeOrganization([pin,first],[unpin,second]),right=mergeOrganization([unpin,second],[pin,first])
+ assert.deepEqual(left,right);assert.deepEqual(organizationState(left),organizationState(right))
+ const later=createOrganization({...base,clock:2,kind:'pin',noteId:a,pinned:true})
+ assert.equal(organizationState(mergeOrganization(left,[later])).pins.get(a),true)
+ assert.throws(()=>validateOrganizationManifest(JSON.parse(organizationManifest(left)),left.slice(1),true),{code:'note_manifest'})
+ const corrupt={...pin,pinned:false};assert.throws(()=>mergeOrganization([corrupt]),{code:'note_hash'})
+})
+
+test('1,000 and 5,000 sorted notes keep pins first and pagination complete in all six orders',()=>{
+ for(const size of [1000,5000]){
+  const rows=Array.from({length:size},(_,i)=>{const id='01K000000000000000000'+String(i).padStart(5,'0');const at=new Date(Date.UTC(2026,0,1)+i*1000).toISOString();return {...materializeNote([createNoteRevision({version:1,noteId:id,parents:[],recordedAt:at,...content,title:`资料 ${size-i}`})],id),pinned:i%37===0}})
+  for(const order of ['recent','oldest','created-recent','created-oldest','title-asc','title-desc'] as const){
+   const ids:string[]=[];let cursor:string|null=null
+   do{const page=searchNotes(rows,{order,limit:100,...(cursor?{cursor}:{})});ids.push(...page.items.map(n=>n.noteId));cursor=page.cursor}while(cursor)
+   assert.equal(ids.length,size);assert.equal(new Set(ids).size,size)
+   const pinned=new Set(rows.filter(n=>n.pinned).map(n=>n.noteId));assert(ids.slice(0,pinned.size).every(id=>pinned.has(id)))
+  }
+ }
+})
+
+test('backlinks include actual and reference links, exclude code, unused definitions, images and trash',async t=>{
   assert.deepEqual([...linkedNotes(`[引用](fatfish-note:${a})\n\n\`[伪](fatfish-note:${b})\`\n\n[unused]: fatfish-note:${c}\n\n![图](fatfish-note:${d})`)], [a])
   assert.deepEqual([...linkedNotes(`[引用][id]\n\n[id]: fatfish-note:${a}`)],[a])
   const {repo}=await fixture(t);await repo.save({noteId:a,expectedHeads:[],content});const linked=await repo.save({noteId:b,expectedHeads:[],content:{...content,body:`[引用](fatfish-note:${a})`}})

@@ -4,6 +4,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import type { Nodes } from 'mdast'
 import { searchTerms } from '../contracts/search.js'
 
+const titleCollator=new Intl.Collator('zh-CN',{numeric:true})
 function excerpt(value:string):string {
   const words:string[]=[]
   function visit(node:Nodes) {
@@ -27,24 +28,23 @@ export function searchNotes(views: NoteView[], options: NoteListOptions = {}): N
   if (options.status && !['active', 'trashed', 'all'].includes(options.status)) fail()
   if (options.notebookId !== undefined && options.notebookId !== null) id(options.notebookId)
   const selected = views.filter(view => {
-    if (!options.order && !terms.length && !recent && cursor && view.noteId <= cursor) return false
     if (recent && !recent.includes(view.noteId)) return false
     const alternatives = [view.current, ...view.conflicts]
     return alternatives.some(r => (options.status === 'all' || r.status === (options.status ?? 'active')) &&
       (options.notebookId === undefined || options.notebookId === view.effectiveNotebookId) && (!options.tag || r.tags.includes(options.tag)) &&
-      (options.status === 'trashed' || !!r.isTemplate === !!options.templates) && (!options.favorite || r.favorite) &&
+      (!options.favorite || r.favorite) &&
       terms.every(term => [r.title, r.summary, ...r.tags, r.body].join('\n').toLocaleLowerCase().includes(term)))
   }).sort((a, b) => {
     const score = (v: NoteView) => terms.filter(term => v.current.title.toLocaleLowerCase().includes(term)).length
-    return score(b)-score(a) || (recent ? recent.indexOf(a.noteId)-recent.indexOf(b.noteId) : 0) || (options.order === 'recent' ? b.savedAt.localeCompare(a.savedAt) : options.order === 'oldest' ? a.savedAt.localeCompare(b.savedAt) : 0) || a.noteId.localeCompare(b.noteId)
+    return Number(!!b.pinned)-Number(!!a.pinned) || score(b)-score(a) || (recent ? recent.indexOf(a.noteId)-recent.indexOf(b.noteId) : 0) || (options.order === 'recent' ? b.savedAt.localeCompare(a.savedAt) : options.order === 'oldest' ? a.savedAt.localeCompare(b.savedAt) : options.order==='created-recent'?(b.createdAt??b.savedAt).localeCompare(a.createdAt??a.savedAt):options.order==='created-oldest'?(a.createdAt??a.savedAt).localeCompare(b.createdAt??b.savedAt):options.order==='title-asc'?titleCollator.compare(a.current.title,b.current.title):options.order==='title-desc'?titleCollator.compare(b.current.title,a.current.title):0) || a.noteId.localeCompare(b.noteId)
   })
-  const start=(options.order || terms.length || recent) && cursor ? selected.findIndex(note=>note.noteId===cursor)+1 : 0
+  const start=cursor ? selected.findIndex(note=>note.noteId===cursor)+1 : 0
   const page=selected.slice(start,start+limit)
   return {
     items: page.map(view => {
       const r=view.current, body=r.body.toLocaleLowerCase(), positions=terms.map(t=>body.indexOf(t)).filter(p=>p>=0), pos=positions.length?Math.min(...positions):0
       const snippet=terms.length&&positions.length?`${pos>60?'…':''}${excerpt(r.body.slice(Math.max(0,pos-60)))}`:excerpt(r.summary || r.body)
-      return { noteId: view.noteId, heads: view.heads, title: r.title, summary: r.summary, excerpt:snippet, tags: r.tags, notebookId: view.effectiveNotebookId, status: r.status, savedAt: view.savedAt, conflicted: view.conflicts.length > 0, ...(r.favorite!==undefined?{favorite:r.favorite}:{}), ...(r.isTemplate!==undefined?{isTemplate:r.isTemplate}:{}) }
+      return { noteId: view.noteId, heads: view.heads, title: r.title, summary: r.summary, excerpt:snippet, tags: r.tags, notebookId: view.effectiveNotebookId, status: r.status, savedAt: view.savedAt,createdAt:view.createdAt??view.savedAt,pinned:!!view.pinned, conflicted: view.conflicts.length > 0, ...(r.favorite!==undefined?{favorite:r.favorite}:{}), ...(r.isTemplate!==undefined?{isTemplate:r.isTemplate}:{}) }
     }),
     cursor: selected.length > start+limit ? page[page.length-1]!.noteId : null,
   }

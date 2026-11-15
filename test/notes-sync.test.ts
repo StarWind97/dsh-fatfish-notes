@@ -293,3 +293,22 @@ test('first sync must finish before admission; retry only initializes a confirme
     await resumed.sync.sync();assert.equal(resumed.sync.ready,true);assert.equal(JSON.parse(await f.show('notebook.json')).repositoryId,456)
   } finally {await f.close()}
 })
+
+
+test('organization sidecars converge over real Git without touching content, and corrupt records fail closed',async()=>{
+ const f=await fixture()
+ try{
+  const a=await f.instance('organize-a');await f.connect(a.sync)
+  const note=await a.notes.save({expectedHeads:[],content:content('正文保持原样')})
+  await a.notes.saveNotebook({title:'第二本',expectedHeads:[]});await a.sync.sync()
+  const b=await f.instance('organize-b');await f.connect(b.sync)
+  await a.notes.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:'pin'})
+  const ids=(await b.notes.listNotebooks()).map(n=>n.notebookId);await b.notes.reorderNotebooks([...ids].reverse(),ids)
+  await a.sync.sync();await b.sync.sync();await a.sync.sync()
+  assert.equal((await b.notes.get(note.noteId)).pinned,true);assert.deepEqual((await a.notes.listNotebooks()).map(n=>n.notebookId),[...ids].reverse());assert.deepEqual((await b.notes.get(note.noteId)).heads,note.heads)
+  const before=await f.show('notes/organization/manifest.json');assert.equal(JSON.parse(before).events.length,2)
+  await a.sync.sync();assert.equal(await f.show('notes/organization/manifest.json'),before)
+  const hash=JSON.parse(before).events[0];await f.edit(new Map([['notes/organization/'+hash+'.json','{}']]))
+  await assert.rejects(a.sync.sync(),{code:'note_sync_invalid'});assert.deepEqual((await a.notes.get(note.noteId)).heads,note.heads)
+ }finally{await f.close()}
+})

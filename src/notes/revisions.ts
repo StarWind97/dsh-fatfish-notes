@@ -62,10 +62,19 @@ function heads<T extends { revision: string; parents: string[] }>(rows: T[]): T[
 export function materializeNote(revisions: NoteRevision[], noteId: string): NoteView {
   id(noteId); const tips = heads(mergeNoteRevisions(revisions, []).filter(r => r.noteId === noteId)), current = tips.find(r => r.status === 'active') ?? tips[0]
   if (!current) fail('note_not_found', '笔记不存在')
-  return { noteId, heads: tips.map(r => r.revision), current, conflicts: tips.filter(r => r !== current), savedAt: current.recordedAt, effectiveNotebookId: current.notebookId }
+  const own=revisions.filter(r=>r.noteId===noteId),byHash=new Map(own.map(r=>[r.revision,r]))
+  let edited=current
+  // A favourite change is organization, not a change to the document. History stays intact.
+  while(edited.parents.length===1){const parent=byHash.get(edited.parents[0]!);if(!parent)break
+    const fields=[...new Set([...contentFields({...edited}),...contentFields({...parent})])].filter(k=>k!=='favorite'&&k!=='isTemplate')
+    if(!fields.every(k=>{const a=edited[k as keyof NoteRevision],b=parent[k as keyof NoteRevision];return a===b||a!==undefined&&b!==undefined&&canonical(a)===canonical(b)}))break
+    edited=parent
+  }
+  const createdAt=own.filter(r=>!r.parents.length).map(r=>r.recordedAt).sort()[0]??current.recordedAt
+  return { noteId, heads: tips.map(r => r.revision), current, conflicts: tips.filter(r => r !== current), savedAt: edited.recordedAt, createdAt, effectiveNotebookId: current.notebookId }
 }
 export function materializeNotebook(revisions: NotebookRevision[], notebookId: string): NotebookView {
   id(notebookId); const tips = heads(mergeNotebookRevisions(revisions, []).filter(r => r.notebookId === notebookId)), current = tips[0]
   if (!current) fail('notebook_not_found')
-  return { notebookId, heads: tips.map(r => r.revision), current, conflicts: tips.slice(1) }
+  return { notebookId, heads: tips.map(r => r.revision), current, conflicts: tips.slice(1),createdAt:revisions.filter(r=>r.notebookId===notebookId&&!r.parents.length).map(r=>r.recordedAt).sort()[0]??current.recordedAt }
 }

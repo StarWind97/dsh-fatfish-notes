@@ -32,6 +32,8 @@ export declare class NoteRepository {
     private run;
     private view;
     private notebook;
+    private organizationCache;
+    private organized;
     private books;
     private defaultBook;
     private ensureNotebooks;
@@ -126,6 +128,8 @@ export declare class NoteRepository {
     } | undefined>;
     /** A deterministic fork root and merge commit converge on every device, even after a retry. */
     private splitConflicts;
+    private writeOrganization;
+    reorderNotebooks(ids: string[], expected: string[], signal?: AbortSignal): Promise<void>;
     listNotebooks(signal?: AbortSignal): Promise<NotebookView[]>;
     saveNotebook(input: {
         notebookId?: string;

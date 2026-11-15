@@ -14,6 +14,3 @@ export function linkedNotes(body: string): Set<string> {
   }
   visit(tree);references.forEach(ref=>add(definitions.get(ref)??''));return ids
 }
-export function fillTemplate(value:string,title:string,date:string):string {
-  return value.replace(/\{\{(日期|date|标题|title)\}\}/g,(_,key:string)=>key==='日期'||key==='date'?date:title)
-}
