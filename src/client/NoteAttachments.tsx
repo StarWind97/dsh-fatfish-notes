@@ -7,6 +7,7 @@ import type {T} from './locale.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import {transferFiles} from './paper/file-input.js'
 export function fileSize(bytes:number){return bytes<1024*1024?`${(bytes/1024).toFixed(1)} KiB`:`${(bytes/1024/1024).toFixed(1)} MiB`}
+export function FileName({name}:{name:string}){const match=/^(.*)(\.[a-zA-Z0-9]{1,12})$/.exec(name);return <span className="paper-file-name" title={name}><span>{match?.[1]??name}</span>{match&&<span className="paper-file-suffix">{match[2]}</span>}</span>}
 export function attachmentUrl(note:NoteView,id:string){return `/dsh-fatfish-notes/notes/download?${new URLSearchParams({noteId:note.noteId,revision:note.current.revision,attachmentId:id})}`}
 export function AttachmentList({note,t,staticView=false}:{note:NoteView;t:T;staticView?:boolean}){return !!note.current.attachments?.length&&<section className="paper-attachments" aria-label={t('attachmentTitle')}><h3>{t('attachmentTitle')}</h3>{note.current.attachments.map(file=><a key={file.id} href={attachmentUrl(note,file.id)} download={file.name}><Paperclip size={16}/><span>{file.name}<small>{fileSize(file.bytes)}</small></span>{!staticView&&<><Download size={16}/><span>{t('attachmentDownload')}</span></>}</a>)}</section>}
 export function Supplements({content,note,t,edit,feedback,staticView=false}:{content:NoteContent;note?:NoteView|null;t:T;feedback?:React.ReactNode;staticView?:boolean|undefined;edit?:{disabled:boolean;add:()=>void;receive:(files:File[])=>void;insert:(id:string,image:boolean)=>void;remove:(id:string)=>void}}){
@@ -23,7 +24,7 @@ export function Supplements({content,note,t,edit,feedback,staticView=false}:{con
     <header><h3><Paperclip size={15}/>{t('supplementTitle')}{rows.length>0&&<small>{rows.length}</small>}</h3>{edit&&<button type="button" disabled={edit.disabled} aria-label={t('supplementAdd')} title={t('supplementAdd')} onClick={edit.add}><Plus size={15}/>{t('fileAddButton')}</button>}</header>
     {edit&&<p className="paper-supplement-hint">{t(rows.length?'supplementHint':'supplementEmpty')}</p>}
     {feedback}
-    {rows.map(f=><div className="paper-supplement-row" key={f.id}>{f.image?<Image size={17}/>:<Paperclip size={17}/>}<span>{f.name}{f.bytes!==null&&<small>{fileSize(f.bytes)}</small>}</span>
+    {rows.map(f=><div className="paper-supplement-row" key={f.id}>{f.image?<Image size={17}/>:<Paperclip size={17}/>}<span className="paper-file-meta"><FileName name={f.name}/>{f.bytes!==null&&<small>{fileSize(f.bytes)}</small>}</span>
       {edit?<div className="paper-supplement-actions"><button type="button" disabled={edit.disabled} title={t('supplementInsert')} aria-label={`${t('supplementInsert')}：${f.name}`} onMouseDown={e=>e.preventDefault()} onClick={()=>edit.insert(f.id,f.image)}><FileInput size={16}/></button><button type="button" disabled={edit.disabled} title={t('supplementRemove')} aria-label={`${t('supplementRemove')}：${f.name}`} onClick={()=>edit.remove(f.id)}><X size={16}/></button></div>:note&&!staticView&&<a title={t('attachmentDownload')} aria-label={`${t('attachmentDownload')}：${f.name}`} href={f.image?`/dsh-fatfish-notes/notes/asset?${new URLSearchParams({noteId:note.noteId,revision:note.current.revision,assetId:f.id})}`:attachmentUrl(note,f.id)} download={f.name}><Download size={16}/></a>}
     </div>)}
   </section>

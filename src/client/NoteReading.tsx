@@ -19,6 +19,6 @@ export function ReadingMeta({content,savedAt,t,allTags=false,toggleTags,onTagCli
 export function ReadingSummary({summary,t,query=''}:{summary:string;t:T;query?:string|undefined}){
   return summary?<section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><p><Highlight value={summary} query={query}/></p></label></section>:null
 }
-export function ReadingBody({note,t,...options}:Omit<React.ComponentProps<typeof NoteMarkdown>,'body'|'t'> & {t:T}){
-  return <><NoteMarkdown {...options} body={note.current.body} note={note} t={t}/><Supplements content={note.current} note={note} t={t} staticView={options.staticView}/></>
+export function ReadingBody({note,t,includeSupplements=true,...options}:Omit<React.ComponentProps<typeof NoteMarkdown>,'body'|'t'> & {t:T;includeSupplements?:boolean}){
+  return <><NoteMarkdown {...options} body={note.current.body} note={note} t={t}/>{includeSupplements&&<Supplements content={note.current} note={note} t={t} staticView={options.staticView}/>}</>
 }

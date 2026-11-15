@@ -10,13 +10,16 @@ import {SourceContent} from './NoteSource.js'
 import {paperCss} from './paper/style.js'
 import {transferCss} from './NoteAttachments.js'
 import {translate} from './locale.js'
+import {appearanceCss} from './paper/appearance-style.js'
+import {codeFontCss} from './paper/appearance-assets.js'
 
-export interface ReadingAppearance {theme:Record<string,string>;containerWidth:number;allTags:boolean}
+export interface ReadingAppearance {theme:Record<string,string>;containerWidth:number;allTags:boolean;attributes?:Record<string,string>}
 export interface ReadingImageOptions {width:number;pixelRatio:number;background:'current'|'light'|'dark'|'transparent';appearance?:ReadingAppearance|undefined}
 const variables=['--dsw-alias-label-primary','--dsw-alias-label-secondary','--dsw-alias-bg-layer-1','--dsw-alias-bg-layer-2','--dsw-alias-border-l2']
 export function readingAppearance(leaf:HTMLElement|null|undefined,allTags=false):ReadingAppearance {
-  const app=leaf?.closest('.paper-app')??document.documentElement,style=getComputedStyle(app)
-  return {theme:Object.fromEntries([...variables,'color-scheme'].map(key=>[key,style.getPropertyValue(key)])),containerWidth:app.getBoundingClientRect().width,allTags}
+  const app=leaf?.closest('.paper-app')??document.querySelector('.paper-app')??document.documentElement,style=getComputedStyle(app)
+  const extra=['--ink','--muted','--base','--paper','--shelf','--rule','--accent','--selected','--overlay','--input','--serif','--reading-font','--heading-font','--reading-size','--reading-leading','--code-size','--code-weight']
+  return {theme:Object.fromEntries([...variables,...extra,'color-scheme'].map(key=>[key,style.getPropertyValue(key)])),attributes:Object.fromEntries(['data-layout','data-theme','data-code-wrap','data-code-lines'].map(key=>[key,app.getAttribute(key)??''])),containerWidth:app.getBoundingClientRect().width,allTags}
 }
 function ready<T>(promise:Promise<T>,signal:AbortSignal):Promise<T>{
   signal.throwIfAborted()
@@ -37,20 +40,24 @@ export async function readingImage(value:ReadingSnapshot,options:ReadingImageOpt
   const holder=document.createElement('div');holder.className='paper-app';holder.setAttribute('aria-hidden','true');holder.inert=true
   Object.assign(holder.style,{position:'fixed',left:'-100000px',top:'0',height:'auto',display:'block',pointerEvents:'none',width:`${options.appearance?.containerWidth||width+48}px`})
   for(const [key,color] of Object.entries(options.appearance?.theme??{}))if(color)holder.style.setProperty(key,color)
+  for(const [key,value] of Object.entries(options.appearance?.attributes??{}))if(value)holder.setAttribute(key,value)
   if(options.background!=='current'&&options.background!=='transparent'||!options.appearance){
     const dark=options.background==='dark',colors=dark?['#e7e9ec','#a1a7b1','#202329','#2a2e35','#424851']:['#20242b','#68717e','#ffffff','#f3f5f7','#dce1e6']
     variables.forEach((key,i)=>holder.style.setProperty(key,colors[i]!));holder.style.colorScheme=dark?'dark':'light'
+    for(const [i,key] of ['--ink','--muted','--paper','--shelf','--rule'].entries())holder.style.setProperty(key,colors[i]!)
+    holder.style.setProperty('--base',colors[2]!);holder.setAttribute('data-theme',dark?'dark':'light')
   }
   document.body.append(holder);const root=createRoot(holder),canvas=document.createElement('canvas')
   try {
     const assetUrl=(id:string)=>{const url=value.assets[id];if(!url)throw new ExportError('export_image_missing');return url}
-    flushSync(()=>root.render(<><style>{paperCss+transferCss}</style><div className="paper-detail" style={{width:width+48,display:'block',height:'auto',overflow:'visible'}}><div data-export-viewport style={{width:width+48,overflow:'hidden',position:'relative',background:options.background==='transparent'?'transparent':'var(--paper)'}}><div data-export-content style={{padding:24,width:width+48,display:'flow-root'}}><section className="paper-leaf" style={{width,maxWidth:'none',margin:0}}>
+    flushSync(()=>root.render(<><style>{paperCss+transferCss+appearanceCss}</style><div className="paper-detail" style={{width:width+48,display:'block',height:'auto',overflow:'visible'}}><div data-export-viewport style={{width:width+48,overflow:'hidden',position:'relative',background:options.background==='transparent'?'transparent':'var(--paper)'}}><div data-export-content style={{padding:24,width:width+48,display:'flow-root'}}><section className="paper-leaf" style={{width,maxWidth:'none',margin:0}}>
       <ReadingTitle title={value.note.current.title} t={translate}/><ReadingMeta content={value.note.current} savedAt={value.note.savedAt} t={translate} allTags={options.appearance?.allTags??false}/><ReadingSummary summary={value.note.current.summary} t={translate}/>
       <article className="paper-reading"><ReadingBody note={value.note} t={translate} staticView assetUrl={assetUrl}/></article>
       {value.source&&<div className="paper-source"><h2>{translate('notesSource')}</h2><SourceContent source={value.source} staticView note={value.note} t={translate} assetUrl={assetUrl}/></div>}
     </section></div></div></div></>))
     await ready(document.fonts.ready,signal)
     await ready(Promise.all([...holder.querySelectorAll('img')].map(img=>img.decode())),signal)
+    await ready(new Promise<void>(resolve=>{const check=()=>{if(!holder.querySelector('[data-highlight=pending]'))resolve();else setTimeout(check,30)};check()}),signal)
     signal.throwIfAborted()
     // A horizontally scrolled table must never silently lose columns in an export.
     if([...holder.querySelectorAll('table')].some(table=>table.scrollWidth>table.clientWidth+1))throw new ExportError('export_reading_width')
@@ -59,7 +66,7 @@ export async function readingImage(value:ReadingSnapshot,options:ReadingImageOpt
     checkPixels(outputWidth,height,pixelRatio)
     for(const node of [viewport,...viewport.querySelectorAll<HTMLElement>('*')])node.setAttribute('data-export-font',getComputedStyle(node).fontSize)
     viewport.style.height=height+'px'
-    const svg=await toSvg(viewport,{width:outputWidth,height,fontEmbedCSS:'',skipAutoScale:true,includeQueryParams:true,cacheBust:false,filter:node=>node.nodeName!=='STYLE'})
+    const svg=await toSvg(viewport,{width:outputWidth,height,fontEmbedCSS:codeFontCss,skipAutoScale:true,includeQueryParams:true,cacheBust:false,filter:node=>node.nodeName!=='STYLE'})
     signal.throwIfAborted();const image=new Image()
     const loaded=new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new ExportError('export_image_decode'))})
     image.decoding='async';image.src=restoreCaptureFonts(svg)

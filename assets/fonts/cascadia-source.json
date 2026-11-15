@@ -1,0 +1,11 @@
+{
+  "package": "@fontsource-variable/cascadia-code",
+  "version": "5.3.0",
+  "packageFile": "files/cascadia-code-latin-wght-normal.woff2",
+  "source": "https://registry.npmjs.org/@fontsource-variable/cascadia-code/-/cascadia-code-5.3.0.tgz",
+  "sha256": "a3018c0c6b4ed21b123349cc6c8d4d35d32cb11f91fe5e960aa4886eb27a9209",
+  "bytes": 48600,
+  "license": "OFL-CascadiaCode.txt",
+  "licenseSha256": "18aabf190848725e2576eefb5c29ba06aac1029d02132252a7f312eac2e50cf3",
+  "variant": "Original Latin variable font, unchanged; other characters use the system fallback."
+}

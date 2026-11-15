@@ -14,6 +14,8 @@ import {WorkspaceNotice,WindowButton} from './WorkspaceNotice.js'
 import {bindLibraryLifecycle} from './library-lifecycle.js'
 import {notesCss} from './notes-style.js'
 import {paperCss} from './paper/style.js'
+import {AppearanceSettings,AppearanceStyle,useAppearanceProps} from './paper/appearance.js'
+import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {organizationCss} from './organization-style.js'
 import {transferCss} from './NoteAttachments.js'
 import {WorkspaceBookDialog} from './WorkspaceBookDialog.js'
@@ -34,6 +36,7 @@ import type {NoteListItem,NotesApiContract} from '../contracts/notes.js'
 type Group='linked'|'workspace'|'find'
 export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,useInput,bridge,t}:PropsRuntime<'sidebar.right.pane.tab'>&{bridge:NoteCaptureBridge;t:T}){
   const {tab}=useTabInfo(),removed=useSession((s:{removed:boolean})=>s.removed)
+  const appearance=useAppearanceProps(),[appearanceOpen,setAppearanceOpen]=useState(false)
   const pair=useMemo(()=>{
     const workspace=new NotesWorkspace('conversation',undefined,String(tab.id))
     const controller=new NotesController(workspace.api,{stableList:true,editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
@@ -44,6 +47,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   const [context,setContext]=useState<NotesApiContract['/notes/session-context']['response']|null>(null),[contextFailed,setContextFailed]=useState(false)
   const [book,setBook]=useState<string|null>(null),[booksOpen,setBooksOpen]=useState(false),[setup,setSetup]=useState<'new'|'workspace'|null>(null),[linking,setLinking]=useState<Set<string>>(()=>new Set())
   const root=useRef<HTMLElement>(null),pendingLinks=useRef(new Set<string>())
+  const noteTabs=useNoteTabs(controller,state,root)
   const [narrow,setNarrow]=useState(false)
   useLayoutEffect(()=>{const el=root.current;if(!el)return;let prior:boolean|undefined;const observer=new ResizeObserver(([entry])=>{const next=entry!.contentRect.width<=520;if(next!==prior){prior=next;setNarrow(next);setBooksOpen(false)}});observer.observe(el);return()=>observer.disconnect()},[])
   useEffect(()=>{if(!narrow||!booksOpen)return;const outside=(e:PointerEvent)=>{if(!(e.target as HTMLElement).closest('.conversation-books,.conversation-browse-caption'))setBooksOpen(false)};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[narrow,booksOpen])
@@ -103,13 +107,15 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
   useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,reading,tab.visible])
   function resize(value:number){const width=Math.max(160,Math.min(340,value));setBookWidth(width);try{localStorage.setItem('fatfish-sidebar-books-width',String(width))}catch{}}
   function sideBookActions(b:typeof books[number]){return [...actions.bookActions(b).map(a=>a.label===t('notesNew')?{...a,run:()=>void create(b.notebookId)}:a),...(context?.workspace?[{label:'设为当前工作区默认笔记本',disabled:b.notebookId===mapped||state.operation,run:()=>{setSetupBook(b.notebookId);setSetup('workspace')}}]:[])]}
-  return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(narrow&&booksOpen){e.stopPropagation();setBooksOpen(false)}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId}>
+  return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(narrow&&booksOpen){e.stopPropagation();setBooksOpen(false)}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
     <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+sidebarFollowupCss+referenceListCss}</style>
+    <AppearanceStyle/>{appearanceOpen&&<PaperDialog title="外观与阅读" closeLabel={t('paperClose')} onClose={()=>setAppearanceOpen(false)}><div className="paper-dialog-content"><AppearanceSettings/></div></PaperDialog>}
     {actions.dialogs}{reference.dialogs}
     {showChosen&&<PaperDialog title={`已选 ${chosen.length} 篇笔记`} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={`移除选择：${row.title}`} title="移除选择" onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>尚未选择笔记。</p>}</div><footer><button onClick={()=>setShowChosen(false)}>继续选择</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>引用所选</button></footer></PaperDialog>}
     {setup&&<WorkspaceBookDialog mode={setup} workspace={context?.workspace??null} mapped={mapped} initialSelected={setup==='workspace'?setupBook:null} controller={controller} state={state} t={t} close={()=>{setSetup(null);setSetupBook(null)}} changed={mappedBook}/>}
-    <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void back()}><ArrowLeft size={16}/></button>:<BookOpen size={17}/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
+    <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void back()}><ArrowLeft size={16}/></button>:<BookOpen size={17}/>}<span>{t('sessionNotes')}</span></strong><span><button title="外观与阅读" aria-label="外观与阅读" onClick={()=>setAppearanceOpen(true)}><Settings size={17}/></button><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
     <WorkspaceNotice workspace={workspace} t={t}/>
+    <NoteTabBar controller={controller} state={state} {...noteTabs} onSelect={()=>{setReading(true);setGroup('find');setQuery('');setBook(controller.getSnapshot().note?.effectiveNotebookId??'all')}}/>
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
@@ -131,7 +137,7 @@ export function ConversationNotes({sessionId,useSession,useTabInfo,inputActions,
           {!canBrowse?<p className="conversation-empty">{t('sessionChooseBookHint')}</p>:state.listError?<p role="alert">{t('sessionLoadFailed')}</p>:!state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='find'||group==='workspace'?'notesEmpty':'sessionEmpty')}</p>:state.items.map(item=>{
             const selected=chosen.some(row=>row.noteId===item.noteId)
             return <article key={item.noteId} data-selected={selected&&selecting}>
-              <NoteSelectionRow selecting={selecting} selected={selected} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void open(item.noteId)} actions={[
+              <NoteSelectionRow selecting={selecting} selected={selected} current={item.noteId===state.noteId} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void open(item.noteId)} actions={[
                 {label:'引用到当前会话',disabled:!reference.enabled,run:()=>reference.open([item])},
                 {label:'加入多选',disabled:!!removed,run:()=>{setSelecting(true);if(!selected)toggleChosen(item)}},
                 ...(item.sessionRelation==='source'?[]:[{label:t(item.sessionRelation?'sessionDissociate':'sessionAssociate'),run:()=>void associate(item,!item.sessionRelation),disabled:linking.has(item.noteId)||!!removed}]),...actions.noteActions(item)

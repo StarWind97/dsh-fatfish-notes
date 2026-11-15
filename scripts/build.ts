@@ -2,13 +2,22 @@ import { mkdir, readFile, rm, writeFile, lstat,copyFile } from 'node:fs/promises
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
-import { build } from 'esbuild'
+import { build, type Plugin } from 'esbuild'
 import ts from 'typescript'
+
+const appearanceAssets:Plugin={name:'appearance-assets',setup(builder){
+  builder.onResolve({filter:/^fatfish:highlight-worker$/},args=>({path:join(args.resolveDir,'code-worker.ts'),namespace:'fatfish'}))
+  builder.onLoad({filter:/.*/,namespace:'fatfish'},async args=>{
+    const result=await build({entryPoints:[args.path],bundle:true,write:false,format:'iife',platform:'browser',target:'es2022',minify:true})
+    return {contents:`export default ${JSON.stringify(result.outputFiles[0]!.text)}`,loader:'js'}
+  })
+}}
 
 export async function buildClient(entry: string, outfile: string): Promise<void> {
   await build({
     entryPoints: [entry], outfile, bundle: true, format: 'cjs', platform: 'browser',
     target: 'es2022', jsx: 'automatic',
+    plugins:[appearanceAssets],loader:{'.woff2':'dataurl'},
     // The portable entity decoder keeps the lazy factory DOM independent.
     // Its browser shortcut creates a document element during module loading.
     alias: {'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')},
@@ -56,7 +65,7 @@ export async function buildProject(root = process.cwd()): Promise<void> {
   buildHost(root)
   const client = join(root, 'src/client/index.tsx')
   await buildClient(client, join(root, 'lib/client.js'))
-  await build({entryPoints:[join(root,'src/client/standalone.tsx')],outfile:join(root,'lib/standalone.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',jsx:'automatic',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
+  await build({entryPoints:[join(root,'src/client/standalone.tsx')],outfile:join(root,'lib/standalone.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',jsx:'automatic',plugins:[appearanceAssets],loader:{'.woff2':'dataurl'},alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
   await build({entryPoints:[join(root,'src/client/import-worker.ts')],outfile:join(root,'lib/import-worker.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
   await build({entryPoints:[join(root,'src/client/document-worker.ts')],outfile:join(root,'lib/document-worker.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
   await copyFile(join(root,'src/host/focus-window.ps1'),join(root,'lib/host/focus-window.ps1'))

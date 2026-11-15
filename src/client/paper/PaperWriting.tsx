@@ -1,9 +1,11 @@
 import * as React from 'react'
+import {createPortal} from 'react-dom'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Compartment, EditorState, Transaction } from '@codemirror/state'
 import { EditorView, keymap, drawSelection } from '@codemirror/view'
 import { history, historyField, historyKeymap, defaultKeymap, redo, isolateHistory } from '@codemirror/commands'
 import { markdown, markdownKeymap, markdownLanguage } from '@codemirror/lang-markdown'
+import {codeLanguages,codeHighlight} from './code-languages.js'
 import { search, searchKeymap } from '@codemirror/search'
 import type { NotesController,NotesState } from '../notes-controller.js'
 import { resolveNoteImage } from '../NoteMarkdown.js'
@@ -30,7 +32,7 @@ import type { WritingNavigation } from './use-outline.js'
 
 const undoHistory=(state:EditorState)=>state.field(historyField)
 export interface UndoSnapshot{body:string;history:ReturnType<typeof undoHistory>}
-interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;navigation?:React.Ref<WritingNavigation>;presentation?:ImagePresentation|null;presentationHandled?:()=>void;done:(pos:number,y:number)=>void}
+interface Props{controller:NotesController;state:NotesState;t:T;start:number;anchorY:number|undefined;undo:React.MutableRefObject<UndoSnapshot|null>;complete:React.MutableRefObject<(()=>void)|null>;navigation?:React.Ref<WritingNavigation>;presentation?:ImagePresentation|null;presentationHandled?:()=>void;done:(pos:number,y:number)=>void;supplementTarget?:HTMLElement|null}
 interface LinkFields{from:number;to:number;label:string;url:string}
 interface FileBatch{files:File[];destination:FileDestination;at:{from:number;to:number};original:string;view:EditorView}
 function writingEdge(pane:HTMLElement){
@@ -237,7 +239,7 @@ export function PaperWriting(props:Props){
     const shortcuts=Object.entries({'Mod-b':'bold','Mod-i':'italic','Mod-k':'link',Tab:'indent','Shift-Tab':'outdent'} as const).map(([key,action])=>({key,run:(v:EditorView)=>action==='link'?(openLink(),true):format(v,action,t('paperText'))}))
     const doc=editorText(body),start=editorOffset(body,Math.min(props.start,body.length))
     const view=new EditorView({parent:el,state:EditorState.create({doc,selection:{anchor:start},extensions:[
-      markdown({base:markdownLanguage}),history(),supplementHistory,supplementField.init(()=>supplementMaterials(state.draft!)),...(props.undo.current?.body===body?[historyField.init(()=>props.undo.current!.history)]:[]),editability.current.of([]),search({top:true}),keymap.of([...shortcuts,{key:'Mod-Shift-z',run:redo},...searchKeymap,...markdownKeymap,...defaultKeymap,...historyKeymap]),drawSelection(),EditorView.lineWrapping,
+      markdown({base:markdownLanguage,codeLanguages}),codeHighlight,history(),supplementHistory,supplementField.init(()=>supplementMaterials(state.draft!)),...(props.undo.current?.body===body?[historyField.init(()=>props.undo.current!.history)]:[]),editability.current.of([]),search({top:true}),keymap.of([...shortcuts,{key:'Mod-Shift-z',run:redo},...searchKeymap,...markdownKeymap,...defaultKeymap,...historyKeymap]),drawSelection(),EditorView.lineWrapping,
       EditorState.phrases.of(t('paperDone')==='完成'?{Find:'查找',Replace:'替换',next:'下一个',previous:'上一个',all:'全选匹配',replace:'替换','replace all':'全部替换','match case':'区分大小写',regexp:'正则表达式','by word':'全词',close:'关闭'}:{}),
       EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')],{label:t('imagePresentation'),open:(position,x,y)=>openImageMenu(position,{x,y})}),
       EditorView.domEventHandlers({contextmenu(event,v){const pos=v.posAtCoords({x:event.clientX,y:event.clientY});if(pos!==null&&openImageMenu(pos,{x:event.clientX,y:event.clientY})){event.preventDefault();return true}return false},paste(event,v){
@@ -329,6 +331,6 @@ export function PaperWriting(props:Props){
       <label>{t('paperLinkUrl')}<input autoFocus required value={link.url} onChange={e=>setLink({...link,url:e.target.value})}/></label>
       <button type="button" aria-expanded={noteSearch} onClick={()=>setNoteSearch(!noteSearch)}>{t('linkNote')}</button>{noteSearch&&<div><input aria-label={t('linkSearch')} placeholder={t('linkSearch')} value={noteQuery} onChange={e=>setNoteQuery(e.target.value)}/><div className="paper-note-results">{noteResults.map(n=><button type="button" key={n.noteId} onClick={()=>{setLink({...link,label:n.title,url:'fatfish-note:'+n.noteId});setNoteSearch(false)}}>{n.title}</button>)}</div></div>}<button type="submit">{t('paperLinkApply')}</button><button type="button" onClick={()=>{setLink(null);editor.current?.focus()}}>{t('cancel')}</button></form>}
     <div className="paper-writing" ref={mount} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}/>
-    <Supplements feedback={fileFeedback.destination==='supplement'?fileStatus:null} content={state.draft!} note={state.note} t={t} edit={{disabled:!controller.writable||state.operation||state.loadingNote,receive:files=>chooseAttachments(files,'supplement'),add:()=>{fileDestination.current='supplement';controller.imagePickerOpen=true;attachmentPicker.current?.click()},insert:(id,image)=>void insertSupplement(id,image),remove:id=>{keep.current.delete(id);controller.update({supplements:withoutSupplement(controller.getSnapshot().draft!,id)})}}}/>
+    {props.supplementTarget&&createPortal(<Supplements feedback={fileFeedback.destination==='supplement'?fileStatus:null} content={state.draft!} note={state.note} t={t} edit={{disabled:!controller.writable||state.operation||state.loadingNote,receive:files=>chooseAttachments(files,'supplement'),add:()=>{fileDestination.current='supplement';controller.imagePickerOpen=true;attachmentPicker.current?.click()},insert:(id,image)=>void insertSupplement(id,image),remove:id=>{keep.current.delete(id);controller.update({supplements:withoutSupplement(controller.getSnapshot().draft!,id)})}}}/>,props.supplementTarget)}
   </>
 }

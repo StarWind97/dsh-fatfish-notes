@@ -2,6 +2,10 @@
 
 纸页编辑器把 CodeMirror、Lezer、Lucide 和 Markdown 渲染依赖打入 Client factory，React 继续使用宿主实例。这些编辑器依赖的版本、版权声明和许可证收录于 [paper-client.txt](assets/licenses/paper-client.txt)。具体版本以锁文件为准。
 
+阅读代码高亮使用 Shiki 4.6.0 的细粒度模块、JavaScript 正则引擎及 GitHub 明暗主题；编辑器新增 CodeMirror 语言模块。此次新增依赖及其依赖链的版权和完整许可见 [code-highlighting.txt](assets/licenses/code-highlighting.txt)，精确版本见 package-lock.json。语法资源随包提供，不访问远程高亮服务。
+
+代码字体另带原版 Cascadia Code Latin 可变字库，取自 `@fontsource-variable/cascadia-code@5.3.0`，48,600 字节；SIL OFL 1.1，版权及完整许可见 [OFL-CascadiaCode.txt](assets/fonts/OFL-CascadiaCode.txt)，来源与哈希见 [cascadia-source.json](assets/fonts/cascadia-source.json)。字库内容未修改，也不安装系统字体；中文等未覆盖字符使用系统回退字体。
+
 Markdown 导入另外使用 YAML 2.9.1 解析基础属性，按 ISC 许可证分发；版权和完整许可证见 [yaml-ISC.txt](assets/licenses/yaml-ISC.txt)，项目为 [eemeli/yaml](https://github.com/eemeli/yaml)。
 
 导出使用锁定依赖，包括 PDFKit 0.20.2、html-to-image 1.11.13、fflate 0.8.3、mdast-util-gfm-table 2.0.0、micromark-extension-gfm-table 2.1.1（均 MIT）；开发类型 @types/pdfkit 0.17.7（MIT）。后两项为既有 mdast-util-from-markdown 增加 GFM 管道表格解析，不启用 HTML。上述五项运行依赖的完整版权与 MIT 许可证另存于随包的 `assets/licenses/*-MIT.txt`；完整依赖树及各依赖自身许可证随 npm 依赖分发，具体锁定见 package-lock.json。

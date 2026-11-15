@@ -3,6 +3,8 @@ import { StateField, StateEffect, type EditorState } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType } from '@codemirror/view'
 import type { SyntaxNode } from '@lezer/common'
 import {copyCode} from './CopyCode.js'
+import {highlightCode} from './CodeBlock.js'
+const previewCleanup=new WeakMap<HTMLElement,()=>void>()
 
 export const refreshMedia=StateEffect.define<void>()
 class Preview extends WidgetType {
@@ -15,8 +17,13 @@ class Preview extends WidgetType {
       if(this.media){const media=this.media;el=document.createElement('span');el.className='paper-presented-media is-image';el.append(img);const button=document.createElement('button');button.type='button';button.className='paper-media-more';button.textContent='⋯';button.title=media.label;button.setAttribute('aria-label',media.label);button.setAttribute('aria-haspopup','menu');button.onmousedown=e=>{e.preventDefault();e.stopPropagation()};button.onclick=e=>{e.preventDefault();e.stopPropagation();const r=button.getBoundingClientRect();media.open(view.posAtDOM(el),r.left,r.bottom)};el.append(button)}
     }else if(this.type==='code'){
       el=document.createElement('div');el.className='paper-code'
-      if(this.extra){const label=document.createElement('small');label.textContent=this.extra;el.append(label)}
+      if(this.extra){const label=document.createElement('small');label.className='paper-code-label';label.textContent=this.extra;el.append(label)}
       const pre=document.createElement('pre');pre.textContent=this.value;el.append(pre)
+      const app=view.dom.closest('[data-theme]');let generation=0,alive=true
+      const color=()=>{const request=++generation;void highlightCode(this.value,this.extra,app?.getAttribute('data-theme')==='dark').then(tokens=>{
+        if(!alive||request!==generation||!tokens)return
+        const code=document.createElement('code');for(const line of tokens){const row=document.createElement('span');row.className='paper-code-line';for(const token of line){const span=document.createElement('span');span.textContent=token.content;if(token.color)span.style.color=token.color;row.append(span)}code.append(row)}pre.replaceChildren(code);view.requestMeasure()
+      })};color();const observer=new MutationObserver(color);if(app)observer.observe(app,{attributes:true,attributeFilter:['data-theme']});previewCleanup.set(el,()=>{alive=false;observer.disconnect()})
       const copy=document.createElement('button');copy.type='button';copy.className='paper-copy-code';copy.title=this.copyLabels[0]??'Copy code';copy.setAttribute('aria-label',copy.title)
       copy.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg>'
       const feedback=document.createElement('span');feedback.setAttribute('role','status');copy.append(feedback)
@@ -33,6 +40,7 @@ class Preview extends WidgetType {
     el.onmousedown=e=>{if((e.target as HTMLElement).closest('button'))return;e.preventDefault();view.dispatch({selection:{anchor:view.posAtDOM(el)+(this.type==='image'?1:0)}});view.focus()};return el
   }
   ignoreEvent(event:Event){return !!(event.target as HTMLElement)?.closest?.('.paper-copy-code,.paper-media-more')}
+  destroy(dom:HTMLElement){previewCleanup.get(dom)?.();previewCleanup.delete(dom)}
 }
 
 export function livePreview(imageUrl:(path:string)=>string|null,taskLabel:string,copyLabels:readonly string[]=[],media?:{label:string;open:(position:number,x:number,y:number)=>void}){

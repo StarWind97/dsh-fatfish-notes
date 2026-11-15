@@ -71,6 +71,7 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing,sessi
   },[root,writing,headings,open,editing,sourceOpen,wide])
   function toggle(){change(!open)}
   function close(){change(false);trigger.current?.focus({preventScroll:true})}
+  function hide(){change(false)}
   function jump(position:number){
     if(editing){
       if(parsedBody!==body||composing)return
@@ -83,5 +84,5 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing,sessi
     }
     setActive(position)
   }
-  return {open,wide,headings,active,trigger,edge,panel,toggle,close,jump,busy:editing&&(parsedBody!==body||composing)}
+  return {open,wide,headings,active,trigger,edge,panel,toggle,close,hide,jump,busy:editing&&(parsedBody!==body||composing)}
 }

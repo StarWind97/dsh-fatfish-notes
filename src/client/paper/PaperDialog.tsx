@@ -2,11 +2,13 @@ import * as React from 'react'
 import { useId, useLayoutEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { dialogCss } from './dialog-style.js'
+import {AppearanceStyle,useAppearanceProps} from './appearance.js'
 
 export function PaperDialog({ title, closeLabel, onClose, onCancel, locked = false, children, className='' }: {
   title:string; closeLabel:string; onClose:()=>void; onCancel?:()=>void; locked?:boolean; children:React.ReactNode; className?:string
 }) {
   const ref = useRef<HTMLDialogElement>(null), titleId = useId()
+  const appearance=useAppearanceProps()
   useLayoutEffect(() => {
     const el = ref.current!
     el.showModal()
@@ -18,9 +20,9 @@ export function PaperDialog({ title, closeLabel, onClose, onCancel, locked = fal
       (dialog.querySelector<HTMLElement>('button:not(:disabled)') ?? dialog).focus({preventScroll:true})
     }
   })
-  return <dialog tabIndex={-1} ref={ref} className={`paper-dialog ${className}`.trim()} aria-labelledby={titleId}
+  return <dialog tabIndex={-1} ref={ref} className={`paper-dialog ${className}`.trim()} aria-labelledby={titleId} {...appearance}
     onCancel={event=>{event.preventDefault();if(!locked)(onCancel??onClose)()}}>
-    <style>{dialogCss}</style><header><h2 id={titleId}>{title}</h2><button type="button" aria-label={closeLabel} disabled={locked} onClick={onClose}><X size={18}/></button></header>
+    <style>{dialogCss}</style><AppearanceStyle/><header><h2 id={titleId}>{title}</h2><button type="button" aria-label={closeLabel} disabled={locked} onClick={onClose}><X size={18}/></button></header>
     {children}
   </dialog>
 }

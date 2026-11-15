@@ -137,7 +137,8 @@ export class NotesWorkspace implements EditAccess {
 }
 
 function readTheme():WindowTheme|undefined {
-  const root=document.querySelector<HTMLElement>('.paper-app')??document.documentElement
+  // Host appearance must not be sampled from the plugin's independent palette.
+  const root=document.body
   const style=getComputedStyle(root)
   const color=(key:string,fallback:string)=>{const probe=document.createElement('span');probe.style.color=`var(${key},${fallback})`;root.append(probe);const value=getComputedStyle(probe).color;probe.remove();return value}
   const background=color('--dsw-alias-bg-layer-1','#ffffff'),foreground=color('--dsw-alias-label-primary','#202124')

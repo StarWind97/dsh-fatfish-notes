@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+2026-11-15 最新交付：[界面主题、阅读排版与工作区规划](plans/2026-11-15-appearance-reading-workspace.zh.md)已完成，见[验证与隔离体验](plans/2026-11-15-appearance-reading-workspace-results.zh.md)及[分轮记录](plans/2026-11-15-appearance-reading-workspace-worklog.zh.md)。八主题、十配色、代码与阅读、资料面板、临时标签已落到三种实际入口；366 项全量及收尾 25 项专项通过，原隔离入口已更新，未发布。
+
 2026-11-14 最新交付：[导出完成、失败与取消交互规划](plans/2026-11-14-export-completion.zh.md)已完成，见[验证与体验](plans/2026-11-14-export-completion-results.zh.md)。四类导出发起下载后关闭并轻提示，失败保留参数，生成中可取消；正文/列表共用提示，图片明确区分当前阅读宽度与默认 740 px。35 项相关测试及三种界面实际验收通过，原隔离入口已更新，未发布。
 
 2026-11-14 前序交付：[移除分页图片导出规划](plans/2026-11-14-single-image-export.zh.md)已完成，见[验证与体验](plans/2026-11-14-single-image-export-results.zh.md)。图片只输出单张 PNG，PDF 文档分页和 Markdown 资源包保持；35 项相关测试及主界面、独立窗口、会话侧栏实际验收通过，原隔离入口已更新，未发布。网页导出只记为候选，暂不开发。

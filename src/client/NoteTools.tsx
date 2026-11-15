@@ -48,7 +48,7 @@ export function ReuseDialog({state,controller,t,close,mode}:{state:NotesState;co
     </div><footer><button disabled={busy} onClick={close}>{t('cancel')}</button><button className="paper-primary" disabled={busy||!title.trim()||!book||mode==='instantiate'&&!selected} onClick={()=>void run()}>{t(mode==='template'?'reuseSaveTemplate':'reuseCreate')}</button></footer></PaperDialog>
 }
 
-export function Backlinks({note,t,open,refreshToken}:{note:NoteView;t:T;open:(id:string)=>void;refreshToken?:unknown}) {
+export function Backlinks({note,t,open,refreshToken,onTotal}:{note:NoteView;t:T;open:(id:string)=>void;refreshToken?:unknown;onTotal?:(total:number|null)=>void}) {
   const [expanded,setExpanded]=useState(true),[items,setItems]=useState<NoteListItem[]>([]),[total,setTotal]=useState<number|null>(null)
   const [cursor,setCursor]=useState<string|null>(null),[error,setError]=useState(false),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0)
   const active=React.useRef<AbortController|null>(null)
@@ -59,6 +59,7 @@ export function Backlinks({note,t,open,refreshToken}:{note:NoteView;t:T;open:(id
   async function more(){if(!cursor||loading)return;const c=new AbortController();active.current=c;setLoading(true);setError(false)
     try{const r=await api('/notes/backlinks',{noteId:note.noteId,cursor},c.signal);if(c.signal.aborted)return;setItems(old=>[...old,...r.items.filter(item=>!old.some(v=>v.noteId===item.noteId))]);setTotal(r.total);setCursor(r.cursor)}catch{if(!c.signal.aborted)setError(true)}finally{if(!c.signal.aborted)setLoading(false)}
   }
+  useEffect(()=>{onTotal?.(error?null:total)},[total,error,onTotal])
   if(total===0&&!loading&&!error)return null
   return <section className="paper-backlinks" aria-label={t('reuseBacklinks')} aria-busy={loading}><button aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}><Link2 size={15}/>{t('reuseBacklinks')}{total!==null&&` · ${total}`}</button>
     {loading&&total===null&&<p role="status">{t('loading')}</p>}{error&&<p role="alert">{t('organizeFailed')} <button onClick={()=>setRetry(n=>n+1)}>{t('noteRetry')}</button></p>}

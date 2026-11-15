@@ -122,7 +122,7 @@ test('complete builds remove stale output, keep Host and Client separate, and re
   }
   try {
     const root = fileURLToPath(new URL('../', import.meta.url))
-    for (const path of ['src', 'locale', 'package.json', 'tsconfig.base.json', 'tsconfig.host.json']) await cp(join(root, path), join(temp, path), { recursive: true })
+    for (const path of ['src', 'locale', 'assets/fonts/CascadiaCode-Latin-VF.woff2', 'package.json', 'tsconfig.base.json', 'tsconfig.host.json']) await cp(join(root, path), join(temp, path), { recursive: true })
     await mkdir(join(temp, 'lib/stale'), { recursive: true })
     await writeFile(join(temp, 'lib/stale/legacy.js'), 'throw new Error("stale output")')
     await writeFile(join(temp, 'lib/legacy.d.ts'), 'declare const fake: unknown')

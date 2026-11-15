@@ -1,3 +1,4 @@
+import './paper/appearance-boot.js'
 import {TransferProgress} from './TransferProgress.js'
 import * as React from 'react'
 import type { Context } from '@deepseek-ai/cordis'

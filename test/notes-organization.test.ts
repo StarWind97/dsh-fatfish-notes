@@ -119,5 +119,5 @@ test('new facade responses validate and body highlighting is presentation only w
   const n=(await app.save({noteId:a,expectedHeads:[],content})).note
   for(const [path,result]of [['/notes/history',await app.history({noteId:a})],['/notes/catalog',await app.catalog()],['/notes/revision',await app.revision({noteId:a,revision:n.current.revision})],['/notes/backlinks',await app.backlinks({noteId:a})],['/notes/manage',await app.manage({notes:select(n),action:'favorite'})]] as const)assert.equal(validNotesResponse(path,result),true,path)
   const body='正文 <script>alert(1)</script> **标题**\n\n```js\nconst 标题 = 1;\n```'
-  const html=renderToStaticMarkup(createElement(NoteMarkdown,{body,note:n,query:'正文 标题'}));assert.match(html,/<mark>正文<\/mark>/);assert.match(html,/<mark>标题<\/mark>/);assert.match(html,/<code[^>]*>const <mark>标题<\/mark>/);assert.doesNotMatch(html,/<script>/);assert.equal(n.current.body,'正文')
+  const html=renderToStaticMarkup(createElement(NoteMarkdown,{body,note:n,query:'正文 标题'}));assert.match(html,/<mark>正文<\/mark>/);assert.match(html,/<mark>标题<\/mark>/);const code=html.match(/<code[^>]*>([\s\S]*?)<\/code>/)?.[1]?.replace(/<\/?span[^>]*>/g,'')??'';assert.match(code,/const <mark>标题<\/mark>/);assert.doesNotMatch(html,/<script>/);assert.equal(n.current.body,'正文')
 })

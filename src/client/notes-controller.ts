@@ -27,9 +27,12 @@ export interface NotesState {
 export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Promise<void>; release(noteId?:string):Promise<void>; writable(noteId:string):boolean }
 /** Plugin-owned editor: local autosave continues across panel transitions. */
 export class NotesController {
+  libraryEpoch=0
+  catalogEpoch=0
+  readonly removedIds=new Set<string>()
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){this.endDraft();++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
+  switched(){++this.libraryEpoch;this.removedIds.clear();this.endDraft();++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
@@ -140,6 +143,7 @@ export class NotesController {
     this.booksRequest=request;return request
   }
   async refresh(reset = true, includeSelected = false, refreshBooks = true) {
+    if(reset&&refreshBooks)++this.catalogEpoch
     const selected = includeSelected ? this.refreshSelected() : Promise.resolve()
     const generation = ++this.listing, filter = this.state.filter
     this.listAbort?.abort();const abort=this.listAbort=new AbortController()
@@ -247,6 +251,7 @@ export class NotesController {
       if(this.disposed)return false
       await this.options.editing?.release(noteId)
       this.endDraft();this.finishPending=false;this.clearDraftImages()
+      if(!result.note)this.removedIds.add(noteId)
       this.emit({editing:false,dirty:false,error:null,noteId:result.note?.noteId??null,note:result.note,draft:result.note?noteContent(result.note):null})
       void this.refresh();this.options.onSettled?.();return true
     }catch(e){this.emit({error:errorCode(e)});if(errorCode(e)==='note_conflict'){try{this.emit({conflict:(await this.call('/notes/get',{noteId})).note})}catch{/* Retain the durable draft. */}}return false}finally{this.emit({operation:false})}
@@ -260,6 +265,7 @@ export class NotesController {
       if(this.state.noteId!==noteId)return false
       if(this.editId)await this.call('/notes/draft',{action:'discard',editId:this.editId,noteId:noteId!})
       const latest=start.content?(await this.call('/notes/get',{noteId:noteId!})).note:null
+      if(!latest&&noteId)this.removedIds.add(noteId)
       await this.options.editing?.release(noteId??undefined)
       this.endDraft();this.finishPending=false;this.clearDraftImages()
       this.emit({editing:false,dirty:false,error:null,conflict:null,noteId:latest?.noteId??null,note:latest,draft:latest?noteContent(latest):null})
@@ -340,6 +346,22 @@ export class NotesController {
       return accepted
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
+  /** Reveal an already opened note without traversing every page of its notebook. */
+  async revealCurrent(noteId:string):Promise<void>{
+    const note=this.state.note;if(!note||note.noteId!==noteId||this.state.loadingNote)return
+    const filter:NoteListOptions={order:this.state.filter.order??'recent',status:note.current.status,...(note.current.isTemplate?{templates:true}:{notebookId:note.effectiveNotebookId})}
+    if(equal(filter,this.state.filter)&&this.state.items.some(n=>n.noteId===noteId))return
+    const generation=++this.listing,navigation=this.navigation,epoch=this.libraryEpoch
+    this.listAbort?.abort();const abort=this.listAbort=new AbortController()
+    const {title,summary,tags,status,favorite,isTemplate}=note.current
+    const selected:NoteListItem={noteId,heads:note.heads,title,summary,tags,status,notebookId:note.effectiveNotebookId,savedAt:note.savedAt,conflicted:note.heads.length>1,...(favorite!==undefined?{favorite}:{}),...(isTemplate!==undefined?{isTemplate}:{})}
+    this.emit({filter,items:[selected],cursor:null,loadingList:true,listError:false})
+    try{const page=await this.call('/notes',{...filter,limit:50},abort.signal)
+      if(generation!==this.listing||navigation!==this.navigation||epoch!==this.libraryEpoch||this.state.noteId!==noteId)return
+      this.emit({items:page.items.some(n=>n.noteId===noteId)?page.items:[selected,...page.items],cursor:page.cursor,loadingList:false})
+    }catch{if(generation===this.listing)this.emit({loadingList:false,listError:true})}
+    finally{if(generation===this.listing&&this.state.loadingList)this.emit({loadingList:false})}
+  }
   patchAssociation(note:NoteView,relation:NoteListItem['sessionRelation']) {
     const exclude=this.state.filter.relation==='linked'&&!relation
     this.emit({items:this.state.items.flatMap(item=>item.noteId!==note.noteId?[item]:exclude?[]:[{...item,heads:note.heads,sessionRelation:relation??null,savedAt:note.savedAt}])})
@@ -376,7 +398,8 @@ export class NotesController {
     if (!await this.prepareLeave() || this.state.operation) return false
     this.emit({operation:true,error:null})
     try {
-      await this.call('/notes/batch',{notes,action})
+      const result=await this.call('/notes/batch',{notes,action})
+      if(action==='purge')for(const id of result.completed)this.removedIds.add(id)
       if(notes.some(n=>n.noteId===this.state.noteId)) {
         if(action==='purge')this.emit({noteId:null,note:null,draft:null,editing:false})
         else { const note=(await this.call('/notes/get',{noteId:this.state.noteId!})).note; this.emit({note,draft:noteContent(note)}) }

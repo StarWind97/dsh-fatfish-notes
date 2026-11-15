@@ -1,5 +1,6 @@
 import {Paperclip} from 'lucide-react'
-import {CopyCode,codeText} from './paper/CopyCode.js'
+import {codeText} from './paper/CopyCode.js'
+import {CodeBlock} from './paper/CodeBlock.js'
 import {translate,type T} from './locale.js'
 import * as React from 'react'
 import Markdown, { type Components } from 'react-markdown'
@@ -38,10 +39,10 @@ export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNote
     if(staticView)return <span className={'paper-presented-media'+(item.image?' is-image':'')}>{children}{!item.image&&<span aria-hidden style={{display:'inline-flex',width:26,height:26,flexShrink:0}}/>}</span>
     return <ImageActions image={item.image} download={download} name={name} t={t} {...(onPresentation?{change:()=>onPresentation(item)}:{})}>{children}</ImageActions>
   }
-  return <div className="note-markdown" style={{ lineHeight: 1.8, overflowWrap: 'anywhere' }}><style>{imageActionsCss}</style><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
+  return <div className="note-markdown" style={{ lineHeight: 'inherit', overflowWrap: 'anywhere' }}><style>{imageActionsCss}</style><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
     if(!src||/^https?:/.test(src))return src?<a href={src} target="_blank" rel="noopener noreferrer">{alt||'外部图片'}（链接，未归档）</a>:<span role="img" aria-label={alt??''}>[{alt||'Image'}]</span>
     return media(node?.position?.start.offset,<img src={src} alt={alt??''} loading={staticView?"eager":"lazy"} style={{maxWidth:'100%',maxHeight:560,objectFit:'contain'}}/>,src)
-  },pre:({node,children})=><div className="paper-code" data-md-pos={node?.position?.start.offset}>{!staticView&&<CopyCode value={codeText(node)} t={t}/>}<pre>{children}</pre></div>,code:({className,children})=><code className={className}>{typeof children==='string'?<Highlight value={children} query={query}/>:children}</code>,a:({node,href,children})=>{
+  },pre:({node})=>{const child=node?.children.find(n=>n.type==='element'&&n.tagName==='code'),language=child?.type==='element'?String(child.properties.className??'').replace(/^language-/,''):'';return <CodeBlock text={codeText(node)} language={language} t={t} staticView={staticView} query={query} position={node?.position?.start.offset}/>},code:({className,children})=><code className={className}>{typeof children==='string'?<Highlight value={children} query={query}/>:children}</code>,a:({node,href,children})=>{
     const id=noteLinkId(href??''),file=attachmentLinkId(href??'')
     if(id)return <a href={href} onClick={e=>{e.preventDefault();onNoteLink?.(id)}}>{children}</a>
     if(file&&note.current.attachments?.some(a=>a.id===file))return media(node?.position?.start.offset,<a className="paper-file-link" href={attachmentUrl(note,file)} download title={t('attachmentDownload')}><Paperclip size={14}/>{children}</a>,attachmentUrl(note,file))
