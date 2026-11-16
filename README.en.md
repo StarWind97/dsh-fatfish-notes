@@ -11,7 +11,7 @@
 
 Keep useful conversations as Markdown notes. Read, edit and reference them beside your chats, with local storage and sync through your own private GitHub repository.
 
-> This branch is preparing **0.9.0 for DSH 0.2.2-rc.3**. It is not publicly released yet. This page describes the candidate; the latest public version remains **0.8.0 for DSH 0.2.2-rc.1**. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
+> Current version: **0.9.0 for DSH 0.2.2-rc.3**, verified on Windows. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
 
 ![Reading the user handbook](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/01-reading.png)
 
@@ -29,15 +29,15 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 
 ## Installation and upgrade
 
-The current public download is [0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0), verified for **DSH 0.2.2-rc.1**. Users already on rc.3 should wait for the 0.9.0 release. Download the plugin `.tgz`, not the Source code archive.
+Download `dsh-fatfish-notes-0.9.0.tgz` from the [0.9.0 release](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0) for **DSH 0.2.2-rc.3**, not the Source code archive. Users remaining on rc.1 can keep 0.8.0; older plugins cannot read the new saved formats.
 
 Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 ```
 
-This example uses the current public version. Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open Fatfish Notes.
+Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open Fatfish Notes.
 
 No uninstall or rebinding is needed for an upgrade. Before upgrading to 0.9.0, finish sync, close DSH and the separate note window, and back up both the local notebook folder and `DSH_HOME/fatfish-notes`. **Upgrade all instances sharing one repository together.** New writes can use v3/v4 formats that 0.8.0 cannot read. A downgrade needs a matching host and pre-upgrade backup, not just the old plugin. Existing templates remain ordinary notes; edited handbook content is preserved.
 

@@ -1,12 +1,12 @@
 # 肥鱼笔记使用说明
 
-本文对应正在准备发布的 **0.9.0 / DSH 0.2.2-rc.3**。最新公开版仍是 0.8.0（rc.1）；请勿将开发候选说明视为旧版能力。见[新版说明](releases/0.9.0/release-notes.md)与[验证范围](releases/0.9.0/review.zh.md)。
+本文对应 **0.9.0 / DSH 0.2.2-rc.3**；旧版 0.8.0 的 rc.1 兼容边界和历史发布记录保留。见[新版说明](releases/0.9.0/release-notes.md)与[验证范围](releases/0.9.0/review.zh.md)。
 
 ## 品牌图标
 
 DSH 入口、会话笔记入口和笔记顶栏使用小鱼，原入口名称与操作保持。进入「设置 → 帮助」可看到鱼形、肥鱼笔记与 Fatfish Notes 的完整组合，会随当前视图切换深浅色并适配窄窗口。手册书本、设置齿轮等功能图标保留。
 
-实际体验双击 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，使用原独立测试资料；日常 DSH 和公开市场版本未自动更新。详情见[品牌接入交付](plans/2026-11-16-brand-logo-results.zh.md)。
+实际体验双击 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，使用原独立测试资料；日常 DSH 不会因此自动更新；实际发布与市场状态见[发布记录](releases/0.9.0/review.zh.md)。详情见[品牌接入交付](plans/2026-11-16-brand-logo-results.zh.md)。
 
 ## 用户手册
 

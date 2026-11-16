@@ -11,7 +11,7 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 当前分支正在准备 **0.9.0**，适配 **DSH 0.2.2-rc.3**，尚未公开发布。本文展示该候选的功能；最新公开版仍是 **0.8.0 / DSH 0.2.2-rc.1**。见[新版说明](docs/releases/0.9.0/release-notes.md)和[验证记录](docs/releases/0.9.0/review.zh.md)。
+> 当前版本 **0.9.0**，适配 **DSH 0.2.2-rc.3**，已在 Windows 验证。见[新版说明](docs/releases/0.9.0/release-notes.md)和[验证记录](docs/releases/0.9.0/review.zh.md)。
 
 ![阅读用户手册](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/01-reading.png)
 
@@ -29,15 +29,15 @@
 
 ## 安装与升级
 
-目前公开下载为 [0.8.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0)，仅保留其发布时的 **DSH 0.2.2-rc.1** 兼容范围；已更新到 rc.3 的用户请等待 0.9.0 正式发布。不要用 Source code 压缩包代替插件安装包。
+从 [0.9.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0)下载 `dsh-fatfish-notes-0.9.0.tgz`，适用于 **DSH 0.2.2-rc.3**。不要用 Source code 压缩包代替插件安装包。仍使用 rc.1 的用户可保留旧 0.8.0；不要将新版资料交给旧插件写入。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 ```
 
-以上示例指向当前公开版。重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
+重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
 升级不需要卸载或重新绑定。**升级到 0.9.0 前先确认同步完成，关闭独立笔记窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。同一私库的各端一起升级。** 新版写入后可能采用旧版不支持的 v3/v4 格式，不能只装回旧插件继续使用；回退需要配套宿主和升级前备份。旧模板作为普通笔记保留，已修改的用户手册不会被覆盖。
 
