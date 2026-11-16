@@ -1,6 +1,6 @@
 # 肥鱼笔记项目协作约定
 
-接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。当前正式版为 `0.8.0`，A—D 与性能优化已完成并发布；市场更新状态见[发布记录](docs/releases/0.8.0/review.zh.md)。下一步和候选功能取舍统一见[主规划](docs/plans/2026-11-09-product-iteration-roadmap.zh.md)：E 已按整版授权实施，集中体验见[交付记录](docs/plans/2026-11-11-stage-e-results.zh.md)；F 尚未实施，E 交付时由 Agent 主动发起候选清单回顾，用户确认选取范围后再开发。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
+接手先读 [开发入口](docs/README.md) 和 [产品设计](docs/notes-design.zh.md)。当前正式版为 `0.9.0`，E、后续阅读与界面改进及 DSH rc.3 适配已发布；市场更新状态见[发布记录](docs/releases/0.9.0/review.zh.md)。下一步和候选功能取舍统一见[主规划](docs/plans/2026-11-09-product-iteration-roadmap.zh.md)：F 尚未实施，用户确认选取范围后再开发。E 的前序交付见[历史记录](docs/plans/2026-11-11-stage-e-results.zh.md)。当前目录为 `D:\DSH-Workspace\dsh-github-notebook`，本地目录保留原名；日常开发使用 `main`，具体规则见下文「分支与提交」。
 
 ## 0. 第一规则：先规划、经批准、再实施（必须遵守）
 
@@ -36,7 +36,7 @@
 
 当前产品面向个人笔记，提供原地 Markdown 图文编辑、原样转存会话、文件导出与单一私有 GitHub 仓库同步。首次使用必须接入专用私有仓库并完成首次同步，之后可断网编辑和保存，联网后自动同步。标题、标签、摘要和正文可手动修改。模型建议仅在会话转存时由用户选择生成标题、摘要和标签。仓库身份与可见性必须校验，不读取或打印凭据。HTTP 接口保留 loopback、Origin 和 sec-fetch-site 栅栏。
 
-Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改。结构见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/` 与 `src/client/`。当前开发候选兼容版本为 DSH 0.2.2-rc.3，Windows / Node 24.21.0；公开 0.8.0 仍保留发布时的 rc.1 边界，不能据开发候选的验证宣称旧发布包支持新版。
+Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改。结构见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/` 与 `src/client/`。0.9.0 兼容 DSH 0.2.2-rc.3，实测 Windows / Node 24.21.0；旧 0.8.0 保留发布时的 rc.1 边界，不能据新版验证扩大旧发布包的兼容声明。
 
 ## 分支与提交
 

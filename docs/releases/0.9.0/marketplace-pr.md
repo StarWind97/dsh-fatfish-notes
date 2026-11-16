@@ -4,4 +4,6 @@
 
 发布说明：https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0
 
-提交前核对：正式 Release 可匿名下载，安装包及 SHA-256 一致，实际公开 URL 安装通过；相对上游仅修改 `data/plugins/StarWind97__dsh-fatfish-notes.yml`。本文件目前为待提交正文，核验完成后移除此准备提示。
+正式 Release、校验文件、图标及三张展示图均已通过匿名下载核对。公开 URL 实际安装通过，231 个文件与发布包一致；Windows / DSH 0.2.2-rc.3 的主页面、独立窗口、会话侧栏及指定测试私库同步通过，发布准备的 397 项回归全部通过。
+
+本 PR 仅修改 `data/plugins/StarWind97__dsh-fatfish-notes.yml`，不修改自动生成的目录文件。验证范围与升级注意事项见[发布审核](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/docs/releases/0.9.0/review.zh.md)。
