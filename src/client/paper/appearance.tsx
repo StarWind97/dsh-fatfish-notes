@@ -5,7 +5,7 @@ import {appearanceCss} from './appearance-style.js'
 import {codeFontCss} from './appearance-assets.js'
 import type {T} from '../locale.js'
 import {CaptureAppearance} from '../CaptureAppearance.js'
-import {SettingsTabs,type SettingsTab,type SettingsCategory} from '../SettingsTabs.js'
+import type {SettingsTab} from '../SettingsTabs.js'
 import {appearancePreferences} from '../appearance-sync.js'
 export const setAppearance=(patch:Partial<Appearance>)=>appearancePreferences.set(patch)
 export function useAppearance(){return useSyncExternalStore(appearancePreferences.subscribe,appearancePreferences.getSnapshot,appearancePreferences.getSnapshot)}
@@ -85,7 +85,3 @@ export function appearanceTabs(t:T):SettingsTab[]{return [
   {id:'reading',label:'阅读与代码',content:<AppearanceFields group="reading"/>},
   {id:'workspace',label:'工作区',content:<><AppearanceFields group="workspace"/><CaptureAppearance t={t}/></>}
 ]}
-export function AppearanceSettings({t}:{t:T}){
-  const [category,setCategory]=useState<SettingsCategory>('appearance')
-  return <SettingsTabs value={category} onChange={setCategory} actions={<><AppearanceStatus/>{category==='appearance'&&<AppearanceReset/>}</>} items={appearanceTabs(t)}/>
-}
