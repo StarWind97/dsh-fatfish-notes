@@ -4,6 +4,8 @@
 
 ## 审核材料
 
+后续核对（2026-11-16）：上述市场更新 PR #13891 已于 2026-11-10 22:22（北京时间）合并。上方保留当日提交时状态，后续版本更新原条目。
+
 - [发布说明](release-notes.md)
 - [市场条目](marketplace-entry.yml)与 [PR 正文](marketplace-pr.md)
 - [准备规划](../../plans/2026-11-10-release-080.zh.md)、[性能实测](../../plans/2026-11-10-performance-results.zh.md)与[功能验收](../../plans/2026-11-10-bcd-results.zh.md)

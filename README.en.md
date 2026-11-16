@@ -1,69 +1,67 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/brand/fatfish-brand-transparent-dark.svg">
-    <img src="assets/brand/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
+    <img src="assets/brand/fatfish-brand-transparent-light.svg" width="280" height="280" alt="Fatfish Notes">
   </picture>
 </p>
 
-# Fatfish Notes · Private Note Management
+# Fatfish Notes · 肥鱼笔记
 
 [简体中文](README.md)
 
-Save conversations, manage notes with images, export files, and sync across devices through your own private GitHub repository.
+Keep useful conversations as Markdown notes. Read, edit and reference them beside your chats, with local storage and sync through your own private GitHub repository.
 
-![Fatfish Notes three-column layout and separate window](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/07-three-columns.png)
+> This branch is preparing **0.9.0 for DSH 0.2.2-rc.3**. It is not publicly released yet. This page describes the candidate; the latest public version remains **0.8.0 for DSH 0.2.2-rc.1**. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
 
-**0.8.0** adds a separate notebook window, adaptive three-column layout, favorites and search improvements, history recovery, batch organization, backlinks and templates, with faster reading and navigation. See the [release notes](docs/releases/0.8.0/release-notes.md) and [verification record](docs/releases/0.8.0/review.zh.md).
+![Reading the user handbook](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/01-reading.png)
 
-Current `main` contains the unreleased stage E implementation: a conversation sidebar, note links to sessions, selected uploaded/delivered files, references inserted into the conversation input, and background chunked imports. Follow-up improvements add sidebar note creation, row menus, an explicit capture confirmation, and background title/summary/tag suggestions without adding chat messages. The public release remains 0.8.0; see the [follow-up results](docs/plans/2026-11-11-stage-e-follow-up-results.zh.md).
+## From conversations to notes
 
-## Features
+- Save a turn, selected messages or an entire conversation. Choose uploaded and AI-delivered files, preserve their position in the note, and keep the original conversation for comparison.
+- Search, read, edit and create notes in the conversation sidebar. Link notes to a conversation and add a note-copy reading instruction to the composer for review before sending.
+- Edit Markdown in place, paste or drop files, and switch images between inline display and download links.
+- Organize with full-text search, tags, favorites, separate pinning, manual notebook order, note links, history, bulk actions and trash.
+- Choose from eight layouts and ten palettes, adjust prose fonts and code highlighting, and share appearance preferences across views of the same DSH instance.
+- Export a single PNG using the reading layout, a PDF for reading or printing, or a Markdown bundle with original images and files.
+- Save locally while offline after initial setup; sync resumes when connected. Import Markdown files, folders or ZIPs, and export a notebook or the full library.
 
-- Save the current exchange, selected turns or messages, or a whole conversation. Keep the original conversation material separately from the editable note.
-- Edit Markdown in place with live previews, headings, lists, code blocks, tables and images. Follow the host's light or dark appearance.
-- Open notes alongside DSH conversations in a separate window or use the adaptive three-column layout inside DSH. Hand off editing of the same note between windows.
-- Find content with favorites, recent visits, multiword search and highlighted matches. Preview and restore revisions, organize notes in batches, follow backlinks and create independent copies. The unreleased candidate adds independent pinning and custom notebook ordering; legacy templates remain ordinary notes.
-- Export notes as Markdown resource packages, reading images or PDF. The unreleased candidate removes the separate conversation export action: save the conversation as a note first. PNG/PDF do not bundle attachment originals; 2× changes image density without reflow.
-- Organize notes in notebooks with a default destination. Import Markdown files, folders or ZIP archives; export a notebook or the library as portable Markdown with relative image, attachment and note links.
-- Save and download ordinary files including PDF, audio and video without inline preview or playback. In unreleased stage E, files over 50 MiB require confirmation and files over 100 MiB are rejected (the public 0.8.0 release uses 10/50 MiB).
-- Link notes by stable identity, and select multiple notes for trash cleanup. Permanent deletion keeps files that other notes still reference.
-- Keep a local copy and sync through a dedicated private GitHub repository. After the initial online setup, temporary offline edits are saved locally and sync resumes automatically.
-- Optionally request title, summary and tag suggestions when saving a conversation. Note bodies are edited manually.
+![Notes beside a conversation](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/02-conversation.png)
 
-## Install
+## Installation and upgrade
 
-Latest public version: **0.8.0**, for **DSH 0.2.2-rc.1**. The unpublished development candidate on this branch targets **DSH 0.2.2-rc.3**; this does not make the old release compatible with the new host. Verified on **Windows**; macOS has not been tested.
+The current public download is [0.8.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0), verified for **DSH 0.2.2-rc.1**. Users already on rc.3 should wait for the 0.9.0 release. Download the plugin `.tgz`, not the Source code archive.
 
-Download `dsh-fatfish-notes-0.8.0.tgz` from the [0.8.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
+Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 
 ```powershell
 dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.8.0.tgz"
 ```
 
-Use the actual downloaded path. Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open the notebook from the sidebar.
+This example uses the current public version. Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open Fatfish Notes.
 
-## First-time setup
+No uninstall or rebinding is needed for an upgrade. Before upgrading to 0.9.0, finish sync, close DSH and the separate note window, and back up both the local notebook folder and `DSH_HOME/fatfish-notes`. **Upgrade all instances sharing one repository together.** New writes can use v3/v4 formats that 0.8.0 cannot read. A downgrade needs a matching host and pre-upgrade backup, not just the old plugin. Existing templates remain ordinary notes; edited handbook content is preserved.
 
-1. Install **Git** and **GitHub CLI** if the setup screen reports them missing. It provides official download links and a recheck button. The plugin runs these tools for you; you do not need to learn Git commands.
-2. Sign in to your own **GitHub account** through the browser. New users can create a private notebook, with `fatfish-notes` as the suggested name. On another computer, connect the notebook previously created by this plugin in the same account.
-3. Use the suggested local folder or choose a parent directory in the system folder picker. The repository name is appended automatically. Confirm the cloud repository and final local path, then complete the first sync. Existing nonempty local folders and ordinary project repositories are not accepted for first-time setup.
+## Getting started
 
-Notes and archived images live on this computer and in your own private GitHub repository, not on the plugin author's servers. Cloud data is private by default. Tool installation and sign-in are separate from a successful first sync. Local changes made offline are not available on another device until they have synced.
+1. Let setup check **Git** and **GitHub CLI**. Install missing tools using the official links, then recheck or restart DSH. The plugin runs these tools for you.
+2. Sign in to your own **GitHub account**. Create a dedicated private library, or connect one previously created by this plugin on another computer.
+3. Verify the repository and local folder, then complete the first sync. A new empty library includes a three-note handbook. Existing libraries can add it from **Settings → Help**.
 
-If an already connected notebook needs GitHub authorization again, open **Sync and settings → Sync account**, sign in as the original account, and complete browser verification. The repository and local folder stay unchanged. A different account cannot sync this notebook.
+Notes and archived resources live on your computer and in your private repository, not on the plugin author's servers. Initial setup requires a connection; local save and cloud sync are tracked separately afterward.
 
-## Upgrade, limitations and feedback
+Editing saves automatically. Work in the main page, sidebar or a separate window, with editing handoff when two views open the same note. Open-note tabs last for the current window only.
 
-Upgrade with the same installation command and the actual downloaded package path. An upgrade from 0.7.0 retains the existing binding and notes; no uninstall or setup reset is needed.
+Use list import/export for Markdown migration. Open exported copies in other editors instead of sharing the internal data directory. **Settings → Sync and storage** shows sync status, authorization and local storage options. Detailed [instructions](docs/user-guide.zh.md) are available in Chinese.
 
-If you have content, confirm sync, close the separate notebook window and DSH, and back up the notebook folder and `DSH_HOME/fatfish-notes` before upgrading. Instances sharing one repository should upgrade together: old runtimes do not understand the new favorite/template revision fields, and a downgrade requires a matching backup. Historical 0.5.x identity migration is documented [separately](docs/plans/2026-11-06-fatfish-notes-rename.zh.md).
+## Scope and limitations
 
-The separate window currently uses Chrome or Edge installed on Windows and relies on DSH staying open. Closing DSH pauses editing; restarting the same profile reconnects it. Favorites and templates sync through the private repository. Recent visits stay in the current browser and do not sync across windows or devices.
+- Verified on **Windows / DSH 0.2.2-rc.3**. macOS and two physical computers have not been tested.
+- The separate window uses installed Chrome or Edge and depends on DSH staying open.
+- Appearance preferences are shared within one DSH instance, not across devices. Temporary light/dark overrides affect the current view; the sidebar always follows DSH. Favorites, pins and notebook order sync through the private repository.
+- Referencing does not send a message automatically or register a native composer attachment. Optional AI suggestions cover title, summary and tags during capture; note bodies are edited manually.
+- Ordinary attachments have no inline preview or playback. Files over 50 MiB require confirmation; the limit is 100 MiB. PNG/PDF exports do not bundle originals; use Markdown bundles for those.
+- Import/export covers ordinary Markdown and common image, file and note links, not other apps' plugins, canvases or databases. Permanent deletion does not rewrite Git history or guarantee secure erasure.
 
-Import/export supports ordinary Markdown, basic properties, images, attachments and common Obsidian links, not third-party plugins, canvases or databases. Open an exported copy in Obsidian; do not share the plugin's internal data directory with another editor. Actual Obsidian verification used 1.10.6.
+Report problems through [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues), including OS, host/plugin versions and reproduction steps. Do not include credentials or private notes.
 
-Automatic attachment of a note to a conversation is not available. Permanent deletion does not rewrite Git history or guarantee secure erasure. Two physical computers and macOS still need real-device testing. Detailed [usage instructions](docs/user-guide.zh.md) and [verification records](docs/verification-log.zh.md) are available in Chinese.
-
-Report problems through [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues), including OS, host/plugin versions and reproduction steps. Do not include credentials or private notebook contents.
-
-Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show sample content in an isolated host.
+Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show sample content in an isolated host. Development starts [here](docs/README.md).
