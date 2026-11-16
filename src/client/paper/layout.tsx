@@ -39,11 +39,11 @@ function Divider({column,layout,t,hidden=false}:{column:'book'|'list';layout:Lay
 }
 
 export function PaperColumns({list,notebooks,layout,children,selected,t,hidden=false,section='notes',other,rail}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode;rail?:React.ReactNode}){
-  const appearance=useAppearance(),compactRail=appearance.layout==='dock'&&!layout.expanded,showBooks=layout.expanded||compactRail||appearance.layout==='ribbon'||appearance.layout==='archive'
+  const appearance=useAppearance(),settings=section==='settings',compactRail=!settings&&appearance.layout==='dock'&&!layout.expanded,showBooks=!settings&&(layout.expanded||compactRail||appearance.layout==='ribbon'||appearance.layout==='archive')
   // Keep all five positions mounted: collapsing navigation must not recreate CodeMirror.
   return <div className="paper-split" hidden={hidden} data-section={section} data-selected={selected} data-notebooks={layout.expanded} data-rail={compactRail} style={{'--book-width':`${showBooks?layout.book:0}px`,'--list-width':`${layout.list}px`} as React.CSSProperties}>
     <aside id="paper-notebook-list" className="paper-notebook-nav" hidden={!showBooks} aria-label={t('notesNotebooks')}>{notebooks}<div className="paper-rail-content">{rail}</div></aside>
-    <Divider column="book" layout={layout} t={t} hidden={!layout.expanded}/>
+    <Divider column="book" layout={layout} t={t} hidden={settings||!layout.expanded}/>
     <aside id="paper-note-list" className="paper-list" aria-label={t('notesLibrary')}>{list}</aside>
     <Divider column="list" layout={layout} t={t}/>
     <div className="paper-detail"><div className="paper-reader" hidden={section!=='notes'}>{children}</div>{other&&<div className="paper-workspace-other">{other}</div>}</div>
