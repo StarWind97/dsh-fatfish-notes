@@ -32,7 +32,7 @@ Current `main` contains the unreleased stage E implementation: a conversation si
 
 ## Install
 
-Current version: **0.8.0**. Supported host: **DSH 0.2.2-rc.1**. Verified on **Windows**; macOS has not been tested.
+Latest public version: **0.8.0**, for **DSH 0.2.2-rc.1**. The unpublished development candidate on this branch targets **DSH 0.2.2-rc.3**; this does not make the old release compatible with the new host. Verified on **Windows**; macOS has not been tested.
 
 Download `dsh-fatfish-notes-0.8.0.tgz` from the [0.8.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.8.0), not the automatically generated Source code archive. Start DSH once to initialize its profile, then quit it before installing:
 
