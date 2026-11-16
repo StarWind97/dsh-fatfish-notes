@@ -1,0 +1,169 @@
+from PIL import Image
+from pathlib import Path
+import json, math
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = Path(r'C:\Users\zfxin\.codex\generated_images\01a1e287-863b-7bd1-9156-8c7e4eea5385\exec-4fb5a73d-a52f-4b02-a6dd-11aabfd648f2.png')
+im = Image.open(SOURCE).convert('RGB')
+
+def add(a,b): return (a[0]+b[0], a[1]+b[1])
+def sub(a,b): return (a[0]-b[0], a[1]-b[1])
+def mul(a,s): return (a[0]*s, a[1]*s)
+def dot(a,b): return a[0]*b[0]+a[1]*b[1]
+def length(a): return math.hypot(*a)
+def unit(a):
+    d=length(a)
+    return mul(a,1/d) if d else (0.,0.)
+
+def contours(mask):
+    edges={}
+    for x,y in mask:
+        if (x,y-1) not in mask: edges[(x,y)]=(x+1,y)
+        if (x+1,y) not in mask: edges[(x+1,y)]=(x+1,y+1)
+        if (x,y+1) not in mask: edges[(x+1,y+1)]=(x,y+1)
+        if (x-1,y) not in mask: edges[(x,y+1)]=(x,y)
+    result=[]
+    while edges:
+        start=next(iter(edges)); current=start; chain=[]
+        while current in edges:
+            chain.append(current); current=edges.pop(current)
+            if current==start: break
+        if len(chain)>20: result.append(chain)
+    return sorted(result,key=len,reverse=True)
+
+def largest_component(mask):
+    unseen=set(mask); largest=set()
+    while unseen:
+        start=unseen.pop(); group={start}; stack=[start]
+        while stack:
+            x,y=stack.pop()
+            for p in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+                if p in unseen: unseen.remove(p); group.add(p); stack.append(p)
+        if len(group)>len(largest): largest=group
+    return largest
+
+def dist_line(p,a,b):
+    ab=sub(b,a); d=dot(ab,ab)
+    if not d: return length(sub(p,a))
+    t=max(0,min(1,dot(sub(p,a),ab)/d))
+    return length(sub(p,add(a,mul(ab,t))))
+
+def rdp(points,epsilon):
+    if len(points)<3: return points
+    maximum,index=max((dist_line(p,points[0],points[-1]),i) for i,p in enumerate(points[1:-1],1))
+    if maximum<=epsilon: return [points[0],points[-1]]
+    return rdp(points[:index+1],epsilon)[:-1]+rdp(points[index:],epsilon)
+
+def bezier(q,t):
+    s=1-t
+    return add(add(mul(q[0],s*s*s),mul(q[1],3*t*s*s)),add(mul(q[2],3*t*t*s),mul(q[3],t*t*t)))
+
+def generate(points,u,t1,t2):
+    p0,p3=points[0],points[-1]
+    c00=c01=c11=x0=x1=0.
+    for p,t in zip(points,u):
+        s=1-t; b0=s*s*s; b1=3*t*s*s; b2=3*t*t*s; b3=t*t*t
+        a0=mul(t1,b1); a1=mul(t2,b2)
+        tmp=sub(p,add(mul(p0,b0+b1),mul(p3,b2+b3)))
+        c00+=dot(a0,a0); c01+=dot(a0,a1); c11+=dot(a1,a1)
+        x0+=dot(a0,tmp); x1+=dot(a1,tmp)
+    determinant=c00*c11-c01*c01
+    a=(x0*c11-x1*c01)/determinant if abs(determinant)>1e-9 else -1
+    b=(c00*x1-c01*x0)/determinant if abs(determinant)>1e-9 else -1
+    d=length(sub(p3,p0))
+    if a<1e-5*d or b<1e-5*d or a>2*d or b>2*d: a=b=d/3
+    return [p0,add(p0,mul(t1,a)),add(p3,mul(t2,b)),p3]
+
+def fit(points,t1,t2,error):
+    if len(points)==2:
+        d=length(sub(points[1],points[0]))/3
+        return [[points[0],add(points[0],mul(t1,d)),add(points[1],mul(t2,d)),points[1]]]
+    u=[0.]
+    for i in range(1,len(points)): u.append(u[-1]+length(sub(points[i],points[i-1])))
+    u=[x/u[-1] for x in u]
+    curve=generate(points,u,t1,t2)
+    maximum,index=max((length(sub(bezier(curve,u[i]),points[i])),i) for i in range(1,len(points)-1))
+    if maximum<=error: return [curve]
+    center=unit(sub(points[index-1],points[index+1]))
+    return fit(points[:index+1],t1,center,error)+fit(points[index:],mul(center,-1),t2,error)
+
+def smooth_path(contour,landmarks):
+    # Trace the chosen raster at subpixel tolerance, then fit editable cubic curves.
+    indices=sorted({min(range(len(contour)),key=lambda i:length(sub(contour[i],p))) for p in landmarks})
+    curves=[]
+    for j,start in enumerate(indices):
+        end=indices[(j+1)%len(indices)]
+        section=contour[start:end+1] if end>start else contour[start:]+contour[:end+1]
+        pts=rdp(section,0.7)
+        t1=unit(sub(section[min(10,len(section)-1)],section[0]))
+        t2=unit(sub(section[max(0,len(section)-11)],section[-1]))
+        curves.extend(fit(pts,t1,t2,2.0))
+    def f(p): return f'{p[0]:.2f} {p[1]:.2f}'
+    path='M '+f(curves[0][0])
+    for c in curves: path+=' C '+f(c[1])+' '+f(c[2])+' '+f(c[3])
+    return path+' Z',curves
+
+masks={'front':set(),'rear':set()}
+for y in range(95,570):
+    for x in range(240,1000):
+        r,g,b=im.getpixel((x,y))
+        if max(r,g,b)<140: masks['front'].add((x,y))
+        elif g-r>5 and g-b>6 and r<215: masks['rear'].add((x,y))
+
+data={}
+for key,mask in masks.items():
+    mask=largest_component(mask)
+    loops=contours(mask)
+    landmarks=([(441,409),(682,555),(973,344),(730,176),(464,329),(394,282)] if key=='front' else [(849,160),(469,291),(350,389),(286,409),(293,335),(283,262),(374,246),(565,119)])
+    path,curves=smooth_path(loops[0],landmarks)
+    data[key]={'d':path,'curves':curves,'bbox':[min(x for x,y in mask),min(y for x,y in mask),max(x for x,y in mask),max(y for x,y in mask)],'segments':len(curves)}
+    if key=='front':
+        hole=loops[1]
+        box=[min(x for x,y in hole),min(y for x,y in hole),max(x for x,y in hole),max(y for x,y in hole)]
+        data['eye']={'cx':(box[0]+box[2])/2,'cy':(box[1]+box[3])/2,'r':(box[2]-box[0]+box[3]-box[1])/4}
+    out=Image.new('L',im.size)
+    out.putdata([255 if (x,y) in mask else 0 for y in range(im.height) for x in range(im.width)])
+    out.save(ROOT/(key+'-reference-mask.png'))
+(ROOT/'geometry-trace.json').write_text(json.dumps(data,indent=2),encoding='utf-8')
+# Replace the noisy raster boundary fits with a restrained set of editable,
+# continuous cubic arcs. Keep the selected silhouette's landmarks and proportions.
+data['front']['d']='''M 442 408
+C 416 403 391 393 376 380
+C 345 352 350 313 377 291
+C 385 285 395 280 404 280
+C 435 277 437 321 464 330
+C 478 325 488 309 501 293
+C 558 221 630 184 730 176
+C 838 169 957 234 971 344
+C 981 422 918 482 853 519
+C 797 549 741 559 682 554
+C 605 548 547 518 505 475
+C 489 459 480 442 469 439
+C 434 427 418 464 391 486
+C 380 497 356 500 349 484
+C 333 455 361 431 390 420
+C 408 414 423 410 442 408 Z'''.replace('\n',' ')
+data['rear']['d']='''M 816 160
+C 797 158 779 152 759 151
+C 680 146 617 165 568 194
+C 522 220 487 257 460 297
+C 449 272 430 257 402 259
+C 365 262 332 305 335 346
+C 336 363 344 374 353 387
+C 330 393 311 411 286 408
+C 267 400 260 374 274 358
+C 284 347 297 342 308 338
+C 287 316 274 293 282 261
+C 284 254 285 246 290 241
+C 304 225 323 222 342 228
+C 351 231 360 243 374 245
+C 386 233 395 219 408 204
+C 429 180 453 166 480 152
+C 505 140 533 129 565 121
+C 617 108 680 112 732 124
+C 748 128 762 134 779 140
+C 793 146 806 154 816 160 Z'''.replace('\n',' ')
+data['front']['segments']=data['front']['d'].count('C')
+data['rear']['segments']=data['rear']['d'].count('C')
+(ROOT/'geometry.json').write_text(json.dumps(data,indent=2),encoding='utf-8')
+print(json.dumps({key:{k:v for k,v in value.items() if k not in ['d','curves']} for key,value in data.items()}))

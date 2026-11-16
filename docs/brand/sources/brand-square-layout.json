@@ -1,0 +1,41 @@
+{
+  "chinese": {
+    "text": "肥鱼笔记",
+    "font_source": "按用户选定参考图字形重绘",
+    "bounds": [
+      132.0,
+      638,
+      892.0,
+      784.530370513477
+    ],
+    "tracking_em": 0.0,
+    "path_points": 1204
+  },
+  "english": {
+    "text": "Fatfish Notes",
+    "font_source": "按用户选定参考图字形重绘",
+    "bounds": [
+      232.0,
+      838,
+      792.0,
+      881.9633916424008
+    ],
+    "tracking_em": 0.0,
+    "path_points": 790
+  },
+  "symbol": {
+    "source": "fatfish-mark.svg / fatfish-mark-dark.svg",
+    "unchanged_paths": true,
+    "transform": "translate(80 34) scale(1.08)"
+  },
+  "canvas": [
+    1024,
+    1024
+  ],
+  "png_sizes": [
+    256,
+    512,
+    1024,
+    2048
+  ]
+}

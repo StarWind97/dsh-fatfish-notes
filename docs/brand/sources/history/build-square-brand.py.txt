@@ -1,0 +1,53 @@
+from pathlib import Path
+import json, xml.etree.ElementTree as ET
+
+WORK=Path(__file__).resolve().parent
+OUT=WORK.parent/'fatfish-notes-logo'
+outline=json.loads((WORK/'brand-outlines.json').read_text(encoding='utf-8-sig'))
+ns={'s':'http://www.w3.org/2000/svg'}
+INK='#26362F'; PAPER='#F7F4EB'; SAGE='#B7C9B3'
+layout={}
+
+def wordmark(key,width,top,fill):
+    item=outline[key]; b=item['bounds']; scale=width/b['width']
+    x=(1024-width)/2
+    layout[key]={'text':item['text'],'font_source':item['family'],'bounds':[x,top,x+width,top+b['height']*scale],'tracking_em':item['tracking']/item['em'],'path_points':item['points']}
+    return f'<g id="wordmark-{key}" fill="{fill}" transform="translate({x:.6f} {top:.6f}) scale({scale:.9f}) translate({-b["x"]:.6f} {-b["y"]:.6f})"><path fill-rule="{item.get("fill_rule","nonzero")}" d="{item["d"]}"/></g>'
+
+for dark in [False,True]:
+    theme='dark' if dark else 'light'; fill=PAPER if dark else INK; bg=INK if dark else PAPER
+    master=ET.parse(OUT/'svg'/('fatfish-mark-dark.svg' if dark else 'fatfish-mark.svg')).getroot()
+    srcpaths=master.findall('.//s:path',ns)
+    assert len(srcpaths)==2
+    mark='\n'.join('<path '+ ' '.join(f'{k}="{v}"' for k,v in p.attrib.items())+'/>' for p in srcpaths)
+    cn=wordmark('chinese',760,638,fill)
+    en=wordmark('english',560,838,fill)
+    title=f'肥鱼笔记 / Fatfish Notes · {"深底" if dark else "浅底"}正方形品牌组合版'
+    svg=f'''<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="{title}">
+<title>{title}</title>
+<desc>叠页鱼形标志、肥鱼笔记与 Fatfish Notes。所有可见文字均已转为矢量路径。</desc>
+<rect width="1024" height="1024" fill="{bg}"/>
+<g id="fish-symbol" transform="translate(80 34) scale(1.08)">
+  <g transform="translate(-219 -54)">
+    {mark}
+  </g>
+</g>
+{cn}
+{en}
+</svg>
+'''
+    (OUT/'svg'/f'fatfish-brand-square-{theme}.svg').write_text(svg,encoding='utf-8')
+
+layout['symbol']={'source':'fatfish-mark.svg / fatfish-mark-dark.svg','unchanged_paths':True,'transform':'translate(80 34) scale(1.08)'}
+layout['canvas']=[1024,1024]
+layout['png_sizes']=[256,512,1024,2048]
+(WORK/'brand-square-layout.json').write_text(json.dumps(layout,ensure_ascii=False,indent=2),encoding='utf-8')
+
+page='''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>肥鱼笔记 · 正方形品牌组合版</title><style>
+*{box-sizing:border-box}body{margin:0;background:#e9e5dc;color:#26362f;font:15px/1.6 "Microsoft YaHei",sans-serif}main{max-width:1152px;margin:auto;padding:36px 32px}h1{font-size:28px;margin:0 0 8px}p{color:#596458;margin:0 0 24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.item img{width:100%;height:auto;display:block}.label{margin:10px 0 22px}.label a{color:inherit;margin-right:14px}section{margin-top:18px;padding:26px;background:#f7f4eb;border-radius:16px}h2{font-size:18px;margin:0 0 18px}.samples{display:flex;gap:28px;align-items:end;flex-wrap:wrap}.sample{text-align:center}.sample img{display:block}.sample span{display:block;font-size:12px;margin-top:8px}a{color:inherit}.note{font-size:13px;margin:16px 0 0}.downloads{display:flex;gap:24px;flex-wrap:wrap}@media(max-width:700px){main{padding:20px 16px}.grid{grid-template-columns:1fr}.samples{gap:16px}}</style>
+<main><h1>肥鱼笔记 · 正方形品牌组合版</h1><p>固定 1:1 画布，沿用已定稿鱼形。中文与英文全部转为矢量轮廓。</p><div class="grid">
+<div class="item"><img src="svg/fatfish-brand-square-light.svg" alt="肥鱼笔记浅底品牌组合版"><div class="label">浅底　<a href="svg/fatfish-brand-square-light.svg" download>SVG</a><a href="png/fatfish-brand-square-light-1024.png" download>PNG 1024</a></div></div>
+<div class="item"><img src="svg/fatfish-brand-square-dark.svg" alt="肥鱼笔记深底品牌组合版"><div class="label">深底　<a href="svg/fatfish-brand-square-dark.svg" download>SVG</a><a href="png/fatfish-brand-square-dark-1024.png" download>PNG 1024</a></div></div>
+</div><section><h2>实际显示尺寸</h2><div class="samples">'''+''.join(f'<div class="sample"><img src="svg/fatfish-brand-square-{theme}.svg" width="{size}" height="{size}" alt="{size}像素{theme}组合版"><span>{size} × {size} px</span></div>' for theme,size in [('light',128),('light',256),('dark',256)])+'''</div><p class="note">组合版建议显示在 256 px 及以上的品牌位置；小图标继续使用纯鱼形版。</p></section><section><h2>文件与使用说明</h2><div class="downloads"><a href="BRAND-SQUARE.zh.md">组合版说明</a><a href="preview.html">原纯图形版与小尺寸对照</a></div><p class="note">PNG 提供 256 / 512 / 1024 / 2048 px。SVG 无可见文字元素、无字体依赖、无嵌入位图。</p></section></main></html>'''
+(OUT/'brand-square-preview.html').write_text(page,encoding='utf-8')
+print(json.dumps({'output':str(OUT),'layout':layout},ensure_ascii=False))

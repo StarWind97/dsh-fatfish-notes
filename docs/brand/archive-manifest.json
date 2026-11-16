@@ -1,0 +1,531 @@
+{
+  "archived": "2026-11-16",
+  "purpose": "设计原稿、编辑依据与交付 PNG 的逐字节归档；历史素材不覆盖 assets/brand 当前源稿。",
+  "files": [
+    {
+      "file": "docs/brand/concepts/exec-00d73765-22db-49e9-b890-18cd574a02b9.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-00d73765-22db-49e9-b890-18cd574a02b9.png",
+      "sha256": "83bdfb3852bb42658c6779292b979236a129355d6073f0abeea5eecb3892aab4"
+    },
+    {
+      "file": "docs/brand/concepts/exec-03272f97-db54-4993-a584-88fd785ee327.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-03272f97-db54-4993-a584-88fd785ee327.png",
+      "sha256": "42818144b21439e3358befd5f7aa020a0276d15812c5fc4a5170a8ff8b8d3fdd"
+    },
+    {
+      "file": "docs/brand/concepts/exec-1373405b-60c1-4d1b-89f7-f0568f4daad4.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-1373405b-60c1-4d1b-89f7-f0568f4daad4.png",
+      "sha256": "5ffa33a31b8053abcdbfa7985d55988b0e2a88b85172d4dcf41dabd108abd169"
+    },
+    {
+      "file": "docs/brand/concepts/exec-4fb5a73d-a52f-4b02-a6dd-11aabfd648f2.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-4fb5a73d-a52f-4b02-a6dd-11aabfd648f2.png",
+      "sha256": "956347cff6b3000cd6c0e9882fdf0fb3c188864e2fc10c1180a87e7b312d74db"
+    },
+    {
+      "file": "docs/brand/concepts/exec-50f56e2b-c4dd-49df-a1c6-6cfbe4e61ba1.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-50f56e2b-c4dd-49df-a1c6-6cfbe4e61ba1.png",
+      "sha256": "e6e285da3f26c933a4e52699e8e112a029a51ec4fb6bbfa4cf161fb4a52949f3"
+    },
+    {
+      "file": "docs/brand/concepts/exec-611affc2-d325-4de4-9e93-1c3e699cc1da.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-611affc2-d325-4de4-9e93-1c3e699cc1da.png",
+      "sha256": "e5253af7a4191655e00aa3a96b3b0c25cc24c1b6fc27494250a8d74b50999fe5"
+    },
+    {
+      "file": "docs/brand/concepts/exec-7217785e-1971-4810-9bbe-214380ca1c44.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-7217785e-1971-4810-9bbe-214380ca1c44.png",
+      "sha256": "05f6fe704f34b1b05b507b4dd25e457469c581a2f9fd97068dba5191575d9ceb"
+    },
+    {
+      "file": "docs/brand/concepts/exec-80018967-b698-4fca-bf24-d8a633f772bd.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-80018967-b698-4fca-bf24-d8a633f772bd.png",
+      "sha256": "8c0e61d945f80439aa62e1b586fd8d8564a59db32d5c3fbcd5afc77eeb827a6a"
+    },
+    {
+      "file": "docs/brand/concepts/exec-8031783b-1eba-4d09-8a24-c5fe11a280ba.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-8031783b-1eba-4d09-8a24-c5fe11a280ba.png",
+      "sha256": "46103d4319a9b733d20046c07d8a7593b3101ece10beca0d7abd4169a1a0fcd9"
+    },
+    {
+      "file": "docs/brand/concepts/exec-921672b9-5e38-4162-a29e-3c919ac1f0e6.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-921672b9-5e38-4162-a29e-3c919ac1f0e6.png",
+      "sha256": "94896d8e4d6b1229b8b1513b2e6c9ddd322b6a4c4ce708692b5506dae202be48"
+    },
+    {
+      "file": "docs/brand/concepts/exec-b5976d4b-28d0-4648-bd8d-5fdd3e577b32.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-b5976d4b-28d0-4648-bd8d-5fdd3e577b32.png",
+      "sha256": "0362d7b0409550fb30b5ac1761f8d65043642089ac5b2cde3ec944769159e8cc"
+    },
+    {
+      "file": "docs/brand/concepts/exec-c468a448-c280-40b6-af52-4b31313a88f1.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-c468a448-c280-40b6-af52-4b31313a88f1.png",
+      "sha256": "80f95ccc683b404eda8d3a1833649fa2a95d9148a7cbceb814959afbc2edac3a"
+    },
+    {
+      "file": "docs/brand/concepts/exec-c670e51d-1c69-4359-9bf4-6c8232ed8bd5.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-c670e51d-1c69-4359-9bf4-6c8232ed8bd5.png",
+      "sha256": "891631cd217c00d419c11adda042fd07fb1635a7a834255398acead56ab58f35"
+    },
+    {
+      "file": "docs/brand/concepts/exec-e25bc593-33e5-49f2-b94a-601b1d1e25d5.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-e25bc593-33e5-49f2-b94a-601b1d1e25d5.png",
+      "sha256": "7ba3f7ad56f16801a583e212d744a388d55142db143b0716e907f75f993f1eae"
+    },
+    {
+      "file": "docs/brand/concepts/exec-fdbff7ab-3a74-4297-b4e6-3a2907c76f85.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-fdbff7ab-3a74-4297-b4e6-3a2907c76f85.png",
+      "sha256": "e7b436fd9ed4be9c3b42b45fd46071ba1e4ebd936fc274afb51d626153067477"
+    },
+    {
+      "file": "docs/brand/concepts/exec-ffcc7d30-f396-4449-8082-472ea335572a.png",
+      "source": "C:/Users/zfxin/.codex/generated_images/01a1e287-863b-7bd1-9156-8c7e4eea5385/exec-ffcc7d30-f396-4449-8082-472ea335572a.png",
+      "sha256": "5b07cf5588fa18634489b38304d0fc513036ba02ca97a356f4ab789c048d21d3"
+    },
+    {
+      "file": "docs/brand/references/competitors/bear.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/bear.png",
+      "sha256": "6b18f8e4edc008e710521ee20a037a0fc508ad546c352a67fa7c43fbe46f7775"
+    },
+    {
+      "file": "docs/brand/references/competitors/evernote.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/evernote.png",
+      "sha256": "ab37494d0edceb37636dc327fad9a51f6e573fd46656026f2bf72a3224399f63"
+    },
+    {
+      "file": "docs/brand/references/competitors/flomo.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/flomo.png",
+      "sha256": "eb3200a67b087b25b1dbe99db80f447cd079fae000f4c8f391d1a83854f0caa2"
+    },
+    {
+      "file": "docs/brand/references/competitors/joplin.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/joplin.png",
+      "sha256": "27f4acac3eb5777e6f0afaae169a9f139610a73ca8800b432ea3f1586b262b86"
+    },
+    {
+      "file": "docs/brand/references/competitors/logseq.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/logseq.png",
+      "sha256": "0ab5ac0ab2a76577454d196592ebbb1fb7da45674a615038092ac2dfcb5fcc34"
+    },
+    {
+      "file": "docs/brand/references/competitors/notion.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/notion.png",
+      "sha256": "483846a85e43e22879445047b83b22033e70fcc25ab34809ebadb7f856507ee0"
+    },
+    {
+      "file": "docs/brand/references/competitors/obsidian.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/obsidian.png",
+      "sha256": "7dc5a6a3e4b7cb11dd27e41982c359c31a317203e8a892060b9bc0777fd1a4cd"
+    },
+    {
+      "file": "docs/brand/references/competitors/simplenote.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/simplenote.png",
+      "sha256": "0e7c1338243559c197e2e409f0ec6b8599d8643c87732f6143aaf5fe15027a96"
+    },
+    {
+      "file": "docs/brand/references/competitors/ulysses.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/ulysses.png",
+      "sha256": "6826f3bf9a4847cf2074f1a551da547fdf63fd1946dd2dbaf79af1e533223c81"
+    },
+    {
+      "file": "docs/brand/references/competitors/yuque.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-references/yuque.png",
+      "sha256": "d4ceb0d7544da97d57d973292e2bb5e07648d8d70fb668328680ea97ed0c1dd9"
+    },
+    {
+      "file": "docs/brand/references/brand-reference-chinese.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-reference-chinese.png",
+      "sha256": "c28208b845a3d19ade5fb139b4ad1e6e2c513c3ba8841c879b94630e2c01c2b1"
+    },
+    {
+      "file": "docs/brand/references/brand-reference-english.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-reference-english.png",
+      "sha256": "ccf78b579675fedc2744c96e347f24a0d602bea51ddc8ca6beedf997210e7043"
+    },
+    {
+      "file": "docs/brand/references/brand-type-comparison.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/proof/brand-type-comparison.png",
+      "sha256": "15a10e224a8cfefbff86a370f7a53939bb2e80cdc108c78a817ae38cc9fdfdc2"
+    },
+    {
+      "file": "docs/brand/references/reference-comparison.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/proof/reference-comparison.png",
+      "sha256": "2457ab62a93b43bd3b8b227f091b5eddd62de09bfd9883ac5e4d9febe19119a8"
+    },
+    {
+      "file": "docs/brand/references/standard-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/proof/standard-16.png",
+      "sha256": "f2823e0d94bec7b90bd366cea1b8583026e67303d7e4749e557fdb3dc522d0e8"
+    },
+    {
+      "file": "docs/brand/references/optical-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/proof/optical-16.png",
+      "sha256": "b3b51887d201c5aa0ed034fffcecb9e0105f62e515df56f9af2eebf1edf0cddf"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-dark-1024.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-dark-1024.png",
+      "sha256": "b1a9f35d6eca052e4047701d96ffb833f7183e1c8d727d8e595ec66495507cc9"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-dark-2048.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-dark-2048.png",
+      "sha256": "f295a1d51c5a40000c9364efdc9fd14b6662015f718947862cc408cb051b88f7"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-dark-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-dark-256.png",
+      "sha256": "858bd18a906709605ed027e6ffaf7e0741f20cf90969b1d6c3154533c00a0b26"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-dark-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-dark-512.png",
+      "sha256": "54cbfb8aacbe503186ec78b4efbcf96853a5bfe7075d18b44501536212e98366"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-light-1024.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-light-1024.png",
+      "sha256": "5121e8b7ce84431d14b87788187c73c70c656a6104fe845b3085f800abd7cdd3"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-light-2048.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-light-2048.png",
+      "sha256": "7d91d06e34c2b3d03da66b4d8575df9f5c722c6620d3b8e728267edf92b9edab"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-light-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-light-256.png",
+      "sha256": "5bccb6bace30cbc900f9895b8700579665a84caaff07db66c0442f965667e9a8"
+    },
+    {
+      "file": "docs/brand/png/fatfish-brand-square-light-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-brand-square-light-512.png",
+      "sha256": "1a3f285dcbf787086a4c9f50aa3390a442982c53163777b80fcf95996d3fc813"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-128.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-128.png",
+      "sha256": "ce8836d0a45fd6e115ea3c5278385fe5222086aff7beacc59fd5242981135a70"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-16.png",
+      "sha256": "f757ffe3ac5eedbeabee4f220e09ec5608e08367ca448426e9ff88219fbb9fd4"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-180.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-180.png",
+      "sha256": "7ffabd759dce2953f5976cd7b46f4e7a024d6f648349fdc7642bcae40643be09"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-20.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-20.png",
+      "sha256": "8d66796126b16349645a424e17f97df871f70f240764425086f851dbaa7554d7"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-24.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-24.png",
+      "sha256": "2630c885e56db73f8fca180ee8437b1af8c32c14908b61946d12f9126343efcc"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-256.png",
+      "sha256": "75622f9c8fcb4f6e741b4d078250af84eacc26191496e29e27410e12a9c39bfd"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-32.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-32.png",
+      "sha256": "32b1fc775618366a687f3c3fd5e7713c2d96a62ab3d28f2e89c74fde1704bdc7"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-48.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-48.png",
+      "sha256": "ccbcd67eff3dac1832808fa7daea0a1aada37af7bf82f4910a4d95be751c22e7"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-512.png",
+      "sha256": "ac2a1b8164f27190d47299d20c1be4832c991d713f04b52a417b2c0e40e9b995"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-dark-64.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-dark-64.png",
+      "sha256": "eca6904dcb21f6572b928c1b8b639869ee5c11051ac4ea01ee179117a35542b4"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-128.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-128.png",
+      "sha256": "aa824594d5fad48579ac1ac3a9ce9110e282872f5c114757160393f7c8f04873"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-16.png",
+      "sha256": "b3b51887d201c5aa0ed034fffcecb9e0105f62e515df56f9af2eebf1edf0cddf"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-180.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-180.png",
+      "sha256": "065e018d935dcd4f9424f8c25a20385f83644709ffd20c7755f0ba0e5912f342"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-20.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-20.png",
+      "sha256": "65748eef713990ed6772846d12e4b00c15d1f61ff38d4ef5877f692da828b355"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-24.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-24.png",
+      "sha256": "cc515946058a632a1a827aaea12122f1db6f707040a39d160bc30da9bbba1e1a"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-256.png",
+      "sha256": "505da8963ba9734fa35783019d6dc4418092523a4897cc7f6eebae1bc5bed1f6"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-32.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-32.png",
+      "sha256": "3e5eeb35641490a2b618574af0037d51bfee89c749977aea93ff84441de478a2"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-48.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-48.png",
+      "sha256": "48151cad36ab2d161446b675325ea22729bec5207d2e2b958ca8d0dcbdf6ed92"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-512.png",
+      "sha256": "6714a3e1e67159b6bbc40a67ea4c20fcc6b426b4dee834e55336f2d8f43e2fe6"
+    },
+    {
+      "file": "docs/brand/png/fatfish-icon-light-64.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-icon-light-64.png",
+      "sha256": "dcca5797ba6522184c79296f76168b3a6e3504a0844452de00229a1dbb1083da"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-128.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-128.png",
+      "sha256": "14a1a2f93614358bb6c62e8e7f7ff02abe5e082dc7c11c74276cbb5662c9d97e"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-16.png",
+      "sha256": "53acd9302bb1f6e3de287fd63d195d668cfe30d59ca3f1c06caf6cf4a0c955a1"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-180.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-180.png",
+      "sha256": "499e626de10c5de302768aad24ec512d65637b44a160885964a340738b2f869d"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-20.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-20.png",
+      "sha256": "b86b157ac370d91e9b5187d7da8f4f8d69e53a8b4bbccbee338149561c7f3273"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-24.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-24.png",
+      "sha256": "86b2a1c19624999b89f555e748d3761f14ef27213c6faf74b194a20abe234402"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-256.png",
+      "sha256": "4ee798c1c5465b5649f15babe9b3dfb6207211ef7a5a23af5a3db040d2861f96"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-32.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-32.png",
+      "sha256": "0f686ddc6017935ef99afe34c283efd43aa3627a4e13c3dac0b4a0ab7a6fd3ac"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-48.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-48.png",
+      "sha256": "387311fff65d54f57232f62db700d0bf40304a547fd2a71440e20df9f0e26b3b"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-512.png",
+      "sha256": "ec6a744fe8ea149ab4bbd618cc3f640303bf55707b56fbf815aa2dc617a976dc"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-64.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-64.png",
+      "sha256": "82cbd1f07d04cda227ed28953d1d0b73db327b4e5333fa5916b39e206f7694a1"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-128.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-128.png",
+      "sha256": "066cfdf0f1bdcccc6438f6228a8537b66c1fee358a51d5af9f404e7caabfce3b"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-16.png",
+      "sha256": "19f216b813ccbec382b7b93566f0b7c86bf57a09e19bfe2cc4e516d6c3986e8c"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-180.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-180.png",
+      "sha256": "47bbf3b0c9663a7c7eeec65e0eeac034d791226ee6720141884304c0eee3d4b4"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-20.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-20.png",
+      "sha256": "db10bb88b0a39993441adbc2892712e9a80d4a32bd0eec58d4152c92434d14e1"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-24.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-24.png",
+      "sha256": "7cc28de0c7f628153b267d7941acfc7c04a2fbd73352386e9e55504cf224e6a4"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-256.png",
+      "sha256": "4753a2de1962c28ccd08e106957305b6b1393cac727d81d1407e3e8e57994d32"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-32.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-32.png",
+      "sha256": "2935d398141dc71dbb3d030be469557cc0856c4105d0a79b5950780b058ae42a"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-48.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-48.png",
+      "sha256": "87483f099d3868c07064baa858a532cb91b13c2bb32b49b9705365d662b3433f"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-512.png",
+      "sha256": "6c1aa141e1dea6531ecc3ff136efb5c65bf12d1f8b085a0b3df7a10f06e78e09"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-dark-64.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-dark-64.png",
+      "sha256": "4322afe43d4192e30685c794da90f59cae0eaea1e15cf7813ee2828b64c49f39"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-128.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-128.png",
+      "sha256": "717b76aaf658d5f9efb14013b4e325903eea661f9d99baa0259fa7dd9b534d33"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-16.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-16.png",
+      "sha256": "ac411d12e50fa206df87e2c4039286c0560cbb57a1f9ebcd93586de86bd5b7c6"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-180.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-180.png",
+      "sha256": "72780033df8687c55113874b7f29a6d49695136514702adebb8b38febc88c7f3"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-20.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-20.png",
+      "sha256": "222022cbb0478bbee252420009e61f344ce8451c28361ba50660b1e2fda83b6f"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-24.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-24.png",
+      "sha256": "c72169d227de5b7ea46e33bf322d686c3651ebc72b5c8d240fc67d6af5d20df2"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-256.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-256.png",
+      "sha256": "18b6e4607b79457a49aed65c64f06345e3b0a1d0de4833784d468001739d5b41"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-32.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-32.png",
+      "sha256": "b703c9e91e01b5062f3d569e02d40db25d1cb3d1082d67669fbb3b4501e11061"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-48.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-48.png",
+      "sha256": "d8fdcb85722a7f533417487c28680f20ce283602888d6d035785d2526668f6db"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-512.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-512.png",
+      "sha256": "533a82ba0fa4aacd3bfedaed84b1cb6d811858b40a93f244231ee5ce8186762e"
+    },
+    {
+      "file": "docs/brand/png/fatfish-mark-mono-64.png",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/fatfish-notes-logo/png/fatfish-mark-mono-64.png",
+      "sha256": "a9b5c220bd9217f93b97a92ec5719775227c1cfdda3ca245e77e3bd3c122691c"
+    },
+    {
+      "file": "docs/brand/sources/geometry.json",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/geometry.json",
+      "sha256": "1e4a7be2cd58d97cbdd8a5f2aa748a3a0de63c1561b863468d808fbf868643dc"
+    },
+    {
+      "file": "docs/brand/sources/geometry-trace.json",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/geometry-trace.json",
+      "sha256": "d33174be15a21462555a3aa7c4da0957a8bd920ce2825e038fde4b20c7919ad4"
+    },
+    {
+      "file": "docs/brand/sources/brand-outlines.json",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-outlines.json",
+      "sha256": "9d6e39e8708f11b1420db26fe08ca8c9ba88cd0c70aa8e10de7573aa881bfbf2"
+    },
+    {
+      "file": "docs/brand/sources/brand-square-layout.json",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-square-layout.json",
+      "sha256": "1921789c9616e680671576ed31b082a1bc981058e7657b8d940a046b214ae4e0"
+    },
+    {
+      "file": "docs/brand/sources/variants.json",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/variants.json",
+      "sha256": "d8b9ab2c95814e71365321bfdcd4e3ba7f299bbcca56879797baa1cfd16b07d1"
+    },
+    {
+      "file": "docs/brand/sources/front-vector.svg",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/front-vector.svg",
+      "sha256": "318d352b25f742646ccece1e312f83e56bb71072ee2d3df36fb7fd77564a9b67"
+    },
+    {
+      "file": "docs/brand/sources/rear-vector.svg",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/rear-vector.svg",
+      "sha256": "8a16f29b12a689de5455a74dea8ef2c33a35917a98bbcedec32b6b9235dcb585"
+    },
+    {
+      "file": "docs/brand/sources/brand-traced-chinese.svg",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-traced-chinese.svg",
+      "sha256": "90a808d6e6f4cd9b1725bea3aa0a65b9ae2f0cddc17536709d39045a592d00aa"
+    },
+    {
+      "file": "docs/brand/sources/brand-traced-english.svg",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/brand-traced-english.svg",
+      "sha256": "326907920aeef9a8a47592675a3ec8e3fdaadb6866e5c821606a6e99097b8f42"
+    },
+    {
+      "file": "docs/brand/sources/history/trace.py.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/trace.py",
+      "sha256": "f2576c90d29f9d6483c3d355775c5e90ecd5a270583a1d45a40c9c0de8501f57"
+    },
+    {
+      "file": "docs/brand/sources/history/trace-brand-text.py.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/trace-brand-text.py",
+      "sha256": "ae01a56fce77bcbf108e95bd201cb1eac82355b1f40c95e7af0e37b358cf7842"
+    },
+    {
+      "file": "docs/brand/sources/history/build.py.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/build.py",
+      "sha256": "309066b101594dc69e0af5a2c989c2aa304a420a6c0750e244a3a7843741e942"
+    },
+    {
+      "file": "docs/brand/sources/history/build-square-brand.py.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/build-square-brand.py",
+      "sha256": "8eae3aed1fc1691a533d8fa840c3a0f88aa31d9a356169c9f56bdd5c63e9a614"
+    },
+    {
+      "file": "docs/brand/sources/history/render.cjs.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/render.cjs",
+      "sha256": "6be25a5be1f2943354679b6bf3100c29f955b5af26459cc7fafd2ca6e142faa2"
+    },
+    {
+      "file": "docs/brand/sources/history/render-square-brand.cjs.txt",
+      "source": "C:/Users/zfxin/.codex/visualizations/2026/11/16/01a1e287-863b-7bd1-9156-8c7e4eea5385/logo-work/render-square-brand.cjs",
+      "sha256": "a72bd5623a813c7680c96410c5ada462af061cded8e67d801875630c6cd1fc51"
+    }
+  ]
+}

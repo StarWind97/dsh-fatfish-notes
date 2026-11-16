@@ -1,0 +1,72 @@
+from pathlib import Path
+import json, html
+
+WORK=Path(__file__).resolve().parent
+OUT=WORK.parent/'fatfish-notes-logo'
+(OUT/'svg').mkdir(parents=True,exist_ok=True)
+(OUT/'png').mkdir(exist_ok=True)
+(OUT/'proof').mkdir(exist_ok=True)
+g=json.loads((WORK/'geometry.json').read_text(encoding='utf-8'))
+INK='#26362F'; SAGE='#B7C9B3'; PAPER='#F7F4EB'; SMALL_SAGE='#809D7B'
+
+def paths(small=False,dark=False,mono=False):
+    front=PAPER if dark else INK
+    rear=front if mono else (SAGE if dark or not small else SMALL_SAGE)
+    cx,cy=g['eye']['cx'],g['eye']['cy']; r=28 if small else g['eye']['r']
+    hole=f'M {cx+r} {cy} A {r} {r} 0 1 0 {cx-r} {cy} A {r} {r} 0 1 0 {cx+r} {cy} Z'
+    shift=' transform="translate(-6 -16)"' if small else ''
+    return f'<path fill="{rear}"{shift} d="{g["rear"]["d"]}"/>\n  <path fill="{front}" fill-rule="evenodd" d="{g["front"]["d"]} {hole}"/>'
+
+variants={}
+for small in [False,True]:
+    for kind in ['','-dark','-mono']:
+        name='fatfish-mark'+('-small' if small else '')+kind
+        p=paths(small,kind=='-dark',kind=='-mono')
+        title='肥鱼笔记 · 叠页标志'+(' · 小尺寸' if small else '')
+        svg=f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560" role="img" aria-label="{title}">\n<title>{title}</title>\n<g transform="translate(-219 -54)">\n  {p}\n</g>\n</svg>\n'
+        (OUT/'svg'/(name+'.svg')).write_text(svg,encoding='utf-8')
+        variants[name]={'viewBox':[800,560],'small':small,'kind':kind or 'color','type':'mark'}
+    for dark in [False,True]:
+        name='fatfish-icon'+('-small' if small else '')+('-dark' if dark else '-light')
+        p=paths(small,dark)
+        bg=INK if dark else PAPER
+        title='肥鱼笔记 · '+('深色' if dark else '浅色')+'应用图标'+(' · 小尺寸' if small else '')
+        svg=f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 880" width="880" height="880" role="img" aria-label="{title}">\n<title>{title}</title>\n<rect width="880" height="880" rx="192" fill="{bg}"/>\n<g transform="translate(-179 106)">\n  {p}\n</g>\n</svg>\n'
+        (OUT/'svg'/(name+'.svg')).write_text(svg,encoding='utf-8')
+        variants[name]={'viewBox':[880,880],'small':small,'kind':'dark' if dark else 'light','type':'icon'}
+
+# Source-space proof masks make contour fidelity measurable independently of the presentation layout.
+for part in ['front','rear']:
+    d=g[part]['d']
+    if part=='front':
+        cx,cy,r=g['eye']['cx'],g['eye']['cy'],g['eye']['r']
+        d+=f' M {cx+r} {cy} A {r} {r} 0 1 0 {cx-r} {cy} A {r} {r} 0 1 0 {cx+r} {cy} Z'
+    (WORK/(part+'-vector.svg')).write_text(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254"><path fill="black" fill-rule="evenodd" d="{d}"/></svg>',encoding='utf-8')
+
+(WORK/'variants.json').write_text(json.dumps(variants,indent=2),encoding='utf-8')
+
+sizes=[16,20,24,32,48,64]
+def size_row(kind,dark=False):
+    cells=[]
+    for size in sizes:
+        suffix='-small' if size<=24 else ''
+        name=('fatfish-mark'+suffix+('-dark' if dark else '')) if kind=='mark' else ('fatfish-icon'+suffix+('-dark' if dark else '-light'))
+        cells.append(f'<div class="size"><div class="slot"><img src="svg/{name}.svg" width="{size}" height="{size}" alt="{size}px 标志"></div><span>{size} px</span></div>')
+    return '<div class="sizes">'+''.join(cells)+'</div>'
+
+cards=''
+for cls,name,label in [('cream','fatfish-mark','透明标志 · 浅底'),('dark','fatfish-mark-dark','透明标志 · 深底'),('checker','fatfish-mark','透明孔洞与留白'),('pink','fatfish-mark-mono','单色 · 彩色底')]:
+    cards+=f'<article class="card {cls}"><img src="svg/{name}.svg" width="320" height="224" alt="{label}"><span>{label}</span></article>'
+
+page='''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>肥鱼笔记 · 叠页 SVG 验收</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#eeeae1;color:#26362f;font:15px/1.6 "Microsoft YaHei",sans-serif}main{max-width:1120px;margin:auto;padding:36px 32px}h1{font-size:28px;margin:0 0 6px}h2{font-size:18px;margin:0 0 18px}p{margin:0 0 20px;color:#596458}.eyebrow{font-size:12px;letter-spacing:.18em;margin-bottom:8px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{height:280px;display:grid;place-content:center;justify-items:center;border-radius:16px}.card img{max-width:100%;object-fit:contain}.card span{font-size:13px;margin-top:8px}.cream{background:#f7f4eb}.dark{background:#26362f;color:#f7f4eb}.pink{background:#eab8bf}.checker{background:conic-gradient(#ddd 25%,#fff 0 50%,#ddd 0 75%,#fff 0) 0 0/24px 24px}.panel{padding:26px;margin-top:18px;border-radius:16px}.sizes{display:flex;justify-content:space-around;gap:12px;align-items:end}.size{text-align:center;min-width:70px}.slot{height:76px;display:flex;align-items:center;justify-content:center}.slot img{object-fit:contain}.size span{font:12px monospace;opacity:.75}a{color:inherit}.info{display:flex;gap:24px;margin-top:24px;flex-wrap:wrap;font-size:13px}.note{font-size:13px;margin-top:16px}.zoom{font-size:13px;margin-top:14px}.compare{display:flex;gap:28px;align-items:center}.compare img{object-fit:contain;image-rendering:pixelated;width:128px;height:128px}.compare span{font-size:13px}.palette{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap}.swatch{display:inline-flex;gap:8px;align-items:center}.dot{width:16px;height:16px;border-radius:50%;border:1px solid #0002}button{font:inherit;padding:8px 14px;border:1px solid #829280;border-radius:7px;background:#fff;color:#26362f;cursor:pointer}@media(max-width:700px){main{padding:20px 16px}.cards{grid-template-columns:1fr}.sizes{flex-wrap:wrap}.card{height:250px}.compare{flex-wrap:wrap}}</style>
+<main><div class="eyebrow">FATFISH NOTES / VECTOR MASTER</div><h1>肥鱼笔记 · 叠页</h1><p>根据已选定的第二轮③重绘。纯矢量路径，鱼眼与层间留白真正透明。</p>
+<div class="cards">'''+cards+'''</div>
+<section class="panel cream"><h2>标志实际尺寸 · 浅底</h2>'''+size_row('mark')+'''<div class="note">16—24 px 使用小尺寸版；32 px 起使用标准版。此处按正方形图标槽等比显示。</div></section>
+<section class="panel dark"><h2>标志实际尺寸 · 深底</h2>'''+size_row('mark',True)+'''</section>
+<section class="panel cream"><h2>应用图标实际尺寸</h2>'''+size_row('icon')+'''</section>
+<section class="panel dark"><h2>应用图标实际尺寸 · 深色</h2>'''+size_row('icon',True)+'''</section>
+<section class="panel cream"><h2>16 px 光学校准 · 放大 8 倍观察</h2><div class="compare"><div><img src="proof/standard-16.png" alt="标准版16px放大"><br><span>标准版直接缩小</span></div><div><img src="proof/optical-16.png" alt="小尺寸版16px放大"><br><span>小尺寸版：鱼眼与层间距加大</span></div></div><p class="note">小尺寸版仍保留两层。浅底页片色略加深，增强轮廓识别；放大图用于看像素，不代表实际使用大小。</p></section>
+<section class="panel cream"><h2>使用与下载</h2><div class="info"><a href="svg/fatfish-mark.svg" download>标准 SVG</a><a href="svg/fatfish-mark-small.svg" download>小尺寸 SVG</a><a href="svg/fatfish-mark-dark.svg" download>深底 SVG</a><a href="README.zh.md">文件说明</a></div><div class="palette">'''+''.join(f'<span class="swatch"><i class="dot" style="background:{c}"></i>{label} {c}</span>' for label,c in [('墨绿',INK),('页片绿',SAGE),('米白',PAPER),('小尺寸页片绿',SMALL_SAGE)])+'''</div><p class="note">当前交付为独立品牌图形素材。中文与英文名称未包含在 SVG 中，避免字体依赖。</p></section></main></html>'''
+(OUT/'preview.html').write_text(page,encoding='utf-8')
+print(json.dumps({'output':str(OUT),'svg_count':len(variants),'bytes':sum(p.stat().st_size for p in (OUT/'svg').glob('*.svg'))}))

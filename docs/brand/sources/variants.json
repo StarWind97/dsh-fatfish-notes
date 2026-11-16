@@ -1,0 +1,92 @@
+{
+  "fatfish-mark": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": false,
+    "kind": "color",
+    "type": "mark"
+  },
+  "fatfish-mark-dark": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": false,
+    "kind": "-dark",
+    "type": "mark"
+  },
+  "fatfish-mark-mono": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": false,
+    "kind": "-mono",
+    "type": "mark"
+  },
+  "fatfish-icon-light": {
+    "viewBox": [
+      880,
+      880
+    ],
+    "small": false,
+    "kind": "light",
+    "type": "icon"
+  },
+  "fatfish-icon-dark": {
+    "viewBox": [
+      880,
+      880
+    ],
+    "small": false,
+    "kind": "dark",
+    "type": "icon"
+  },
+  "fatfish-mark-small": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": true,
+    "kind": "color",
+    "type": "mark"
+  },
+  "fatfish-mark-small-dark": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": true,
+    "kind": "-dark",
+    "type": "mark"
+  },
+  "fatfish-mark-small-mono": {
+    "viewBox": [
+      800,
+      560
+    ],
+    "small": true,
+    "kind": "-mono",
+    "type": "mark"
+  },
+  "fatfish-icon-small-light": {
+    "viewBox": [
+      880,
+      880
+    ],
+    "small": true,
+    "kind": "light",
+    "type": "icon"
+  },
+  "fatfish-icon-small-dark": {
+    "viewBox": [
+      880,
+      880
+    ],
+    "small": true,
+    "kind": "dark",
+    "type": "icon"
+  }
+}

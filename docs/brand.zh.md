@@ -18,6 +18,8 @@
 
 设置齿轮、用户手册书本、全部笔记／笔记本、保存会话、引用和导出继续使用功能图标。帮助页底部为设置中完整品牌的专用位置，其他分类不额外放大图，不向用户导出的笔记添加水印。
 
-原始矢量在 `assets/brand/`。`scripts/generate-brand.ts` 将已确认的路径生成本地品牌常量及透明版／favicon；修改源图后运行该脚本并复核渲染。`src/client/Brand.tsx` 只渲染可信本地路径，不解析外部 SVG、不请求字体或网络素材。历史版本截图保留原样。
+当前矢量源稿在 [assets/brand/](../assets/brand/)。设计原稿、用户选择、文字参考、编辑数据与 PNG 见[素材索引](brand/README.zh.md)；接续本轮代码和验证见[Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)。这些必要设计依据已归档到项目，不依赖原会话目录。
+
+[generate-brand.ts](../scripts/generate-brand.ts)只从三个源文件读取客户端路径：`fatfish-mark-small-mono.svg`、`fatfish-mark.svg`、`fatfish-brand-square-light.svg`，另生成浅深透明组合及小尺寸 favicon SVG。它**不会**自动改齐所有图形变体、PNG、根目录 `icon.svg` 或 `assets/icon-180.png`；修改时按素材索引的依赖表逐项核对。[Brand.tsx](../src/client/Brand.tsx)只渲染可信本地路径，不解析外部 SVG、不请求字体或网络素材。历史设计与验证截图保留原样。
 
 接入范围和验证见[实施规划](plans/2026-11-16-brand-logo.zh.md)。本轮为本地候选，公开市场与发布包不会因此自动更新。

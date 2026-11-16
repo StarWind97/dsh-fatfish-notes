@@ -1,5 +1,7 @@
 # 0.5.0 发布材料审核
 
+历史上下文：[首次发布分步规划](../../plans/2026-11-04-first-release.zh.md)、[0.5.0-rc.12 候选说明](../0.5.0-rc.12.zh.md)。这些材料记录各自时点，当前版本与发布状态从[开发入口](../../README.md)查找。
+
 状态：**[GitHub Release 0.5.0](https://github.com/StarWind97/dsh-github-notebook/releases/tag/v0.5.0)已发布，[市场申请 #11960](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/11960)等待审核，尚未收录。** 2026-11-04。以下保留获准的材料与执行范围，完成情况见[验证记录](../../verification-log.zh.md)。
 
 ## 请审核这些决定
