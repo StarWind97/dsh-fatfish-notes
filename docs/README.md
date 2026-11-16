@@ -21,6 +21,8 @@
 
 ## 最新交付
 
+2026-11-16 最新交付：[导航稳定、入口命名与微型 Logo 评审](plans/2026-11-16-navigation-clarity-and-small-logo.zh.md)已完成批准范围，见[验证与隔离体验](plans/2026-11-16-navigation-clarity-and-small-logo-results.zh.md)。顶栏「笔记 / 笔记本管理 / 设置」与下方折叠入口通过 16 项相关测试、实际两入口 96 个位置检查点及 10 组键盘折叠检查；隔离启动认证积累问题经单独授权处理后重启通过。两版微型 Logo 仅预览待选，[测试仓库改名](plans/2026-11-16-test-repository-rename.zh.md)仅单独规划，均不自动接入或执行。未发布、未推送。
+
 2026-11-16 最新交付：[管理页导航与侧栏设置精简](plans/2026-11-16-navigation-and-sidebar.zh.md)已完成，见[验证与隔离体验](plans/2026-11-16-navigation-and-sidebar-results.zh.md)。笔记本导航仅用于笔记库，管理/设置使用完整面板；侧栏移除全局外观入口，保留工作区设置和共享外观。类型检查、构建、23 项相关测试、实际两入口 101 个布局检查点及侧栏专项通过，原隔离入口已更新；未发布或推送公开品牌资源。
 
 2026-11-16 文档接续：已将 Logo 概念原图、字形依据、编辑数据、PNG 和素材预览归档到[项目素材目录](brand/README.zh.md)，并补充[主开发会话交接](handoffs/2026-11-16-brand-logo.zh.md)。当前 SVG 继续统一维护于 `assets/brand/`；本次只整理素材与文档，没有改变运行行为。
