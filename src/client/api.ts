@@ -3,6 +3,7 @@ import { validNotesResponse } from './notes-validation.js'
 const record=(x:unknown):x is Record<string,unknown>=>!!x&&typeof x==='object'&&!Array.isArray(x)
 const text=(x:unknown):x is string=>typeof x==='string'
 function assertResponse<P extends ApiPath>(path:P,value:unknown):asserts value is ApiContract[P]['response'] {
+  if(path.startsWith('/appearance/')&&record(value)&&value.ok===true&&text(value.epoch)&&text(value.storeId)&&Number.isSafeInteger(value.sequence)&&(value.value===null||record(value.value))&&(value.theme===null||record(value.theme)))return
   if(path==='/workspace/open'&&record(value)&&value.ok===true&&typeof value.focused==='boolean'&&typeof value.reused==='boolean')return
   if(path.startsWith('/workspace/')&&record(value)&&value.ok===true&&text(value.serviceEpoch)&&typeof value.changeSeq==='number'&&typeof value.available==='boolean'&&('owned' in value)&&('handoff' in value))return
   const valid=validNotesResponse(path,value)

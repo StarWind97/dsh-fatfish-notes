@@ -5,6 +5,7 @@ import type { NoteModelController } from './note-model.js';
 import type { PersonalState } from '../contracts/personal.js';
 import { EditCoordinator } from './edit-coordinator.js';
 import { WorkspaceBooks } from './workspace-books.js';
+import { SharedAppearance } from './appearance.js';
 import type { WorkspaceRegistry } from '@deepseek-ai/dsh-workspace';
 export interface ApplicationOptions extends ConversationFileServices {
     dir: string;
@@ -19,6 +20,7 @@ export declare class NotebookApplication {
     readonly backup: PrivateWorkspaceSync;
     readonly workspace: EditCoordinator;
     readonly workspaceBooks: WorkspaceBooks;
+    readonly appearance: SharedAppearance;
     requireWindowIdentity: boolean;
     openWindow: ((noteId?: string) => Promise<{
         ok: true;
@@ -29,6 +31,7 @@ export declare class NotebookApplication {
     constructor(options: ApplicationOptions);
     workspaceRequest(path: string, input: unknown): Promise<import("../contracts/workspace.js").WorkspaceState>;
     changeLocation<T>(work: () => Promise<T>): Promise<T>;
+    appearanceRequest(path: string, input: unknown, signal: AbortSignal): import("../contracts/appearance.js").AppearanceState | Promise<import("../contracts/appearance.js").AppearanceState>;
     personalState(): PersonalState;
     workspaceBook(input: unknown): Promise<{
         ok: true;

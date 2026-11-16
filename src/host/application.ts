@@ -10,6 +10,7 @@ import { EditCoordinator,windowRequest } from './edit-coordinator.js'
 import { id,object,text } from '../notes/validation.js'
 import type { WindowTheme } from '../contracts/workspace.js'
 import {WorkspaceBooks} from './workspace-books.js'
+import {SharedAppearance} from './appearance.js'
 import type {WorkspaceRegistry} from '@deepseek-ai/dsh-workspace'
 export interface ApplicationOptions extends ConversationFileServices {
   dir: string
@@ -23,6 +24,7 @@ export class NotebookApplication {
   readonly backup: PrivateWorkspaceSync
   readonly workspace:EditCoordinator
   readonly workspaceBooks:WorkspaceBooks
+  readonly appearance:SharedAppearance
   requireWindowIdentity=false
   openWindow:((noteId?:string)=>Promise<{ok:true;focused:boolean;reused:boolean}>)|undefined
   closeWindowService:(()=>Promise<void>)|undefined
@@ -31,6 +33,7 @@ export class NotebookApplication {
     this.backup=new PrivateWorkspaceSync({dir:options.dir,notes:this.notes.repository,drainNotes:()=>this.notes.drain(),initialNotes:initialHandbook,gateway:options.personal?.gateway??new GitHubCli(),...options.personal})
     this.workspace=new EditCoordinator(()=>this.backup.state().binding?.repositoryId??null,()=>this.notes.repository.generation)
     this.workspaceBooks=new WorkspaceBooks(options.dir,this.notes.repository,()=>this.backup.state().binding?.repositoryId??null)
+    this.appearance=new SharedAppearance(options.dir)
     this.notes.repository.editGuard=(ids,required)=>this.workspace.check(ids,windowRequest.getStore(),required)
   }
   workspaceRequest(path:string,input:unknown){const request=()=>{
@@ -62,6 +65,13 @@ export class NotebookApplication {
     const before=this.backup.state().binding?.repositoryId
     try{return await work()}finally{this.workspace.endLocationChange(before!==this.backup.state().binding?.repositoryId)}
   }
+  appearanceRequest(path:string,input:unknown,signal:AbortSignal){
+    const actor=windowRequest.getStore(),surface=this.workspace.surface(actor)
+    if(path==='/appearance/connect')return this.appearance.connect(surface,input)
+    if(path==='/appearance/update')return this.appearance.update(input)
+    if(path==='/appearance/theme')return this.appearance.setTheme(surface,input)
+    return this.appearance.wait(actor!.windowId,input,signal)
+  }
   personalState():PersonalState { return {ok:true,sync:this.backup.state()} }
   workspaceBook(input:unknown){return this.notes.localOperation(async()=>{
     const workspaceId=text(object(input).workspaceId,512)
@@ -80,7 +90,7 @@ export class NotebookApplication {
     if(!this.options.pickFolder)throw new NotebookError('notebook_picker_unavailable','当前宿主无法打开目录选择窗口',409)
     return {ok:true as const,folder:await this.options.pickFolder(signal)}
   }
-  async close() { await this.closeWindowService?.();await Promise.all([this.notes.close(),this.backup.close()]) }
+  async close() { await this.appearance.close();await this.closeWindowService?.();await Promise.all([this.notes.close(),this.backup.close()]) }
 }
 export async function createApplication(options:ApplicationOptions) {
   const app=new NotebookApplication(options)

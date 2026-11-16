@@ -1,3 +1,4 @@
+import {appearancePreferences} from './appearance-sync.js'
 import './paper/appearance-boot.js'
 import {TransferProgress} from './TransferProgress.js'
 import * as React from 'react'
@@ -38,6 +39,7 @@ export function apply(ctx:Context): void {
   const workspace=new NotesWorkspace('embedded')
   const library = new NotesController(undefined,{editing:workspace,recoveryScope:workspace.recoveryScope,...(storage?{storage}:{}),onSettled:()=>{void notebookSync.request(true)}})
   workspace.bind(library);workspace.start()
+  ctx.effect(()=>appearancePreferences.start('embedded',workspace.api,()=>workspace.ready()),'shared appearance')
   const notes = new NoteCaptureBridge(undefined, storage, async noteId => {
     ctx.layout.selectPanel(NS as MainPanelId)
     return library.open(noteId)

@@ -20,6 +20,7 @@ export declare class EditCoordinator {
     register(windowId: string, surface: WindowSurface): WorkspaceState;
     private session;
     state(actor: WindowIdentity, noteId?: string, theme?: WindowTheme): WorkspaceState;
+    surface(actor: WindowIdentity | undefined): WindowSurface;
     acquire(actor: WindowIdentity, noteId: string): WorkspaceState;
     release(actor: WindowIdentity, noteId?: string): WorkspaceState;
     handoff(actor: WindowIdentity, noteId: string): WorkspaceState;

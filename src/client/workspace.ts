@@ -1,6 +1,6 @@
 import {api,createApi,ApiError,setWindowHeaders,type Api} from './api.js'
 import type {EditAccess,NotesController} from './notes-controller.js'
-import type {WorkspaceState,WindowSurface,WindowTheme} from '../contracts/workspace.js'
+import type {WorkspaceState,WindowSurface} from '../contracts/workspace.js'
 import {browserStorage} from './note-recovery.js'
 
 export interface WindowState { connected:boolean;registered:boolean;server:WorkspaceState|null;busy:boolean;message:string|null;restart:boolean }
@@ -57,7 +57,6 @@ export class NotesWorkspace implements EditAccess {
     }
     if(!this.state.connected||!this.state.registered||this.state.message==='windowOffline'||JSON.stringify(server)!==JSON.stringify(prior))
       this.emit({server,registered:true,connected:true,...(this.state.message==='windowOffline'?{message:null}:{})})
-    if(this.surface==='standalone'&&server.theme&&JSON.stringify(server.theme)!==JSON.stringify(prior?.theme))applyTheme(server.theme)
     this.controller?.pauseInput(this.state.busy||this.state.restart)
   }
   ready():Promise<void>{
@@ -92,8 +91,7 @@ export class NotesWorkspace implements EditAccess {
     try{
       await this.ready()
       const c=this.controller,selected=c?.getSnapshot().noteId
-      const theme=this.surface==='embedded'?readTheme():undefined
-      await this.serial(async()=>this.accept(await this.call('/workspace/state',{...(selected?{noteId:selected}:{}),...(theme?{theme}:{})})))
+      await this.serial(async()=>this.accept(await this.call('/workspace/state',{...(selected?{noteId:selected}:{})})))
       if(this.state.restart){if(!c?.getSnapshot().composing&&!c?.importing)location.reload();return}
       const s=this.state.server!
       if(this.requestedHandoff&&selected!==this.requestedHandoff){await this.cancel();if(s.owned)await this.release(s.owned.noteId)}
@@ -135,14 +133,3 @@ export class NotesWorkspace implements EditAccess {
   }
   dismiss(){this.emit({message:null})}
 }
-
-function readTheme():WindowTheme|undefined {
-  // Host appearance must not be sampled from the plugin's independent palette.
-  const root=document.body
-  const style=getComputedStyle(root)
-  const color=(key:string,fallback:string)=>{const probe=document.createElement('span');probe.style.color=`var(${key},${fallback})`;root.append(probe);const value=getComputedStyle(probe).color;probe.remove();return value}
-  const background=color('--dsw-alias-bg-layer-1','#ffffff'),foreground=color('--dsw-alias-label-primary','#202124')
-  const rgb=background.match(/[\d.]+/g)?.slice(0,3).map(Number)??[255,255,255]
-  return {dark:style.colorScheme==='dark'||(rgb[0]!+rgb[1]!+rgb[2]!)<384,background,foreground,muted:color('--dsw-alias-label-secondary','#707070'),border:color('--dsw-alias-border-l2','#dddddd'),language:document.documentElement.lang.startsWith('en')?'en':'zh'}
-}
-function applyTheme(theme:WindowTheme){const root=document.documentElement;root.style.colorScheme=theme.dark?'dark':'light';for(const [name,value]of Object.entries({'--dsw-alias-bg-layer-1':theme.background,'--dsw-alias-label-primary':theme.foreground,'--dsw-alias-label-secondary':theme.muted,'--dsw-alias-border-l2':theme.border}))root.style.setProperty(name,value);root.lang=theme.language}

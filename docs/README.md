@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+2026-11-16 最新交付：[跨窗口外观设置同步](plans/2026-11-16-shared-appearance.zh.md)已完成，见[验证与隔离体验](plans/2026-11-16-shared-appearance-results.zh.md)。主界面/侧栏/独立窗口共享偏好，保留两端旧值并采用变更通知；实际双向显示中位 102/76 ms，全量加补验覆盖 395 项通过。原隔离入口已更新，未发布。
+
 2026-11-16 最新交付：[内容菜单不占位与笔记标题单行](plans/2026-11-16-overlay-menus-and-single-line-titles.zh.md)已完成，见[验证与隔离体验](plans/2026-11-16-overlay-menus-and-single-line-titles-results.zh.md)。19 项相关测试、八布局 32 组合及实际 DSH 主界面/窄侧栏通过；菜单覆盖内容、不再预留宽度，列表标题统一单行省略。原隔离入口已更新，未发布。
 
 2026-11-16 最新交付：[明暗跟随、会话引用与图片菜单](plans/2026-11-16-theme-follow-and-actions.zh.md)已完成，见[验证与隔离体验](plans/2026-11-16-theme-follow-and-actions-results.zh.md)。21 项相关测试、主界面/会话侧栏及独立页面验收通过；侧栏始终跟随 DSH，主视图临时切换，引用图标与图片菜单已调整。原隔离入口已更新，未发布。

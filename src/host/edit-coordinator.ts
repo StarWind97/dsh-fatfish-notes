@@ -40,6 +40,7 @@ export class EditCoordinator {
     return {ok:true,serviceEpoch:this.epoch,repositoryId:this.repository(),changeSeq:this.generation(),available:this.available,owner:owner&&owner.windowId!==actor.windowId?this.sessions.get(owner.windowId)?.surface??null:null,
       owned:own?{noteId:own.noteId,leaseId:own.leaseId,expiresAt:own.expiresAt}:null,handoff:t&&(t.from===actor.windowId||t.to===actor.windowId)?{id:t.id,noteId:t.noteId,incoming:t.from===actor.windowId}:null,command:s.surface==='standalone'?this.command:null,theme:this.theme}
   }
+  surface(actor:WindowIdentity|undefined){return this.session(actor).surface}
   acquire(actor:WindowIdentity,noteId:string){
     this.session(actor);if(this.maintenance)return fail('notebook_busy')
     const current=this.leases.get(noteId)

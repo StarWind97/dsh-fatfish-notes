@@ -1,3 +1,4 @@
+import {appearancePreferences} from './appearance-sync.js'
 import './paper/appearance-boot.js'
 import {TransferProgress} from './TransferProgress.js'
 import * as React from 'react'
@@ -14,6 +15,8 @@ import {notebookSync} from './notebook-sync.js'
 const workspace=new NotesWorkspace('standalone')
 const library=new NotesController(undefined,{editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
 workspace.bind(library);workspace.start();notebookSync.start()
+const stopAppearance=appearancePreferences.start('standalone',workspace.api,()=>workspace.ready())
+window.addEventListener('pagehide',stopAppearance)
 bindLibraryLifecycle(library)
 window.addEventListener('fatfish-notes-before-reset',event=>{const s=library.getSnapshot();if(s.dirty||s.saving||s.operation||library.importing)event.preventDefault()})
 window.addEventListener('fatfish-notes-switched',()=>location.reload())
