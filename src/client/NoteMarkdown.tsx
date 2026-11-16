@@ -36,7 +36,7 @@ export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNote
     const item=offset===undefined?undefined:presentations.get(offset)
     if(!item||!presentationAvailable(item,note.current))return children
     const name=note.current.attachments?.find(f=>f.id===attachmentLinkId(item.url))?.name||item.label.replace(/\\([\\[\]])/g,'$1')
-    if(staticView)return <span className={'paper-presented-media'+(item.image?' is-image':'')}>{children}{!item.image&&<span aria-hidden style={{display:'inline-flex',width:26,height:26,flexShrink:0}}/>}</span>
+    if(staticView)return <span className={'paper-presented-media'+(item.image?' is-image':'')}>{children}</span>
     return <ImageActions image={item.image} download={download} name={name} t={t} {...(onPresentation?{change:()=>onPresentation(item)}:{})}>{children}</ImageActions>
   }
   return <div className="note-markdown" style={{ lineHeight: 'inherit', overflowWrap: 'anywhere' }}><style>{imageActionsCss}</style><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
