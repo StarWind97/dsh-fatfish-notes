@@ -6,6 +6,7 @@ import {spawn,execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import type {NotebookApplication} from './application.js'
 import {createHttpHandler,fence} from './routes.js'
+import {standaloneAsset} from './standalone-assets.js'
 import {NotebookError} from '../domain/errors.js'
 const exec=promisify(execFile)
 const fail=()=>new NotebookError('window_unavailable','暂时无法打开独立笔记窗口，请稍后重试',409)
@@ -38,9 +39,9 @@ export async function enableStandalone(app:NotebookApplication,dir:string){
         fence(req,origin())
         const path=new URL(req.url??'/',origin()).pathname
         if(path.startsWith('/dsh-fatfish-notes/')){await handler(req,res);return}
-        if(req.method!=='GET'||!['/','/standalone.js'].includes(path)){res.writeHead(404);res.end();return}
-        const content=path==='/'?Buffer.from('<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>肥鱼笔记 · Fatfish Notes</title><style>html,body,#app{height:100%;margin:0}body{background:var(--dsw-alias-bg-layer-1,Canvas);color:var(--dsw-alias-label-primary,CanvasText);font-family:system-ui,sans-serif}*{box-sizing:border-box}</style><div id="app">正在连接笔记库…</div><script src="/standalone.js"></script></html>'):await readFile(new URL('../standalone.js',import.meta.url))
-        res.writeHead(200,{'content-type':path==='/'?'text/html; charset=utf-8':'application/javascript; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"});res.end(content)
+        const asset=req.method==='GET'?await standaloneAsset(path):undefined
+        if(!asset){res.writeHead(404);res.end();return}
+        res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"});res.end(asset.content)
       }catch{if(!res.headersSent)res.writeHead(403);res.end()}
     })()})
     try{await new Promise<void>((resolve,reject)=>{srv.once('error',reject);srv.listen(port??0,'127.0.0.1',()=>{srv.removeListener('error',reject);resolve()})});if(!port){port=(srv.address() as {port:number}).port;await atomic(config,{port})}server=srv}

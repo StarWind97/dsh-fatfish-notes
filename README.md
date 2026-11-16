@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/fatfish-brand-transparent-dark.svg">
+    <img src="assets/brand/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
+  </picture>
+</p>
+
 # 肥鱼笔记 · Fatfish Notes
 
 [English](README.en.md)
