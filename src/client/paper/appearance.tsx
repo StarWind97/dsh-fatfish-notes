@@ -38,12 +38,14 @@ export function AppearanceScope({children,followHost=false}:{children:React.Reac
   return <ThemeContext.Provider value={{mode,locked:followHost,setMode:mode=>{if(!followHost)setChoice({mode,revision:hostRevision})}}}>{children}</ThemeContext.Provider>
 }
 export function useAppearanceTheme(){return useContext(ThemeContext)}
+/** For branding outside the full paper view, such as the first-use setup. */
+export function useBrandInk(){const host=useHostAppearance(),{mode}=useAppearanceTheme();return (mode==='host'?host.dark:mode==='dark')?'#F7F4EB':'#3F5A4E'}
 export function useAppearanceProps(){
   const value=useAppearance(),host=useHostAppearance(),{mode}=useAppearanceTheme()
   const dark=mode==='host'?host.dark:mode==='dark',colors=appearanceColors(value,dark,dark===host.dark?host.colors:undefined)
   const sans='"Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif',serif='"Noto Serif CJK SC", "Songti SC", SimSun, Georgia, serif'
   const readingFont=readingFonts(value,host.font),headingFont=value.reading==='modern'?readingFont:serif
-  const style={'--fatfish-brand-ink':dark?'#F7F4EB':'#26362F','--ink':colors.ink,'--muted':colors.muted,'--base':colors.paper,'--paper':colors.paper,'--shelf':colors.shelf,'--rule':colors.rule,'--accent':colors.accent,'--selected':colors.selected,'--overlay':colors.overlay,'--input':colors.input,'--reading-font':readingFont,'--heading-font':headingFont,'--reading-size':value.size+'px','--reading-leading':value.leading,'--code-size':value.codeSize+'px','--code-weight':value.codeWeight,'--serif':value.reading==='modern'?sans:serif,'--dsw-alias-label-primary':colors.ink,'--dsw-alias-label-secondary':colors.muted,'--dsw-alias-bg-layer-1':colors.paper,'--dsw-alias-bg-layer-2':colors.shelf,'--dsw-alias-border-l2':colors.rule,colorScheme:dark?'dark':'light'} as React.CSSProperties
+  const style={'--fatfish-brand-ink':dark?'#F7F4EB':'#3F5A4E','--ink':colors.ink,'--muted':colors.muted,'--base':colors.paper,'--paper':colors.paper,'--shelf':colors.shelf,'--rule':colors.rule,'--accent':colors.accent,'--selected':colors.selected,'--overlay':colors.overlay,'--input':colors.input,'--reading-font':readingFont,'--heading-font':headingFont,'--reading-size':value.size+'px','--reading-leading':value.leading,'--code-size':value.codeSize+'px','--code-weight':value.codeWeight,'--serif':value.reading==='modern'?sans:serif,'--dsw-alias-label-primary':colors.ink,'--dsw-alias-label-secondary':colors.muted,'--dsw-alias-bg-layer-1':colors.paper,'--dsw-alias-bg-layer-2':colors.shelf,'--dsw-alias-border-l2':colors.rule,colorScheme:dark?'dark':'light'} as React.CSSProperties
   return {style,'data-layout':value.layout,'data-palette':value.palette,'data-theme':dark?'dark':'light','data-density':value.density,'data-code-wrap':value.codeWrap,'data-code-lines':value.codeLines}
 }
 const cjkFamily={host:'',yahei:'Microsoft YaHei',deng:'DengXian',song:'SimSun',kai:'KaiTi'}

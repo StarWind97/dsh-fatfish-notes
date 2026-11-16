@@ -21,6 +21,8 @@
 
 ## 最新交付
 
+2026-11-17 最新交付：[品牌主色统一与任务栏图标](plans/2026-11-16-brand-color-and-taskbar.zh.md)已完成，见[验证与体验入口](plans/2026-11-16-brand-color-and-taskbar-results.zh.md)。现行品牌统一提亮绿，按场景使用微型 A、标准稿和完整品牌；22 项回归、232 文件安装核对、三入口 14 个明暗检查点通过。实际 Windows 任务栏在正常重开及宿主重启后保持彩色，历史原稿和宣传截图保留；未发布。
+
 2026-11-16 展示评审：[正式规划](plans/2026-11-16-showcase-visual-review.zh.md)的第一轮已完成，见[三种展示方向与验证](plans/2026-11-16-showcase-visual-results.zh.md)。按用户最终选择整理七篇 AI 使用笔记，提供三种实际主题、六张截图、本地评审与隔离体验。内容、内链、文件、旧资料保持和反馈保存已核对；等待用户取舍，不替换公开展示图片。
 
 2026-11-16 正式发布：[0.9.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0)已公开，适配 DSH 0.2.2-rc.3；[发布规划](plans/2026-11-16-release-090.zh.md)与[验证及市场状态](releases/0.9.0/review.zh.md)统一记录本轮结果。397 项回归、实际 0.8.0 资料升级、231 文件安装核对、三入口、保存与双窗口刷新、私库同步及重启读回通过。[隔离入口](../scripts/Open-Fatfish-Notes.cmd)继续使用测试资料，日常 DSH 不自动更新。

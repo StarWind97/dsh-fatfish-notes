@@ -2,6 +2,8 @@
 
 2026-11-16 归档。本目录保留设计依据、编辑数据与导出素材；**当前使用的矢量源稿统一在 [assets/brand/](../../assets/brand/)**。用途和尺寸见[品牌规则](../brand.zh.md)，接入与验证见[专项交接](../handoffs/2026-11-16-brand-logo.zh.md)。本目录不进入插件安装包。
 
+同日后续按[主色统一规划](../plans/2026-11-16-brand-color-and-taskbar.zh.md)，现行主色全部改为 `#3F5A4E`。当前 PNG 已重新生成到 [current-png/](current-png/README.md)，小尺寸采用 A；下文 `png/`、`sources/` 和归档清单保留原交付快照。预览与下载入口现指向现行资源。当前方块图标用于任务栏、窗口图标和插件列表，透明图形用于界面标题与宿主入口，完整组合用于帮助/介绍。
+
 ## 已确认的设计过程
 
 1. 初轮广泛比较笔记产品的图标表达，给出至少八种方向；用户表达偏好顺序 `5 → 8 → 7 → 1`，再在细化方案中选择③「墨鱼·叠页」。保留原图，但不凭文件排序反推初轮编号。
@@ -40,11 +42,12 @@
 | 当前鱼形 SVG：标准、浅深、单色、小尺寸和方形应用图标 | 各变体在 `assets/brand/` 单独存储；修改共同轮廓时逐一同步，标准与小尺寸的光学校准分别保留 |
 | [geometry.json](sources/geometry.json) | 当前鱼身、页片与眼孔的制作数据；`geometry-trace.json` 是平滑前中间记录，当前 SVG 是渲染依据 |
 | [brand-outlines.json](sources/brand-outlines.json)＋[brand-square-layout.json](sources/brand-square-layout.json) | 中英文路径、原始边界与组合定位；两份 `fatfish-brand-square-*.svg` 含实际鱼形及文字路径。排布基于 1024 画布，中文宽 760、顶边 638；英文宽 560、顶边 838 |
-| `fatfish-mark-small-mono.svg` → [generate-brand.ts](../../scripts/generate-brand.ts) | `src/client/brand-artwork.ts` 的 `smallMark` 和 `assets/brand/favicon.svg` |
+| `fatfish-mark-small-mono.svg`、`fatfish-mark-small.svg` → [generate-brand.ts](../../scripts/generate-brand.ts) | `src/client/brand-artwork.ts` 的 `smallMark`、`smallColorMark` 和微型 viewBox |
+| `fatfish-icon-small-dark.svg`、`fatfish-icon-dark.svg` → 同一脚本 | 彩底 A `favicon.svg` 与标准稿根 `icon.svg` |
 | `fatfish-mark.svg` → 同一脚本 | `brand-artwork.ts` 的 `colorMark` |
 | `fatfish-brand-square-light.svg` → 同一脚本 | `brand-artwork.ts` 的 `brandSignature`；去掉底矩形，墨色由当前视图提供 |
 | 浅深两份 `fatfish-brand-square-*.svg` → 同一脚本 | 两份 `fatfish-brand-transparent-*.svg` |
-| 其他需手动同步的导出 | 根目录 `icon.svg`、`assets/icon-180.png`、favicon 16／32 PNG 及本目录 PNG；上述脚本不会更新这些文件 |
+| 当前派生输出 | `generate-brand.ts` 同时生成双色 A 常量、`icon.svg` 和彩底 A favicon SVG；`render-brand.mjs` 生成 `assets/icon-180.png`、favicon PNG/ICO、`current-png/` 的 58 份当前位图 |
 
 品牌路径或排布调整后，在项目根目录运行 `npx tsx scripts/generate-brand.ts`，再按实际影响构建、检查页面；`lib/` 始终由正常构建生成。若只调整放置位置，改 [Brand.tsx](../../src/client/Brand.tsx) 的使用处和相关布局；当前明暗逻辑见 [appearance.tsx](../../src/client/paper/appearance.tsx)，具体入口文件见[交接](../handoffs/2026-11-16-brand-logo.zh.md#后续修改从哪里入手)。
 
