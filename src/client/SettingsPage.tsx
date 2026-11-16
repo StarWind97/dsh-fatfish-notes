@@ -30,7 +30,7 @@ const setupErrors: Record<string, LocaleKey> = {note_edit_busy:'windowEditBusy',
 const setupChanged = 'fatfish-notes-connected'
 
 type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'|'pick'
-export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React.ReactNode;showFeedback?:boolean}) {
+export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;children?:React.ReactNode;showFeedback?:boolean;grouped?:boolean}) {
   const [data,setStoredData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
   const liveSync=useSyncExternalStore(notebookSync.subscribe,notebookSync.getSnapshot,notebookSync.getSnapshot)
   function setData(value:PersonalState){setStoredData(value);notebookSync.update(value.sync)}
@@ -125,10 +125,10 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
   if(sync?.ready && children)return <>{notice==='setupFirstSyncDone'&&<div role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:80,padding:'10px 18px',borderRadius:8,background:'var(--dsw-alias-bg-layer-2)',color:'var(--dsw-alias-label-primary)'}}>{t(notice)}</div>}{children}</>
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
-  return <main className="notes-setup" aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
+  return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
     <header><span className="setup-icon"><BookOpen size={22}/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
-    {sync?.ready&&!wizard&&<HandbookHelp/>}
+    {sync?.ready&&!wizard&&!grouped&&<HandbookHelp/>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}
     {wizard && (preview?<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupReview')}</strong>
       {resetting&&<small>{t('resetFrom',{repo:repoLabel})}</small>}
@@ -191,13 +191,13 @@ export function SettingsPage({t,children,showFeedback=true}:{t:T;children?:React
       <label>{t('moveTarget')}<input autoFocus value={custom??''} disabled={busy} onChange={e=>setCustom(e.target.value)}/></label>
       <div className="setup-modes"><button disabled={busy} onClick={leave}>{t('cancel')}</button><button className="setup-primary" disabled={busy||!custom?.trim()} onClick={()=>void run('move')}>{t('moveConfirm')}</button></div>
     </section>:<><p>{t(sync.ready?'setupConnectedHint':sync.enabled?'setupInitializing':'resumeBoundHint')}</p>
-      <section className="setup-section"><strong><GitBranch size={16}/>{repoLabel}</strong><small>{t('personalPrivate')}</small></section>
+      <div className={grouped?'setup-connected-grid':undefined}><section className="setup-section"><strong><GitBranch size={16}/>{repoLabel}</strong><small>{t('personalPrivate')}</small></section>
       <BoundGitHubLogin key={sync.binding.repositoryId} sync={sync} t={t}/>
       <section className="setup-section"><strong><Folder size={16}/>{t('setupFolder')}</strong><code>{sync.folder}</code>{sync.ready&&<button disabled={busy} onClick={()=>{setManage('move');setCustom('');setNotice(null);setError(null)}}>{t('moveTitle')}</button>}</section>
-      <style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
+      <div className={grouped?'setup-section':undefined}><style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
       {sync.error&&<p role="alert">{sync.errorCode&&setupErrors[sync.errorCode]?t(setupErrors[sync.errorCode]!):sync.error}</p>}
-      <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button>
-      <NoteUsage t={t} details/><CaptureAppearance t={t}/>
+      <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button></div>
+      <NoteUsage t={t} details/></div>{!grouped&&<CaptureAppearance t={t}/>}
       {sync.ready&&<footer className="setup-reset"><button disabled={busy||sync.pending} onClick={()=>{setManage('reset');setRepo(DEFAULT_PRIVATE_REPO_NAME);setMode('create');setCustom(null);setRecovery(null);setEditingFolder(false);setPreview(null);setError(null);setNotice(null)}}>{t('resetTitle')}</button><small>{t(sync.pending?'resetPending':'resetFoot')}</small></footer>}
     </>)}
     {busy&&<p role="status">{t('setupWorking')}</p>}

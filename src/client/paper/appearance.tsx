@@ -3,6 +3,9 @@ import {createContext,useContext,useEffect,useState,useSyncExternalStore} from '
 import {appearanceColors,defaultAppearance,cjkFonts,latinFonts,layouts,palettes,type Appearance,type AppearanceColors} from './appearance-state.js'
 import {appearanceCss} from './appearance-style.js'
 import {codeFontCss} from './appearance-assets.js'
+import type {T} from '../locale.js'
+import {CaptureAppearance} from '../CaptureAppearance.js'
+import {SettingsTabs,type SettingsTab,type SettingsCategory} from '../SettingsTabs.js'
 import {appearancePreferences} from '../appearance-sync.js'
 export const setAppearance=(patch:Partial<Appearance>)=>appearancePreferences.set(patch)
 export function useAppearance(){return useSyncExternalStore(appearancePreferences.subscribe,appearancePreferences.getSnapshot,appearancePreferences.getSnapshot)}
@@ -59,15 +62,30 @@ function FontPreview(){
   return <><div className="appearance-font-preview" style={{fontFamily:readingFonts(value,getComputedStyle(document.body).fontFamily),fontSize:value.size,lineHeight:value.leading}}>把一次有价值的讨论留下，下一次从这里继续。<br/>Keep useful ideas close. Read, revise, and return.</div>{!!missing.length&&<p>未检测到 {missing.join('、')}，当前使用系统回退字体。可先安装字体，再重新打开页面。</p>}<p>字体设置只影响本机阅读。代码字体已随插件提供，无需安装；中文注释由系统字体补足。图片沿用阅读排版，PDF 使用随包字体以保证中文可读。</p></>
 }
 export function AppearanceStyle(){return <style>{codeFontCss+appearanceCss}</style>}
-export function AppearanceSettings(){
-  const value=useAppearance(),theme=useAppearanceTheme(),sync=useSyncExternalStore(appearancePreferences.subscribeStatus,appearancePreferences.getStatus,appearancePreferences.getStatus)
+export function AppearanceStatus(){
+  const sync=useSyncExternalStore(appearancePreferences.subscribeStatus,appearancePreferences.getStatus,appearancePreferences.getStatus)
+  return <p role={sync==='error'?'status':undefined} className="appearance-sync-status">{sync==='error'?'外观设置暂未同步，将自动重试。':sync==='saving'?'正在同步外观设置…':sync==='connecting'?'正在连接外观设置…':sync==='waiting'?'等待主界面合并原设置':'外观设置已同步'}{sync==='error'&&<button type="button" onClick={appearancePreferences.refresh}>重试</button>}</p>
+}
+export function AppearanceReset(){
+  const theme=useAppearanceTheme()
+  return <button type="button" onClick={()=>{setAppearance(defaultAppearance);theme.setMode('host')}}>恢复全部外观默认</button>
+}
+export function AppearanceFields({group}:{group:'appearance'|'reading'|'workspace'}){
+  const value=useAppearance(),theme=useAppearanceTheme()
   function select<K extends keyof Appearance>(key:K,label:string,options:Record<string,string>){return <label>{label}<select aria-label={label} value={String(value[key])} onChange={e=>setAppearance({[key]:typeof value[key]==='number'?Number(e.target.value):e.target.value})}>{Object.entries(options).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>}
   function check(key:'tabs'|'pinned'|'codeWrap'|'codeLines',label:string){return <label className="appearance-check"><input type="checkbox" checked={value[key]} onChange={e=>setAppearance({[key]:e.target.checked})}/>{label}</label>}
-  return <section className="appearance-settings" aria-label="外观与阅读"><header><div><h2>外观与阅读</h2><p>界面布局、配色与阅读设置在同一 DSH 的笔记窗口间共享。</p></div><button type="button" onClick={()=>{setAppearance(defaultAppearance);theme.setMode('host')}}>恢复默认</button></header>
-    <p role={sync==='error'?'status':undefined} className="appearance-sync-status">{sync==='error'?'外观设置暂未同步，将自动重试。':sync==='saving'?'正在同步外观设置…':sync==='connecting'?'正在连接外观设置…':sync==='waiting'?'请先打开 DSH 中的肥鱼笔记，完成原设置合并。':'外观设置已同步'}{sync==='error'&&<button type="button" onClick={appearancePreferences.refresh}>重试</button>}</p>
-    <fieldset><legend>界面主题</legend><div className="appearance-layouts">{Object.entries(layouts).map(([key,label],i)=><button key={key} aria-pressed={value.layout===key} onClick={()=>setAppearance({layout:key as Appearance['layout']})}><span className={'layout-glyph layout-'+key} aria-hidden="true"><i/><i/><i/></span><span><small>{String(i+1).padStart(2,'0')}</small> {label}</span></button>)}</div></fieldset>
-    <fieldset><legend>配色与层次</legend><div className="appearance-fields">{select('palette','配色方案',palettes)}{!theme.locked&&<label>明暗模式<select aria-label="明暗模式" value={theme.mode} onChange={e=>theme.setMode(e.target.value as ThemeMode)}><option value="host">跟随 DSH</option><option value="light">浅色（本次）</option><option value="dark">深色（本次）</option></select></label>}{select('contrast','对比度',{standard:'标准',soft:'柔和',strong:'鲜明'})}{select('density','面板密度',{compact:'紧凑',balanced:'均衡',spacious:'舒展'})}</div><p>{theme.locked?'此区域的明暗始终跟随 DSH。':'明暗切换仅影响本次视图；DSH 切换明暗或重新打开后恢复跟随。'}</p></fieldset>
-    <fieldset><legend>正文与代码</legend><div className="appearance-fields">{select('reading','阅读排版',{modern:'现代清晰',book:'书页',mixed:'标题与正文混排'})}{select('fontCjk','中文字体',cjkFonts)}{select('fontLatin','西文字体',latinFonts)}{select('size','正文字号',{16:'16 px',17:'17 px',18:'18 px',20:'20 px'})}{select('leading','正文行高',{'1.65':'紧凑 · 1.65','1.8':'舒适 · 1.8','2':'宽松 · 2'})}{select('codeWeight','代码字重',{300:'Light',400:'Regular',500:'Medium'})}{select('codeSize','代码字号',{12:'12 px',14:'14 px',16:'16 px'})}</div><div className="appearance-checks">{check('codeWrap','代码自动折行')}{check('codeLines','显示代码行号')}</div><FontPreview/></fieldset>
-    <fieldset><legend>工作区</legend><div className="appearance-fields">{select('materials','资料区位置',{bottom:'底部',right:'右侧'})}{select('rightStyle','右侧资料与目录',{tabs:'切换显示',stack:'上下分区'})}{select('materialStyle','资料排列',{compact:'紧凑行列',cards:'轻量卡片'})}</div><div className="appearance-checks">{check('pinned','固定资料区')}{check('tabs','显示本次打开的笔记标签')}</div></fieldset>
+  return <section className="appearance-settings">
+    {group==='appearance'&&<><fieldset><legend>界面主题</legend><div className="appearance-layouts">{Object.entries(layouts).map(([key,label],i)=><button key={key} aria-pressed={value.layout===key} onClick={()=>setAppearance({layout:key as Appearance['layout']})}><span className={'layout-glyph layout-'+key} aria-hidden="true"><i/><i/><i/></span><span><small>{String(i+1).padStart(2,'0')}</small> {label}</span></button>)}</div></fieldset><fieldset><legend>配色与层次</legend><div className="appearance-fields">{select('palette','配色方案',palettes)}{!theme.locked&&<label>明暗模式<select aria-label="明暗模式" value={theme.mode} onChange={e=>theme.setMode(e.target.value as ThemeMode)}><option value="host">跟随 DSH</option><option value="light">浅色（本次）</option><option value="dark">深色（本次）</option></select></label>}{select('contrast','对比度',{standard:'标准',soft:'柔和',strong:'鲜明'})}{select('density','面板密度',{compact:'紧凑',balanced:'均衡',spacious:'舒展'})}</div><p>{theme.locked?'此区域的明暗始终跟随 DSH。':'明暗切换仅影响本次视图；DSH 切换明暗或重新打开后恢复跟随。'}</p></fieldset></>}
+    {group==='reading'&&<><fieldset><legend>正文与代码</legend><div className="appearance-fields">{select('reading','阅读排版',{modern:'现代清晰',book:'书页',mixed:'标题与正文混排'})}{select('fontCjk','中文字体',cjkFonts)}{select('fontLatin','西文字体',latinFonts)}{select('size','正文字号',{16:'16 px',17:'17 px',18:'18 px',20:'20 px'})}{select('leading','正文行高',{'1.65':'紧凑 · 1.65','1.8':'舒适 · 1.8','2':'宽松 · 2'})}{select('codeWeight','代码字重',{300:'Light',400:'Regular',500:'Medium'})}{select('codeSize','代码字号',{12:'12 px',14:'14 px',16:'16 px'})}</div><div className="appearance-checks">{check('codeWrap','代码自动折行')}{check('codeLines','显示代码行号')}</div><FontPreview/></fieldset></>}
+    {group==='workspace'&&<><fieldset><legend>工作区</legend><div className="appearance-fields">{select('materials','资料区位置',{bottom:'底部',right:'右侧'})}{select('rightStyle','右侧资料与目录',{tabs:'切换显示',stack:'上下分区'})}{select('materialStyle','资料排列',{compact:'紧凑行列',cards:'轻量卡片'})}</div><div className="appearance-checks">{check('pinned','固定资料区')}{check('tabs','显示本次打开的笔记标签')}</div></fieldset></>}
   </section>
+}
+export function appearanceTabs(t:T):SettingsTab[]{return [
+  {id:'appearance',label:'外观',content:<AppearanceFields group="appearance"/>},
+  {id:'reading',label:'阅读与代码',content:<AppearanceFields group="reading"/>},
+  {id:'workspace',label:'工作区',content:<><AppearanceFields group="workspace"/><CaptureAppearance t={t}/></>}
+]}
+export function AppearanceSettings({t}:{t:T}){
+  const [category,setCategory]=useState<SettingsCategory>('appearance')
+  return <SettingsTabs value={category} onChange={setCategory} actions={<><AppearanceStatus/>{category==='appearance'&&<AppearanceReset/>}</>} items={appearanceTabs(t)}/>
 }
