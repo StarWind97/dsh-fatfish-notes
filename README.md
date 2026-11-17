@@ -11,9 +11,7 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 当前版本 **0.9.0**，适配 **DSH 0.2.2-rc.3**，已在 Windows 验证。见[新版说明](docs/releases/0.9.0/release-notes.md)和[验证记录](docs/releases/0.9.0/review.zh.md)。
-
-> **0.9.1 候选正在准备，尚未发布。** 本轮补齐 DSH 访问检查并更新已确认的品牌图标；[候选说明与检查记录](docs/releases/0.9.1/review.zh.md)。下方下载入口仍为正式 0.9.0。
+> 当前版本 **0.9.1**，适配 **DSH 0.2.2-rc.3**，已在 Windows 验证。见[新版说明](docs/releases/0.9.1/release-notes.md)和[验证记录](docs/releases/0.9.1/review.zh.md)。
 
 ![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
@@ -35,17 +33,17 @@
 
 ## 安装与升级
 
-从 [0.9.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0)下载 `dsh-fatfish-notes-0.9.0.tgz`，适用于 **DSH 0.2.2-rc.3**。不要用 Source code 压缩包代替插件安装包。仍使用 rc.1 的用户可保留旧 0.8.0；不要将新版资料交给旧插件写入。
+从 [0.9.1 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.1)下载 `dsh-fatfish-notes-0.9.1.tgz`，适用于 **DSH 0.2.2-rc.3**。不要用 Source code 压缩包代替插件安装包。仍使用 rc.1 的用户可保留旧 0.8.0；不要将新版资料交给旧插件写入。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.1.tgz"
 ```
 
 重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-升级不需要卸载或重新绑定。**升级到 0.9.0 前先确认同步完成，关闭独立笔记窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。同一私库的各端一起升级。** 新版写入后可能采用旧版不支持的 v3/v4 格式，不能只装回旧插件继续使用；回退需要配套宿主和升级前备份。旧模板作为普通笔记保留，已修改的用户手册不会被覆盖。
+从 0.9.0 升级到 0.9.1 不需要卸载、重新绑定或迁移资料格式。升级前确认同步完成，关闭独立窗口及 DSH，保留本机笔记资料夹和 `DSH_HOME/fatfish-notes` 的备份。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件**；v3/v4 资料不能交给旧 0.8.0 继续读写，回退需要配套宿主和升级前备份。旧模板作为普通笔记保留，已修改的用户手册不会被覆盖。
 
 ## 开始使用
 
@@ -63,7 +61,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 
 ## 使用边界
 
-- 0.9.0 实际验证环境为 **Windows / DSH 0.2.2-rc.3**。macOS 和两台物理设备尚未实测。
+- 0.9.1 实际验证环境为 **Windows / DSH 0.2.2-rc.3**。macOS 和两台物理设备尚未实测。
 - 独立窗口使用 Windows 上已安装的 Chrome 或 Edge，依赖 DSH 保持运行。
 - 外观偏好在同一 DSH 内共享，不跨设备同步；明暗手动切换只影响当前视图，宿主再次切换时恢复跟随。收藏、置顶和笔记本顺序随私库同步。
 - 引用不会自动发送，也尚未登记到宿主原生附件栏。AI 只在转存时可选生成标题、摘要和标签，正文由用户编辑。
@@ -72,4 +70,4 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 
 问题与建议可通过 [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues) 提交，请附系统、DSH/插件版本及复现步骤，不要提供凭据或私人笔记。
 
-开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。展示截图取自实际隔离界面，使用演示笔记与编排会话；品牌图标包含开发中的调整。
+开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。展示截图取自实际隔离界面，使用演示笔记与编排会话；展示截图保留已接受的场景内容；当前品牌图标见插件实际界面。

@@ -11,9 +11,7 @@
 
 Keep useful conversations as Markdown notes. Read, edit and reference them beside your chats, with local storage and sync through your own private GitHub repository.
 
-> Current version: **0.9.0 for DSH 0.2.2-rc.3**, verified on Windows. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
-
-> **0.9.1 is being prepared and is not published yet.** It adds DSH access checks and the approved brand icons. See the [candidate review](docs/releases/0.9.1/review.zh.md). Download links below still point to the released 0.9.0.
+> Current version: **0.9.1 for DSH 0.2.2-rc.3**, verified on Windows. See the [release notes](docs/releases/0.9.1/release-notes.md) and [verification record](docs/releases/0.9.1/review.zh.md).
 
 ![Keep image results, editing prompts and observations together](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
@@ -35,17 +33,17 @@ Keep code snippets, results, files and related notes together for the next time 
 
 ## Installation and upgrade
 
-Download `dsh-fatfish-notes-0.9.0.tgz` from the [0.9.0 release](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0) for **DSH 0.2.2-rc.3**, not the Source code archive. Users remaining on rc.1 can keep 0.8.0; older plugins cannot read the new saved formats.
+Download `dsh-fatfish-notes-0.9.1.tgz` from the [0.9.1 release](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.1) for **DSH 0.2.2-rc.3**, not the Source code archive. Users remaining on rc.1 can keep 0.8.0; older plugins cannot read the new saved formats.
 
 Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 
 ```powershell
-dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
+dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.1.tgz"
 ```
 
 Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open Fatfish Notes.
 
-No uninstall or rebinding is needed for an upgrade. Before upgrading to 0.9.0, finish sync, close DSH and the separate note window, and back up both the local notebook folder and `DSH_HOME/fatfish-notes`. **Upgrade all instances sharing one repository together.** New writes can use v3/v4 formats that 0.8.0 cannot read. A downgrade needs a matching host and pre-upgrade backup, not just the old plugin. Existing templates remain ordinary notes; edited handbook content is preserved.
+Upgrading from 0.9.0 to 0.9.1 needs no uninstall, rebinding or data format migration. Finish sync, close DSH and the separate note window, and back up the local notebook folder and `DSH_HOME/fatfish-notes`. **When upgrading from 0.8.0, upgrade all instances sharing one repository together.** That older version cannot read or write v3/v4 data. A downgrade needs a matching host and pre-upgrade backup. Existing templates remain ordinary notes; edited handbook content is preserved.
 
 ## Getting started
 
@@ -72,4 +70,4 @@ Use list import/export for Markdown migration. Open exported copies in other edi
 
 Report problems through [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues), including OS, host/plugin versions and reproduction steps. Do not include credentials or private notes.
 
-Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show the actual isolated interface with sample notes and a staged conversation; the brand icons include updates still in development. Development starts [here](docs/README.md).
+Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show the actual isolated interface with sample notes and a staged conversation; the screenshots retain the accepted scenarios, while the current brand icons are visible in the plugin. Development starts [here](docs/README.md).
