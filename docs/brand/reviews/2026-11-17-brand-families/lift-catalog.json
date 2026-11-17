@@ -1,0 +1,23 @@
+{
+  "id": "p3-lift",
+  "palette": {
+    "body": "#BA3FB6",
+    "arc": "#5DAC53",
+    "ink": "#FFF7EE",
+    "background": "#2B1927"
+  },
+  "original": {
+    "body": "#A337A0",
+    "arc": "#529849"
+  },
+  "sources": {
+    "p3-mark-original-stable-dark.svg": "59cb54fa0b487ef31333c55845335322763b7409b5deec7a0553f41e3204689d",
+    "p3-mark-d1-stable-dark.svg": "c9e289c6a4aa9eb228673fa44908351a9bc071aace7303528eb6ed023b46863d",
+    "p3-mark-d2-stable-dark.svg": "272ed8c0fa999a03dc28c60ae6e849094a9b20c7591ae274553ed4274469cd51",
+    "p3-mark-c0-stable-dark.svg": "f44227ce8ef5897df8b6f6960984b6f4626a84152ad7176473219d2af2c5a7b8",
+    "p3-stack-stable-dark.svg": "e4f0120f5f256d0c8f30f18d0db189e818796d3d914937c2a8d91b9ebf882b27",
+    "p3-horizontal-stable-dark.svg": "a09b545e1ec54dc49e466ed75b7ca08f2f5561fc3c29b9ab8b83e57e2259480f",
+    "p3-cover-stable-dark.svg": "bce9060db537a2279762f8583eea56cca1d04aba7fdf0d8133a6507e2bf26343"
+  },
+  "scope": "One dark-only review. Light, typography, geometry, tile and product unchanged."
+}

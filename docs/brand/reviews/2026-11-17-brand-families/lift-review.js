@@ -1,0 +1,25 @@
+export function renderLiftReview(){
+ const root=document.querySelector('#berry-lift');
+ const versions=[{id:'light',label:'浅色参照',sub:'保持你喜欢的原配色',mode:'light'},{id:'stable-dark',label:'深色 · 现版',sub:'原色，作为对照',mode:'dark'},{id:'lift-dark',label:'深色 · 小幅提亮',sub:'本次新增，同色系更清楚',mode:'dark'}];
+ const src=(stem,id,ext='svg')=>`assets/p3-${stem}-${id}.${ext}`;
+ const img=(stem,id,alt,props='')=>`<img src="${src(stem,id)}" alt="${alt}" ${props}>`;
+ const mark=(id,size)=>img(`mark-${size<=17?'d2':size<=24?'d1':size===28?'c0':'original'}`,id,`${size}px 鱼形`,`width="${size}" height="${Math.round(size*.7)}"`);
+ let scene='identity';const scenes={identity:'完整标识',ui:'小尺寸入口',sizes:'实际尺寸',cover:'封面'};
+ function view(id){
+  if(scene==='identity')return `<div class="lift-identity">${img('horizontal',id,'横式完整标识','class="lift-horizontal"')}<div class="lift-lockup">${img('stack',id,'竖式完整标识','class="lift-stack"')}${mark(id,64)}</div><div class="lift-size-inline">${[16,20,24].map(s=>`<figure>${mark(id,s)}<figcaption>${s} px</figcaption></figure>`).join('')}</div></div>`;
+  if(scene==='cover')return img('cover',id,'封面配色示意','class="stable-cover"');
+  if(scene==='sizes')return `<div class="stable-size-list">${[16,17,20,24,28,32,48,64].map(s=>`<div><span>${s} px</span>${mark(id,s)}<small>${s<=17?'D2':s<=24?'D1':s===28?'C0':'原版'}</small></div>`).join('')}</div>`;
+  return `<div class="stable-ui"><p class="stable-caption">主页面／独立窗口 · 20 px</p><div class="stable-ui-header">${mark(id,20)}<b>肥鱼笔记</b><span>笔记　设置</span></div><div class="stable-note"><span class="stable-muted">我的 AI 使用笔记</span><h4>把好用的提问方式留下</h4><p>记录有效约束和关键结论，下次遇到类似任务时接着用。</p></div><p class="stable-caption">会话侧栏 · 17 px</p><div class="stable-ui-header">${mark(id,17)}<b>会话笔记</b><span>＋　↗</span></div><div class="stable-sidebar-note"><b>长文阅读核对清单</b><p>原文依据、适用条件、待确认的问题。</p></div><p class="stable-caption">DSH 单色入口 · 16 px，保持宿主色</p><div class="stable-host"><i style="mask:url('assets/p3-mark-d2-light.svg') center/contain no-repeat"></i>肥鱼笔记</div></div>`;
+ }
+ function render(){
+  root.querySelector('#lift-tabs').innerHTML=Object.entries(scenes).map(([id,label])=>`<button data-lift-scene="${id}" aria-pressed="${scene===id}">${label}</button>`).join('');
+  root.querySelector('#lift-panels').innerHTML=versions.map(v=>`<article class="stable-panel ${v.mode}" data-lift-version="${v.id}"><header><b>${v.label}</b><span>${v.sub}</span></header><div class="stable-stage">${view(v.id)}</div><div class="stable-downloads">${(scene==='cover'?[['cover','封面 SVG']]:scene==='sizes'?[['mark-d2','16–17 px'],['mark-d1','20–24 px'],['mark-c0','28 px'],['mark-original','原版']]:[['horizontal','横式 SVG'],['stack','竖式 SVG']]).map(([stem,label])=>`<a download href="${src(stem,v.id)}">${label} ↓</a>`).join('')}${scene==='cover'?`<a download href="${src('cover',v.id,'png')}">封面 PNG ↓</a>`:''}</div></article>`).join('');
+ }
+ root.innerHTML=`<div class="section-head"><div><span class="eyebrow">REFINEMENT / BERRY AFTER DARK</span><h2>莓紫仍是莓紫，深色再清楚一点。</h2></div><a class="small" href="#stable-review">查看此前整套方案 ↓</a></div><p class="stable-lead">根据你已保存的意见，只增加一档深色提亮。鱼身与上弧保留原来的色相，字标、浅色版和任务栏保持。</p>
+ <div id="lift-tabs" class="stable-tabs" role="group" aria-label="本次提亮对比场景"></div><div id="lift-panels" class="lift-panels"></div>
+ <div class="lift-meta"><div><b>鱼身</b><span><i style="background:#A337A0"></i>#A337A0 → <i style="background:#BA3FB6"></i>#BA3FB6</span></div><div><b>上弧</b><span><i style="background:#529849"></i>#529849 → <i style="background:#5DAC53"></i>#5DAC53</span></div><p>只提亮一小档，没有回到此前偏粉的浅紫。图形按实际尺寸显示，建议浏览器保持 100% 缩放。</p></div>
+ <div class="lift-fixed"><div><b>任务栏保持固定配色</b><p>这轮只调整深底上的透明鱼形。自带莓紫底的方块仍使用暖白鱼和浅绿上弧。</p><a href="#stable-review" class="small">下方保留应用方块与真实任务栏对照 ↓</a></div><div class="lift-fixed-icons"><span><img src="assets/p3-tile-32.png" srcset="assets/p3-tile-32.png 1x, assets/p3-tile-64.png 2x" width="32" height="32" alt="保持原配色的任务栏图标"></span><span><img src="assets/p3-tile-32.png" srcset="assets/p3-tile-32.png 1x, assets/p3-tile-64.png 2x" width="32" height="32" alt="深底上的同款任务栏图标"></span></div></div>
+ <div class="stable-feedback"><h3>本次小幅提亮意见</h3><p class="muted small">此前「整套更统一、深色稍暗」的意见保持；这里是新一轮反馈，输入后自动保存。</p><fieldset id="lift-feedback-fields" disabled><div class="feedback-grid"><label>深色配色<select data-answer="lift4_choice"><option value="">还没有确定</option><option value="lift">小幅提亮版更合适</option><option value="original">仍喜欢现版原色</option><option value="adjust">还需要调整，见说明</option></select></label></div><label class="notes-label">补充说明<textarea rows="3" data-answer="lift4_notes" placeholder="小图标清楚了吗？提亮后是否仍保留了原来的感觉？"></textarea></label></fieldset><div class="save-row"><span id="lift-save-status" role="status">正在读取意见…</span><button id="lift-retry" hidden>重试保存</button></div><p class="muted small">保存后可刷新或换浏览器继续填写，不会自动接入插件或发布。</p></div>`;
+ root.querySelector('#lift-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-lift-scene]');if(b){scene=b.dataset.liftScene;render();root.querySelector(`[data-lift-scene=${scene}]`).focus({preventScroll:true})}});
+ render();
+}

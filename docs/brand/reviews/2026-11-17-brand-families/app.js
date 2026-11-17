@@ -1,4 +1,6 @@
-import {renderStableReview} from './stable-review.js?v=stable-v1';
+import {renderStableReview} from './stable-review.js?v=lift-v1';
+import {renderLiftReview} from './lift-review.js?v=lift-v1';
+renderLiftReview();
 renderStableReview();
 const {families}=await fetch('catalog.json?v=purple-dark-v2').then(r=>r.json());
 const byId=id=>families.find(f=>f.id===id),$=s=>document.querySelector(s);
@@ -70,7 +72,7 @@ const history=await fetch('previous-feedback.json').then(r=>r.json());
 const h=document.createElement('pre');h.textContent=history.data.notes;$('#history').append(h);const t=document.createElement('time');t.textContent='上一轮首选：12 紫莓薄荷；候选：02 鲜翠、07 薄荷纸、12 紫莓薄荷。保存于 '+new Date(history.updatedAt).toLocaleString('zh-CN');$('#history').append(t);
 document.querySelectorAll('#feedback select[data-answer]:not([data-answer=consistency])').forEach(el=>{el.insertAdjacentHTML('beforeend',families.map(f=>`<option value="${f.id}">${f.no} ${f.name}</option>`).join(''))});
 $('#family-feedback').innerHTML=families.map(f=>`<div class="family-opinion"><header><b>${f.no} ${f.name}</b><label><input type="checkbox" data-answer="keep_${f.id}">保留继续看</label></header><textarea rows="2" data-answer="note_${f.id}" aria-label="${f.name}的意见" placeholder="喜欢什么，想改什么？"></textarea></div>`).join('');
-const state=window.createPageState({key:'fatfish-brand-families-20261117',defaults:{},onStatus:({kind})=>{const labels={loading:'正在读取意见…',saving:'正在自动保存…',saved:'意见已保存，可以继续修改。',failed:'尚未保存到项目；浏览器保留草稿，请重试。',browser:'当前仅保存在此浏览器，请使用本地网页地址。'};for(const id of ['save-status','dark-save-status','stable-save-status']){$('#'+id).textContent=labels[kind];$('#'+id).parentElement.classList.toggle('error',kind==='failed')}for(const id of ['retry','dark-retry','stable-retry'])$('#'+id).hidden=kind!=='failed'}});
-const saved=await state.ready;document.querySelectorAll('[data-answer]').forEach(el=>{if(el.type==='checkbox')el.checked=saved[el.dataset.answer]===true;else el.value=saved[el.dataset.answer]??''});$('#feedback-fields').disabled=false;$('#dark-feedback-fields').disabled=false;$('#stable-feedback-fields').disabled=false;
-document.addEventListener('input',e=>{const el=e.target;if(el.dataset.answer)state.set({[el.dataset.answer]:el.type==='checkbox'?el.checked:el.value})});for(const id of ['retry','dark-retry','stable-retry'])$('#'+id).addEventListener('click',()=>state.retry());
+const state=window.createPageState({key:'fatfish-brand-families-20261117',defaults:{},onStatus:({kind})=>{const labels={loading:'正在读取意见…',saving:'正在自动保存…',saved:'意见已保存，可以继续修改。',failed:'尚未保存到项目；浏览器保留草稿，请重试。',browser:'当前仅保存在此浏览器，请使用本地网页地址。'};for(const id of ['save-status','dark-save-status','stable-save-status','lift-save-status']){$('#'+id).textContent=labels[kind];$('#'+id).parentElement.classList.toggle('error',kind==='failed')}for(const id of ['retry','dark-retry','stable-retry','lift-retry'])$('#'+id).hidden=kind!=='failed'}});
+const saved=await state.ready;document.querySelectorAll('[data-answer]').forEach(el=>{if(el.type==='checkbox')el.checked=saved[el.dataset.answer]===true;else el.value=saved[el.dataset.answer]??''});$('#feedback-fields').disabled=false;$('#dark-feedback-fields').disabled=false;$('#stable-feedback-fields').disabled=false;$('#lift-feedback-fields').disabled=false;
+document.addEventListener('input',e=>{const el=e.target;if(el.dataset.answer)state.set({[el.dataset.answer]:el.type==='checkbox'?el.checked:el.value})});for(const id of ['retry','dark-retry','stable-retry','lift-retry'])$('#'+id).addEventListener('click',()=>state.retry());
 document.body.dataset.ready='true';

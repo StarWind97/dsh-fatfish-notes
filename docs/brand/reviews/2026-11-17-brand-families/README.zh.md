@@ -4,6 +4,31 @@
 
 入口：[http://127.0.0.1:8835/](http://127.0.0.1:8835/)。重开：仓库 `scripts/Open-Fatfish-Brand-Families.cmd`。前序页面 8830、8833 保留。正式规划见[本轮规划](../../../plans/2026-11-17-brand-families-review.zh.md)。
 
+## 深色小幅提亮
+
+[本次结果](http://127.0.0.1:8835/#berry-lift)依据已保存的 `favorite=p3`、`stable3_overall=coherent`、`stable3_dark=lift`，并经用户要求直接制作。沿用莓紫春芽方向，仅新增一档深色图形提亮。
+
+| 颜色角色 | 现版／浅色参照 | 新深色预览 |
+| --- | --- | --- |
+| 鱼身 | `#A337A0` | `#BA3FB6` |
+| 上弧 | `#529849` | `#5DAC53` |
+| 深底字标 | `#FFF7EE` | 保持 |
+| 深底背景 | `#2B1927` | 保持 |
+
+鱼身和上弧按 HSL 明度增加 0.06，保留色相与饱和度；取整到 8 位 sRGB 后色相差小于 1°，没有使用之前粉紫／浅绿变体。浅色所有素材、任务栏固定方块、字形和尺寸分工均保持。
+
+新文件由 `generate-lift.mjs` 读取已保存的 `*-stable-dark.svg`，仅替换两种颜色；来源与颜色见 `lift-catalog.json`。生成顺序为 `generate.mjs` → `generate-stable.mjs` → `generate-lift.mjs`。新增 7 SVG、3 PNG，当前合计 152 SVG、132 PNG、6 ICO；没有产品依赖变更。
+
+`lift-review.js`／`lift-review.css` 管理三列同场景对照（浅色、现版深色、新深色）与四场景切换；新增 `lift4_choice`／`lift4_notes` 在同一反馈 JSON 中独立保存，不预填答案，也不改写前几轮意见。旧原色稳定版保留在下方，两个区域的展示控件互不影响。
+
+验证位于 `.dsh-home/pure-001/brand-families-20261117/lift/`：
+
+- `asset-verification.json`：331 个既有素材、正式源稿和实拍哈希不变；新增 SVG 路径／字形、允许的两处颜色替换、PNG 尺寸与透明度通过。
+- `page-verification.json`：四场景 × 三版本共 12 组合、实际 16–64 px、下载内容、390 px 无溢出、新字段自动保存／刷新／新浏览器恢复／失败重试、旧字段保留通过。实际用户反馈未被测试写入。
+- 已查看 `identity.png`、`ui.png`、`sizes.png`、`cover.png`、`mobile.png`。任务栏原图未变，复用已有实拍，未重拍或重装插件；不扩大 Mac、物理高分屏与真实宿主的验证边界。
+
+8835 继续提供预览；测试浏览器和 8836 已结束。本轮没有接入产品、替换公开宣传或发布。
+
 ## 莓紫春芽稳定配色
 
 [本次整套预览](http://127.0.0.1:8835/#stable-review)以用户浅色阶段偏好为依据，保持一套稳定的颜色分工；不是最终选定或正式接入。
@@ -19,7 +44,7 @@
 
 `generate-stable.mjs` 只读取既有 `p3-*-light.svg`，生成独立 `*-stable-dark` 文件；只替换字标与封面底色，全部鱼形／字形路径和鱼身／叠页颜色保持。运行顺序：初次完整生成先 `generate.mjs`，再 `generate-stable.mjs`；`stable-catalog.json` 记录本轮用色与来源 SHA-256。没有新增产品依赖。
 
-新增 7 SVG、3 PNG；当前评审素材共 145 SVG、129 PNG、6 ICO。`stable-review.js`／`stable-review.css` 管理新区域，前一轮全局预览控件不影响它。`stable3_overall`／`stable3_dark`／`stable3_notes` 为同一反馈 JSON 内的独立新字段，原有 `dark2_*` 与整体意见完整保留，不预填本轮结论。
+该阶段新增 7 SVG、3 PNG，累计 145 SVG、129 PNG、6 ICO。`stable-review.js`／`stable-review.css` 管理原色稳定区域，前一轮全局预览控件不影响它。`stable3_overall`／`stable3_dark`／`stable3_notes` 为同一反馈 JSON 内的独立字段，原有 `dark2_*` 与整体意见完整保留，初次展示不预填结论。
 
 验证证据在 `.dsh-home/pure-001/brand-families-20261117/stable/`：
 
@@ -91,4 +116,4 @@
 
 新反馈：`.dsh-home/pure-001/brand-families-20261117/page-state.json`。输入后自动保存；旧反馈原文仍在其原位置，不搬迁、不覆盖。网页中的 `previous-feedback.json` 是只读决策摘要，原文可回旧页查看。换浏览器访问同一服务可读回新意见；保存本身不会触发开发或发布。
 
-当前先评审「莓紫春芽稳定配色」的整套关系，未选定最终方案；确认后再规划产品接入及任务栏图像链路修复。
+当前依据用户反馈继续评审莓紫深色小幅提亮，未将预览决定自动接入产品；确认后再规划产品接入及任务栏图像链路修复。
