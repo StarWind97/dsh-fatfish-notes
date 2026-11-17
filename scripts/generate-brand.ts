@@ -1,5 +1,6 @@
 import {readFile,writeFile} from 'node:fs/promises'
 import {createHash} from 'node:crypto'
+import {brandPalette} from '../src/client/brand-palette.js'
 
 const source=new URL('../assets/brand/',import.meta.url)
 const read=(name:string)=>readFile(new URL(name,source),'utf8')
@@ -13,9 +14,13 @@ for(const variant of ['d2','d1','c0','original']){
   const monoSvg=await read(`fatfish-mark${suffix}-mono.svg`),colorSvg=await read(`fatfish-mark${suffix}.svg`)
   const viewBox=monoSvg.match(/<svg\b[^>]*\bviewBox="([^"]+)"/)?.[1]
   if(!viewBox||!colorSvg.includes(`viewBox="${viewBox}"`))throw new Error(`Mismatched brand viewBox: ${variant}`)
-  marks[variant]={viewBox,mono:artwork(monoSvg).replaceAll('#3F5A4E','currentColor'),color:artwork(colorSvg).replaceAll('#3F5A4E','var(--fatfish-brand-ink, #3F5A4E)')}
+  marks[variant]={viewBox,mono:artwork(monoSvg).replaceAll(brandPalette.light.text,'currentColor'),color:colorRoles(artwork(colorSvg))}
 }
-const signature=artwork(await read('fatfish-brand-square-light.svg')).replace(/<rect\b[^>]*width="1024"[^>]*height="1024"[^>]*\/>/,'').replaceAll('#3F5A4E','var(--fatfish-brand-ink, #3F5A4E)')
+function colorRoles(svg:string){
+  for(const role of ['body','arc','text'] as const)svg=svg.replaceAll(brandPalette.light[role],`var(--fatfish-brand-${role}, ${brandPalette.light[role]})`)
+  return svg
+}
+const signature=colorRoles(artwork(await read('fatfish-brand-square-light.svg')).replace(/<rect\b[^>]*width="1024"[^>]*height="1024"[^>]*\/>/,''))
 await writeFile(new URL('../src/client/brand-artwork.ts',import.meta.url),`// Approved vector outlines. Regenerate with: npx tsx scripts/generate-brand.ts\n// Local constants only; no runtime SVG parsing, fonts, images or network requests.\nexport const brandMarks=${JSON.stringify(marks,null,2)} as const\nexport const brandSignature=${JSON.stringify(signature)}\n`)
 for(const theme of ['light','dark']){
   const svg=await read(`fatfish-brand-square-${theme}.svg`)

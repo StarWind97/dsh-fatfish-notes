@@ -1,1 +1,1 @@
-export declare const brandIconVersion = "b41c1aab9b1ad046";
+export declare const brandIconVersion = "e6abe894a7ff6a3d";

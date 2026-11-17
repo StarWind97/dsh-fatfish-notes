@@ -4,6 +4,7 @@ import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {spawn,execFile} from 'node:child_process'
 import {promisify} from 'node:util'
+import {createHash} from 'node:crypto'
 import type {NotebookApplication} from './application.js'
 import {createHttpHandler,fence} from './routes.js'
 import {standaloneAsset} from './standalone-assets.js'
@@ -27,6 +28,8 @@ export async function enableStandalone(app:NotebookApplication,dir:string){
   const browser=await findNotesBrowser()
   app.workspace.available=!!browser
   const config=join(dir,'window-endpoint.json'),processFile=join(dir,'window-browser.json'),profile=join(dir,'window-browser')
+  const appId='FatfishNotes.'+createHash('sha256').update(profile.toLowerCase()).digest('hex').slice(0,24)
+  const nativeArgs=()=>['-ExpectedAppUrl',`http://127.0.0.1:${port}/`,'-AppId',appId]
   let port:number|undefined,server:Server|undefined,opening:Promise<{ok:true;focused:boolean;reused:boolean}>|undefined
   try{const v=JSON.parse(await readFile(config,'utf8'));if(Number.isInteger(v.port)&&v.port>=1024&&v.port<=65535)port=v.port;else throw fail()}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e}
   const atomic=async(path:string,value:unknown)=>{await writeFile(path+'.tmp',JSON.stringify(value));await rename(path+'.tmp',path)}
@@ -49,7 +52,7 @@ export async function enableStandalone(app:NotebookApplication,dir:string){
   }
   async function focus(record:BrowserRecord):Promise<FocusResult>{
     if(!Number.isSafeInteger(record.pid)||record.pid<=0||!/^\d+$/.test(record.startTicks))return {found:false,focused:false}
-    try{const result=await exec('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(new URL('./focus-window.ps1',import.meta.url)),'-BrowserPid',String(record.pid),'-ExpectedStartTicks',record.startTicks,'-ExpectedProfile',profile],{windowsHide:true,timeout:12000});return JSON.parse(result.stdout.trim()) as FocusResult}catch{return {found:false,focused:false}}
+    try{const result=await exec('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(new URL('./focus-window.ps1',import.meta.url)),'-BrowserPid',String(record.pid),'-ExpectedStartTicks',record.startTicks,'-ExpectedProfile',profile,...nativeArgs()],{windowsHide:true,timeout:12000});return JSON.parse(result.stdout.trim()) as FocusResult}catch{return {found:false,focused:false}}
   }
   app.openWindow=(noteId)=>{
     app.workspace.requestOpen(noteId)
@@ -65,7 +68,7 @@ export async function enableStandalone(app:NotebookApplication,dir:string){
         const child=spawn(browser,[`--app=http://127.0.0.1:${port}/`,`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--window-size=1380,940'],{detached:true,stdio:'ignore',windowsHide:false})
         await new Promise<void>((resolve,reject)=>{child.once('spawn',resolve);child.once('error',reject)})
         child.unref()
-        const result=await exec('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(new URL('./focus-window.ps1',import.meta.url)),'-BrowserPid',String(child.pid),'-ExpectedProfile',profile],{windowsHide:true,timeout:45000})
+        const result=await exec('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',fileURLToPath(new URL('./focus-window.ps1',import.meta.url)),'-BrowserPid',String(child.pid),'-ExpectedProfile',profile,...nativeArgs()],{windowsHide:true,timeout:45000})
         const found=JSON.parse(result.stdout.trim()) as FocusResult
         if(!found.found||!found.startTicks)throw fail()
         await atomic(processFile,{pid:found.pid??child.pid,startTicks:found.startTicks})

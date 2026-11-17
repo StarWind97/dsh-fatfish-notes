@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { CheckCircle2, Folder, GitBranch } from 'lucide-react'
 import { BrandMark } from './Brand.js'
-import {useBrandInk} from './paper/appearance.js'
+import {useBrandStyle} from './paper/appearance.js'
 import { api, ApiError } from './api.js'
 import { notebookSync } from './notebook-sync.js'
 import { SyncDetails, syncCss } from './SyncDetails.js'
@@ -33,7 +33,7 @@ const setupChanged = 'fatfish-notes-connected'
 
 type PageAction='check'|'login'|'preview'|'connect'|'sync'|'move'|'resume'|'pick'
 export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;children?:React.ReactNode;showFeedback?:boolean;grouped?:boolean}) {
-  const brandInk=useBrandInk()
+  const brandStyle=useBrandStyle()
   const [data,setStoredData]=useState<PersonalState|null>(null),[tools,setTools]=useState<Tools|null>(null)
   const liveSync=useSyncExternalStore(notebookSync.subscribe,notebookSync.getSnapshot,notebookSync.getSnapshot)
   function setData(value:PersonalState){setStoredData(value);notebookSync.update(value.sync)}
@@ -129,7 +129,7 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
   return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
-    <header><span className="setup-icon" style={{'--fatfish-brand-ink':brandInk} as React.CSSProperties}><BrandMark size={28} color/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
+    <header><span className="setup-icon" style={brandStyle}><BrandMark size={28} color/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
     {sync?.ready&&!wizard&&!grouped&&<HandbookHelp/>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}

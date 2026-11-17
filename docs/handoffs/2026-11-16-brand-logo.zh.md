@@ -1,5 +1,7 @@
 # Logo 设计与接入交接
 
+> 2026-11-18 接续更新：当前开发候选采用「莓紫春芽＋深色小幅提亮」，分尺寸鱼形保持；任务栏改由 Windows 图标资源属性读取。现行用法见[品牌规则](../brand.zh.md)，实施与边界见[验证结果](../plans/2026-11-18-berry-brand-results.zh.md)。下文保留最初设计与维护依据。
+
 2026-11-16。本记录供主开发会话继续迭代，专项状态以之后的源码和[开发入口](../README.md)为准。接手先遵循 [AGENTS.md](../../AGENTS.md)，再读[产品设计](../notes-design.zh.md)和[主规划](../plans/2026-11-09-product-iteration-roadmap.zh.md)；本交接不另设开发路线。
 
 2026-11-17 最新：按获选反馈接入 D2（16/17 px）、D1（20/24 px）、C0（28 px），更大用原版；独立窗口固定 D1 彩底方块，并修复原生 favicon 缓存。当前入口是[品牌规则](../brand.zh.md)、[图册](../brand/current.html)及[接入验证](../plans/2026-11-17-brand-size-adoption-results.zh.md)。下文 A 版接入与旧颜色的描述为历史，不再作为当前小图标方案；原版、字形与旧评审资料均保留。

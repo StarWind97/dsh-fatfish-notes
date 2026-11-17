@@ -2,7 +2,7 @@
 
 2026-11-16 归档。本目录保留设计依据、编辑数据与导出素材；**当前使用的矢量源稿统一在 [assets/brand/](../../assets/brand/)**。用途和尺寸见[品牌规则](../brand.zh.md)，接入与验证见[专项交接](../handoffs/2026-11-16-brand-logo.zh.md)。本目录不进入插件安装包。
 
-2026-11-17 按[分尺寸接入规划](../plans/2026-11-17-brand-size-adoption.zh.md)，现行图形为 D2（16/17 px）、D1（20/24 px）、C0（28 px）、原版（>28 px），窗口/favicon 固定 D1。主色为 `#3F5A4E`，当前 75 份 PNG 在 [current-png/](current-png/README.md)。[当前品牌图册](current.html)展示实际尺寸、明暗、用途及下载，直接打开即可使用；旧 `png/`、`sources/` 和归档清单保留快照。
+2026-11-17 按[分尺寸接入规划](../plans/2026-11-17-brand-size-adoption.zh.md)，现行图形为 D2（16/17 px）、D1（20/24 px）、C0（28 px）、原版（>28 px），窗口/favicon 固定 D1。现配色为「莓紫春芽＋深色小幅提亮」，各角色色值见[品牌规则](../brand.zh.md)，当前 75 份 PNG 在 [current-png/](current-png/README.md)。[当前品牌图册](current.html)展示实际尺寸、明暗、用途及下载，直接打开即可使用；旧 `png/`、`sources/` 和归档清单保留快照。
 
 ## 已确认的设计过程
 
@@ -51,7 +51,7 @@
 | `fatfish-mark-d2/d1/c0.svg`、同名 `-mono` 与原版 `fatfish-mark.svg/-mono.svg` → [generate-brand.ts](../../scripts/generate-brand.ts) | `src/client/brand-artwork.ts` 的 `brandMarks`，包含各稿 viewBox、单色和双色路径；[brand-size.ts](../../src/client/brand-size.ts)控制显示尺寸选择 |
 | `fatfish-icon-d1-dark.svg`、`fatfish-icon-dark.svg` → 同一脚本 | 固定彩底 D1 `favicon.svg` 与原版根 `icon.svg` |
 | 旧 `fatfish-*-small*.svg` | 已退役 A，保留供旧评审生成器溯源；当前客户端、favicon 和 PNG 生成均不再引用 |
-| `fatfish-brand-square-light.svg` → 同一脚本 | `brand-artwork.ts` 的 `brandSignature`；去掉底矩形，墨色由当前视图提供 |
+| `fatfish-brand-square-light.svg` → 同一脚本 | `brand-artwork.ts` 的 `brandSignature`；去掉底矩形，鱼身、上弧、字标分别由当前视图提供 |
 | 浅深两份 `fatfish-brand-square-*.svg` → 同一脚本 | 两份 `fatfish-brand-transparent-*.svg` |
 | 当前派生输出 | `generate-brand.ts` 生成四档常量、`icon.svg` 和 D1 favicon SVG；`render-brand.mjs` 生成 `assets/icon-180.png`、D1 favicon PNG/ICO、`current-png/` 的 75 份当前位图。PNG 图形以原比例放入正方形槽位 |
 
@@ -66,3 +66,5 @@
 当前真实界面使用[隔离体验入口](../../scripts/Open-Fatfish-Notes.cmd)。本机[实际图册](../../.dsh-home/pure-001/brand-logo-20261116/design-preview/actual.html)与[实施前场景预览](../../.dsh-home/pure-001/brand-logo-20261116/design-preview/index.html)已复制到项目的忽略目录，保留真实／模拟／合成标注。历史方案中的 `127.0.0.1:8816` 只是当时临时服务地址，后续不依赖它。
 
 运行截图、日志、安装包属于本机证据，不随 Git 克隆；必要的设计原图、编辑输入、导出素材与说明在本目录受版本管理。原归档时尚未推送；2026-11-16 用户已授权每次提交后同步远端，A 版接入与此前提交一并推送，换工作树或电脑前仍需核对分支与提交。
+
+2026-11-18：当前配色生成入口为 `src/client/brand-palette.ts` 和 `assets/brand/`，生成脚本按三个角色映射 CSS 变量。历史评审生成器只说明当时制作过程，不对现行资源运行；历史预览及反馈保持。README 的公开组合冻结于 `assets/brand/showcase-20261117/`。

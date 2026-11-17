@@ -17,8 +17,8 @@ test('standalone page declares packaged SVG and correctly sized PNG favicons',as
   }
   const svg=await standaloneAsset('/favicon.svg')
   assert.equal(svg?.type,'image/svg+xml; charset=utf-8')
-  assert.match(svg!.content.toString(),/<rect[^>]+fill="#3F5A4E"/)
-  assert.match(svg!.content.toString(),/fill="#F7F4EB"/)
+  assert.match(svg!.content.toString(),/<rect[^>]+fill="#A337A0"/)
+  assert.match(svg!.content.toString(),/fill="#FFF7EE"/)
   assert.doesNotMatch(svg!.content.toString(),/prefers-color-scheme|currentColor|#26362f/i)
   assert.equal(brandIconVersion,createHash('sha256').update(svg!.content.toString().replaceAll('\r\n','\n')).digest('hex').slice(0,16))
   for(const name of ['favicon.svg','favicon.ico'])assert.ok(page!.content.toString().includes(`href="/${name}?v=${brandIconVersion}"`))
@@ -42,5 +42,5 @@ test('Windows icon fallback contains valid PNG frames through 256 pixels',async(
     assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a')
     assert.equal(png.readUInt32BE(16),size);assert.equal(png.readUInt32BE(20),size);sizes.push(size)
   }
-  assert.deepEqual(sizes,[16,32,48,64,128,256])
+  assert.deepEqual(sizes,[16,20,24,32,40,48,64,96,128,256])
 })

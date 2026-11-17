@@ -69,6 +69,7 @@ export async function buildProject(root = process.cwd()): Promise<void> {
   await build({entryPoints:[join(root,'src/client/import-worker.ts')],outfile:join(root,'lib/import-worker.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
   await build({entryPoints:[join(root,'src/client/document-worker.ts')],outfile:join(root,'lib/document-worker.js'),bundle:true,format:'iife',platform:'browser',target:'es2022',alias:{'decode-named-character-reference':createRequire(import.meta.url).resolve('decode-named-character-reference')}})
   await copyFile(join(root,'src/host/focus-window.ps1'),join(root,'lib/host/focus-window.ps1'))
+  await copyFile(join(root,'src/host/window-native.cs'),join(root,'lib/host/window-native.cs'))
   console.info('Built Fatfish Notes host and client')
 }
 

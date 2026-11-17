@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/fatfish-brand-transparent-dark.svg">
-    <img src="assets/brand/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/showcase-20261117/fatfish-brand-transparent-dark.svg">
+    <img src="assets/brand/showcase-20261117/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
   </picture>
 </p>
 

@@ -21,8 +21,8 @@ try{
     },{svg,width,height});
     return Buffer.from(data,'base64');
   }
-  const sizes=[16,32,48,64,128,256],frames=[];
-  for(const size of sizes){const bytes=await render('favicon.svg',size);frames.push({size,bytes});if(size<=32)await writeFile(path.join(asset,`favicon-${size}.png`),bytes)}
+  const sizes=[16,20,24,32,40,48,64,96,128,256],frames=[];
+  for(const size of sizes){const bytes=await render('favicon.svg',size);frames.push({size,bytes});if(size===16||size===32)await writeFile(path.join(asset,`favicon-${size}.png`),bytes)}
   const header=Buffer.alloc(6+16*frames.length);header.writeUInt16LE(1,2);header.writeUInt16LE(frames.length,4);
   let offset=header.length;
   frames.forEach(({size,bytes},i)=>{const p=6+i*16;header[p]=header[p+1]=size===256?0:size;header.writeUInt16LE(1,p+4);header.writeUInt16LE(32,p+6);header.writeUInt32LE(bytes.length,p+8);header.writeUInt32LE(offset,p+12);offset+=bytes.length});
@@ -42,5 +42,5 @@ try{
   // These are explicitly native/browser resources, not generic display-size selections.
   for(const size of [16,24,32,48,64,128,256])await writeFile(path.join(output,`window-d1-${size}.png`),await render('favicon.svg',size));
   for(const theme of ['light','dark'])for(const size of [256,512,1024,2048])await writeFile(path.join(output,`brand-${theme}-${size}.png`),await render(`fatfish-brand-square-${theme}.svg`,size));
-  console.log('Rendered app PNG, six-resolution D1 ICO, favicon PNGs and 75 current brand PNGs.');
+  console.log('Rendered app PNG, ten-resolution D1 ICO, favicon PNGs and 75 current brand PNGs.');
 }finally{await browser.close()}
