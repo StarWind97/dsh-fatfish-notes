@@ -1,0 +1,153 @@
+{
+  "families": [
+    {
+      "id": "p1",
+      "no": "01",
+      "name": "紫莓薄荷",
+      "line": "紫色路线",
+      "tag": "原偏好 · 清晰的冷暖搭配",
+      "main": "#6940BE",
+      "accent": "#279B80",
+      "paper": "#F3EEF9",
+      "ink": "#39244F",
+      "night": "#23192F",
+      "darkBody": "#FFF6F5",
+      "darkArc": "#75E2C4",
+      "tile": {
+        "bg": "#6940BE",
+        "body": "#FFF6F5",
+        "arc": "#75E2C4"
+      },
+      "desc": "紫色承担识别，薄荷绿作为叠页与点睛色。保留上一轮你喜欢的配色，扩展到整套场景。"
+    },
+    {
+      "id": "p2",
+      "no": "02",
+      "name": "电光鸢尾",
+      "line": "紫色路线",
+      "tag": "偏蓝亮紫 · 更清冷、更醒目",
+      "main": "#5841E6",
+      "accent": "#179A94",
+      "paper": "#EEEDFF",
+      "ink": "#28214E",
+      "night": "#19182C",
+      "darkBody": "#FAF9FF",
+      "darkArc": "#6EE7D4",
+      "tile": {
+        "bg": "#5841E6",
+        "body": "#FAF9FF",
+        "arc": "#6EE7D4"
+      },
+      "desc": "紫色向蓝侧移动，拉高纯度；青色叠页保持轻快。比较更强的数字产品气质是否适合肥鱼。"
+    },
+    {
+      "id": "p3",
+      "no": "03",
+      "name": "莓紫春芽",
+      "line": "紫色路线",
+      "tag": "偏红莓紫 · 温暖而有个性",
+      "main": "#A337A0",
+      "accent": "#529849",
+      "paper": "#F9EDF6",
+      "ink": "#492340",
+      "night": "#2B1927",
+      "darkBody": "#FFF7EE",
+      "darkArc": "#B5EDA2",
+      "tile": {
+        "bg": "#A337A0",
+        "body": "#FFF7EE",
+        "arc": "#B5EDA2"
+      },
+      "desc": "紫色向红侧移动，与嫩绿叠页拉开色相。比前两套更温暖，观察是否有亲切感而不过甜。"
+    },
+    {
+      "id": "g1",
+      "no": "04",
+      "name": "薄荷纸",
+      "line": "绿色路线",
+      "tag": "原偏好 · 彩色主体、轻盈底色",
+      "main": "#008F58",
+      "accent": "#D28A18",
+      "paper": "#E7F5EA",
+      "ink": "#184332",
+      "night": "#142B22",
+      "darkBody": "#61DCA3",
+      "darkArc": "#FFC76B",
+      "tile": {
+        "bg": "#E7F5EA",
+        "body": "#008F58",
+        "arc": "#E9A02F"
+      },
+      "desc": "浅底承托鲜绿鱼身，暖金叠页提供第二个辨识点。任务栏沿用上一轮薄荷纸，不靠大块深绿抢眼。"
+    },
+    {
+      "id": "g2",
+      "no": "05",
+      "name": "碧青麦金",
+      "line": "绿色路线",
+      "tag": "偏青绿 · 清爽、稳健",
+      "main": "#008F89",
+      "accent": "#BD9219",
+      "paper": "#E4F5F2",
+      "ink": "#143E3C",
+      "night": "#122B2C",
+      "darkBody": "#5AE2CC",
+      "darkArc": "#F3D264",
+      "tile": {
+        "bg": "#E4F5F2",
+        "body": "#008F89",
+        "arc": "#E2B331"
+      },
+      "desc": "绿色向青侧移动，金黄保持温暖。鱼与叠页的颜色分工明确，减少常见绿白聊天应用的联想。"
+    },
+    {
+      "id": "g3",
+      "no": "06",
+      "name": "鲜绿橙光",
+      "line": "绿色路线",
+      "tag": "偏暖鲜绿 · 活力最强",
+      "main": "#00A05C",
+      "accent": "#E87828",
+      "paper": "#F3F6E5",
+      "ink": "#24402B",
+      "night": "#1E2A20",
+      "darkBody": "#80ED9B",
+      "darkArc": "#FFB26D",
+      "tile": {
+        "bg": "#F3F6E5",
+        "body": "#00A05C",
+        "arc": "#FF923E"
+      },
+      "desc": "鲜绿配橙金，把叠页变成显眼的暖色标记。与薄荷纸相比更活泼，也检验是否显得过于轻巧。"
+    }
+  ],
+  "sizes": [
+    16,
+    20,
+    24,
+    28,
+    32,
+    40,
+    48,
+    64,
+    96,
+    128,
+    256
+  ],
+  "sources": {
+    "favicon.svg": "e65f0c6c50e040b8417aaa67ab315371eff0c8209b4dd8fb9d981b9f488e7a19",
+    "fatfish-brand-transparent-light.svg": "1384cae42ca291c465a67e0d7394e810046db7346bf295a6b2aba50946a9ef03",
+    "fatfish-mark.svg": "9f42ab369c46a31d1d7df2df69a3ee07ce6c739770257635a0a7050d79c02450",
+    "fatfish-mark-d1.svg": "63516830962f53ff9ba911d3a25454aa18f463cef10f70e9e2665be2c92fcf8d",
+    "fatfish-mark-d2.svg": "26ee5c580800697efffced49b11371bd35b7f58033c64b7e49e440d0fda0de3e",
+    "fatfish-mark-c0.svg": "2eb8b69f30291d7f9aa3dc713a1f8d855aa292af9314cd4b994f014969790913"
+  },
+  "geometry": {
+    "16": "D2",
+    "20": "D1",
+    "24": "D1",
+    "28": "C0",
+    "32": "原版",
+    "taskbar": "D1"
+  }
+}

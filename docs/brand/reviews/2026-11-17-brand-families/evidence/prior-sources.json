@@ -1,0 +1,102 @@
+[
+  {
+    "family": "p1",
+    "state": "active",
+    "file": "p1-active-prior.png",
+    "originReview": "2026-11-17-color-directions",
+    "origin": {
+      "file": "berry-base-active.png",
+      "source": "berry-base-active-taskbar.png",
+      "sourceSHA256": "4c6fcd1b3a6959df09fba9168d0fc8a816722e23128904787ae508b655a50b0f",
+      "crop": [
+        1096,
+        0,
+        1608,
+        48
+      ],
+      "active": true,
+      "minimized": false,
+      "dpi": 96,
+      "nativeOverride": true,
+      "both": true,
+      "native32Exact": true
+    },
+    "native32Exact": true,
+    "reuse": "previous round, not captured again"
+  },
+  {
+    "family": "p1",
+    "state": "inactive",
+    "file": "p1-inactive-prior.png",
+    "originReview": "2026-11-17-color-directions",
+    "origin": {
+      "file": "berry-base-inactive.png",
+      "source": "berry-base-inactive-taskbar.png",
+      "sourceSHA256": "0b7e85a701efbb5b757df75e1eb1e1bed24d2ee8b5cf2e74adfe64998d52b501",
+      "crop": [
+        1096,
+        0,
+        1608,
+        48
+      ],
+      "active": false,
+      "minimized": true,
+      "dpi": 96,
+      "nativeOverride": true,
+      "both": true,
+      "native32Exact": true
+    },
+    "native32Exact": true,
+    "reuse": "previous round, not captured again"
+  },
+  {
+    "family": "g1",
+    "state": "active",
+    "file": "g1-active-prior.png",
+    "originReview": "2026-11-17-color-directions",
+    "origin": {
+      "file": "mintpaper-base-active.png",
+      "source": "mintpaper-base-active-taskbar.png",
+      "sourceSHA256": "8c2bcc9fb1bf31adbb06eadc352ffd8887efcfaa7b7a17f8032955f4befaa4b2",
+      "crop": [
+        1096,
+        0,
+        1608,
+        48
+      ],
+      "active": true,
+      "minimized": false,
+      "dpi": 96,
+      "nativeOverride": true,
+      "both": true,
+      "native32Exact": true
+    },
+    "native32Exact": true,
+    "reuse": "previous round, not captured again"
+  },
+  {
+    "family": "g1",
+    "state": "inactive",
+    "file": "g1-inactive-prior.png",
+    "originReview": "2026-11-17-color-directions",
+    "origin": {
+      "file": "mintpaper-base-inactive.png",
+      "source": "mintpaper-base-inactive-taskbar.png",
+      "sourceSHA256": "94352d1d56fc49a54930edbe57fa5873ea787202e4be85553b764658d0a4d607",
+      "crop": [
+        1096,
+        0,
+        1608,
+        48
+      ],
+      "active": false,
+      "minimized": true,
+      "dpi": 96,
+      "nativeOverride": true,
+      "both": true,
+      "native32Exact": true
+    },
+    "native32Exact": true,
+    "reuse": "previous round, not captured again"
+  }
+]
