@@ -1,10 +1,11 @@
 import * as React from 'react'
-import {smallMark,smallMarkViewBox,smallColorMark,colorMark,brandSignature} from './brand-artwork.js'
+import {brandMarks,brandSignature} from './brand-artwork.js'
+import {brandVariant} from './brand-size.js'
 
 /** Trusted local vector constants, shared by host slots and both notebook views. */
 export function BrandMark({size=20,color=false}:{size?:number;color?:boolean}){
-  const small=!color||size<=32
-  return <svg className="fatfish-mark" data-brand={color?'color':'mono'} width={size} height={size} viewBox={small?smallMarkViewBox:'0 0 800 560'} aria-hidden="true" focusable="false" style={{display:'block',flexShrink:0}} dangerouslySetInnerHTML={{__html:color?(small?smallColorMark:colorMark):smallMark}}/>
+  const variant=brandVariant(size),mark=brandMarks[variant]
+  return <svg className="fatfish-mark" data-brand={color?'color':'mono'} data-brand-variant={variant} width={size} height={size} viewBox={mark.viewBox} aria-hidden="true" focusable="false" style={{display:'block',flexShrink:0}} dangerouslySetInnerHTML={{__html:color?mark.color:mark.mono}}/>
 }
 
 export function BrandSignature(){

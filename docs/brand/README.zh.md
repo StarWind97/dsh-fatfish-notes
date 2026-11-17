@@ -2,11 +2,11 @@
 
 2026-11-16 归档。本目录保留设计依据、编辑数据与导出素材；**当前使用的矢量源稿统一在 [assets/brand/](../../assets/brand/)**。用途和尺寸见[品牌规则](../brand.zh.md)，接入与验证见[专项交接](../handoffs/2026-11-16-brand-logo.zh.md)。本目录不进入插件安装包。
 
-同日后续按[主色统一规划](../plans/2026-11-16-brand-color-and-taskbar.zh.md)，现行主色全部改为 `#3F5A4E`。当前 PNG 已重新生成到 [current-png/](current-png/README.md)，小尺寸采用 A；下文 `png/`、`sources/` 和归档清单保留原交付快照。预览与下载入口现指向现行资源。当前方块图标用于任务栏、窗口图标和插件列表，透明图形用于界面标题与宿主入口，完整组合用于帮助/介绍。
+2026-11-17 按[分尺寸接入规划](../plans/2026-11-17-brand-size-adoption.zh.md)，现行图形为 D2（16/17 px）、D1（20/24 px）、C0（28 px）、原版（>28 px），窗口/favicon 固定 D1。主色为 `#3F5A4E`，当前 75 份 PNG 在 [current-png/](current-png/README.md)。[当前品牌图册](current.html)展示实际尺寸、明暗、用途及下载，直接打开即可使用；旧 `png/`、`sources/` 和归档清单保留快照。
 
 ## 已确认的设计过程
 
-2026-11-17 [饱满尾瓣 D1/D2/D3 第二轮](reviews/2026-11-17-tail-d123-v2/README.zh.md)完成：简化背景为独立弧线，沿 C 原曲线逐档增加尾瓣面积并加厚下尾。首轮细长稿被用户否定后保留为历史对照，最新网页 8828 与意见文件独立。仅候选评审，正式品牌源稿及插件使用保持。
+2026-11-17 [饱满尾瓣 D1/D2/D3 第二轮](reviews/2026-11-17-tail-d123-v2/README.zh.md)评审后，用户选定上述分尺寸方案；原评审页 8828 和意见保留，不改写当时的预览记录。正式使用的选中稿复制到 `assets/brand/`，历史页并非产品源稿生成入口。
 
 2026-11-17 [原版不对称鱼尾 B/C 评审](reviews/2026-11-17-tail-bc/README.zh.md)制作完成：在原版基础上分别轻度、明显展开尾部；原版/A 与旧意见保留，新意见独立自动保存。四稿八档实际尺寸及明暗场景在[独立网页](http://127.0.0.1:8824/)比较，尚未接入插件。这里的 B/C 与 11-16 旧小图标方案分开命名管理，源稿仍以当前 `assets/brand/` 为准。
 
@@ -24,7 +24,7 @@
 | [用户指定的字形参考图](concepts/exec-e25bc593-33e5-49f2-b94a-601b1d1e25d5.png) | 只参考中英文字；该图的单层鱼不是当前标志 |
 | [原稿与矢量图形对照](references/reference-comparison.png) | 查看轮廓的保留与平滑 |
 | [字形原图与路径对照](references/brand-type-comparison.png) | 查看最终转曲字形，避免换回系统字体 |
-| [纯图形素材预览](preview.html)、[品牌组合预览](brand-square-preview.html) | 本地直接打开；引用当前 SVG，提供实际尺寸与 PNG 下载 |
+| [当前品牌图册](current.html)、[品牌组合预览](brand-square-preview.html) | 本地直接打开；引用当前 SVG，提供实际尺寸与 PNG 下载；旧[纯图形预览](preview.html)保留历史 A 示意 |
 
 ## 目录与来源
 
@@ -48,12 +48,12 @@
 | 当前鱼形 SVG：标准、浅深、单色、小尺寸和方形应用图标 | 各变体在 `assets/brand/` 单独存储；修改共同轮廓时逐一同步，标准与小尺寸的光学校准分别保留 |
 | [geometry.json](sources/geometry.json) | 当前鱼身、页片与眼孔的制作数据；`geometry-trace.json` 是平滑前中间记录，当前 SVG 是渲染依据 |
 | [brand-outlines.json](sources/brand-outlines.json)＋[brand-square-layout.json](sources/brand-square-layout.json) | 中英文路径、原始边界与组合定位；两份 `fatfish-brand-square-*.svg` 含实际鱼形及文字路径。排布基于 1024 画布，中文宽 760、顶边 638；英文宽 560、顶边 838 |
-| `fatfish-mark-small-mono.svg`、`fatfish-mark-small.svg` → [generate-brand.ts](../../scripts/generate-brand.ts) | `src/client/brand-artwork.ts` 的 `smallMark`、`smallColorMark` 和微型 viewBox |
-| `fatfish-icon-small-dark.svg`、`fatfish-icon-dark.svg` → 同一脚本 | 彩底 A `favicon.svg` 与标准稿根 `icon.svg` |
-| `fatfish-mark.svg` → 同一脚本 | `brand-artwork.ts` 的 `colorMark` |
+| `fatfish-mark-d2/d1/c0.svg`、同名 `-mono` 与原版 `fatfish-mark.svg/-mono.svg` → [generate-brand.ts](../../scripts/generate-brand.ts) | `src/client/brand-artwork.ts` 的 `brandMarks`，包含各稿 viewBox、单色和双色路径；[brand-size.ts](../../src/client/brand-size.ts)控制显示尺寸选择 |
+| `fatfish-icon-d1-dark.svg`、`fatfish-icon-dark.svg` → 同一脚本 | 固定彩底 D1 `favicon.svg` 与原版根 `icon.svg` |
+| 旧 `fatfish-*-small*.svg` | 已退役 A，保留供旧评审生成器溯源；当前客户端、favicon 和 PNG 生成均不再引用 |
 | `fatfish-brand-square-light.svg` → 同一脚本 | `brand-artwork.ts` 的 `brandSignature`；去掉底矩形，墨色由当前视图提供 |
 | 浅深两份 `fatfish-brand-square-*.svg` → 同一脚本 | 两份 `fatfish-brand-transparent-*.svg` |
-| 当前派生输出 | `generate-brand.ts` 同时生成双色 A 常量、`icon.svg` 和彩底 A favicon SVG；`render-brand.mjs` 生成 `assets/icon-180.png`、favicon PNG/ICO、`current-png/` 的 58 份当前位图 |
+| 当前派生输出 | `generate-brand.ts` 生成四档常量、`icon.svg` 和 D1 favicon SVG；`render-brand.mjs` 生成 `assets/icon-180.png`、D1 favicon PNG/ICO、`current-png/` 的 75 份当前位图。PNG 图形以原比例放入正方形槽位 |
 
 品牌路径或排布调整后，在项目根目录运行 `npx tsx scripts/generate-brand.ts`，再按实际影响构建、检查页面；`lib/` 始终由正常构建生成。若只调整放置位置，改 [Brand.tsx](../../src/client/Brand.tsx) 的使用处和相关布局；当前明暗逻辑见 [appearance.tsx](../../src/client/paper/appearance.tsx)，具体入口文件见[交接](../handoffs/2026-11-16-brand-logo.zh.md#后续修改从哪里入手)。
 
@@ -61,7 +61,7 @@
 
 ## 实际界面与历史预览
 
-2026-11-16 [微型鱼形两版评审](reviews/2026-11-16-small-mark/README.zh.md)后，用户选择 A 保留叠页，已按[专项规划](../plans/2026-11-16-small-logo-a.zh.md)接入 small 系列及 favicon。微型几何以当前 24 × 24 SVG 为准；以上 `geometry.json` 和归档 PNG 保留原标准稿与当时的小尺寸版本，不反向覆盖新的 A 版。评审目录保留旧稿快照、A/B；完整组合与标准双色图形仍沿用以上维护依据。
+历史：2026-11-16 [微型鱼形两版评审](reviews/2026-11-16-small-mark/README.zh.md)曾选择 A 并接入；现在由 D2/D1/C0 替代。评审目录、small 系列和归档 PNG 保留当时稿件，不作为当前选图规则。新稿均使用 800 × 560 的原版视框，完整组合与原版仍沿用原维护依据。
 
 当前真实界面使用[隔离体验入口](../../scripts/Open-Fatfish-Notes.cmd)。本机[实际图册](../../.dsh-home/pure-001/brand-logo-20261116/design-preview/actual.html)与[实施前场景预览](../../.dsh-home/pure-001/brand-logo-20261116/design-preview/index.html)已复制到项目的忽略目录，保留真实／模拟／合成标注。历史方案中的 `127.0.0.1:8816` 只是当时临时服务地址，后续不依赖它。
 

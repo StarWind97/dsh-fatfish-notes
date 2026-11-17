@@ -1,12 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {standaloneAsset} from '../src/host/standalone-assets.js'
+import {brandIconVersion} from '../src/host/brand-icon-version.js'
+import {createHash} from 'node:crypto'
 
 test('standalone page declares packaged SVG and correctly sized PNG favicons',async()=>{
   const page=await standaloneAsset('/')
   assert.equal(page?.type,'text/html; charset=utf-8')
   for(const size of [16,32]){
-    assert.ok(page!.content.toString().includes(`href="/favicon-${size}.png"`))
+    assert.ok(page!.content.toString().includes(`href="/favicon-${size}.png?v=${brandIconVersion}"`))
     const icon=await standaloneAsset(`/favicon-${size}.png`)
     assert.equal(icon?.type,'image/png')
     assert.equal(icon!.content.subarray(0,8).toString('hex'),'89504e470d0a1a0a')
@@ -18,7 +20,8 @@ test('standalone page declares packaged SVG and correctly sized PNG favicons',as
   assert.match(svg!.content.toString(),/<rect[^>]+fill="#3F5A4E"/)
   assert.match(svg!.content.toString(),/fill="#F7F4EB"/)
   assert.doesNotMatch(svg!.content.toString(),/prefers-color-scheme|currentColor|#26362f/i)
-  assert.ok(page!.content.toString().includes('href="/favicon.svg"'))
+  assert.equal(brandIconVersion,createHash('sha256').update(svg!.content.toString().replaceAll('\r\n','\n')).digest('hex').slice(0,16))
+  for(const name of ['favicon.svg','favicon.ico'])assert.ok(page!.content.toString().includes(`href="/${name}?v=${brandIconVersion}"`))
 })
 
 test('standalone resource lookup does not turn URL paths into filesystem paths',async()=>{
