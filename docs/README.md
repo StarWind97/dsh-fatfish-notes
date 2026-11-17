@@ -12,7 +12,7 @@
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
 | 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项；组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |
-| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、下方「本机隔离体验」及[正式发布记录](releases/0.9.0/review.zh.md)；命令以 [package.json](../package.json)为准 |
+| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、下方「本机隔离体验」及[正式发布记录](releases/0.9.0/review.zh.md)；命令以 [package.json](../package.json)为准 |
 | 修改手册或体验示例 | [示例内容准则](demo-content.zh.md)、[使用说明](user-guide.zh.md)与 `assets/handbook/` |
 
 关键决定和修改依据应进入对应专题，并从本入口或主规划链接；当前行为更新产品设计，实际覆盖范围更新交付／验证记录。这样接续依赖项目文件，不依赖某个聊天窗口。无需每次通读所有历史文档。
@@ -21,7 +21,7 @@
 
 ## 最新交付
 
-2026-11-17 展示交付：[实际使用记录与四张场景截图](plans/2026-11-17-showcase-practical-scenes.zh.md)已完成，见[验证与入口](plans/2026-11-17-showcase-practical-scenes-results.zh.md)。按 8821 反馈保留 A，一次真实改图配合提示词、观察及尺寸检查；补充会话侧栏、代码资料与设置。八张实际截图、新评审 8829 的独立自动保存和跨浏览器读回通过，原 166 篇笔记与旧反馈保持，公开图片未替换。
+2026-11-17 展示交付：[实际使用记录与四张场景截图](plans/2026-11-17-showcase-practical-scenes.zh.md)已完成并获用户接受，见[评审结论、验证与入口](plans/2026-11-17-showcase-practical-scenes-results.zh.md)。生图记录为主图，会话侧栏、代码资料和设置为补图。八张实际截图、新评审 8829 的独立自动保存和跨浏览器读回通过，原 166 篇笔记与旧反馈保持，公开图片未替换。后续较大版本发布前按[内容准则](demo-content.zh.md#较大版本发布时的宣传图片)重新规划宣传图片，优先介绍插件特性与用法，够用即可。
 
 2026-11-17 最新交付：[品牌分尺寸接入](plans/2026-11-17-brand-size-adoption.zh.md)已完成，见[验证与隔离体验](plans/2026-11-17-brand-size-adoption-results.zh.md)。D2 用于 16/17 px，D1 用于 20/24 px，28 px C0，更大用原版；原生窗口图标固定 D1。23 项回归、249 文件安装核对、真实三入口和任务栏重启通过；修复旧 favicon 缓存，并提供[当前品牌图册](brand/current.html)。保留原有提交历史，正常提交推送，未发布。
 
