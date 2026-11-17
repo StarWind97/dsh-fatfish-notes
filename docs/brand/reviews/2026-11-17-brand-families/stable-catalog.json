@@ -1,0 +1,27 @@
+{
+  "id": "p3-stable",
+  "config": {
+    "body": "#A337A0",
+    "arc": "#529849",
+    "lightInk": "#492340",
+    "darkInk": "#FFF7EE",
+    "lightBackground": "#F9EDF6",
+    "darkBackground": "#2B1927",
+    "tile": {
+      "bg": "#A337A0",
+      "body": "#FFF7EE",
+      "arc": "#B5EDA2"
+    }
+  },
+  "sources": {
+    "p3-mark-original-light.svg": "59cb54fa0b487ef31333c55845335322763b7409b5deec7a0553f41e3204689d",
+    "p3-mark-d1-light.svg": "c9e289c6a4aa9eb228673fa44908351a9bc071aace7303528eb6ed023b46863d",
+    "p3-mark-d2-light.svg": "272ed8c0fa999a03dc28c60ae6e849094a9b20c7591ae274553ed4274469cd51",
+    "p3-mark-c0-light.svg": "f44227ce8ef5897df8b6f6960984b6f4626a84152ad7176473219d2af2c5a7b8",
+    "p3-stack-light.svg": "e5b00aa6a5b33f763e9680d8490ddea95e43522478b1e4dc001789e7ea3263b0",
+    "p3-horizontal-light.svg": "383e8ceb5b182fe913ee2e79f61975cd71ccd79fde033891d51beb1b6c3b51ea",
+    "p3-cover-light.svg": "33104fd5f25451674aad1c317c34120cc7e8b72979ff96b148f0c3a7acf1592c"
+  },
+  "geometry": "Reuse existing D2 / D1 / C0 / original. Taskbar remains fixed D1.",
+  "scope": "Review only; not an adopted brand or product setting."
+}
