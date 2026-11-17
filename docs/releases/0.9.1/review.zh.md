@@ -1,27 +1,27 @@
 # 0.9.1 发布审核
 
-状态：**2026-11-18，用户已确认正式发布，正在执行公开发布与安装验证。** 候选的发布级验证已完成；正式 Release、公开下载与市场审核结果按下方记录更新，不提前宣称完成。
+状态：**2026-11-18 01:43:13（北京时间），0.9.1 已正式发布，公开下载与实际安装验证通过。** 市场更新状态单独记录于下文；Release 发布不等于市场已经合并。
 
-依据[发布规划](../../plans/2026-11-18-release-091.zh.md)，范围为已接受的品牌、任务栏清晰度与宿主访问检查修复。没有新功能、依赖升级或资料格式迁移。当前正式版仍是 [v0.9.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.0)。
+依据[发布规划](../../plans/2026-11-18-release-091.zh.md)，范围为已接受的品牌、任务栏清晰度与宿主访问检查修复。没有新功能、依赖升级或资料格式迁移。当前正式版为 [v0.9.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.1)。
 
 ## 审核材料
 
-- [发布说明](release-notes.md)、[市场条目草稿](marketplace-entry.yml)与 [PR 正文草稿](marketplace-pr.md)。草稿中的 0.9.1 URL 是拟发布地址，不能作为已可下载的链接。
+- [发布说明](release-notes.md)、[市场条目](marketplace-entry.yml)与 [PR 正文](marketplace-pr.md)。0.9.1 安装地址已通过匿名下载和官方 CLI 实际安装验证。
 - [访问检查修复与实际边界](../../plans/2026-11-18-host-access-results.zh.md)。
 - [品牌与任务栏实测](../../plans/2026-11-18-berry-brand-results.zh.md)。
 - [已有展示内容评审](../../plans/2026-11-17-showcase-practical-scenes-results.zh.md)：本次修订版沿用获选内容，不再扩展场景或重做整组图片。
 
-## 准备状态
+## 准备阶段
 
-已核对远端 v0.9.0 为正式发布，市场条目已经合并并含维护者的访问检查提醒。0.9.1 只在本地材料中准备去除此项已修复问题的提示；Windows、账号及工具前提保持，不提前修改上游。
+准备时核对远端 v0.9.0 已正式发布，市场条目已合并并含维护者的访问检查提醒。先在本地准备 0.9.1 材料，公开包验证后才申请去除此项已修复问题的提示；Windows、账号及工具前提保持。
 
 类型检查、构建与全量回归已通过：**407 通过、0 失败、0 取消、0 跳过，耗时 1,228,452.8449 ms（约 20 分 28 秒）**。本轮按发布候选采用项目第三档；实际安装、重启读回与最终性能抽查也已完成。没有发现阻挡本次候选发布的问题，未覆盖范围见下文。
 
-## 已生成的候选包
+## 正式包与候选保留
 
 正式发布用包已重新打包：**254 文件、18,055,555 字节**，SHA-256 为 `9a07d00c48af22e90571e92eecd328a75fc4fe68f5faa126746bc77cdbd95190`，校验文件 `dist/SHA256SUMS-0.9.1.txt`。与已验收候选逐文件比较，仅两份 README 的正式说明变化；版本、运行代码、依赖和资源完全一致，沿用 407 项回归与候选实际验证。原候选保留为 `dist/fatfish-091-candidate-d6060b621abe.tgz`；下述摘要为准备阶段历史证据。
 
-`dist/dsh-fatfish-notes-0.9.1.tgz`：**254 个文件，18,055,676 字节**，校验文件 `dist/SHA256SUMS-0.9.1.txt`。
+准备阶段原候选现保留为 `dist/fatfish-091-candidate-d6060b621abe.tgz`：**254 个文件，18,055,676 字节**；不要将此历史摘要用于当前公开包。
 
 SHA-256：`d6060b621abeade9e27162c711b1b93e2869ed0f24358a4c77b059a81db8cca8`。
 
@@ -69,8 +69,24 @@ Windows / DSH 0.2.2-rc.3 / Node 24.21.0。以候选包实际安装到既有 Desk
 
 ## 体验与发布边界
 
-候选已安装到现有[隔离体验入口](../../../scripts/Open-Fatfish-Notes.cmd)。验收结束已关闭本轮测试窗口与 Web 进程，旧评审服务未修改，可通过启动脚本重新体验。本机证据位于 `.dsh-home/pure-001/release091/`，不随 Git 分发：类型/构建/回归日志、`pack.json`、`package-audit.json`、`source-review.json`、`candidate.json`、`web-after.json`、`final-check.json`、`links.json` 与实际截图。
+公开 0.9.1 已安装到现有[隔离体验入口](../../../scripts/Open-Fatfish-Notes.cmd)。验收结束已关闭本轮测试窗口与 Web 进程，旧评审服务未修改，可通过启动脚本重新体验。本机证据位于 `.dsh-home/pure-001/release091/`，不随 Git 分发：类型/构建/回归日志、`pack.json`、`package-audit.json`、`source-review.json`、`candidate.json`、`web-after.json`、`final-check.json`、`links.json` 与实际截图。
 
-用户现已确认正式发布；此前未创建标签/Release、未上传或提交市场 PR 的描述属于准备阶段。本阶段允许固定标签、上传正式资产、验证公开安装并提交市场更新，仍不发布 npm。
+## 正式公开与安装复核
 
-确认发布后，更新正式下载说明并重新打包，逐文件证明仅文档变化、运行代码与候选一致；固定标签和资产后，先核验匿名下载/摘要及公开 URL 实际安装，再提交单条市场更新。若最终打包引入运行差异，补受影响验证后才发布。不得直接移除仍针对已公开 0.9.0 的市场提醒。
+用户确认后，正式下载说明与发布材料已提交并推送至 `312d0d9bd120a55b65d9f0b213022bf2f3919f3a`。固定标签 `v0.9.1` 指向该提交（注释标签对象 `d6c2500f0c9e404049b225d0c0d891d23ef636e8`），[GitHub Release](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.1)为正式版与 latest，不是草稿或预发布。上传 `dsh-fatfish-notes-0.9.1.tgz` 与 `SHA256SUMS-0.9.1.txt`；没有覆盖旧版资产，没有发布 npm。后续记录提交不移动此标签。
+
+- 最终包与验收候选逐文件比较，仅 README.md、README.en.md 改变，运行内容一致；因此沿用 407 项回归，新增公开交付链验证。
+- 匿名下载包、校验文件、市场图标与四张已接受的场景截图，共 7 项，大小和 SHA-256 全部与本地一致。
+- 官方 CLI 从实际公开 Release URL 安装到 `release12-desktop` 隔离资料，254 个安装文件全部一致。未更新日常 DSH。
+- DSH 0.2.2-rc.3 中主页面、独立窗口、会话侧栏实际打开通过；已保存笔记修订 `d893a0de…` 保持，当前品牌正常。文档/导入 Worker 与导出字体在主页面和独立窗口共六项返回 200；侧栏从实际列表打开正文通过。
+- 指定测试私库 ID 1440762952，收尾同步 idle、pending=false、无编辑占用。本轮自建测试窗口已关闭。
+
+证据：`publication.json`、`final-pack.json`、`final-audit.json`、`public.json`、`public-installed.json`、`public-smoke.json` 和 `public-main.png` / `public-window.png` / `public-sidebar.png`。测试范围限于上文 Windows 环境，不扩大 Mac 或高 DPI 等声明。
+
+## 市场更新
+
+公开安装通过后，已提交 [市场更新 PR #16375](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16375)，保留维护者既有名称、分类、Windows/账号/工具前提，只更新下载版本并移除已修复的访问检查提醒。实际差异为单个 `data/plugins/StarWind97__dsh-fatfish-notes.yml`，3 行增加、3 行删除；提交 `54a590df6f207775b6f6bfbbf74a9a9228e25b5c`。PR 非草稿、无合并冲突，自动检查进行中，等待维护者审核；尚不宣称市场已经合并或页面更新。
+
+北京时间 2026-11-18 02:05 复核：[PR check](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/44143242056)的旧分支防护、条目路径、README 一致性、awesome-lint 和四组专项测试已通过，全站构建仍在运行，尚无失败结论。自动检查及人工合并属于外部状态；市场上游在合并前仍保持旧条目。
+
+创建分支的 GitHub API 曾返回 404；改用已有登录的专用 Chrome 正常网页创建成功，没有调整账号权限或市场工作流。采用维护者最近整理本条目的提交 `321fef8`，确认其为最新上游祖先且条目字节一致；最终只有本条目的一个更新提交。两次 API 失败没有留下同名分支或重复 PR。完成后关闭专用网页会话。证据 `market-base.json`、`market-commit.json`、`market-pr.json`。

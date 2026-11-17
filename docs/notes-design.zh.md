@@ -1,8 +1,8 @@
-> 当前品牌已按[莓紫春芽接入规划](plans/2026-11-17-berry-brand-adoption.zh.md)更新，并于 2026-11-18 获用户确认为品牌基线；配色与尺寸的现行依据为[品牌规则](brand.zh.md)，下文历史交付描述不替代该规则。产品新版尚未发布。
+> 当前品牌已按[莓紫春芽接入规划](plans/2026-11-17-berry-brand-adoption.zh.md)更新，并于 2026-11-18 获用户确认为品牌基线；配色与尺寸的现行依据为[品牌规则](brand.zh.md)，下文历史交付描述不替代该规则。已随 0.9.1 发布。
 
 # 肥鱼笔记产品与存储设计
 
-2026-11-18 未发布修复：按[宿主访问检查规划](plans/2026-11-18-host-access-review.zh.md)，宿主全部原始 HTTP 路由在业务入口前调用官方 `connection.requestRejection`，同时依赖 webServer 和 connection；缺服务时不注册，拒绝/异常均不进入业务。保留原有更严格的 loopback、Host/Origin、Fetch Metadata、正文和编辑身份校验。独立窗口的专属本机 listener 继续采用自身同源防护，不借用 DSH 登录 Cookie；未扩大远程访问支持。接口地址、存储格式和同步方式不变。
+2026-11-18，0.9.1 已发布：按[宿主访问检查规划](plans/2026-11-18-host-access-review.zh.md)，宿主全部原始 HTTP 路由在业务入口前调用官方 `connection.requestRejection`，同时依赖 webServer 和 connection；缺服务时不注册，拒绝/异常均不进入业务。保留原有更严格的 loopback、Host/Origin、Fetch Metadata、正文和编辑身份校验。独立窗口的专属本机 listener 继续采用自身同源防护，不借用 DSH 登录 Cookie；未扩大远程访问支持。接口地址、存储格式和同步方式不变。
 
 2026-11-16：0.9.0 已正式发布，包含 E、后续体验改进及 DSH rc.3 适配。发布与验证状态见[发布记录](releases/0.9.0/review.zh.md)，以下日期记录保留各轮设计依据。
 
@@ -10,7 +10,7 @@
 
 2026-11-11：A—D 与性能优化已随 0.8.0 发布；E 的后续成果现已纳入 0.9.0，前序交付见 [E 阶段结果](plans/2026-11-11-stage-e-results.zh.md)。
 
-本文记录当前有效设计，产品为「肥鱼笔记 / Fatfish Notes」，当前正式版本 `0.9.0`。安装标识为 `dsh-fatfish-notes`，新私人库默认名为 `fatfish-notes`。0.6.0 已完成一次性更名，不保留旧品牌兼容分支。日常操作见[使用说明](user-guide.zh.md)，历史迁移范围见[改名规划](plans/2026-11-06-fatfish-notes-rename.zh.md)。旧名称下已发布的 `0.5.1` 作为历史版本保留。
+本文记录当前有效设计，产品为「肥鱼笔记 / Fatfish Notes」，当前正式版本 `0.9.1`。安装标识为 `dsh-fatfish-notes`，新私人库默认名为 `fatfish-notes`。0.6.0 已完成一次性更名，不保留旧品牌兼容分支。日常操作见[使用说明](user-guide.zh.md)，历史迁移范围见[改名规划](plans/2026-11-06-fatfish-notes-rename.zh.md)。旧名称下已发布的 `0.5.1` 作为历史版本保留。
 
 ## 外观与工作区（0.9.0）
 

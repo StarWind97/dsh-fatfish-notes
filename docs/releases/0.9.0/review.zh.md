@@ -106,7 +106,7 @@ SHA-256：
 
 **2026-11-18 复核：PR #15913 已于北京时间 2026-11-17 01:20:39 合并，合并者为 fkysly。** 以下「等待审核」为提交当时快照，不是当前状态。合并后的上游条目仍指向正式 0.9.0 下载。
 
-[维护者评论](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15913#issuecomment-6924418217)指出原始 `webServer.register` 路由未接入 DSH 的访问检查，因此市场描述增加了相应提醒。当前公开 0.9.0 的本机/Host/Origin/Fetch Metadata 防护仍存在，但不包含 DSH 登录认证。按用户授权开展[宿主访问检查修复](../../plans/2026-11-18-host-access-review.zh.md)；该修复尚未发布，不能提前删掉市场提醒，也不替换旧 Release 资产。
+[维护者评论](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15913#issuecomment-6924418217)指出原始 `webServer.register` 路由未接入 DSH 的访问检查，因此市场描述增加了相应提醒。当前公开 0.9.0 的本机/Host/Origin/Fetch Metadata 防护仍存在，但不包含 DSH 登录认证。按用户授权开展[宿主访问检查修复](../../plans/2026-11-18-host-access-review.zh.md)；该修复已于 2026-11-18 随 [0.9.1](../0.9.1/review.zh.md)发布；针对新包的市场更新另行提交，旧 0.9.0 Release 资产保持不变。
 
 [PR #15913](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15913)已提交，只有 `data/plugins/StarWind97__dsh-fatfish-notes.yml` 一个文件、3 行替换，GitHub 判定可合并。保留维护者此前规范的 `owner/repo` 名称、Windows 验证边界及账号/工具前提；更新功能介绍和 0.9.0 下载地址。
 
