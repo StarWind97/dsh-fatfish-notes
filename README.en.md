@@ -13,7 +13,7 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 
 > Current version: **0.9.0 for DSH 0.2.2-rc.3**, verified on Windows. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
 
-![Reading the user handbook](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/01-reading.png)
+![Keep image results, editing prompts and observations together](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
 ## From conversations to notes
 
@@ -25,7 +25,11 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 - Export a single PNG using the reading layout, a PDF for reading or printing, or a Markdown bundle with original images and files.
 - Save locally while offline after initial setup; sync resumes when connected. Import Markdown files, folders or ZIPs, and export a notebook or the full library.
 
-![Notes beside a conversation](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/02-conversation.png)
+![Refer to saved notes beside a conversation and plan the next step](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/02-conversation.png)
+
+Keep code snippets, results, files and related notes together for the next time you need them.
+
+![Code highlighting, a results table and file links in dark mode](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/03-code.png)
 
 ## Installation and upgrade
 
@@ -53,6 +57,8 @@ Editing saves automatically. Work in the main page, sidebar or a separate window
 
 Use list import/export for Markdown migration. Open exported copies in other editors instead of sharing the internal data directory. **Settings → Sync and storage** shows sync status, authorization and local storage options. Detailed [instructions](docs/user-guide.zh.md) are available in Chinese.
 
+![Adjust the layout, palette and panel density](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/04-settings.png)
+
 ## Scope and limitations
 
 - Verified on **Windows / DSH 0.2.2-rc.3**. macOS and two physical computers have not been tested.
@@ -64,4 +70,4 @@ Use list import/export for Markdown migration. Open exported copies in other edi
 
 Report problems through [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues), including OS, host/plugin versions and reproduction steps. Do not include credentials or private notes.
 
-Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show sample content in an isolated host. Development starts [here](docs/README.md).
+Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md). Screenshots show the actual isolated interface with sample notes and a staged conversation; the brand icons include updates still in development. Development starts [here](docs/README.md).

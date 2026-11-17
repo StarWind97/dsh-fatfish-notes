@@ -13,7 +13,7 @@
 
 > 当前版本 **0.9.0**，适配 **DSH 0.2.2-rc.3**，已在 Windows 验证。见[新版说明](docs/releases/0.9.0/release-notes.md)和[验证记录](docs/releases/0.9.0/review.zh.md)。
 
-![阅读用户手册](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/01-reading.png)
+![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
 ## 从会话到笔记
 
@@ -25,7 +25,11 @@
 - **按用途交付**：单张 PNG 沿用阅读版式与选定宽度；PDF 适合阅读和打印；Markdown 资源包保留图片及附件原件。
 - **本机保存与私库同步**：首次设置完成后，断网仍可编辑保存，联网自动续传。可导入 Markdown 文件、文件夹或 ZIP，也可导出整本或整个笔记库。
 
-![在会话旁阅读笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/02-conversation.png)
+![在会话旁查阅已保存的笔记，接着讨论下一步](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/02-conversation.png)
+
+代码片段、检查结果、文件与关联笔记也可以一起保存，便于下次查找和复用。
+
+![深色阅读中的代码高亮、结果表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/03-code.png)
 
 ## 安装与升级
 
@@ -53,7 +57,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 
 从笔记列表「导入 / 导出」迁入或导出 Markdown。将导出的副本用于 Obsidian 等软件，不要让其他软件直接写入内部资料目录。「设置 → 同步与存储」可以查看状态、恢复账号授权和更换本机位置。详见[使用说明](docs/user-guide.zh.md)。
 
-![可调整的界面与阅读设置](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.9.0/03-appearance.png)
+![按习惯调整界面布局、配色与密度](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/04-settings.png)
 
 ## 使用边界
 
@@ -66,4 +70,4 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes-0.9.0.tgz"
 
 问题与建议可通过 [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues) 提交，请附系统、DSH/插件版本及复现步骤，不要提供凭据或私人笔记。
 
-开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。展示截图来自隔离环境中的示例内容。
+开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。展示截图取自实际隔离界面，使用演示笔记与编排会话；品牌图标包含开发中的调整。
