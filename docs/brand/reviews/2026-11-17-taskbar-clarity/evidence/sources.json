@@ -1,0 +1,158 @@
+[
+  {
+    "file": "current-active.png",
+    "source": "current-legacy-1-focused-taskbar.png",
+    "sourceSHA256": "9404786db96e961fab63e4c0a5b21701bb0b1be8c632b7e08a8bd5c782d7e494",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "current-inactive.png",
+    "source": "current-legacy-1-focused-inactive-taskbar.png",
+    "sourceSHA256": "e0d324286bc7a2337aa3b902786d27cfb1436c23d1167c8f31fadd0f7084df92",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": false,
+    "minimized": true,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "current-direct.png",
+    "source": "current-legacy-1-direct32-focused-taskbar.png",
+    "sourceSHA256": "d62446ebf5d9f343e793208446e741b887e5ab465909f6a659b9a84dec72fe43",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": true,
+    "both": true
+  },
+  {
+    "file": "clear-active.png",
+    "source": "clear-legacy-1-focused-taskbar.png",
+    "sourceSHA256": "72f60c8d958906b7d2544fed18c59c6be2e4e3ad124748bfb7ba9acb3c103abc",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "clear-inactive.png",
+    "source": "clear-legacy-1-focused-inactive-taskbar.png",
+    "sourceSHA256": "32fc8f00a2bdc7484f80eaea770765fbc345fb0a8d33aaeac13b107bc3a97120",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": false,
+    "minimized": true,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "clear-direct.png",
+    "source": "clear-legacy-1-direct32-focused-taskbar.png",
+    "sourceSHA256": "5005dc64fc492ceb7d91688334b61ac0b21c2527583b9104ebd5d71436761a4c",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": true,
+    "both": true
+  },
+  {
+    "file": "vivid-active.png",
+    "source": "vivid-legacy-1-focused-taskbar.png",
+    "sourceSHA256": "1c14993853655fab6eda714418eba8441ebfd9a966b6eaad14d861174497e8cb",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "vivid-inactive.png",
+    "source": "vivid-legacy-1-focused-inactive-taskbar.png",
+    "sourceSHA256": "e2a9d5f4929f3551bca29c9543797b5211ca7c2a0e10cfd0c47a76200b75ac53",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": false,
+    "minimized": true,
+    "dpi": 96,
+    "nativeOverride": false,
+    "both": false
+  },
+  {
+    "file": "vivid-direct.png",
+    "source": "vivid-legacy-1-direct32-focused-taskbar.png",
+    "sourceSHA256": "55734129bf0186e28ec7716b3d7943ddd97ed05973a0ebb907498c5ca6527064",
+    "crop": [
+      940,
+      0,
+      1628,
+      48
+    ],
+    "active": true,
+    "minimized": false,
+    "dpi": 96,
+    "nativeOverride": true,
+    "both": true
+  },
+  {
+    "file": "current-native.png",
+    "source": "current-legacy-1-focused-native-1.png",
+    "sourceSHA256": "f56e1c78de66b6f918792f0f0ec501244f7ea84e53e93c2df8cb6eba3dbfc0d6",
+    "operation": "copy unchanged"
+  },
+  {
+    "file": "current-direct-native.png",
+    "source": "current-legacy-1-direct32-focused-native-1.png",
+    "sourceSHA256": "bf14679cda2294eba2ce6064c79f15a996d553a83e89ef634872908870216c13",
+    "operation": "copy unchanged"
+  }
+]
