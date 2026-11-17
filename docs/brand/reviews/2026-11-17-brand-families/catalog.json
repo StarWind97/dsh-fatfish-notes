@@ -18,7 +18,10 @@
         "body": "#FFF6F5",
         "arc": "#75E2C4"
       },
-      "desc": "紫色承担识别，薄荷绿作为叠页与点睛色。保留上一轮你喜欢的配色，扩展到整套场景。"
+      "desc": "紫色承担识别，薄荷绿作为叠页与点睛色。保留上一轮你喜欢的配色，扩展到整套场景。",
+      "darkColorBody": "#AD83EE",
+      "darkColorInk": "#D9BDF7",
+      "darkNeutralInk": "#FFF6F5"
     },
     {
       "id": "p2",
@@ -38,7 +41,10 @@
         "body": "#FAF9FF",
         "arc": "#6EE7D4"
       },
-      "desc": "紫色向蓝侧移动，拉高纯度；青色叠页保持轻快。比较更强的数字产品气质是否适合肥鱼。"
+      "desc": "紫色向蓝侧移动，拉高纯度；青色叠页保持轻快。比较更强的数字产品气质是否适合肥鱼。",
+      "darkColorBody": "#9888FF",
+      "darkColorInk": "#CBC4FF",
+      "darkNeutralInk": "#FAF9FF"
     },
     {
       "id": "p3",
@@ -58,7 +64,10 @@
         "body": "#FFF7EE",
         "arc": "#B5EDA2"
       },
-      "desc": "紫色向红侧移动，与嫩绿叠页拉开色相。比前两套更温暖，观察是否有亲切感而不过甜。"
+      "desc": "紫色向红侧移动，与嫩绿叠页拉开色相。比前两套更温暖，观察是否有亲切感而不过甜。",
+      "darkColorBody": "#E276D7",
+      "darkColorInk": "#F1B6E8",
+      "darkNeutralInk": "#FFF7EE"
     },
     {
       "id": "g1",

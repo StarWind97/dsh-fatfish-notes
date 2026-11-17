@@ -15,6 +15,13 @@ const families=[
  {id:'g2',no:'05',name:'碧青麦金',line:'绿色路线',tag:'偏青绿 · 清爽、稳健',main:'#008F89',accent:'#BD9219',paper:'#E4F5F2',ink:'#143E3C',night:'#122B2C',darkBody:'#5AE2CC',darkArc:'#F3D264',tile:{bg:'#E4F5F2',body:'#008F89',arc:'#E2B331'},desc:'绿色向青侧移动，金黄保持温暖。鱼与叠页的颜色分工明确，减少常见绿白聊天应用的联想。'},
  {id:'g3',no:'06',name:'鲜绿橙光',line:'绿色路线',tag:'偏暖鲜绿 · 活力最强',main:'#00A05C',accent:'#E87828',paper:'#F3F6E5',ink:'#24402B',night:'#1E2A20',darkBody:'#80ED9B',darkArc:'#FFB26D',tile:{bg:'#F3F6E5',body:'#00A05C',arc:'#FF923E'},desc:'鲜绿配橙金，把叠页变成显眼的暖色标记。与薄荷纸相比更活泼，也检验是否显得过于轻巧。'},
 ];
+// Additional dark treatments keep the previous reverse-white assets intact.
+const purpleDark={
+ p1:{darkColorBody:'#AD83EE',darkColorInk:'#D9BDF7',darkNeutralInk:'#FFF6F5'},
+ p2:{darkColorBody:'#9888FF',darkColorInk:'#CBC4FF',darkNeutralInk:'#FAF9FF'},
+ p3:{darkColorBody:'#E276D7',darkColorInk:'#F1B6E8',darkNeutralInk:'#FFF7EE'},
+};
+for(const f of families)Object.assign(f,purpleDark[f.id]||{});
 const names=['favicon.svg','fatfish-brand-transparent-light.svg','fatfish-mark.svg','fatfish-mark-d1.svg','fatfish-mark-d2.svg','fatfish-mark-c0.svg'];
 const sources={};for(const name of names)sources[name]=await readFile(path.join(repo,'assets/brand',name),'utf8');
 const hashes=Object.fromEntries(names.map(n=>[n,crypto.createHash('sha256').update(sources[n]).digest('hex')]));
@@ -30,15 +37,17 @@ try{
   const parts={};for(const id of ['wordmark-chinese','wordmark-english']){const g=full.querySelector('#'+id),b=g.getBBox();parts[id]={inner:g.innerHTML,box:{x:b.x,y:b.y,width:b.width,height:b.height}}}
   full.remove();return parts;
  },sources);
- const recolor=(s,f,mode)=>s.replaceAll('#3F5A4E',mode==='light'?f.main:f.darkBody).replaceAll('#B7C9B3',mode==='light'?f.accent:f.darkArc);
+ const bodyColor=(f,mode)=>mode==='light'?f.main:mode.startsWith('dark-')?f.darkColorBody:f.darkBody;
+ const textColor=(f,mode)=>mode==='light'?f.ink:mode==='dark-color'?f.darkColorInk:mode==='dark-neutral'?f.darkNeutralInk:f.darkBody;
+ const recolor=(s,f,mode)=>s.replaceAll('#3F5A4E',bodyColor(f,mode)).replaceAll('#B7C9B3',mode==='light'?f.accent:f.darkArc);
  const strip=s=>s.replace(/^.*?<svg[^>]*>/s,'').replace(/<\/svg>\s*$/,'');
  const svg=(w,h,body)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}</svg>`;
  async function save(name,art,w,h){await writeFile(path.join(dir,'assets',name+'.svg'),art);count++;if(w){await png(name,art,w,h)}}
  async function png(name,art,w,h=w){const data=await page.evaluate(async({art,w,h})=>{const im=new Image();im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(art);await im.decode();const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);return c.toDataURL().split(',')[1]},{art,w,h});const bytes=Buffer.from(data,'base64');await writeFile(path.join(dir,'assets',name+'.png'),bytes);return bytes;}
  function lettering(id,x,y,width,fill){const {inner,box:b}=shapes[id];return `<g fill="${fill}" transform="translate(${x} ${y}) scale(${width/b.width}) translate(${-b.x} ${-b.y})">${inner}</g>`}
  for(const f of families){
-  for(const mode of ['light','dark']){
-   const body=mode==='light'?f.main:f.darkBody,ink=mode==='light'?f.ink:f.darkBody,accent=mode==='light'?f.accent:f.darkArc;
+  for(const mode of (f.darkColorBody?['light','dark','dark-color','dark-neutral']:['light','dark'])){
+   const body=bodyColor(f,mode),ink=textColor(f,mode),accent=mode==='light'?f.accent:f.darkArc;
    for(const [shape,source] of [['original','fatfish-mark.svg'],['d1','fatfish-mark-d1.svg'],['d2','fatfish-mark-d2.svg'],['c0','fatfish-mark-c0.svg']])await save(`${f.id}-mark-${shape}-${mode}`,recolor(sources[source],f,mode));
    // Wordmarks retain approved outline geometry, with separate text and symbol colors.
    const stacked=recolor(sources['fatfish-brand-transparent-light.svg'],f,mode).replace(/(<g id="wordmark-(?:chinese|english)" fill=")[^"]+/,`$1${ink}`).replace(/(<g id="wordmark-english" fill=")[^"]+/,`$1${ink}`);

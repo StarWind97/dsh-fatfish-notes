@@ -1,13 +1,21 @@
-const {families}=await fetch('catalog.json').then(r=>r.json());
+const {families}=await fetch('catalog.json?v=purple-dark-v2').then(r=>r.json());
 const byId=id=>families.find(f=>f.id===id),$=s=>document.querySelector(s);
 const scenes={identity:'完整标识',mark:'鱼形与应用图标',ui:'界面位置',taskbar:'任务栏对比',cover:'宣传封面',sizes:'实际尺寸'};
-let overviewMode='light',scene='identity',current='p1',compareIds=['p1','g1'];
-const file=(f,name)=>`assets/${f.id}-${name}`;
+let overviewMode='light',scene='identity',current='p3',compareIds=['p1','p2','p3'],darkTreatment='color';
+const directFile=(f,name)=>`assets/${f.id}-${name}`;
+const file=(f,name)=>directFile(f,f.darkColorBody&&darkTreatment!=='reverse'?name.replace(/-dark\.(svg|png)$/,'-dark-'+darkTreatment+'.$1'):name);
 const im=(src,alt,cls='',extra='')=>`<img src="${src}" alt="${alt}" class="${cls}" ${extra}>`;
 function vars(f){return `--paper:${f.paper};--night:${f.night};--ink:${f.ink}`}
+const darkBody=f=>f.darkColorBody&&darkTreatment!=='reverse'?f.darkColorBody:f.darkBody;
+function syncDarkControls(){document.querySelectorAll('.purple-treatment').forEach(el=>{el.value=darkTreatment;el.disabled=el.dataset.scope==='overview'?overviewMode!=='dark':el.dataset.scope==='compare'?$('#compare-mode').value!=='dark'||$('#compare-scene').value==='taskbar':el.dataset.scope==='inspect'?$('#inspect-mode').value!=='dark'||scene==='taskbar'||!byId(current).darkColorBody:false})}
+function renderDarkStudy(){
+ $('#dark-study').innerHTML=families.filter(f=>f.darkColorBody).map(f=>`<article class="purple-study-card" style="${vars(f)}"><header><span class="card-number">${f.no} / ${f.line}</span><h3>${f.name}</h3></header>${[['light','原浅色 · 保持不变'],['dark-color','新增 A · 彩色鱼身＋浅紫字标'],['dark-neutral','新增 B · 彩色鱼身＋中性浅字'],['dark','旧版 · 反白对照']].map(([mode,label])=>`<div class="purple-sample ${mode==='light'?'light':'dark'}"><div class="sample-label">${label}</div>${im(directFile(f,`horizontal-${mode}.svg`),f.name+' '+label,'study-lockup')}<div class="sample-detail">${im(directFile(f,`mark-d2-${mode}.svg`),'16px鱼形','', 'width="16" height="12"')}${im(directFile(f,`mark-d1-${mode}.svg`),'24px鱼形','', 'width="24" height="17"')}<span>${mode==='light'?f.main:mode==='dark'?f.darkBody:f.darkColorBody} · 鱼身</span></div></div>`).join('')}</article>`).join('');
+ $('#dark-feedback-options').innerHTML=families.filter(f=>f.darkColorBody).map(f=>`<label>${f.no} ${f.name}<select data-answer="dark2_${f.id}"><option value="">还没有确定</option><option value="color">A · 彩色鱼身＋浅紫字标</option><option value="neutral">B · 彩色鱼身＋中性浅字</option><option value="reverse">旧反白版</option><option value="adjust">都需要继续调整</option></select></label>`).join('');
+}
 const colors=f=>`<div class="color-info">${[[f.main,'主色'],[f.accent,'浅底叠页'],[f.darkArc,'深底叠页'],[f.tile.bg,'图标底色']].map(([c,n])=>`<span><i style="background:${c}"></i>${n} ${c}</span>`).join('')}</div>`;
 function renderCards(){
- $('#cards').innerHTML=families.map(f=>`<article class="family-card" style="${vars(f)}"><div class="card-art ${overviewMode}">${im(file(f,`horizontal-${overviewMode}.svg`),f.name+'完整标识','lockup')}<div class="mini-strip">${im(file(f,`mark-original-${overviewMode}.svg`),'透明鱼形','fish')}${im(file(f,'tile.svg'),'应用图标')}<div class="swatches">${[f.main,f.darkArc,f.paper].map(c=>`<span style="background:${c}" title="${c}"></span>`).join('')}</div></div></div><div class="card-caption"><div class="card-number">${f.no} / ${f.line}</div><h3>${f.name}</h3><p>${f.tag}</p><div class="card-actions"><button data-inspect="${f.id}">查看整套 →</button><button data-compare="${f.id}" aria-pressed="${compareIds.includes(f.id)}">${compareIds.includes(f.id)?'已加入对比':'加入对比'}</button></div></div></article>`).join('');
+ $('#cards').innerHTML=families.map(f=>`<article class="family-card" style="${vars(f)}"><div class="card-art ${overviewMode}">${im(file(f,`horizontal-${overviewMode}.svg`),f.name+'完整标识','lockup')}<div class="mini-strip">${im(file(f,`mark-original-${overviewMode}.svg`),'透明鱼形','fish')}${im(file(f,'tile.svg'),'应用图标')}<div class="swatches">${[overviewMode==='dark'?darkBody(f):f.main,f.darkArc,overviewMode==='dark'?f.night:f.paper].map(c=>`<span style="background:${c}" title="${c}"></span>`).join('')}</div></div></div><div class="card-caption"><div class="card-number">${f.no} / ${f.line}</div><h3>${f.name}</h3><p>${f.tag}</p><div class="card-actions"><button data-inspect="${f.id}">查看整套 →</button><button data-compare="${f.id}" aria-pressed="${compareIds.includes(f.id)}">${compareIds.includes(f.id)?'已加入对比':'加入对比'}</button></div></div></article>`).join('');
+ syncDarkControls();
 }
 function hostMock(f,mode){return `<div class="ui-scene ${mode}"><div class="ui-label">主页面顶部 · 品牌配色示意，功能区保持中性</div><div class="mock-window"><div class="mock-header"><div class="mock-brand">${im(file(f,`mark-d1-${mode}.svg`),'24像素入口')}肥鱼笔记</div><div class="mock-nav"><b>笔记</b><span>笔记本管理</span><span>设置</span></div></div><div class="mock-content"><div class="mock-list"><b>我的 AI 使用笔记</b><div class="active">把好用的提问方法留下</div><div>长文阅读与摘要核对</div><div>给图片修改补充边界</div><div>从会话整理成说明</div></div><div class="mock-note"><h4>把好用的提问方法留下</h4><p>这次回答效果不错，把当时的背景和有效约束一起记下，下次就能接着用。</p><div class="callout">先说明要完成的事，再给材料；不确定的地方，请明确标注。</div><p>保留原始会话，整理成自己的表达。把真正有帮助的方法，放进常用笔记。</p></div></div></div><div class="ui-label">会话侧栏 · 彩色透明鱼形</div><div class="sidebar-mock"><div class="mock-header"><div class="mock-brand">${im(file(f,`mark-d2-${mode}.svg`),'16像素侧栏入口','', 'style="width:16px;height:12px"')}会话笔记</div><span style="margin-left:auto">＋　↗</span></div><div class="sidebar-body"><b>阅读长文时，先核对这三件事</b><p>结论是否有原文依据？有没有遗漏条件？哪些地方仍需查证？</p><div class="attachment">阅读核对清单.md <span style="float:right">1.2 KB</span></div></div></div><div class="host-entry"><span style="display:inline-block;width:16px;height:13px;background:currentColor;mask:url('${file(f,`mark-d2-${mode}.svg`)}') center/contain no-repeat"></span>肥鱼笔记 <span style="margin-left:auto">宿主导航：仍按 DSH 规则使用单色</span></div></div>`}
 function content(f,s,mode){
@@ -30,6 +38,7 @@ function renderCompare(){
  $('#compare-note').textContent=s==='taskbar'?'六套均为本轮实拍，选中与未选中各一张。保持原尺寸；窄列先显示最右侧的肥鱼图标，可横向查看相邻应用。':s==='ui'?'仅比较品牌入口配色；功能区采用同样的中性示意界面。':s==='cover'?'同一版式与文案，仅比较品牌气质。均为设计示意，尚未替换公开素材。':'';
  $('#comparison').querySelectorAll('.taskbar-scroll').forEach(el=>{el.scrollLeft=el.scrollWidth});
  $('#compare-mode').disabled=s==='taskbar';
+ syncDarkControls();
 }
 function renderInspector(){
  const f=byId(current),mode=$('#inspect-mode').value;
@@ -39,7 +48,14 @@ function renderInspector(){
  $('#inspection').querySelectorAll('.taskbar-scroll').forEach(el=>{el.scrollLeft=el.scrollWidth});
  const links=scene==='cover'?[[`cover-${mode}.png`,'下载封面 PNG'],[`cover-${mode}.svg`,'下载封面 SVG']]:scene==='taskbar'?[[`tile.ico`,'下载候选 ICO'],['tile.svg','下载图标 SVG']]:[[`horizontal-${mode}.svg`,'横式 SVG'],[`stack-${mode}.svg`,'竖式 SVG'],[`mark-original-${mode}.svg`,'透明鱼形 SVG'],['tile.svg','应用方块 SVG']];
  $('#downloads').innerHTML=links.map(([name,text])=>`<a download href="${file(f,name)}">${text} ↓</a>`).join('');
+ syncDarkControls();
 }
+const treatmentControl=scope=>`<label class="purple-inline-control">前三套深色<select class="purple-treatment" data-scope="${scope}"><option value="color">彩色鱼身 · 浅紫字标</option><option value="neutral">彩色鱼身 · 中性浅字</option><option value="reverse">旧反白版</option></select></label>`;
+$('#families > .muted').insertAdjacentHTML('afterend',treatmentControl('overview'));
+$('#compare .toolbar').insertAdjacentHTML('beforeend',treatmentControl('compare'));
+$('.inspect-toolbar').insertAdjacentHTML('beforeend',treatmentControl('inspect'));
+document.querySelectorAll('.purple-treatment').forEach(el=>el.addEventListener('change',()=>{darkTreatment=el.value;renderCards();renderCompare();renderInspector()}));
+renderDarkStudy();
 $('#inspect-family').innerHTML=families.map(f=>`<option value="${f.id}">${f.no} ${f.name}</option>`).join('');
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{overviewMode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCards()}));
 $('#cards').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.inspect){current=b.dataset.inspect;renderInspector();$('#inspect').scrollIntoView({behavior:'smooth'})}if(b.dataset.compare){const id=b.dataset.compare;if(compareIds.includes(id))compareIds=compareIds.filter(x=>x!==id);else if(compareIds.length<3)compareIds.push(id);else{alert('最多同时比较三套，请先取消一套。');return}renderCompare();renderCards()}});
@@ -50,9 +66,9 @@ $('#scene-tabs').addEventListener('click',e=>{const b=e.target.closest('button')
 renderCards();renderCompare();renderInspector();
 const history=await fetch('previous-feedback.json').then(r=>r.json());
 const h=document.createElement('pre');h.textContent=history.data.notes;$('#history').append(h);const t=document.createElement('time');t.textContent='上一轮首选：12 紫莓薄荷；候选：02 鲜翠、07 薄荷纸、12 紫莓薄荷。保存于 '+new Date(history.updatedAt).toLocaleString('zh-CN');$('#history').append(t);
-document.querySelectorAll('select[data-answer]:not([data-answer=consistency])').forEach(el=>{el.insertAdjacentHTML('beforeend',families.map(f=>`<option value="${f.id}">${f.no} ${f.name}</option>`).join(''))});
+document.querySelectorAll('#feedback select[data-answer]:not([data-answer=consistency])').forEach(el=>{el.insertAdjacentHTML('beforeend',families.map(f=>`<option value="${f.id}">${f.no} ${f.name}</option>`).join(''))});
 $('#family-feedback').innerHTML=families.map(f=>`<div class="family-opinion"><header><b>${f.no} ${f.name}</b><label><input type="checkbox" data-answer="keep_${f.id}">保留继续看</label></header><textarea rows="2" data-answer="note_${f.id}" aria-label="${f.name}的意见" placeholder="喜欢什么，想改什么？"></textarea></div>`).join('');
-const state=window.createPageState({key:'fatfish-brand-families-20261117',defaults:{},onStatus:({kind})=>{const labels={loading:'正在读取意见…',saving:'正在自动保存…',saved:'意见已保存，可以继续修改。',failed:'尚未保存到项目；浏览器保留草稿，请重试。',browser:'当前仅保存在此浏览器，请使用本地网页地址。'};$('#save-status').textContent=labels[kind];$('#save-status').parentElement.classList.toggle('error',kind==='failed');$('#retry').hidden=kind!=='failed'}});
-const saved=await state.ready;document.querySelectorAll('[data-answer]').forEach(el=>{if(el.type==='checkbox')el.checked=saved[el.dataset.answer]===true;else el.value=saved[el.dataset.answer]??''});$('#feedback-fields').disabled=false;
-$('#feedback-fields').addEventListener('input',e=>{const el=e.target;if(el.dataset.answer)state.set({[el.dataset.answer]:el.type==='checkbox'?el.checked:el.value})});$('#retry').addEventListener('click',()=>state.retry());
+const state=window.createPageState({key:'fatfish-brand-families-20261117',defaults:{},onStatus:({kind})=>{const labels={loading:'正在读取意见…',saving:'正在自动保存…',saved:'意见已保存，可以继续修改。',failed:'尚未保存到项目；浏览器保留草稿，请重试。',browser:'当前仅保存在此浏览器，请使用本地网页地址。'};for(const id of ['save-status','dark-save-status']){$('#'+id).textContent=labels[kind];$('#'+id).parentElement.classList.toggle('error',kind==='failed')}for(const id of ['retry','dark-retry'])$('#'+id).hidden=kind!=='failed'}});
+const saved=await state.ready;document.querySelectorAll('[data-answer]').forEach(el=>{if(el.type==='checkbox')el.checked=saved[el.dataset.answer]===true;else el.value=saved[el.dataset.answer]??''});$('#feedback-fields').disabled=false;$('#dark-feedback-fields').disabled=false;
+document.addEventListener('input',e=>{const el=e.target;if(el.dataset.answer)state.set({[el.dataset.answer]:el.type==='checkbox'?el.checked:el.value})});for(const id of ['retry','dark-retry'])$('#'+id).addEventListener('click',()=>state.retry());
 document.body.dataset.ready='true';
