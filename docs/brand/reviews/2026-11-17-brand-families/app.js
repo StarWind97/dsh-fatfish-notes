@@ -17,9 +17,8 @@ function content(f,s,mode){
  if(s==='ui')return hostMock(f,mode);
  if(s==='cover')return `<div class="scene-surface cover-surface ${mode}" style="${vars(f)}">${im(file(f,`cover-${mode}.svg`),'宣传封面配色示意','cover-img')}</div>`;
  if(s==='taskbar'){
-  const hasPrior=['p1','g1'].includes(f.id);
-  const prior=hasPrior?`<h4>上一轮实拍 · 选中状态 · 原尺寸</h4><div class="taskbar-scroll">${im(`evidence/${f.id}-active-prior.png`,f.name+'上一轮选中任务栏实拍')}</div><h4>上一轮实拍 · 未选中状态 · 原尺寸</h4><div class="taskbar-scroll">${im(`evidence/${f.id}-inactive-prior.png`,f.name+'上一轮未选中任务栏实拍')}</div><p>与上一轮的 32 px 图源逐像素一致，因此保留对应实拍作参考；没有把旧图当成本轮新拍。拍摄使用临时原生清晰图像实验，尚未接入插件。</p>`:`<p class="capture-pending">本套尚无可用的真实任务栏实拍。本轮桌面截图返回全黑，已排除这些截图；下面只展示图源在浅深底上的效果。</p>`;
-  return `<div class="taskbar-scene">${prior}<h4>六套 32 px 图源并排 · 背景示意，非系统截图</h4><div class="taskbar-model dark">${families.map(x=>im(file(x,'tile-32.png'),x.name,'',`width="32" height="32" title="${x.name}" srcset="${file(x,'tile-32.png')} 1x, ${file(x,'tile-64.png')} 2x"`)).join('')}</div><div class="taskbar-model light">${families.map(x=>im(file(x,'tile-32.png'),x.name,'',`width="32" height="32" title="${x.name}" srcset="${file(x,'tile-32.png')} 1x, ${file(x,'tile-64.png')} 2x"`)).join('')}</div><div class="taskbar-zoom"><figure>${im(file(f,'tile-32.png'),'32px原图','',`width="32" height="32" srcset="${file(f,'tile-32.png')} 1x, ${file(f,'tile-64.png')} 2x"`)}<figcaption>32 px 图源</figcaption></figure><figure>${im(file(f,'tile.svg'),'128px放大图','', 'width="128" height="128"')}<figcaption>128 px 放大观察</figcaption></figure></div><p>固定 D1 结构；颜色不会自动解决宿主图标缩放链路中的模糊。实际观感仍以桌面恢复后补拍为准。</p></div>`;
+  const shots=`<h4>本轮实拍 · 选中状态 · 原尺寸</h4><div class="taskbar-scroll">${im(`evidence/${f.id}-active.png`,f.name+'本轮选中任务栏实拍','', 'width="608" height="48"')}</div><h4>本轮实拍 · 未选中状态 · 原尺寸</h4><div class="taskbar-scroll">${im(`evidence/${f.id}-inactive.png`,f.name+'本轮未选中任务栏实拍','', 'width="608" height="48"')}</div><p>六套均已补拍。Windows 100% 缩放、深色任务栏的连续裁片，保留相邻应用作对照，肥鱼位于最右侧。窄列先显示肥鱼所在部分，可横向查看整条。</p>`;
+  return `<div class="taskbar-scene">${shots}<h4>六套 32 px 图源并排 · 背景示意，非系统截图</h4><div class="taskbar-model dark">${families.map(x=>im(file(x,'tile-32.png'),x.name,'',`width="32" height="32" title="${x.name}" srcset="${file(x,'tile-32.png')} 1x, ${file(x,'tile-64.png')} 2x"`)).join('')}</div><div class="taskbar-model light">${families.map(x=>im(file(x,'tile-32.png'),x.name,'',`width="32" height="32" title="${x.name}" srcset="${file(x,'tile-32.png')} 1x, ${file(x,'tile-64.png')} 2x"`)).join('')}</div><div class="taskbar-zoom"><figure>${im(file(f,'tile-32.png'),'32px原图','',`width="32" height="32" srcset="${file(f,'tile-32.png')} 1x, ${file(f,'tile-64.png')} 2x"`)}<figcaption>32 px 图源</figcaption></figure><figure>${im(file(f,'tile.svg'),'128px放大图','', 'width="128" height="128"')}<figcaption>128 px 放大观察</figcaption></figure></div><p>实拍使用临时原生清晰图像实验，尚未接入正式窗口。固定 D1 结构；配色变化不等于正式窗口的图标缩放问题已修复。</p></div>`;
  }
  if(s==='sizes')return wrap(`<div class="sizes-grid"><div class="size-row head"><span>逻辑宽度</span><div>按现有分工</div><div>全用原版作对照</div></div>${[16,20,24,28,32,48,64].map(size=>{const shape=size<=16?'d2':size<=24?'d1':size===28?'c0':'original';return `<div class="size-row"><b>${size} px</b><div>${im(file(f,`mark-${shape}-${mode}.svg`),size+'px '+shape,'',`style="width:${size}px;height:${Math.round(size*.7)}px"`)}<small>${shape==='original'?'原版':shape.toUpperCase()}</small></div><div>${im(file(f,`mark-original-${mode}.svg`),size+'px 原版','',`style="width:${size}px;height:${Math.round(size*.7)}px"`)}</div></div>`}).join('')}</div><p class="size-tip">以上为真实 CSS 尺寸，不是放大的截图。浏览器缩放请保持 100%。这里只比较原有轮廓与新配色，不在本轮重新定小图标结构。</p>`);
 }
@@ -28,7 +27,8 @@ function renderCompare(){
  const s=$('#compare-scene').value,mode=$('#compare-mode').value;
  $('#comparison').style.setProperty('--count',Math.max(1,compareIds.length));
  $('#comparison').innerHTML=compareIds.length?compareIds.map(id=>{const f=byId(id);return `<article class="compare-item"><div class="compare-heading">${f.no} ${f.name}</div>${content(f,s,mode)}</article>`}).join(''):'<p>先勾选要放在一起比较的方案。</p>';
- $('#compare-note').textContent=s==='taskbar'?'01 / 04 保留上一轮相同图源的实拍；其余四套暂为背景示意。所有截图保持原尺寸，列宽不足可在图内横向查看。':s==='ui'?'仅比较品牌入口配色；功能区采用同样的中性示意界面。':s==='cover'?'同一版式与文案，仅比较品牌气质。均为设计示意，尚未替换公开素材。':'';
+ $('#compare-note').textContent=s==='taskbar'?'六套均为本轮实拍，选中与未选中各一张。保持原尺寸；窄列先显示最右侧的肥鱼图标，可横向查看相邻应用。':s==='ui'?'仅比较品牌入口配色；功能区采用同样的中性示意界面。':s==='cover'?'同一版式与文案，仅比较品牌气质。均为设计示意，尚未替换公开素材。':'';
+ $('#comparison').querySelectorAll('.taskbar-scroll').forEach(el=>{el.scrollLeft=el.scrollWidth});
  $('#compare-mode').disabled=s==='taskbar';
 }
 function renderInspector(){
@@ -36,6 +36,7 @@ function renderInspector(){
  $('#inspect-family').value=current;$('#family-description').textContent=f.desc;
  $('#scene-tabs').innerHTML=Object.entries(scenes).map(([id,label])=>`<button role="tab" aria-selected="${id===scene}" data-scene="${id}">${label}</button>`).join('');
  $('#inspect-mode').disabled=scene==='taskbar';$('#inspection').innerHTML=content(f,scene,mode);
+ $('#inspection').querySelectorAll('.taskbar-scroll').forEach(el=>{el.scrollLeft=el.scrollWidth});
  const links=scene==='cover'?[[`cover-${mode}.png`,'下载封面 PNG'],[`cover-${mode}.svg`,'下载封面 SVG']]:scene==='taskbar'?[[`tile.ico`,'下载候选 ICO'],['tile.svg','下载图标 SVG']]:[[`horizontal-${mode}.svg`,'横式 SVG'],[`stack-${mode}.svg`,'竖式 SVG'],[`mark-original-${mode}.svg`,'透明鱼形 SVG'],['tile.svg','应用方块 SVG']];
  $('#downloads').innerHTML=links.map(([name,text])=>`<a download href="${file(f,name)}">${text} ↓</a>`).join('');
 }
