@@ -13,6 +13,8 @@
 
 > 当前版本 **0.9.0**，适配 **DSH 0.2.2-rc.3**，已在 Windows 验证。见[新版说明](docs/releases/0.9.0/release-notes.md)和[验证记录](docs/releases/0.9.0/review.zh.md)。
 
+> **0.9.1 候选正在准备，尚未发布。** 本轮补齐 DSH 访问检查并更新已确认的品牌图标；[候选说明与检查记录](docs/releases/0.9.1/review.zh.md)。下方下载入口仍为正式 0.9.0。
+
 ![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
 ## 从会话到笔记

@@ -13,6 +13,8 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 
 > Current version: **0.9.0 for DSH 0.2.2-rc.3**, verified on Windows. See the [release notes](docs/releases/0.9.0/release-notes.md) and [verification record](docs/releases/0.9.0/review.zh.md).
 
+> **0.9.1 is being prepared and is not published yet.** It adds DSH access checks and the approved brand icons. See the [candidate review](docs/releases/0.9.1/review.zh.md). Download links below still point to the released 0.9.0.
+
 ![Keep image results, editing prompts and observations together](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
 ## From conversations to notes
