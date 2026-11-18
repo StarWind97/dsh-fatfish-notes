@@ -20,7 +20,7 @@
 | DSH 左导航、会话顶部工具入口 | 16／17 px 单色 D2，继承宿主界面色 |
 | 主/独立窗口顶栏、会话侧栏标题 | 20 px 双色 D1／17 px 双色 D2，浅深分别采用上表的鱼身与上弧色 |
 | 首次接入、宿主插件设置 | 44 px 容器中的 28 px 双色 C0，复用宿主/视图明暗；分组同步表单保持隐藏 |
-| 笔记欢迎区 | 64 px 双色纯鱼形；回收站继续使用回收站图标 |
+| 笔记概览 | 居中并排的原版双色鱼形与中文矢量字标，按阅读区域宽度等比缩放；见[概览排版](plans/2026-11-18-overview-design.zh.md) |
 | 设置 → 帮助 | 透明底完整组合，浅／深跟随所在视图，宽度最大 480 px；窄／矮窗口缩小并允许内容自然滚动 |
 | 插件列表、市场资源 | 莓紫圆角方块、米白标准鱼形；`icon.svg` 与 `assets/icon-180.png`，不把名称塞进微型图标；市场更新另行发布 |
 | 浏览器标签、独立窗口标题/任务栏 | 固定莓紫方块、米白 D1；SVG、16／32 px PNG 及 16/20/24/32/40/48/64/96/128/256 px ICO 后备。该组共用资源，所有分辨率均由 D1 生成，不按帧大小切换鱼形 |
@@ -36,7 +36,7 @@
 
 当前矢量源稿在 [assets/brand/](../assets/brand/)。设计原稿、用户选择、文字参考、编辑数据与 PNG 见[素材索引](brand/README.zh.md)；接续本轮代码和验证见[Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)。这些必要设计依据已归档到项目，不依赖原会话目录。
 
-[generate-brand.ts](../scripts/generate-brand.ts)从命名为 d2/d1/c0 及原版的 SVG 生成客户端常量、透明完整组合、D1 favicon 和原版根 `icon.svg`；[render-brand.mjs](../scripts/render-brand.mjs)用本地 Chrome 渲染 PNG 和多尺寸 ICO，无新增产品依赖。两步骤不会反向修改原 SVG 几何或历史资料。当前 75 份 PNG 在 [current-png/](brand/current-png/README.md)，正方形槽位内等比显示；旧 `png/` 保留归档。[Brand.tsx](../src/client/Brand.tsx)只渲染可信本地路径；[尺寸规则](../src/client/brand-size.ts)同时供组件与 PNG 生成使用，不解析外部 SVG、不请求字体或网络素材。
+[generate-brand.ts](../scripts/generate-brand.ts)从命名为 d2/d1/c0 及原版的 SVG 生成客户端常量、透明完整组合、D1 favicon 和原版根 `icon.svg`，概览的中文标准字直接提取原稿路径。[render-brand.mjs](../scripts/render-brand.mjs)用本地 Chrome 渲染 PNG 和多尺寸 ICO，无新增产品依赖。两步骤不会反向修改原 SVG 几何或历史资料。当前 75 份 PNG 在 [current-png/](brand/current-png/README.md)，正方形槽位内等比显示；旧 `png/` 保留归档。[Brand.tsx](../src/client/Brand.tsx)只渲染可信本地路径；[尺寸规则](../src/client/brand-size.ts)同时供组件与 PNG 生成使用，不解析外部 SVG、不请求字体或网络素材。
 
 原接入范围见[初次实施规划](plans/2026-11-16-brand-logo.zh.md)，历史主色依据见[主色统一验证](plans/2026-11-16-brand-color-and-taskbar-results.zh.md)；分尺寸接入、原生图标缓存修正和真实任务栏边界见[分尺寸历史验证](plans/2026-11-17-brand-size-adoption-results.zh.md)。历史候选状态不替代页首的现行品牌与发布状态。
 

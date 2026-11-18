@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {readFile} from 'node:fs/promises'
 import {createElement} from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
-import {BrandMark,BrandSignature} from '../src/client/Brand.js'
+import {BrandMark,BrandSignature,BrandWordmark} from '../src/client/Brand.js'
 import {brandPalette,brandStyle} from '../src/client/brand-palette.js'
 
 const paths=(svg:string)=>[...svg.matchAll(/ d="([^"]+)"/g)].map(m=>m[1])
@@ -40,6 +40,16 @@ test('colored brand separates fish, arc and lettering without changing their out
   assert.match(signature,/var\(--fatfish-brand-text, #492340\)/)
   assert.equal(brandStyle(true)['--fatfish-brand-body'],'#BA3FB6')
   assert.equal(brandStyle(true)['--fatfish-brand-text'],'#FFF7EE')
+})
+
+test('the overview wordmark uses the approved Chinese vector paths and brand text color',async()=>{
+  const source=await readFile(new URL('../assets/brand/fatfish-brand-square-light.svg',import.meta.url),'utf8')
+  const wordmark=source.match(/<g id="wordmark-chinese"[^>]*>[\s\S]*?<\/g>/)?.[0]
+  assert.ok(wordmark)
+  const html=renderToStaticMarkup(createElement(BrandWordmark))
+  assert.deepEqual(paths(html),paths(wordmark))
+  assert.match(html,/viewBox="130 635 765 152"/)
+  assert.match(html,/var\(--fatfish-brand-text, #492340\)/)
 })
 
 test('production assets match the selected review palette at each use',async()=>{

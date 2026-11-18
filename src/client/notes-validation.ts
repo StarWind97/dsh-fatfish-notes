@@ -1,5 +1,5 @@
 import type { ApiPath } from '../contracts/api.js'
-import { NOTE_OVERVIEW_LIMIT } from '../contracts/notes.js'
+import { NOTE_OVERVIEW_LIMIT, NOTE_OVERVIEW_TAG_LIMIT } from '../contracts/notes.js'
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string')
 const hash = (v: unknown) => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v)
@@ -7,6 +7,8 @@ const id = (v: unknown) => typeof v === 'string' && /^[0-7][0-9A-HJKMNP-TV-Z]{25
 const overviewItems = (v: unknown) => Array.isArray(v) && v.length <= NOTE_OVERVIEW_LIMIT &&
   v.every(row => record(row) && id(row.noteId) && typeof row.title === 'string' &&
     (row.notebookId === null || id(row.notebookId)) && typeof row.savedAt === 'string')
+const tagCounts = (v: unknown) => Array.isArray(v) && v.every(row =>
+  record(row) && typeof row.tag === 'string' && Number.isSafeInteger(row.count) && Number(row.count)>0)
 const attachment=(v:unknown)=>record(v)&&hash(v.id)&&typeof v.name==='string'&&Number.isSafeInteger(v.bytes)&&Number(v.bytes)>=0&&Number(v.bytes)<=100*1024*1024
 function cut(v: unknown): boolean { return record(v) && Number.isSafeInteger(v.throughSeq) && Number(v.throughSeq) >= -1 && typeof v.capturedAt === 'string' && Number.isFinite(Date.parse(v.capturedAt)) && typeof v.isSeeded === 'boolean' }
 function note(v: unknown): boolean {
@@ -37,14 +39,15 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if (path === '/notes/attachment') return attachment(value.attachment)
   if (path === '/notes/batch') return strings(value.completed) && value.completed.every(id)
   if (path === '/notes/manage') return strings(value.completed)&&value.completed.every(id)&&(value.note===undefined||note(value.note))
-  if (path === '/notes/catalog') return Array.isArray(value.tags)&&value.tags.every(v=>record(v)&&typeof v.tag==='string'&&Number.isSafeInteger(v.count)&&Number(v.count)>0)
+  if (path === '/notes/catalog') return tagCounts(value.tags)
   if (path === '/notes/history') return Array.isArray(value.items)&&value.items.length<=30&&value.items.every(v=>record(v)&&hash(v.revision)&&typeof v.recordedAt==='string'&&typeof v.title==='string'&&typeof v.summary==='string'&&['active','trashed'].includes(String(v.status)))&&(value.cursor===null||hash(value.cursor))
   if (path === '/notes/backlinks') return validNotesResponse('/notes',value)&&Number.isSafeInteger(value.total)&&Array.isArray(value.items)&&Number(value.total)>=value.items.length
   if (path === '/notes/revision') return note(value.note)
   if (path === '/notes/image') return record(value.asset) && typeof value.asset.id === 'string' && /^[a-f0-9]{64}\.(?:png|jpg|gif|webp)$/.test(value.asset.id) && Number.isSafeInteger(value.asset.bytes) && Number(value.asset.bytes)>0 && (value.asset.preview===undefined || typeof value.asset.preview==='string' && /^data:image\/(?:png|jpeg|webp|gif);base64,/.test(value.asset.preview))
   if (['/notes/get','/notes/save','/notes/trash','/notes/restore','/notes/resolve'].includes(path)) return note(value.note)
   if (path === '/notes') return Array.isArray(value.items) && value.items.length <= 100 && value.items.every(v => record(v) && id(v.noteId) && strings(v.heads) && v.heads.every(hash) && typeof v.title === 'string' && typeof v.summary === 'string' && strings(v.tags) && (v.notebookId === null || id(v.notebookId)) && ['active','trashed'].includes(String(v.status)) && typeof v.savedAt === 'string' && typeof v.conflicted === 'boolean' && (v.sessionRelation===undefined || v.sessionRelation===null || ['source','manual'].includes(String(v.sessionRelation)))) && (value.cursor === null || id(value.cursor)) &&
-    (value.overview === undefined || record(value.overview) && overviewItems(value.overview.opened) && overviewItems(value.overview.modified))
+    (value.overview === undefined || record(value.overview) && overviewItems(value.overview.opened) && overviewItems(value.overview.modified) &&
+      Array.isArray(value.overview.tags) && value.overview.tags.length<=NOTE_OVERVIEW_TAG_LIMIT && tagCounts(value.overview.tags))
   if (path === '/notes/notebooks' || path === '/notes/notebook' || path === '/notes/book-order') return Array.isArray(value.notebooks) && value.notebooks.every(v => record(v) && id(v.notebookId) && strings(v.heads) && v.heads.every(hash) && record(v.current) && v.current.notebookId === v.notebookId && typeof v.current.title === 'string' && ['active','trashed'].includes(String(v.current.status)) && Array.isArray(v.conflicts) && typeof v.isDefault === 'boolean' && Number.isSafeInteger(v.noteCount) && Number(v.noteCount) >= 0)
   if (path === '/notes/jobs') return Array.isArray(value.jobs) && value.jobs.length <= 5 && value.jobs.every(v => record(v) && hash(v.jobId) && id(v.noteId) && ['running','failed','cancelled','candidate','completed'].includes(String(v.status)) && (v.error === null || typeof v.error === 'string') && Array.isArray(v.stages) && v.stages.length <= 33 && v.stages.every(s => record(s) && ['ready','waiting','done','failed'].includes(String(s.status))) && (v.candidate === null || record(v.candidate) && v.candidate.noteId === v.noteId && typeof v.candidate.title === 'string' && typeof v.candidate.summary === 'string' && strings(v.candidate.tags))) && (value.cursor === null || hash(value.cursor))
   if (['/notes/job','/notes/job/retry','/notes/job/cancel','/notes/candidate'].includes(path)) return job(value.job)

@@ -20,8 +20,12 @@ function colorRoles(svg:string){
   for(const role of ['body','arc','text'] as const)svg=svg.replaceAll(brandPalette.light[role],`var(--fatfish-brand-${role}, ${brandPalette.light[role]})`)
   return svg
 }
-const signature=colorRoles(artwork(await read('fatfish-brand-square-light.svg')).replace(/<rect\b[^>]*width="1024"[^>]*height="1024"[^>]*\/>/,''))
-await writeFile(new URL('../src/client/brand-artwork.ts',import.meta.url),`// Approved vector outlines. Regenerate with: npx tsx scripts/generate-brand.ts\n// Local constants only; no runtime SVG parsing, fonts, images or network requests.\nexport const brandMarks=${JSON.stringify(marks,null,2)} as const\nexport const brandSignature=${JSON.stringify(signature)}\n`)
+const brandSquare=await read('fatfish-brand-square-light.svg')
+const signature=colorRoles(artwork(brandSquare).replace(/<rect\b[^>]*width="1024"[^>]*height="1024"[^>]*\/>/,''))
+const chineseWordmark=brandSquare.match(/<g id="wordmark-chinese"[^>]*>[\s\S]*?<\/g>/)?.[0]
+if(!chineseWordmark)throw new Error('Cannot find the approved Chinese wordmark.')
+const wordmark={viewBox:'130 635 765 152',artwork:colorRoles(artwork(chineseWordmark))}
+await writeFile(new URL('../src/client/brand-artwork.ts',import.meta.url),`// Approved vector outlines. Regenerate with: npx tsx scripts/generate-brand.ts\n// Local constants only; no runtime SVG parsing, fonts, images or network requests.\nexport const brandMarks=${JSON.stringify(marks,null,2)} as const\nexport const brandSignature=${JSON.stringify(signature)}\nexport const brandWordmark=${JSON.stringify(wordmark)} as const\n`)
 for(const theme of ['light','dark']){
   const svg=await read(`fatfish-brand-square-${theme}.svg`)
   await writeFile(new URL(`fatfish-brand-transparent-${theme}.svg`,source),svg.replace(/<rect\b[^>]*width="1024"[^>]*height="1024"[^>]*\/>/,''))

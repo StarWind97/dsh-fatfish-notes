@@ -3,7 +3,7 @@ import { fail, id, text } from './validation.js'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import type { Nodes } from 'mdast'
 import { searchTerms } from '../contracts/search.js'
-import { NOTE_OVERVIEW_LIMIT, type NoteOverviewItem } from '../contracts/notes.js'
+import { NOTE_OVERVIEW_LIMIT, NOTE_OVERVIEW_TAG_LIMIT, type NoteCatalog, type NoteOverviewItem } from '../contracts/notes.js'
 
 const titleCollator=new Intl.Collator('zh-CN',{numeric:true})
 function excerpt(value:string):string {
@@ -15,6 +15,15 @@ function excerpt(value:string):string {
   }
   visit(fromMarkdown(value.slice(0,2400)))
   return words.join(' ').replace(/\s+/g,' ').trim().slice(0,180)
+}
+
+export function noteTagCounts(views: Iterable<NoteView>): NoteCatalog['tags'] {
+  const counts = new Map<string, number>()
+  for (const {current} of views) {
+    if (current.status !== 'active') continue
+    for (const tag of current.tags) counts.set(tag, (counts.get(tag) ?? 0)+1)
+  }
+  return [...counts].map(([tag,count]) => ({tag,count})).sort((a,b)=>b.count-a.count || a.tag.localeCompare(b.tag))
 }
 
 /** Rebuilt from immutable objects; no search data is persisted or synchronized. */
@@ -30,7 +39,7 @@ function noteOverview(views: NoteView[], recentIds: string[]) {
   }).slice(0, NOTE_OVERVIEW_LIMIT)
   const modified = active.sort((a, b) => b.savedAt.localeCompare(a.savedAt) || a.noteId.localeCompare(b.noteId))
     .slice(0, NOTE_OVERVIEW_LIMIT).map(item)
-  return { opened, modified }
+  return { opened, modified, tags:noteTagCounts(active).slice(0, NOTE_OVERVIEW_TAG_LIMIT) }
 }
 
 export function searchNotes(views: NoteView[], options: NoteListOptions = {}): NoteListResult {
@@ -45,6 +54,7 @@ export function searchNotes(views: NoteView[], options: NoteListOptions = {}): N
   if (options.notebookId !== undefined && options.notebookId !== null) id(options.notebookId)
   const selected = views.filter(view => {
     if (recent && !recent.includes(view.noteId)) return false
+    if (options.currentTag!==undefined && (view.current.status!=='active' || !view.current.tags.includes(options.currentTag))) return false
     const alternatives = [view.current, ...view.conflicts]
     return alternatives.some(r => (options.status === 'all' || r.status === (options.status ?? 'active')) &&
       (options.notebookId === undefined || options.notebookId === view.effectiveNotebookId) && (!options.tag || r.tags.includes(options.tag)) &&

@@ -60,7 +60,7 @@ function fixture(overview=false){
       lists++
       const note=notes.get(ids[0]!)!
       const item={noteId:note.noteId,title:note.current.title,notebookId:note.effectiveNotebookId,savedAt:note.savedAt}
-      return {ok:true,items:overview?[item]:[],cursor:'next',...(overview&&{overview:{opened:[],modified:[item]}})} as never
+      return {ok:true,items:overview?[item]:[],cursor:'next',...(overview&&{overview:{opened:[],modified:[item],tags:[{tag:'test',count:1}]}})} as never
     }
     if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
     if(path==='/notes/jobs')return {ok:true,jobs:[],cursor:null} as never

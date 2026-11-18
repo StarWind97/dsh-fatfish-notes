@@ -41,9 +41,10 @@ export interface NoteListItem {
 }
 export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title-asc'|'title-desc'
 export const NOTE_OVERVIEW_LIMIT = 15
+export const NOTE_OVERVIEW_TAG_LIMIT = 10
 export interface NoteOverviewItem { noteId: string; title: string; notebookId: string | null; savedAt: string }
-export interface NoteOverview { opened: NoteOverviewItem[]; modified: NoteOverviewItem[] }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
+export interface NoteOverview extends NoteCatalog { opened: NoteOverviewItem[]; modified: NoteOverviewItem[] }
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; currentTag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null; overview?: NoteOverview }
 export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }

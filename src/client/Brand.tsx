@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {brandMarks,brandSignature} from './brand-artwork.js'
+import {brandMarks,brandSignature,brandWordmark} from './brand-artwork.js'
 import {brandVariant} from './brand-size.js'
 
 /** Trusted local vector constants, shared by host slots and both notebook views. */
@@ -10,4 +10,8 @@ export function BrandMark({size=20,color=false}:{size?:number;color?:boolean}){
 
 export function BrandSignature(){
   return <svg className="fatfish-signature" width={1024} height={1024} viewBox="0 0 1024 1024" role="img" aria-label="肥鱼笔记 · Fatfish Notes" focusable="false" dangerouslySetInnerHTML={{__html:brandSignature}}/>
+}
+
+export function BrandWordmark(){
+  return <svg className="fatfish-wordmark" width={765} height={152} viewBox={brandWordmark.viewBox} aria-hidden="true" focusable="false" dangerouslySetInnerHTML={{__html:brandWordmark.artwork}}/>
 }
