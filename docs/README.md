@@ -1,6 +1,6 @@
 # 肥鱼笔记开发入口
 
-2026-11-18 候选已验收：[0.9.2 宿主兼容范围、验证与体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md)。同一候选包通过 rc.3 Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。正式发布和市场更新等待确认。
+2026-11-18 正式发布：[0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 
 2026-11-18 新会话从[最新开发交接](handoffs/2026-11-18-development.zh.md)接续：汇总当前代码、已确认交互/品牌、验证证据、体验入口和未获批准候选。0.9.1 市场 PR #16375 已合并且两项检查通过；已核对上游条目指向 0.9.1。旧交付中的“候选、未发布”是当时状态，勿据此重复实施或发版。
 
@@ -115,7 +115,7 @@
 
 ## 当前版本
 
-正式版为 [0.9.1](releases/0.9.1/review.zh.md)，市场更新已合并。[0.9.2 兼容候选](plans/2026-11-18-dsh-compatibility-range-092.zh.md)仅在项目内隔离体验，等待正式发布确认。
+当前正式版为 [0.9.2](releases/0.9.2/review.zh.md)，市场状态见同一记录。前一版 [0.9.1](releases/0.9.1/review.zh.md)保留原发布与市场历史。
 
 2026-11-16 用户确认正式发布 0.9.0，并更新原插件市场条目，见[本轮规划](plans/2026-11-16-release-090.zh.md)。GitHub Release 已公开，市场提交和维护者合并分别记录，不将发布等同于市场已更新。此前 0.8.0 的[发布与升级记录](releases/0.8.0/review.zh.md)继续保留。
 
@@ -173,7 +173,7 @@
 
 每轮功能更新后由 Agent 提供体验脚本的绝对路径，必要时直接打开窗口；下一轮更新前主动核对隔离窗口、保存与传输状态，决定是否关闭并重开。纯文档讨论无需重启。具体边界见修正稿中的[体验窗口交付约定](plans/2026-11-11-stage-e-follow-up.zh.md#体验窗口交付约定用户已确认)。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料，现安装 0.9.2 候选。rc.4 Web 入口与双版本证据见[本轮规划与结果](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。历次功能说明见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)和 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)。历史验证图册、证据和备份保留在 `output/playwright/` 与 `.dsh-home/pure-001/`，均由 Git 忽略。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 的 0.9.2 隔离体验资料。rc.4 Web 入口与双版本证据见[本轮规划与结果](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。历次功能说明见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)和 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)。历史验证图册、证据和备份保留在 `output/playwright/` 与 `.dsh-home/pure-001/`，均由 Git 忽略。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
