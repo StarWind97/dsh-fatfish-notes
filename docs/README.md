@@ -1,8 +1,20 @@
 # 肥鱼笔记开发入口
 
-2026-11-18 隔离体验：[列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)。导入／导出下方从 24 px 收至 4 px。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。13 项相关测试及实际隔离界面验收通过，正式发布待确认。
+## 当前状态
 
-2026-11-18 正式发布：[0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
+- 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
+- [列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)已通过 13 项相关测试及实际隔离界面验收，正式发布待用户确认。导入／导出下方从 24 px 收至 4 px。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。
+- 后续功能及优先级见[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md#候选清单)。F 待用户选择范围并批准。
+
+### 进行中的任务
+
+| 任务 | 分支、目录与涉及范围 | 进度与下一步 |
+| --- | --- | --- |
+| 暂无登记 | — | — |
+
+按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
+
+## 近期记录
 
 2026-11-18 的 [0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)保留交互、品牌、验证证据及后续候选的历史依据。0.9.1 市场 PR #16375 已合并。接续时优先查看本页顶部的 0.9.2 发布状态与实际记录。
 
@@ -22,24 +34,27 @@
 
 ## 接手与按任务查找
 
-在本项目目录接手时，先读[协作约定](../AGENTS.md)和[当前产品设计](notes-design.zh.md)，核对分支、工作区改动及最近提交，再按任务读取下列材料。当天首次处理请求时执行[每日首次会话检查](../AGENTS.md#每日首次会话检查)。本文下方按日期记录交付；有日期的交接、规划和验证是当时快照，当前行为还需与对应源码核对。
+按[协作约定](../AGENTS.md)从主目录接手，结合[当前状态](#当前状态)和现场差异，再按任务读取下列材料。有日期的交接、规划和验证是当时快照，当前行为还需与对应源码核对。
 
 | 当前任务 | 先查哪里 |
 | --- | --- |
 | 理解产品范围、当前行为、数据与运行边界 | [产品设计](notes-design.zh.md)；日常操作见[使用说明](user-guide.zh.md) |
-| 决定下一步、查授权范围和候选项 | [主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)，再读该任务的专项规划与结果；候选项不等于已批准 |
-| 接续近期开发、避免重复实施 | 本页顶部的当版发布和验收记录。更早的产品决定见 [0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)与[前序开发交接](handoffs/2026-11-12-development.zh.md) |
+| 判断现有任务是否影响新需求 | [进行中的任务](#进行中的任务)、当前工作区差异及相关专项规划 |
+| 查候选项、优先级和授权范围 | [主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)及该任务的专项规划 |
+| 查近期交付或历史决定 | [当前状态](#当前状态)、[0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)及[前序开发交接](handoffs/2026-11-12-development.zh.md) |
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
 | 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项；组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |
-| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、下方「本机隔离体验」及[正式发布记录](releases/0.9.1/review.zh.md)；命令以 [package.json](../package.json)为准 |
+| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
 | 修改手册或体验示例 | [示例内容准则](demo-content.zh.md)、[使用说明](user-guide.zh.md)与 `assets/handbook/` |
 
 关键决定和修改依据应进入对应专题，并从本入口或主规划链接；当前行为更新产品设计，实际覆盖范围更新交付／验证记录。这样接续依赖项目文件，不依赖某个聊天窗口。无需每次通读所有历史文档。
 
-可发现性的边界：新会话需访问同一份或已同步的工作目录并遵循入口；其他会话的原始聊天不会自动继承。未提交／未推送的文件不会自动出现在其他工作树或电脑；`.dsh-home/`、`output/playwright/`、`dist/` 中的本机证据和安装包被 Git 忽略，缺少时按记录重新验证，不能把文档摘要当成现场实测。发现文档与源码不一致时记录差异并修正受影响入口。
+同一主目录中的未提交改动可以用 Git 查看，改动归属、取舍和验证进度查进行中条目及专项。`.dsh-home/`、`output/playwright/`、`dist/` 中的本机证据和安装包按需核对。发现文档与源码不一致时记录差异并修正受影响入口。
 
 ## 最新交付
+
+2026-11-18 已验证[新会话接手与并行协作约定](../AGENTS.md#多会话协作)。在同一主目录启动关闭记忆的只读 Codex 命令行空白会话，只给出帮助页补充列表菜单说明和开发入口链接的需求。会话自行找到候选验收、源码及现有使用说明，识别开发入口的未提交改动并提出保留这些改动的方案，等用户批准后才实施。本次覆盖同目录的只读接手和规划。
 
 2026-11-17 评审补充：[前三套深色保留紫色](plans/2026-11-17-brand-families-review.zh.md#深色保留紫色补充用户已批准)，见[对照页](http://127.0.0.1:8835/#dark-purple)。每套增加彩色鱼身搭配浅紫／中性浅字，与原浅色及旧反白并列；用户「浅色环境目前更喜欢莓紫春芽」记录为阶段偏好。42 SVG／18 PNG、45 场景组合、下载与新增独立反馈字段通过；261 个既有素材及实拍字节不变，未接入或发布。
 
@@ -117,7 +132,7 @@
 
 ## 当前版本
 
-当前正式版为 [0.9.2](releases/0.9.2/review.zh.md)，市场状态见同一记录。前一版 [0.9.1](releases/0.9.1/review.zh.md)保留原发布与市场历史。
+当前正式版及市场状态见[当前状态](#当前状态)。历次发布与验证边界见各版记录。
 
 2026-11-16 用户确认正式发布 0.9.0，并更新原插件市场条目，见[本轮规划](plans/2026-11-16-release-090.zh.md)。GitHub Release 已公开，市场提交和维护者合并分别记录，不将发布等同于市场已更新。此前 0.8.0 的[发布与升级记录](releases/0.8.0/review.zh.md)继续保留。
 
@@ -175,7 +190,7 @@
 
 每轮功能更新后由 Agent 提供体验脚本的绝对路径，必要时直接打开窗口；下一轮更新前主动核对隔离窗口、保存与传输状态，决定是否关闭并重开。纯文档讨论无需重启。具体边界见修正稿中的[体验窗口交付约定](plans/2026-11-11-stage-e-follow-up.zh.md#体验窗口交付约定用户已确认)。
 
-通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 的 0.9.2 隔离体验资料。rc.4 Web 入口与双版本证据见[本轮规划与结果](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。历次功能说明见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)和 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)。历史验证图册、证据和备份保留在 `output/playwright/` 与 `.dsh-home/pure-001/`，均由 Git 忽略。
+通过 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd) 打开 `release12-desktop` 隔离体验资料，当前候选见[当前状态](#当前状态)链接的专项。rc.4 Web 入口与正式版证据见[兼容验收](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。历次功能说明见 [E 阶段交付](plans/2026-11-11-stage-e-results.zh.md)和 [B—D 交付](plans/2026-11-10-bcd-results.zh.md)。历史验证图册、证据和备份保留在 `output/playwright/` 与 `.dsh-home/pure-001/`，均由 Git 忽略。
 
 本轮选项卡截图见 `output/playwright/notebooks-tab/index.html`，记录和包核对见 `.dsh-home/pure-001/notebooks-tab-*`。历史图册保留于 `output/playwright/release051/`、`outline-arrow/` 和 `setup-picker/` 等目录，不作为新版截图。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Codex 环境的登录状态判断。
 
