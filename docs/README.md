@@ -49,7 +49,7 @@
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
 | 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项；组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |
-| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
+| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[发布前更新用户文档](demo-content.zh.md#发布前更新用户文档)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
 | 修改手册或体验示例 | [示例内容准则](demo-content.zh.md)、[使用说明](user-guide.zh.md)与 `assets/handbook/` |
 
 关键决定和修改依据应进入对应专题，并从本入口或主规划链接；当前行为更新产品设计，实际覆盖范围更新交付／验证记录。这样接续依赖项目文件，不依赖某个聊天窗口。无需每次通读所有历史文档。
