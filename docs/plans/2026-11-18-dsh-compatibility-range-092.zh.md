@@ -1,6 +1,6 @@
 # 肥鱼笔记 0.9.2 宿主兼容范围与隔离候选
 
-2026-11-18。0.9.2 隔离候选已制作并通过 rc.3 Desktop、rc.4 Web 实际验收。正式发布与市场更新待用户确认。基线为 `main` 的 `82206ba`，当前正式版 `v0.9.1`。体验与证据见下文。
+2026-11-18。0.9.2 隔离候选已通过 rc.3 Desktop、rc.4 Web 实际验收。用户随后批准正式发布并提交市场更新，要求区分平台实测边界，公开后复核下载、安装和市场状态。开发基线为 `82206ba`，已验收候选提交为 `552d0e0`。
 
 ## 目标与方案
 
@@ -48,7 +48,14 @@
 
 - **rc.3 Windows 桌面**：[原隔离体验入口](../../scripts/Open-Fatfish-Notes.cmd)，`release12-desktop` 已安装 0.9.2。可查看开发手册中的「DSH rc.3 · 升级核对记录」。
 - **rc.4 Web**：在本机运行 `.dsh-home/pure-001/compat-092/Open-Fatfish-Notes-Rc4-Web.cmd`，它打开专用 Chrome 资料中的 rc.4 Web。选左侧「肥鱼笔记」，打开同一篇验收笔记，可看到两个宿主各自保存的一行。体验后在启动窗口按回车停止 Web 服务。
-- **候选包**：`dist/dsh-fatfish-notes-0.9.2.tgz`，18,055,630 字节、254 文件，摘要见 `dist/SHA256SUMS-0.9.2-candidate.txt`。0.9.1 正式包仍保留。
+- **候选包**：`dist/fatfish-092-candidate-926ff48612c7.tgz`，18,055,630 字节、254 文件，候选摘要 `926ff48612c798fdbd1868260c5c5675cfb1174c384d00e34d00282c96193478`。0.9.1 正式包仍保留。
 - **本机证据**：`.dsh-home/pure-001/compat-092/` 内含 `archive-audit.json`、`installed-audit.json`、`desktop-before.json`、`desktop-after.json`、`desktop-restart.json`、`desktop-performance.json`、`web-preflight.json`、`web-save.json`、`web-restart.json`、`remote-revisions.json` 及类型检查、构建和回归日志。证据和体验资料随本机保留。
 
 rc.4 的实际证据是 Windows 上运行的 Web 版本。官方 rc.4 Windows 桌面壳、宿主自动升级链路与发布后的市场更新链路仍待验证。安装器显示的范围与实际平台验证记录分别说明。正式 0.9.1、发布标签和市场条目保持原状。
+
+## 正式发布步骤（已获批准）
+
+1. 保留已验收候选和摘要，更新正式安装说明及发布资料。正式包与候选逐文件比较，仅允许两份 README 变化。若运行内容有差异，先判断原因和验证范围。候选已完成 407 项全量及双宿主验收，运行内容一致时沿用这部分证据。
+2. 核对提交与远端一致后创建固定 `v0.9.2` 标签并公开 Release，上传正式包与 SHA-256。发布说明明确 rc.3 Windows Desktop、rc.4 Web 已实测，rc.4 Windows Desktop 待补验。保留历史标签与资产。
+3. 从公开地址匿名下载并核对摘要。通过官方安装命令把该公开 URL 安装到既有隔离 Desktop 和 Web，再检查两边安装清单与实际入口、测试笔记读回和绑定状态。真实测试仅用项目隔离资料、指定私有测试仓库。自动化控制指定窗口，用户可照常使用鼠标和键盘。
+4. 以市场当前上游条目为底稿，仅将 tarball 更换为通过复核的公开 URL，提交 PR 后核对自动检查、合并状态及实际条目。发布与市场进度见 [0.9.2 发布记录](../releases/0.9.2/review.zh.md)。如需回退，保留可从 `v0.9.1` 重装的 rc.3 隔离入口，市场改动用正常 PR 纠正。
