@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+2026-11-18 新会话从[最新开发交接](handoffs/2026-11-18-development.zh.md)接续：汇总当前代码、已确认交互/品牌、验证证据、体验入口和未获批准候选。0.9.1 市场 PR #16375 已合并且两项检查通过；已核对上游条目指向 0.9.1。旧交付中的“候选、未发布”是当时状态，勿据此重复实施或发版。
+
 2026-11-18 正式发布：[0.9.1](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.1)，见[发布规划](plans/2026-11-18-release-091.zh.md)与[审核、市场状态和体验入口](releases/0.9.1/review.zh.md)。407 项全量、两套实际安装各 254 文件、真实 Web 访问检查、三入口及保存/下载/同步/重启和响应抽查已通过；最终公开包仅 README 变化，匿名下载摘要、公开 URL 安装的 254 文件及三入口复核通过。[市场更新 PR #16375](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16375)已提交，审核状态见发布记录。
 
 2026-11-18 已完成并随 0.9.1 发布：[市场合并反馈与 DSH HTTP 访问检查修复](plans/2026-11-18-host-access-review.zh.md)，见[验证与隔离体验](plans/2026-11-18-host-access-results.zh.md)。66 条宿主路径补齐官方身份/来源检查，407 项回归、真实 Web 匿名/已登录对照、三入口保存/下载/重启及指定私库同步通过；两套 254 文件安装一致。市场旧版提醒的更正随本次 PR 申请。
@@ -22,7 +24,7 @@
 | --- | --- |
 | 理解产品范围、当前行为、数据与运行边界 | [产品设计](notes-design.zh.md)；日常操作见[使用说明](user-guide.zh.md) |
 | 决定下一步、查授权范围和候选项 | [主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)，再读该任务的专项规划与结果；候选项不等于已批准 |
-| 接续近期开发、避免重复实施 | 本页最新交付；[前序开发交接](handoffs/2026-11-12-development.zh.md)仅补充历史背景 |
+| 接续近期开发、避免重复实施 | [最新开发交接](handoffs/2026-11-18-development.zh.md)与本页最新交付；[前序开发交接](handoffs/2026-11-12-development.zh.md)仅补充历史背景 |
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
 | 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项；组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |

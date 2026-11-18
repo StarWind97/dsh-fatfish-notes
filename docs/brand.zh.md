@@ -2,7 +2,7 @@
 
 品牌为已确认的「墨鱼·叠页」鱼形，完整组合含「肥鱼笔记」与「Fatfish Notes」。中英文字均为矢量轮廓，不依赖用户电脑字体；阅读字体设置不会改变品牌字形。
 
-2026-11-18 按[莓紫春芽接入规划](plans/2026-11-17-berry-brand-adoption.zh.md)完成接入后，用户明确确认以「莓紫春芽＋深色小幅提亮」作为后续品牌基线。鱼形与字形保留原设计，颜色不随 UI 配色选项跳变。品牌基线确认不等于新版已发布。
+2026-11-18 按[莓紫春芽接入规划](plans/2026-11-17-berry-brand-adoption.zh.md)完成接入后，用户明确确认以「莓紫春芽＋深色小幅提亮」作为后续品牌基线。鱼形与字形保留原设计，颜色不随 UI 配色选项跳变。现已随 [0.9.1](releases/0.9.1/review.zh.md)正式发布，市场更新也已合并；公开截图和封面仍按下表保留获批冻结版本。
 
 | 角色 | 浅色环境 | 深色环境 |
 | --- | --- | --- |
@@ -38,8 +38,8 @@
 
 [generate-brand.ts](../scripts/generate-brand.ts)从命名为 d2/d1/c0 及原版的 SVG 生成客户端常量、透明完整组合、D1 favicon 和原版根 `icon.svg`；[render-brand.mjs](../scripts/render-brand.mjs)用本地 Chrome 渲染 PNG 和多尺寸 ICO，无新增产品依赖。两步骤不会反向修改原 SVG 几何或历史资料。当前 75 份 PNG 在 [current-png/](brand/current-png/README.md)，正方形槽位内等比显示；旧 `png/` 保留归档。[Brand.tsx](../src/client/Brand.tsx)只渲染可信本地路径；[尺寸规则](../src/client/brand-size.ts)同时供组件与 PNG 生成使用，不解析外部 SVG、不请求字体或网络素材。
 
-原接入范围见[初次实施规划](plans/2026-11-16-brand-logo.zh.md)，主色依据见[主色统一验证](plans/2026-11-16-brand-color-and-taskbar-results.zh.md)；当前分尺寸接入、原生图标缓存修正和真实任务栏边界见[分尺寸历史验证](plans/2026-11-17-brand-size-adoption-results.zh.md)。本轮为本地候选，公开市场与发布包不会因此自动更新。
+原接入范围见[初次实施规划](plans/2026-11-16-brand-logo.zh.md)，历史主色依据见[主色统一验证](plans/2026-11-16-brand-color-and-taskbar-results.zh.md)；分尺寸接入、原生图标缓存修正和真实任务栏边界见[分尺寸历史验证](plans/2026-11-17-brand-size-adoption-results.zh.md)。历史候选状态不替代页首的现行品牌与发布状态。
 
 Windows 任务栏通过窗口属性指定多尺寸 ICO；短进程退出后由 Windows 持有文件资源，不持有临时 HICON。窗口标题栏仍由浏览器 favicon 渲染。只核验本插件专用资料、网址、PID/启动时间与窗口归属后设置；失败保留浏览器行为，无常驻服务。源文件为 `src/host/focus-window.ps1` 与 `window-native.cs`，构建一起复制到包内。
 
-当前候选的安装核对、实际任务栏及性能见[莓紫春芽接入结果](plans/2026-11-18-berry-brand-results.zh.md)。
+当前品牌的安装核对、实际任务栏及性能见[莓紫春芽接入结果](plans/2026-11-18-berry-brand-results.zh.md)，正式包公开安装证据见 [0.9.1 发布记录](releases/0.9.1/review.zh.md)。

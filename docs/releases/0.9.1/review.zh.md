@@ -85,6 +85,8 @@ Windows / DSH 0.2.2-rc.3 / Node 24.21.0。以候选包实际安装到既有 Desk
 
 ## 市场更新
 
+**2026-11-18 交接复核：PR #16375 已于北京时间 04:13:21 由 `fkysly` 合并，合并提交 `7732874021e7e76df76c570c4f514b26a6bc5078`。** `check` 与 `Submission gate` 均成功，目前没有新增评论或评审意见。已读取实际上游 YAML，与本地获批条目完全一致（blob `d02524e68853dc95cbeb464e5c9641fe28e5091a`），下载指向 0.9.1、旧访问检查提醒已移除，使用前提保留。未另验客户端市场缓存刷新。下文“进行中、待合并”保留为提交时的快照，不是当前状态。
+
 公开安装通过后，已提交 [市场更新 PR #16375](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16375)，保留维护者既有名称、分类、Windows/账号/工具前提，只更新下载版本并移除已修复的访问检查提醒。实际差异为单个 `data/plugins/StarWind97__dsh-fatfish-notes.yml`，3 行增加、3 行删除；提交 `54a590df6f207775b6f6bfbbf74a9a9228e25b5c`。PR 非草稿、无合并冲突，自动检查进行中，等待维护者审核；尚不宣称市场已经合并或页面更新。
 
 北京时间 2026-11-18 02:05 复核：[PR check](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/44143242056)的旧分支防护、条目路径、README 一致性、awesome-lint 和四组专项测试已通过，全站构建仍在运行，尚无失败结论。自动检查及人工合并属于外部状态；市场上游在合并前仍保持旧条目。
