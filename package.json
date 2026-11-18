@@ -1,6 +1,6 @@
 {
   "name": "dsh-fatfish-notes",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "肥鱼笔记：保存会话、编辑 Markdown、导出图文，通过专用 GitHub 私有仓库跨设备同步。",
   "type": "module",
   "main": "lib/index.js",
@@ -46,7 +46,7 @@
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0",
-    "dsh": "0.2.2-rc.3"
+    "dsh": ">=0.2.2-rc.3 <0.2.3-0"
   },
   "dsh": {
     "bundle": {
@@ -72,21 +72,21 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.1.0",
-    "@deepseek-ai/dsh-api-session-controller": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-api-workspace-files": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-attachment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-connection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-locale": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-chat": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-conversation": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-host-webserver": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-workspace": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-api-session-controller": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-api-workspace-files": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-attachment": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-connection": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-locale": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-chat": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-conversation": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-session": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-rc.3 <0.2.3-0",
+    "@deepseek-ai/dsh-workspace": ">=0.2.2-rc.3 <0.2.3-0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
