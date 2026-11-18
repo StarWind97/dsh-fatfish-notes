@@ -1,5 +1,7 @@
 # 肥鱼笔记开发入口
 
+2026-11-18 隔离体验：[列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)。导入／导出下方从 24 px 收至 4 px。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。13 项相关测试及实际隔离界面验收通过，正式发布待确认。
+
 2026-11-18 正式发布：[0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 
 2026-11-18 的 [0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)保留交互、品牌、验证证据及后续候选的历史依据。0.9.1 市场 PR #16375 已合并。接续时优先查看本页顶部的 0.9.2 发布状态与实际记录。

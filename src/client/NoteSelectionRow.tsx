@@ -5,7 +5,7 @@ import {RowMenu,type RowAction} from './RowMenu.js'
 export function NoteSelectionRow({selecting,selected,label,rowClass,children,toggle,open,actions,current=false,disabled=false}:{
  selecting:boolean;selected:boolean;label:string;rowClass:string;children:React.ReactNode;toggle:()=>void;open:()=>void;actions:RowAction[];current?:boolean;disabled?:boolean
 }){
- if(!selecting)return <RowMenu label={label+' · 操作'} actions={actions}><button title={label} className={rowClass} aria-current={current?'true':undefined} onClick={open}>{children}</button></RowMenu>
+ if(!selecting)return <RowMenu label={label+' · 操作'} actions={actions} reveal="interaction"><button title={label} className={rowClass} aria-current={current?'true':undefined} onClick={open}>{children}</button></RowMenu>
  return <label title={label} className="paper-selection-hit" data-selected={selected} onContextMenu={e=>e.preventDefault()} onClick={e=>{if(e.detail>1)e.preventDefault()}}>
   <input type="checkbox" checked={selected} disabled={disabled} aria-label={label} onChange={()=>toggle()} onKeyDown={e=>{if(e.key==='Enter'&&!e.repeat){e.preventDefault();toggle()}}}/>
   <span className={rowClass}>{children}</span>
