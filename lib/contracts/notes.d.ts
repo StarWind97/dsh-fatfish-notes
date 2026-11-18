@@ -109,14 +109,13 @@ export interface NoteListItem {
 }
 export type NoteOrder = 'recent' | 'oldest' | 'created-recent' | 'created-oldest' | 'title-asc' | 'title-desc';
 export declare const NOTE_OVERVIEW_LIMIT = 15;
-export declare const NOTE_OVERVIEW_TAG_LIMIT = 10;
 export interface NoteOverviewItem {
     noteId: string;
     title: string;
     notebookId: string | null;
     savedAt: string;
 }
-export interface NoteOverview extends NoteCatalog {
+export interface NoteOverview {
     opened: NoteOverviewItem[];
     modified: NoteOverviewItem[];
 }
@@ -125,7 +124,6 @@ export interface NoteListOptions {
     limit?: number;
     query?: string;
     tag?: string;
-    currentTag?: string;
     notebookId?: string | null;
     status?: NoteStatus | 'all';
     order?: NoteOrder;

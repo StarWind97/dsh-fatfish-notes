@@ -123,7 +123,6 @@ export class NotesApplication {
       options.overviewRecentIds=v.overviewRecentIds.map(id)
     }
     if (v.tag !== undefined) options.tag = text(v.tag, 200)
-    if (v.currentTag !== undefined) options.currentTag = text(v.currentTag, 200)
     if(v.order!==undefined){if(!['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(String(v.order)))throw new NotebookError('note_schema','排序无效');options.order=v.order as NonNullable<NoteListOptions['order']>}
     if (v.notebookId !== undefined) options.notebookId = v.notebookId === null || v.notebookId === 'null' ? null : id(v.notebookId)
     if (v.status !== undefined) { if (!['active','trashed','all'].includes(String(v.status))) throw new NotebookError('note_schema','笔记筛选不正确'); options.status = v.status as NoteListOptions['status'] & string }

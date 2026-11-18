@@ -30,13 +30,10 @@ test('overview is bounded and ignores list filters, pagination and pin priority'
   assert.deepEqual(result.overview?.opened.map(item=>item.title), Array.from({length:15}, (_, i)=>String(i)))
   assert.deepEqual(result.overview?.modified.map(item=>item.title), Array.from({length:15}, (_, i)=>String(18-i)))
   assert.deepEqual(Object.keys(result.overview!.opened[0]!).sort(), ['noteId','notebookId','savedAt','title'])
-  assert.deepEqual(result.overview?.tags[0],{tag:'共用',count:7})
-  assert.equal(result.overview?.tags.length,10)
-  assert.equal(result.overview?.tags.some(row=>row.tag==='仅回收站'),false)
+  assert.deepEqual(Object.keys(result.overview!).sort(),['modified','opened'])
   assert.equal(searchNotes(views).overview, undefined)
   const conflicted = [{...views[18]!,conflicts:[revision([], '冲突内容', {noteId:views[18]!.noteId,tags:['共用']})]}, ...views.slice(0,18)]
   assert.equal(searchNotes(conflicted,{tag:'共用'}).items.length,8)
-  assert.equal(searchNotes(conflicted,{currentTag:'共用'}).items.length,7)
 })
 
 test('both modification-time orders paginate the entire filtered list consistently',()=>{

@@ -31,7 +31,7 @@ import {WindowButton,WorkspaceNotice} from './WorkspaceNotice.js'
 import {AppearanceStyle,useAppearanceProps,useAppearance,AppearanceScope,useAppearanceTheme} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {NotebookTree} from './paper/NotebookTree.js'
-import {NoteOverview,type OverviewTagResults} from './paper/NoteOverview.js'
+import {NoteOverview} from './paper/NoteOverview.js'
 
 const noWorkspaceSubscribe=()=>()=>{}
 const noWorkspaceState=()=>null
@@ -50,15 +50,6 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const [transfer,setTransfer]=useState(false)
   const [settingsCategory,setSettingsCategory]=useState<SettingsCategory>('appearance')
   const [booksOpen,setBooksOpen]=useState(false)
-  const [tagResults,setTagResults]=useState<OverviewTagResults|null>(null)
-  const tagRequest=useRef<AbortController|null>(null)
-  const libraryEpoch=controller.libraryEpoch
-  const overviewTag=tagResults?.epoch===libraryEpoch ? tagResults : null
-  useEffect(()=>()=>tagRequest.current?.abort(),[controller,libraryEpoch])
-  useEffect(()=>{
-    const removal=state.removal
-    if(removal) setTagResults(current=>current ? {...current,items:current.items.filter(item=>!removal.ids.includes(item.noteId))} : null)
-  },[state.removal])
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
   const noteTabs=useNoteTabs(controller,state,app)
@@ -88,7 +79,6 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     if(await navigate('notes'))await choose({notebookId,order:controller.getSnapshot().filter.order??'recent'})
   }
   function choose(filter:NotesState['filter']) {
-    closeOverviewTag()
     return controller.selectFilter(filter,(app.current?.clientWidth??560)>=560 &&
       (!!controller.getSnapshot().draft || filter.status==='trashed'))
   }
@@ -110,43 +100,17 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   }
   async function create(){clearTimeout(timer.current);await controller.create()}
   const inTrash=state.filter.status==='trashed'
-  function closeOverviewTag() {
-    tagRequest.current?.abort()
-    tagRequest.current=null
-    setTagResults(null)
-  }
-  async function readOverviewTag(value:string, previous?:OverviewTagResults) {
-    clearTimeout(timer.current)
-    tagRequest.current?.abort()
-    const request=tagRequest.current=new AbortController()
-    const pending:OverviewTagResults={tag:value,items:previous?.items??[],cursor:previous?.cursor??null,loading:true,failed:false,epoch:libraryEpoch}
-    setTagResults(pending)
-    try {
-      const result=await controller.api('/notes',{currentTag:value,order:'recent',limit:50,...(pending.cursor && {cursor:pending.cursor})},request.signal)
-      if(request.signal.aborted || controller.libraryEpoch!==libraryEpoch) return
-      const seen=new Set(pending.items.map(item=>item.noteId))
-      setTagResults({...pending,items:[...pending.items,...result.items.filter(item=>!seen.has(item.noteId))],cursor:result.cursor,loading:false})
-    } catch {
-      if(!request.signal.aborted && controller.libraryEpoch===libraryEpoch) setTagResults({...pending,loading:false,failed:true})
-    }
-  }
   const overview = (compact=false) => <NoteOverview compact={compact} overview={state.overview} books={activeBooks} t={t}
-    tagResults={overviewTag} browseTag={value=>{void readOverviewTag(value);focusOverview()}}
-    back={()=>{closeOverviewTag();focusOverview(overviewTag?.tag)}}
-    more={()=>{if(overviewTag?.cursor)void readOverviewTag(overviewTag.tag,overviewTag)}}
-    retry={()=>{if(overviewTag)void readOverviewTag(overviewTag.tag,overviewTag)}}
     disabled={state.loadingNote||state.operation} create={()=>void create()} open={id=>{
       clearTimeout(timer.current)
       void controller.open(id,true).then(ok=>{
-        if(ok||!['note_deleted','note_not_found'].includes(controller.getSnapshot().error??''))return
-        if(overviewTag)void readOverviewTag(overviewTag.tag)
-        else void controller.refresh()
+        if(!ok&&['note_deleted','note_not_found'].includes(controller.getSnapshot().error??''))void controller.refresh()
       })
     }}/>
-  function focusOverview(targetTag?:string) {
+  function focusOverview() {
     requestAnimationFrame(()=>{
-      const nodes=Array.from(app.current?.querySelectorAll<HTMLElement>(targetTag?'[data-overview-tag]':'.paper-overview h2')??[])
-      const element=nodes.find(node=>node.getClientRects().length && (!targetTag||node.dataset.overviewTag===targetTag))
+      const nodes=Array.from(app.current?.querySelectorAll<HTMLElement>('.paper-overview-brand')??[])
+      const element=nodes.find(node=>node.getClientRects().length)
       element?.scrollIntoView({block:'nearest'})
       element?.focus({preventScroll:true})
     })

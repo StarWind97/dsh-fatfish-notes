@@ -372,7 +372,7 @@ export class NotesController {
           const {current, effectiveNotebookId: notebookId, savedAt} = result.note
           const previous = this.state.overview
           const opened = [{noteId, title:current.title, notebookId, savedAt}, ...(previous?.opened.filter(item=>item.noteId!==noteId) ?? [])]
-          this.emit({overview:{opened:opened.slice(0, NOTE_OVERVIEW_LIMIT), modified:previous?.modified ?? [], tags:previous?.tags ?? []}})
+          this.emit({overview:{opened:opened.slice(0, NOTE_OVERVIEW_LIMIT), modified:previous?.modified ?? []}})
         }
       }
       return accepted
@@ -431,7 +431,6 @@ export class NotesController {
       removal: {ids, activeId}, operation: false,
       ...(activeId && {noteId:null, note:null, draft:null, editing:false, loadingNote:false, jobs:[], error:null, conflict:null}),
       ...(overview && {overview:{
-        ...overview,
         opened:overview.opened.filter(item=>!removed.has(item.noteId)),
         modified:overview.modified.filter(item=>!removed.has(item.noteId)),
       }}),

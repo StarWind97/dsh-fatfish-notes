@@ -57,69 +57,72 @@ export const paperCss = `
 .paper-reading table,.paper-table table{border-collapse:collapse}.paper-reading :is(th,td),.paper-table :is(th,td){border:1px solid var(--rule);padding:4px 10px}.paper-reading .note-markdown table,.paper-table{max-width:100%;display:block;overflow:auto}
 .paper-empty{max-width:650px;margin:48px auto;padding:0 20px;overflow:auto}
 .paper-overview-viewport{
-  --overview-paper:#fbf8f2;--overview-control:#f3eee6;--overview-rule:#dfd5c9;
-  --overview-hover:#f0e9df;--overview-accent:#653458;--overview-primary:#6c305e;--overview-on-primary:#fff9fc;
-  container:note-overview / size;flex:1;min-height:0;overflow:auto;background:var(--overview-paper);
+  --overview-paper:#fcf9f4;--overview-tint:#f7eef2;--overview-glow:#f3e6ed;
+  --overview-ink:#322930;--overview-quiet:#6f6268;--overview-heading:#502541;
+  --overview-rule:#e0d5d8;--overview-outline:#ded0d8;--overview-opened:#75976c;--overview-modified:#9b6189;
+  --overview-hover:#f4eced;--overview-accent:#622e53;--overview-primary:#6c305e;--overview-on-primary:#fff9fc;
+  --overview-control:color-mix(in srgb,#fcf7f6 61%,transparent);
+  container:note-overview / size;flex:1;min-height:0;overflow:auto;color:var(--overview-ink);
+  background:radial-gradient(ellipse 62% 255px at 50% 0,var(--overview-glow),transparent 100%),
+    linear-gradient(var(--overview-tint),transparent 244px),var(--overview-paper);
+  background-attachment:local,local,scroll;
 }
 .paper-app[data-theme=dark] .paper-overview-viewport{
-  --overview-paper:var(--paper);--overview-control:var(--shelf);--overview-rule:var(--rule);
-  --overview-hover:var(--selected);--overview-accent:var(--fatfish-brand-text);--overview-primary:#d9a5cd;--overview-on-primary:#27162a;
+  --overview-paper:#221e23;--overview-tint:#2c2330;--overview-glow:#382834;
+  --overview-ink:#f1e9ee;--overview-quiet:#c6b6c0;--overview-heading:#f5d7e9;
+  --overview-rule:#4e3c49;--overview-outline:#5a4354;--overview-opened:#a3ba91;--overview-modified:#d49cc3;
+  --overview-hover:#382e36;--overview-accent:#efbedc;--overview-primary:#d9a5cd;--overview-on-primary:#27162a;
+  --overview-control:color-mix(in srgb,#30252e 61%,transparent);
 }
 .paper-overview{box-sizing:border-box;max-width:1100px;margin-inline:auto;padding:clamp(19px,5.4cqi,62px)}
-.paper-overview header{display:grid;justify-items:center;padding:clamp(12px,2.6cqi,34px) 0 clamp(20px,3.2cqi,38px)}
+.paper-overview header{display:grid;justify-items:center;padding:clamp(15px,3.6cqi,36px) 0 clamp(23px,4.4cqi,43px)}
 .paper-overview h2,.paper-overview h3{margin:0}
-.paper-overview h3{font-size:18px;line-height:1.4}
+.paper-overview h3{color:var(--overview-heading);font:700 20px/1.35 "Songti SC","Noto Serif CJK SC",SimSun,serif;letter-spacing:.035em}
 .paper-overview-brand{display:flex;justify-content:center;align-items:center;gap:clamp(8px,2.2cqi,22px);max-width:100%}
 .paper-overview-brand .fatfish-mark{width:clamp(55px,16.5cqi,144px);height:auto;aspect-ratio:10/7}
 .paper-overview-brand .fatfish-wordmark{display:block;width:clamp(108px,36.4cqi,270px);height:auto;min-width:0;max-width:100%}
-.paper-overview-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:11px;margin-top:clamp(19px,3.5cqi,30px)}
+.paper-overview-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:11px;margin-top:clamp(19px,3.2cqi,27px)}
 .paper-app .paper-overview-actions :is(button,a){
   display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:45px;padding:8px 15px;
-  border:1px solid var(--overview-rule);border-radius:7px;color:var(--overview-accent);
+  border:1px solid var(--overview-outline);border-radius:10px;color:var(--overview-accent);
   background:var(--overview-control);font-weight:650;text-align:center;text-decoration:none;
 }
 .paper-app .paper-overview-actions .paper-overview-new{min-width:120px;background:var(--overview-primary);color:var(--overview-on-primary);border-color:transparent}
 .paper-app .paper-overview-actions .paper-overview-new:hover{filter:brightness(1.1);background:var(--overview-primary)}
 .paper-overview-actions a:hover{background:var(--overview-hover)}
 .paper-overview-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(25px,5.8cqi,65px);margin-top:20px}
-.paper-overview-groups>section{min-width:0;border-top:1px solid var(--overview-rule);padding-top:15px}
+.paper-overview-groups>section{position:relative;min-width:0;border-top:1px solid var(--overview-rule);padding-top:19px}
+.paper-overview-groups>section::before{content:'';position:absolute;inset:-1px auto auto 0;width:25px;height:2px;border-radius:0 2px 2px 0;background:var(--overview-modified)}
+.paper-overview-groups>section[data-recent=opened]::before{background:var(--overview-opened)}
 .paper-overview-groups>section:only-child{grid-column:1/-1}
-.paper-overview-notes,.paper-overview-tags ul{list-style:none;padding:0;margin:9px 0 0}
+.paper-overview-notes{list-style:none;padding:0;margin:12px 0 0}
 .paper-app .paper-overview-notes li>button{
-  display:flex;justify-content:space-between;gap:10px;width:100%;min-height:53px;padding:8px 0;text-align:start;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%;min-height:53px;padding:9px 0;
+  text-align:start;color:var(--overview-ink);
 }
 .paper-app .paper-overview-notes li>button:hover{background:var(--overview-hover);box-shadow:0 0 0 5px var(--overview-hover)}
 .paper-overview-note-text{min-width:0;display:grid;gap:3px}
-.paper-overview-title{font-size:15px;font-weight:600;line-height:1.38;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
-.paper-overview-note-text small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.paper-overview :is(small,time){color:var(--muted);font-size:12px}
-.paper-overview time{flex:none;white-space:nowrap}
-.paper-overview-tags{border-top:1px solid var(--overview-rule);padding-top:19px;margin-top:31px}
-.paper-overview-tags ul{display:flex;flex-wrap:wrap;align-items:center;gap:5px 15px}
-.paper-overview-tags li{min-width:0}
-.paper-app .paper-overview-tags li>button{align-items:baseline;min-height:40px;color:var(--overview-accent);padding:6px 4px;text-align:start;overflow-wrap:anywhere}
-.paper-app .paper-overview-tags li>button:hover{background:var(--overview-hover)}
-.paper-overview-tags button[data-popular=true]{font-size:16px;font-weight:700}
-.paper-overview-results{max-width:760px;margin-inline:auto}
-.paper-overview-results h2{margin:16px 0 6px;overflow-wrap:anywhere}
-.paper-overview-results .paper-overview-back{color:var(--overview-accent)}
+.paper-overview-title{font-size:15px;font-weight:400;line-height:1.38;letter-spacing:.005em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.paper-overview-note-text small{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-overview :is(small,time){color:var(--overview-quiet)}
+.paper-overview time{flex:none;padding-top:2px;white-space:nowrap;font-size:11px;font-variant-numeric:tabular-nums}
 .paper-overview-groups li:nth-child(n+6){display:none}
 @container note-overview (min-width:630px) and (min-height:555px){.paper-overview-groups li:nth-child(-n+10){display:list-item}}
 @container note-overview (min-width:810px) and (min-height:735px){.paper-overview-groups li:nth-child(-n+15){display:list-item}}
 @container note-overview (width <575px){
   .paper-overview-groups{grid-template-columns:minmax(0,1fr);gap:20px;margin-top:12px}
-  .paper-overview header{padding-bottom:20px}
+  .paper-overview header{padding-bottom:21px}
+  .paper-overview-groups>section{padding-top:15px}
+  .paper-overview h3{font-size:19px}
   .paper-app .paper-overview-actions :is(button,a){font-size:13px;padding-inline:10px}
   .paper-app .paper-overview-actions .paper-overview-new{min-width:102px}
 }
 @container note-overview (width <315px){
   .paper-overview-actions{flex-direction:column;align-items:stretch;width:min(100%,205px)}
-  .paper-overview-tags ul{column-gap:10px}
 }
 .paper-overview-viewport[data-compact=true]{display:none}
 @container paper (width < 560px){
   .paper-overview-viewport[data-compact=true]{display:block;container-type:inline-size;overflow:visible}
-  .paper-list-scroll:has(>.paper-overview-viewport[data-compact=true][data-browsing=true])>:not(.paper-overview-viewport){display:none}
 }
 .paper-leaf{container:leaf / inline-size}
 .paper-doc-head{position:relative;z-index:10;display:block;flex:none;margin:0 14px 0 0;padding:8px clamp(18px,2.5cqw,40px);background:var(--paper);border-bottom:1px solid var(--rule)}

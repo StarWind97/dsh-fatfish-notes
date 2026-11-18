@@ -16,7 +16,7 @@ import { createNoteRevision, validateNoteRevision, mergeNoteRevisions, materiali
 import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from './markdown.js'
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
 import { checkReferences, sourceAttachments, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
-import { noteTagCounts, searchNotes } from './search.js'
+import { searchNotes } from './search.js'
 import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from './notebooks.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
@@ -360,9 +360,12 @@ export class NoteRepository {
   }
   async catalog(signal?:AbortSignal):Promise<NoteCatalog> {
     return this.run(async()=>{
-      const state=await this.load()
-      const views=[...new Set(state.revisions.map(r=>r.noteId))].map(noteId=>this.view(state,noteId))
-      return {tags:noteTagCounts(views)}
+      const state=await this.load(),tags=new Map<string,number>()
+      for(const noteId of new Set(state.revisions.map(r=>r.noteId))) {
+        const row=this.view(state,noteId).current
+        if(row.status==='active')row.tags.forEach(tag=>tags.set(tag,(tags.get(tag)??0)+1))
+      }
+      return {tags:[...tags].map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))}
     },signal)
   }
   async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {
