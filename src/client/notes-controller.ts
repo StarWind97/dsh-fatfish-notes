@@ -1,6 +1,7 @@
 import { api, currentRepository, type Api } from './api.js'
 import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision, NoteManageRequest } from '../contracts/notes.js'
+import { NOTE_OVERVIEW_LIMIT, type NoteOverview } from '../contracts/notes.js'
 import {supplementMaterials,remainingSupplements} from '../notes/note-materials.js'
 import { RecentNotes } from './recent-notes.js'
 
@@ -23,6 +24,8 @@ export interface NotesState {
   noteId: string | null; note: NoteView | null; draft: NoteContent | null; dirty: boolean
   editing: boolean; saving: boolean; composing: boolean; operation: boolean; error: string | null; conflict: NoteView | null
   jobs: NoteJobOverview[]; jobsError: boolean; jobsCursor: string | null
+  overview?: NoteOverview
+  removal?: { ids: string[]; activeId: string | null }
 }
 export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Promise<void>; release(noteId?:string):Promise<void>; writable(noteId:string):boolean }
 /** Plugin-owned editor: local autosave continues across panel transitions. */
@@ -80,13 +83,29 @@ export class NotesController {
   imagePickerOpen=false
   private inFlight:RecoveryRecord['inFlight']
   private readonly recovery:NoteRecovery
-  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string;stableList?:boolean}={}){
+  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string;stableList?:boolean;overview?:boolean}={}){
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
   get api(){return this.call}
   occupiedCount=0
   private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
   recentIds(){return this.visits().read()}
+  private mergeOverview(overview:NoteOverview|undefined, requestedIds:string[]|undefined) {
+    if (!overview || !requestedIds) return {}
+    const recent = this.recentIds()
+    if (equal(recent, requestedIds)) return {overview}
+    const requested = new Set(requestedIds)
+    const byId = new Map(overview.opened.map(item => [item.noteId, item]))
+    // Include visits made while the list request was in flight.
+    for (const item of this.state.overview?.opened ?? []) {
+      if (!requested.has(item.noteId)) byId.set(item.noteId, item)
+    }
+    const opened = recent.flatMap(id => {
+      const item = byId.get(id)
+      return item ? [item] : []
+    }).slice(0, NOTE_OVERVIEW_LIMIT)
+    return {overview:{...overview, opened}}
+  }
   private inputPaused=false
   pauseInput(value:boolean){if(this.inputPaused===value)return;this.inputPaused=value;this.emit({})}
   get writable(){return !this.inputPaused&&(!this.state.noteId||!this.options.editing||this.options.editing.writable(this.state.noteId))}
@@ -149,7 +168,8 @@ export class NotesController {
     this.listAbort?.abort();const abort=this.listAbort=new AbortController()
     this.emit({ loadingList: true, listError: false })
     // Start the useful list first. Slow notebook counts must not delay its display.
-    const list=this.call('/notes', { order:'recent', ...filter, limit: 50, ...(!reset && this.state.cursor ? { cursor: this.state.cursor } : {}) },abort.signal)
+    const overviewRecentIds = this.options.overview && reset ? this.recentIds() : undefined
+    const list=this.call('/notes', { order:'recent', ...filter, limit: 50, ...(overviewRecentIds && {overviewRecentIds}), ...(!reset && this.state.cursor ? { cursor: this.state.cursor } : {}) },abort.signal)
     const books=this.refreshBooks(refreshBooks)
     try {
       const result = await list
@@ -160,7 +180,7 @@ export class NotesController {
       }
       if (generation !== this.listing) return
       const items = reset ? result.items : [...this.state.items, ...result.items.filter(x => !this.state.items.some(v => v.noteId === x.noteId))]
-      this.emit({ items, cursor: result.cursor, loadingList: false })
+      this.emit({ items, cursor: result.cursor, loadingList: false, ...this.mergeOverview(result.overview, overviewRecentIds) })
     } catch { if (generation === this.listing) this.emit({ loadingList: false, listError: true }) }
     finally { await Promise.all([selected,...(refreshBooks?[books]:[])]) }
   }
@@ -201,7 +221,7 @@ export class NotesController {
     const restore=firstLoad && !this.state.noteId
     const navigation=this.navigation
     await this.refresh()
-    if(!restore||navigation!==this.navigation||this.state.noteId||this.state.listError||this.disposed)return
+    if(this.options.overview||!restore||navigation!==this.navigation||this.state.noteId||this.state.listError||this.disposed)return
     if(lastId && /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(lastId)){
       if(await this.open(lastId) && this.state.draft?.status==='active')return
       if(this.navigation!==navigation+1||this.disposed)return
@@ -332,7 +352,7 @@ export class NotesController {
     this.emit({ editing:request.kind === 'open' ? false : this.state.editing, noteId: note.noteId, note, draft: noteContent(note), dirty: false, error: null, conflict: note.heads.length > 1 ? note : null, loadingNote: false, jobs: [], jobsError: false, jobsCursor: null }); void this.refreshJobs()
     return true
   }
-  async open(noteId: string): Promise<boolean> {
+  async open(noteId: string, activeOnly=false): Promise<boolean> {
     if (this.disposed || !await this.prepareLeave()) return false
     const generation = ++this.navigation
     this.detailAbort?.abort();const abort=this.detailAbort=new AbortController()
@@ -341,8 +361,20 @@ export class NotesController {
     try {
       const result = await this.call('/notes/get', { noteId },abort.signal)
       if (generation !== this.navigation) return false
+      if (activeOnly && result.note.current.status !== 'active') {
+        if (this.ownsDetail(request)) this.emit({loadingNote:false,error:'note_deleted'})
+        return false
+      }
       const accepted=this.accept(result.note, request)
-      if(accepted&&result.note.current.status==='active')this.visits().visit(noteId)
+      if(accepted&&result.note.current.status==='active'){
+        this.visits().visit(noteId)
+        if (this.options.overview) {
+          const {current, effectiveNotebookId: notebookId, savedAt} = result.note
+          const previous = this.state.overview
+          const opened = [{noteId, title:current.title, notebookId, savedAt}, ...(previous?.opened.filter(item=>item.noteId!==noteId) ?? [])]
+          this.emit({overview:{opened:opened.slice(0, NOTE_OVERVIEW_LIMIT), modified:previous?.modified ?? []}})
+        }
+      }
       return accepted
     } catch (error) { if (this.ownsDetail(request)) this.emit({ loadingNote: false, error: errorCode(error) }); return false }
   }
@@ -356,9 +388,10 @@ export class NotesController {
     const {title,summary,tags,status,favorite,isTemplate}=note.current
     const selected:NoteListItem={noteId,heads:note.heads,title,summary,tags,status,notebookId:note.effectiveNotebookId,savedAt:note.savedAt,pinned:!!note.pinned,createdAt:note.createdAt??note.savedAt,conflicted:note.heads.length>1,...(favorite!==undefined?{favorite}:{}),...(isTemplate!==undefined?{isTemplate}:{})}
     this.emit({filter,items:[selected],cursor:null,loadingList:true,listError:false})
-    try{const page=await this.call('/notes',{...filter,limit:50},abort.signal)
+    const overviewRecentIds = this.options.overview ? this.recentIds() : undefined
+    try{const page=await this.call('/notes',{...filter,limit:50,...(overviewRecentIds && {overviewRecentIds})},abort.signal)
       if(generation!==this.listing||navigation!==this.navigation||epoch!==this.libraryEpoch||this.state.noteId!==noteId)return
-      this.emit({items:page.items.some(n=>n.noteId===noteId)?page.items:[selected,...page.items],cursor:page.cursor,loadingList:false})
+      this.emit({items:page.items.some(n=>n.noteId===noteId)?page.items:[selected,...page.items],cursor:page.cursor,loadingList:false,...this.mergeOverview(page.overview,overviewRecentIds)})
     }catch{if(generation===this.listing)this.emit({loadingList:false,listError:true})}
     finally{if(generation===this.listing&&this.state.loadingList)this.emit({loadingList:false})}
   }
@@ -380,12 +413,41 @@ export class NotesController {
     }finally{this.creating=false}
   }
   async navigate(section: NotesState['section']): Promise<boolean> { if (!await this.prepareLeave() || this.state.operation) return false; ++this.navigation; this.emit({ section, editing:false, loadingNote: false }); return true }
-  async back(): Promise<boolean> { if (!await this.prepareLeave() || this.state.operation) return false; ++this.navigation; this.emit({ editing:false, noteId: null, note: null, draft: null, loadingNote: false, jobs: [], error: null }); return true }
+  async back(): Promise<boolean> {
+    const navigation = this.navigation
+    if (!await this.prepareLeave() || this.state.operation || navigation !== this.navigation) return false
+    ++this.navigation
+    this.detailAbort?.abort()
+    this.emit({ editing:false, noteId: null, note: null, draft: null, loadingNote: false, jobs: [], error: null, conflict:null })
+    return true
+  }
+  private applyRemoval(ids: string[], permanent: boolean) {
+    const removed = new Set(ids)
+    const activeId = this.state.noteId && removed.has(this.state.noteId) ? this.state.noteId : null
+    if (permanent) for (const id of ids) this.removedIds.add(id)
+    if (activeId) { ++this.navigation; this.detailAbort?.abort() }
+    const overview = this.state.overview
+    this.emit({
+      removal: {ids, activeId}, operation: false,
+      ...(activeId && {noteId:null, note:null, draft:null, editing:false, loadingNote:false, jobs:[], error:null, conflict:null}),
+      ...(overview && {overview:{
+        opened:overview.opened.filter(item=>!removed.has(item.noteId)),
+        modified:overview.modified.filter(item=>!removed.has(item.noteId)),
+      }}),
+    })
+  }
   async changeStatus(trashed: boolean) {
     if (this.state.loadingNote || !await this.prepareLeave() || !this.state.note || this.state.operation || this.state.loadingNote) return false
     const note = this.state.note; this.emit({ operation: true })
     const request = this.detailRequest('operation', note.noteId)
-    try { const accepted = this.accept((await this.call(trashed ? '/notes/trash' : '/notes/restore', { noteId: note.noteId, expectedHeads: note.heads })).note, request); if (accepted) void this.refresh(); return accepted }
+    try {
+      const result = (await this.call(trashed ? '/notes/trash' : '/notes/restore', {noteId:note.noteId, expectedHeads:note.heads})).note
+      if (result.noteId !== note.noteId || !this.ownsDetail(request)) return false
+      if (trashed) this.applyRemoval([note.noteId], false)
+      else if (!this.accept(result, request)) return false
+      void this.refresh()
+      return result
+    }
     catch (e) { if (this.ownsDetail(request)) { this.emit({ error: errorCode(e) }); if (errorCode(e) === 'note_conflict') await this.loadConflict(request) }; return false }
     finally { if (this.ownsDetail(request)) this.emit({ operation: false }) }
   }
@@ -399,10 +461,11 @@ export class NotesController {
     this.emit({operation:true,error:null})
     try {
       const result=await this.call('/notes/batch',{notes,action})
-      if(action==='purge')for(const id of result.completed)this.removedIds.add(id)
-      if(notes.some(n=>n.noteId===this.state.noteId)) {
-        if(action==='purge')this.emit({noteId:null,note:null,draft:null,editing:false})
-        else { const note=(await this.call('/notes/get',{noteId:this.state.noteId!})).note; this.emit({note,draft:noteContent(note)}) }
+      if (action !== 'restore') {
+        if (result.completed.length) this.applyRemoval(result.completed, action==='purge')
+      } else if (result.completed.some(id=>id===this.state.noteId)) {
+        const note = (await this.call('/notes/get',{noteId:this.state.noteId!})).note
+        this.emit({note, draft:noteContent(note)})
       }
       return true
     }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}

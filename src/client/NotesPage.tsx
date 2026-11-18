@@ -31,6 +31,7 @@ import {WindowButton,WorkspaceNotice} from './WorkspaceNotice.js'
 import {AppearanceStyle,useAppearanceProps,useAppearance,AppearanceScope,useAppearanceTheme} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {NotebookTree} from './paper/NotebookTree.js'
+import {NoteOverview} from './paper/NoteOverview.js'
 
 const noWorkspaceSubscribe=()=>()=>{}
 const noWorkspaceState=()=>null
@@ -41,6 +42,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const selection=useNoteSelection(controller,state,t)
   const [history,setHistory]=useState<string[]>([])
+  useEffect(()=>{if(!state.noteId&&!state.loadingNote)setHistory(items=>items.length?[]:items)},[state.noteId,state.loadingNote])
   const [previewLink,setPreviewLink]=useState<string|null>(null)
   async function follow(id:string){const previous=state.noteId;if(await controller.open(id)&&previous)setHistory(h=>[...h,previous])}
   async function returnNote(){const id=history.at(-1);if(id&&await controller.open(id))setHistory(h=>h.slice(0,-1))}
@@ -74,12 +76,12 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   }
   async function openNotebook(notebookId:string){
     readingPosition.current=null
-    if(await navigate('notes'))await controller.selectFilter({notebookId,order:controller.getSnapshot().filter.order??'recent'})
+    if(await navigate('notes'))await choose({notebookId,order:controller.getSnapshot().filter.order??'recent'})
   }
-  const choose=(filter:NotesState['filter'])=>controller.selectFilter(filter,(app.current?.clientWidth??560)>=560)
+  const choose=(filter:NotesState['filter'])=>controller.selectFilter(filter,
+    (app.current?.clientWidth??560)>=560 && (!!controller.getSnapshot().draft || filter.status==='trashed'))
   const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
-  useEffect(()=>{void controller.initialize(readPreference('last'),(['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(readPreference('order')??'')?readPreference('order'):'recent') as NonNullable<NotesState['filter']['order']>);return()=>{clearTimeout(timer.current);void controller.leave()}},[controller])
-  useEffect(()=>{if(state.note?.current.status==='active')writePreference('last',state.note.noteId)},[state.note?.noteId,state.note?.current.status])
+  useEffect(()=>{void controller.initialize(null,(['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(readPreference('order')??'')?readPreference('order'):'recent') as NonNullable<NotesState['filter']['order']>);return()=>{clearTimeout(timer.current);void controller.leave()}},[controller])
   useEffect(()=>{setQuery(state.filter.query??'');setTag(state.filter.tag??'')},[state.filter.query,state.filter.tag])
   useEffect(()=>{
     if(!state.noteId||state.section!=='notes')return
@@ -96,6 +98,15 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   }
   async function create(){clearTimeout(timer.current);await controller.create()}
   const inTrash=state.filter.status==='trashed'
+  const overview = (compact=false) => <NoteOverview compact={compact} overview={state.overview} books={activeBooks} t={t}
+    disabled={state.loadingNote||state.operation} create={()=>void create()} open={id=>{
+      clearTimeout(timer.current)
+      void controller.open(id,true).then(ok=>{if(!ok&&['note_deleted','note_not_found'].includes(controller.getSnapshot().error??''))void controller.refresh()})
+    }}/>
+  function focusOverview() {
+    requestAnimationFrame(()=>Array.from(app.current?.querySelectorAll<HTMLElement>('.paper-overview h2')??[])
+      .find(heading=>heading.getClientRects().length)?.focus())
+  }
   const view=state.filter.favorite?'favorites':state.filter.recentIds?'visits':'all'
   function chooseView(value:string){clearTimeout(timer.current);void choose({order:state.filter.order??'recent',...(value==='favorites'?{favorite:true}:value==='visits'?{recentIds:controller.recentIds()}:{})})}
   const treeActive=appearanceValue.layout==='tree'&&!selection.selecting&&!query&&!state.filter.tag&&!inTrash&&view==='all'
@@ -141,7 +152,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
       <button onClick={()=>void controller.refresh(true,true)}>{t('refresh')}</button></div>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
-    </div><div className="paper-list-scroll">{treeActive?<NotebookTree controller={controller} state={state} books={activeBooks} actions={itemActions.noteActions} bookActions={itemActions.bookActions}/>:<><div className="paper-rows">{state.items.map((item,i)=>{
+    </div><div className="paper-list-scroll">{!inTrash&&!state.draft&&overview(true)}{treeActive?<NotebookTree controller={controller} state={state} books={activeBooks} actions={itemActions.noteActions} bookActions={itemActions.bookActions}/>:<><div className="paper-rows">{state.items.map((item,i)=>{
       const stamp=(row:typeof item)=>noteDateTime(state.filter.order?.startsWith('created-')?row.createdAt??row.savedAt:row.savedAt).slice(0,10)
       const date=item.pinned?'置顶':stamp(item),showDate=item.pinned?!i:(!i||state.items[i-1]?.pinned||view!=='visits'&&!state.filter.order?.startsWith('title-')&&stamp(state.items[i-1]!)!==date)
       return <React.Fragment key={item.noteId}>{showDate&&<p className="paper-date">{date}</p>}<div className="paper-select-row"><NoteSelectionRow selecting={selection.selecting} selected={selection.selected.some(n=>n.noteId===item.noteId)} label={item.title||t('notesUntitled')} actions={itemActions.noteActions(item)} rowClass="paper-row" current={item.noteId===state.noteId} toggle={()=>selection.toggle(item)} open={()=>{clearTimeout(timer.current);setHistory([]);void controller.open(item.noteId)}}>
@@ -153,8 +164,8 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'notesManagePage':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>theme.setMode(appearance['data-theme']==='dark'?'light':'dark')}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     <PaperColumns t={t} section={state.section} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns} rail={<><button className="paper-books-toggle" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={19}/></button>{activeBooks.map(book=><button key={book.notebookId} title={book.current.title} aria-label={book.current.title} aria-current={state.filter.notebookId===book.notebookId?'page':undefined} onClick={()=>chooseNotebook(book.notebookId)}>{book.current.title.slice(0,1)}</button>)}</>} other={state.section==='settings'?<SettingsWorkspace t={t} category={settingsCategory} onCategory={setSettingsCategory}/>:state.section==='notebooks'?<NotebookManager controller={controller} state={state} t={t} onOpen={openNotebook}/>:null}>
-      <NoteTabBar controller={controller} state={state} {...noteTabs} beforeSelect={()=>clearTimeout(timer.current)}/>
-      {state.draft?<NoteEditor onDownloadNotice={itemActions.setDownloadNotice} onNoteLink={setPreviewLink} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:<div className="paper-empty">{inTrash?<Trash2 size={32}/>:<BrandMark size={64} color/>}<h2>{t(inTrash?'notesTrash':'notesWelcome')}</h2><p>{t(inTrash?'notesEmptyTrash':'notesEmptyHint')}</p>{!inTrash&&<button className="paper-primary" onClick={()=>void create()}>{t('notesNew')}</button>}</div>}
+      <NoteTabBar controller={controller} state={state} {...noteTabs} t={t} beforeSelect={()=>clearTimeout(timer.current)} onEmpty={focusOverview}/>
+      {state.draft?<NoteEditor onDownloadNotice={itemActions.setDownloadNotice} onNoteLink={setPreviewLink} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} onTrashed={itemActions.offerUndo} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:inTrash?<div className="paper-empty"><Trash2 size={32}/><h2>{t('notesTrash')}</h2><p>{t('notesEmptyTrash')}</p></div>:overview()}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':'notesOpenFailed')}</p>}
     </PaperColumns>
   </div>

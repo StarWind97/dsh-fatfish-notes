@@ -50,19 +50,37 @@ test('1,000/5,000 metadata rows seed only existing pages; group paging merges wi
     pages.invalidate();assert.equal(pages.get('book-0'),undefined)
   }
 })
-function fixture(){
+function fixture(overview=false){
   const ids=['01K00000000000000000000000','01K00000000000000000000001','01K00000000000000000000002']
   const notes=new Map(ids.map((id,i)=>[id,materializeNote([createNoteRevision({version:1,noteId:id,parents:[],recordedAt:'2026-11-15T00:00:00.000Z',title:'Note '+i,body:'original',summary:'',tags:[],notebookId:ids[i]!,status:'active',sourceId:null,assetIds:[]})],id)]))
   let failSave=false,lists=0;const reads:string[]=[]
   const call:Api=async(path,input)=>{
     if(path==='/notes/get'){const id=(input as {noteId:string}).noteId;reads.push(id);if(!notes.has(id))throw new ApiError('note_not_found');return {ok:true,note:notes.get(id)} as never}
-    if(path==='/notes'){lists++;return {ok:true,items:[],cursor:'next'} as never}
+    if(path==='/notes'){
+      lists++
+      const note=notes.get(ids[0]!)!
+      const item={noteId:note.noteId,title:note.current.title,notebookId:note.effectiveNotebookId,savedAt:note.savedAt}
+      return {ok:true,items:overview?[item]:[],cursor:'next',...(overview&&{overview:{opened:[],modified:[item]}})} as never
+    }
     if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
     if(path==='/notes/jobs')return {ok:true,jobs:[],cursor:null} as never
+    if(path==='/notes/draft-recovery')return {ok:true,recovered:[ids[1]],failed:[]} as never
+    if(path==='/notes/trash'){
+      const {noteId}=input as {noteId:string}
+      const note=notes.get(noteId)!
+      const trashed={...note,current:{...note.current,status:'trashed' as const}}
+      notes.set(noteId,trashed)
+      return {ok:true,note:trashed} as never
+    }
+    if(path==='/notes/batch'){
+      const {notes:selection,action}=input as {notes:{noteId:string}[];action:string}
+      for(const item of selection)if(action==='purge')notes.delete(item.noteId)
+      return {ok:true,completed:selection.map(item=>item.noteId)} as never
+    }
     if(path==='/notes/draft'){if(failSave)throw new ApiError('network');const v=input as {action:string;request:{noteId:string;content:NoteView['current']}};if(v.action==='save')return {ok:true,state:'editing',note:null} as never;const previous=notes.get(v.request.noteId)!;const note={...previous,current:{...previous.current,...v.request.content}};notes.set(note.noteId,note);return {ok:true,state:'finished',note} as never}
     throw Error(path)
   }
-  const controller=new NotesController(call,{autosaveMs:100000,storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}),tabs=new NoteTabs(controller),unbind=controller.subscribe(tabs.reconcile)
+  const controller=new NotesController(call,{overview,autosaveMs:100000,storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}),tabs=new NoteTabs(controller),unbind=controller.subscribe(tabs.reconcile)
   return {ids,controller,tabs,notes,reads,get lists(){return lists},set fail(value:boolean){failSave=value},dispose(){unbind();controller.dispose()}}
 }
 test('tab navigation deduplicates, reveals notebook without scanning pagination, and closing last tab does not delete',async()=>{
@@ -92,4 +110,61 @@ test('closing other tabs saves active edits, retains all tabs on failure and kee
   assert.equal(await f.tabs.closeOthers(f.ids[0]!),false);assert.equal(f.tabs.getSnapshot().length,3);assert.equal(f.controller.getSnapshot().noteId,f.ids[2]);assert.equal(f.controller.getSnapshot().draft?.body,'unsaved edit')
   f.fail=false;assert.equal(await f.tabs.closeOthers(f.ids[0]!),true);assert.deepEqual(f.tabs.getSnapshot().map(t=>t.id),[f.ids[0]]);assert.equal(f.notes.get(f.ids[2]!)?.current.body,'unsaved edit')
  }finally{f.dispose()}
+})
+
+test('closing all saves once, keeps tabs and draft on failure, and opens no other note', async () => {
+  const f=fixture()
+  try {
+    for (const id of f.ids) await f.tabs.select(id)
+    f.tabs.positions.set(f.ids[0]!,160)
+    await f.controller.beginEdit()
+    f.controller.update({body:'latest edit'})
+    f.fail=true
+    assert.equal(await f.tabs.closeAll(),false)
+    assert.equal(f.tabs.getSnapshot().length,3)
+    assert.equal(f.controller.getSnapshot().draft?.body,'latest edit')
+    const reads=f.reads.length
+    f.fail=false
+    assert.equal(await f.tabs.closeAll(),true)
+    assert.equal(f.controller.getSnapshot().noteId,null)
+    assert.equal(f.tabs.getSnapshot().length,0)
+    assert.equal(f.tabs.positions.size,0)
+    assert.equal(f.reads.length,reads)
+    assert.equal(f.notes.get(f.ids[2]!)?.current.body,'latest edit')
+  } finally {f.dispose()}
+})
+
+test('removed notes close their tabs, foreground prefers right, and bulk removal skips the full batch',async()=>{
+  const f=fixture()
+  try {
+    const [left,middle,right]=f.ids as [string,string,string]
+    for(const id of f.ids)await f.tabs.select(id)
+    await f.tabs.select(middle)
+    assert.ok(await f.controller.changeStatus(true))
+    await new Promise<void>(resolve=>setImmediate(resolve))
+    assert.equal(f.controller.getSnapshot().noteId,right)
+    assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[left,right])
+    // A restored note can be opened again, then a batch removes it and its right neighbor.
+    const old=f.notes.get(middle)!
+    f.notes.set(middle,{...old,current:{...old.current,status:'active'}})
+    await f.tabs.select(middle)
+    await f.tabs.select(right)
+    assert.equal(await f.controller.batch([right,middle].map(noteId=>({noteId,expectedHeads:f.notes.get(noteId)!.heads})),'purge'),true)
+    await new Promise<void>(resolve=>setImmediate(resolve))
+    assert.equal(f.controller.getSnapshot().noteId,left)
+    assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[left])
+    assert.ok(await f.controller.changeStatus(true))
+    assert.equal(f.controller.getSnapshot().noteId,null)
+    assert.deepEqual(f.tabs.getSnapshot(),[])
+  } finally {f.dispose()}
+})
+
+test('overview startup loads metadata and leaves both prior and recovered notes unselected', async () => {
+  const f=fixture(true)
+  try {
+    await f.controller.initialize(f.ids[2]!)
+    assert.equal(f.controller.getSnapshot().noteId,null)
+    assert.deepEqual(f.reads,[])
+    assert.equal(f.controller.getSnapshot().overview?.modified[0]?.noteId,f.ids[0])
+  } finally {f.dispose()}
 })

@@ -157,12 +157,14 @@ export declare class NotesApplication {
     backlinks(input: unknown, signal?: AbortSignal): Promise<{
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;
+        overview?: import("../contracts/notes.js").NoteOverview;
         total: number;
         ok: true;
     }>;
     list(input: unknown, signal?: AbortSignal): Promise<{
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;
+        overview?: import("../contracts/notes.js").NoteOverview;
         ok: true;
     }>;
     associate(input: unknown, signal?: AbortSignal): Promise<{

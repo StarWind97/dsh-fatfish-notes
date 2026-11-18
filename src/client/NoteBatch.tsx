@@ -11,7 +11,7 @@ export function useNoteSelection(controller:NotesController,state:NotesState,t:T
   const [selecting,setSelecting]=useState(false),[selected,setSelected]=useState<NoteListItem[]>([])
   const [confirm,setConfirm]=useState<{notes:NoteSelection[];purge:boolean}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('')
   const [undo,setUndo]=useState<NoteSelection[]>([])
-  useEffect(()=>setUndo([]),[state.filter,state.section,state.noteId])
+  useEffect(()=>setUndo([]),[state.section,controller.libraryEpoch])
   const [organize,setOrganize]=useState<'move'|'add-tags'|'remove-tags'|null>(null),[book,setBook]=useState(''),[tags,setTags]=useState('')
   useEffect(()=>{setSelected([]);setSelecting(false)},[state.filter,state.section])
   function toggle(item:NoteListItem){setSelected(items=>items.some(n=>n.noteId===item.noteId)?items.filter(n=>n.noteId!==item.noteId):[...items,item])}

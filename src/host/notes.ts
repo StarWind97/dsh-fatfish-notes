@@ -118,6 +118,10 @@ export class NotesApplication {
     if (v.query !== undefined) options.query = text(v.query, 12_000)
     for(const key of ['favorite','templates'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
     if(v.recentIds!==undefined){if(!Array.isArray(v.recentIds)||v.recentIds.length>100)throw new NotebookError('note_schema','访问记录无效');options.recentIds=v.recentIds.map(id)}
+    if(v.overviewRecentIds!==undefined){
+      if(!Array.isArray(v.overviewRecentIds)||v.overviewRecentIds.length>50)throw new NotebookError('note_schema','访问记录无效')
+      options.overviewRecentIds=v.overviewRecentIds.map(id)
+    }
     if (v.tag !== undefined) options.tag = text(v.tag, 200)
     if(v.order!==undefined){if(!['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(String(v.order)))throw new NotebookError('note_schema','排序无效');options.order=v.order as NonNullable<NoteListOptions['order']>}
     if (v.notebookId !== undefined) options.notebookId = v.notebookId === null || v.notebookId === 'null' ? null : id(v.notebookId)

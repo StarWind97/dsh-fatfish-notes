@@ -3,7 +3,7 @@ import {Supplements} from './NoteAttachments.js'
 import {supplementMaterials} from '../notes/note-materials.js'
 import {useAppearance} from './paper/appearance.js'
 import {MaterialsPanel,MaterialsToggle} from './paper/MaterialsPanel.js'
-import {TransientNotice} from './TransientNotice.js'
+import type {NoteSelection} from '../contracts/notes.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import {DocumentTools} from './paper/DocumentTools.js'
 import {readingKey} from './paper/reading-keys.js'
@@ -26,7 +26,7 @@ import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
 import type {ImagePresentation} from './paper/image-presentation.js'
 
-export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,referenceAction,onDownloadNotice}:{onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
+export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,onTrashed,referenceAction,onDownloadNotice}:{onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;onTrashed:(note:NoteSelection)=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read',materialsId=useId()
   const appearance=useAppearance(),[materialsOpen,setMaterialsOpen]=useState(appearance.pinned),[referenceCount,setReferenceCount]=useState<number|null>(null),[supplementTarget,setSupplementTarget]=useState<HTMLDivElement|null>(null)
   const materialSet=state.draft?supplementMaterials(state.draft):null,materialCount=(materialSet?.assetIds.length??0)+(materialSet?.attachmentIds.length??0)
@@ -42,9 +42,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
   const [allTags,setAllTags]=useState(false)
   const root=useRef<HTMLElement>(null),anchor=useRef<{pos:number;y:number}|null>(null)
   const [sourceOpen,setSourceOpen]=useState(false),[sourceVisited,setSourceVisited]=useState(false)
-  const [moved,setMoved]=useState(false)
   const [cancelOpen,setCancelOpen]=useState(false)
-  useEffect(()=>setMoved(false),[state.section,state.filter,state.noteId])
   const scroll=useRef({body:0,source:0}), switching=useRef(false)
   const complete=useRef<(()=>void)|null>(null)
   const writing=useRef<WritingNavigation|null>(null)
@@ -108,9 +106,12 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     switching.current=true;setSourceOpen(next);setPanel(null)
   }
   async function move(trashed:boolean) {
-    if(await controller.changeStatus(trashed)) {
-      setMoved(trashed);setPanel(null)
-      if(!trashed && state.filter.status==='trashed')await controller.selectFilter({order:state.filter.order??'recent'})
+    const note = await controller.changeStatus(trashed)
+    if (!note) return
+    if (trashed) onTrashed({noteId:note.noteId, expectedHeads:note.heads})
+    else {
+      setPanel(null)
+      if(state.filter.status==='trashed')await controller.selectFilter({order:state.filter.order??'recent'})
     }
   }
   const actions:NoteAction[]=[]
@@ -159,7 +160,6 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
         </form></div>{editable&&<TagSuggestions value={tag} selected={draft.tags} choose={value=>{controller.update({tags:[...new Set([...draft.tags,value])]});setTag('')}} t={t}/>}</div>
     </aside>}
     {mode==='edit'?<section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/></label></section>:<ReadingSummary summary={draft.summary} t={t} query={state.filter.query}/>}
-    {moved&&draft.status==='trashed'&&<TransientNotice identity={state.noteId??'moved'} message={t('paperMoved')} close={()=>setMoved(false)} busy={state.operation} paused={!!state.error} action={()=>void move(false)}/>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
     {state.error&&<p role="alert" style={s.error}>{t(state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}

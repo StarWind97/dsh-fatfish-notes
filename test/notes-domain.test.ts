@@ -14,6 +14,24 @@ const otherId = '01ARZ3NDEKTSV4RRFFQ69G5FAW'
 const content: NoteContent = { title: '同步样例', body: '原文', summary: '', tags: [], notebookId: null, status: 'active', sourceId: null, assetIds: [] }
 const revision = (parents: string[] = [], body = '原文', patch: Partial<NoteRevision> = {}): NoteRevision => createNoteRevision({ version: 1, noteId, parents, recordedAt: '2026-11-01T00:00:00.000Z', ...content, body, ...patch })
 
+test('overview is bounded and ignores list filters, pagination and pin priority', () => {
+  const views = Array.from({length:20}, (_, i) => {
+    const key = '01ARZ3NDEKTSV4RRFFQ69G5'+String(i).padStart(3,'0')
+    const row = revision([], '正文', {
+      noteId:key, title:String(i), recordedAt:new Date(1793500000000+i*1000).toISOString(),
+      status:i===19 ? 'trashed' : 'active',
+    })
+    return {...materializeNote([row],key), pinned:i===0}
+  })
+  const recent = [views[19]!.noteId, ...views.slice(0,18).map(row=>row.noteId), views[0]!.noteId]
+  const result = searchNotes(views, {query:'does not match', order:'oldest', limit:1, overviewRecentIds:recent})
+  assert.deepEqual(result.items, [])
+  assert.deepEqual(result.overview?.opened.map(item=>item.title), Array.from({length:15}, (_, i)=>String(i)))
+  assert.deepEqual(result.overview?.modified.map(item=>item.title), Array.from({length:15}, (_, i)=>String(18-i)))
+  assert.deepEqual(Object.keys(result.overview!.opened[0]!).sort(), ['noteId','notebookId','savedAt','title'])
+  assert.equal(searchNotes(views).overview, undefined)
+})
+
 test('both modification-time orders paginate the entire filtered list consistently',()=>{
   const views = Array.from({length:103},(_,i)=>{
     const key = '01ARZ3NDEKTSV4RRFFQ69G5'+String(i).padStart(3,'0')

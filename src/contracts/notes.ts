@@ -40,8 +40,11 @@ export interface NoteListItem {
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
 export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title-asc'|'title-desc'
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
-export interface NoteListResult { items: NoteListItem[]; cursor: string | null }
+export const NOTE_OVERVIEW_LIMIT = 15
+export interface NoteOverviewItem { noteId: string; title: string; notebookId: string | null; savedAt: string }
+export interface NoteOverview { opened: NoteOverviewItem[]; modified: NoteOverviewItem[] }
+export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
+export interface NoteListResult { items: NoteListItem[]; cursor: string | null; overview?: NoteOverview }
 export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
 export interface NoteHistoryItem { revision: string; recordedAt: string; title: string; summary: string; status: NoteStatus }

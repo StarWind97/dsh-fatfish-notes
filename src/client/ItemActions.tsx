@@ -19,7 +19,7 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
   const [exporting,setExporting]=useState<{note:NoteView;repository:number|undefined;readingElement:HTMLElement|null;allTags:boolean}|null>(null),[exportBook,setExportBook]=useState<string|null>(null),[undo,setUndo]=useState<NoteSelection|null>(null)
   const [downloadStarted,setDownloadStarted]=useState(false)
   const duplicate=edit?.kind==='book-rename'&&!!sameNamedNotebook(state.notebooks,value,edit.book.notebookId)
-  useEffect(()=>{setUndo(null)},[state.section,state.filter,state.noteId])
+  useEffect(()=>{setUndo(null)},[state.section,controller.libraryEpoch])
   function begin(next:Edit,text=''){setEdit(next);setValue(text);setError('');setConfirmed(false)}
   async function run(work:()=>Promise<boolean>){setBusy(true);setError('');try{if(await work()){setEdit(null);return true}setError(controller.getSnapshot().error==='notebook_name_taken'?NOTEBOOK_NAME_TAKEN:operationError(controller,t));return false}catch{setError(t('sessionOperationFailed'));return false}finally{setBusy(false)}}
   async function trash(note:NoteListItem,purge:boolean){const ok=await run(()=>controller.batch([{noteId:note.noteId,expectedHeads:note.heads}],purge?'purge':'trash'));if(ok&&!purge){const latest=await controller.api('/notes/get',{noteId:note.noteId});setUndo({noteId:note.noteId,expectedHeads:latest.note.heads})}}
@@ -69,5 +69,5 @@ export function useItemActions(controller:NotesController,state:NotesState,t:T,o
     {downloadStarted&&<TransientNotice identity="export-started" message={t('notesDownloadStarted')} milliseconds={5000} close={()=>setDownloadStarted(false)}/>}
     {undo&&<TransientNotice identity={undo.noteId+undo.expectedHeads.join()} message={error||t('paperMoved')} close={()=>setUndo(null)} busy={busy} paused={!!error} action={()=>void run(()=>controller.batch([undo],'restore')).then(ok=>{if(ok)setUndo(null)})}/>}
   </>
-  return {noteActions,bookActions,dialogs,exportBook:(id:string)=>setExportBook(id),setDownloadNotice:setDownloadStarted}
+  return {noteActions,bookActions,dialogs,exportBook:(id:string)=>setExportBook(id),setDownloadNotice:setDownloadStarted,offerUndo:setUndo}
 }

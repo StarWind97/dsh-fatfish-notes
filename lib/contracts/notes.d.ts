@@ -108,6 +108,17 @@ export interface NoteListItem {
     conflicted: boolean;
 }
 export type NoteOrder = 'recent' | 'oldest' | 'created-recent' | 'created-oldest' | 'title-asc' | 'title-desc';
+export declare const NOTE_OVERVIEW_LIMIT = 15;
+export interface NoteOverviewItem {
+    noteId: string;
+    title: string;
+    notebookId: string | null;
+    savedAt: string;
+}
+export interface NoteOverview {
+    opened: NoteOverviewItem[];
+    modified: NoteOverviewItem[];
+}
 export interface NoteListOptions {
     cursor?: string;
     limit?: number;
@@ -119,12 +130,14 @@ export interface NoteListOptions {
     favorite?: boolean;
     templates?: boolean;
     recentIds?: string[];
+    overviewRecentIds?: string[];
     sessionId?: string;
     relation?: 'source' | 'linked' | 'browse';
 }
 export interface NoteListResult {
     items: NoteListItem[];
     cursor: string | null;
+    overview?: NoteOverview;
 }
 export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy';
 export interface NoteManageRequest {
