@@ -24,10 +24,10 @@
 
 ## 写笔记与找笔记
 
-![肥鱼笔记主界面实拍。左侧是笔记列表和搜索框，列表顶端的铅笔方框用于新建。右侧阅读区上方有编辑按钮，正文标题下的标签可用来筛选列表。](images/user-guide/workspace-map.png)
+- **写笔记**　点「新建笔记」，或在已有笔记上点「编辑」。
+- **找笔记**　输入记得的词或附件名，例如 `配图提示词.md`。结果太多时，点搜索框旁的「筛选笔记」，加上标签或「含文件附件」。点带正文片段的结果，可直接跳到原句。
 
-- **开始写**　概览点「新建笔记」，或者点列表顶部的方框铅笔。已有笔记点正文上方的「编辑」。
-- **找回来**　概览能打开「最近打开」和「最近修改」。也可以搜索标题、摘要或正文，或点正文标题下方的标签来筛选列表。
+![输入配图提示词.md，在筛选笔记中勾选含文件附件。结果下方标出了匹配的附件名。](images/user-guide/workspace-map.png)
 
 ## 首次设置
 
@@ -74,4 +74,4 @@
 
 [图片与附件](user-guide-reference.zh.md#图片正文文件与补充附件) · [导入与整库导出](user-guide-reference.zh.md#导入整库导出与附件) · [笔记本管理](user-guide-reference.zh.md#笔记本管理) · [回收站](user-guide-reference.zh.md#多选和清空回收站) · [会话侧栏设置](user-guide-reference.zh.md#工作区笔记本设置与取消操作)
 
-适用版本 **0.9.2**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.9.2/release-notes.md)。
+适用版本 **0.9.3**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.9.3/release-notes.md)。

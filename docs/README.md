@@ -2,6 +2,7 @@
 
 ## 当前状态
 
+- 2026-11-19 [新版发布准备与 DSH rc.5 兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)已完成。正式 0.9.2 及新版候选通过 rc.5 隔离验收，候选已验证 Windows Desktop 与 Web 双向保存、真实会话转存、重启读回及 413 项全量回归。候选包暂用 0.9.3，市场固定名切换已演练，两处用户文档方案和正式发布待确认。
 - 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)已进入隔离体验。支持先搜索或先选笔记本、同一面板浏览所有标签、按附件名查找和原句定位。rc.4 Web、rc.3 Windows Desktop 主界面及独立窗口已验收，正式发布待确认。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 - [图解使用说明](user-guide.zh.md)优先展示会话顶部小鱼、回答下方的保存按钮和侧栏引用，包含七张实拍标注与流程图。[详细操作参考](user-guide-reference.zh.md)按需查阅。[改造记录与验证](plans/2026-11-18-visual-user-guide.zh.md#实施与验收)。
@@ -14,7 +15,7 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
-| 暂无登记 |  |  |
+| [0.9.3 正式发布](plans/2026-11-19-release-rc5-preflight.zh.md#093-正式发布已批准) | 主目录 `main`。版本、随包手册、在线说明、发布包与商店下载入口 | 414 项全量、三种宿主组合和简明说明已验，进入公开发布及商店切换。 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 

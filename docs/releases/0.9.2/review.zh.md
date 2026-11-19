@@ -18,4 +18,8 @@
 
 ## 插件市场
 
-[市场更新 PR #16568](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16568) 已提交。远端差异只改 `data/plugins/StarWind97__dsh-fatfish-notes.yml` 的 tarball 一行，保留维护者的条目原文与安装前提。复核时 PR 打开、可合并，`check` 正运行，尚待维护者合并。此时上游实际条目仍指向 0.9.1。
+[市场更新 PR #16568](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16568) 于北京时间 2026-11-19 00:59:21 合并。远端差异只改 `data/plugins/StarWind97__dsh-fatfish-notes.yml` 的 `tarball` 一行。合并后主分支与网页目录已指向 0.9.2，当日首次排查时 npm 官方和国内镜像的目录仍指向 0.9.1。后续固定文件名切换见[新版发布准备](../../plans/2026-11-19-release-rc5-preflight.zh.md)。
+
+## 2026-11-19 补验
+
+用同一公开包在官方 rc.5 Windows Desktop 安装并实际打开主界面、独立窗口和会话侧栏。已有笔记、保存后独立窗口刷新和指定私库同步通过，远端确认收到新修订。官方 rc.5 Windows 包的 Web 模式也通过真实隔离安装、登录和跨端读回。rc.4 Windows Desktop 继续保留待验。[新版准备与证据](../../plans/2026-11-19-release-rc5-preflight.zh.md#实施记录)

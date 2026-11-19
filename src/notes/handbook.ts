@@ -11,8 +11,9 @@ import type { SyncResource } from './sync-resources.js'
 
 export interface InitialNotes { objects: NoteObjects; files: Map<string, Buffer> }
 export type InitialNotesProvider = (local: NoteObjects, remote: NoteObjects) => Promise<InitialNotes | undefined>
+const handbookContentVersion = 3
 const chapters = [
-  ['welcome','v2/01-welcome.md','01 开始使用','创建、查找与整理，让常用内容随手可得。'],
+  ['welcome','v3/01-welcome.md','01 开始使用','创建、查找与整理，让常用内容随手可得。'],
   ['materials','v2/02-materials.md','02 资料与交付','添加图片和文件，转存会话，选择合适的导出形式。'],
   ['deliver','v2/03-deliver.md','03 保存与注意事项','分清草稿、正式保存和同步，按自己的习惯阅读。'],
 ] as const
@@ -20,7 +21,7 @@ const legacyKeys=['welcome','write','materials','capture','find','deliver']
 const root = new URL('../../assets/handbook/', import.meta.url)
 const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 /** Stable identities are independent of titles, installation date and device. */
-export function handbookId(generation: number, key: string,version=2): string {
+export function handbookId(generation: number, key: string,version=handbookContentVersion): string {
   let value=BigInt('0x'+digest(`fatfish-user-handbook/${version}/${generation}/${key}`).slice(0,32)),result=''
   for(let at=0;at<26;at++){result=alphabet[Number(value&31n)]+result;value>>=5n}
   return result
@@ -52,7 +53,7 @@ export async function handbookBundle(generation=0,title='用户手册'):Promise<
 }
 export const initialHandbook:InitialNotesProvider=async(local,remote)=>pristineNotes(local)&&pristineNotes(remote)?handbookBundle():undefined
 
-function generations(objects:NoteObjects,version=2):number[]{
+function generations(objects:NoteObjects,version=handbookContentVersion):number[]{
   const books=new Set(objects.notebooks.map(b=>b.notebookId)),found:number[]=[]
   // Generations are contiguous; notebook revisions survive notebook removal and note purge.
   for(let n=0;books.has(handbookId(n,'book',version));n++)found.push(n)
@@ -61,7 +62,7 @@ function generations(objects:NoteObjects,version=2):number[]{
 export function existingHandbook(objects:NoteObjects):string|null {
   const rows=new Map<string,typeof objects.revisions>()
   for(const row of objects.revisions){const list=rows.get(row.noteId)??[];list.push(row);rows.set(row.noteId,list)}
-  for(const version of [2,1])for(const n of generations(objects,version).reverse())for(const key of version===2?chapters.map(row=>row[0]):legacyKeys){
+  for(const version of [handbookContentVersion,2,1])for(const n of generations(objects,version).reverse())for(const key of version===1?legacyKeys:chapters.map(row=>row[0])){
     const id=handbookId(n,key,version),revisions=rows.get(id)
     if(!objects.deleted?.includes(id)&&revisions&&materializeNote(revisions,id).current.status==='active')return id
   }
