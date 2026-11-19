@@ -116,14 +116,18 @@ export class NotesApplication {
     if (v.cursor !== undefined) options.cursor = id(v.cursor)
     if (v.limit !== undefined) options.limit = Number(v.limit)
     if (v.query !== undefined) options.query = text(v.query, 12_000)
-    for(const key of ['favorite','templates'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
+    for(const key of ['favorite','templates','hasFiles'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
+    if (v.modifiedPeriod !== undefined) {
+      if (v.modifiedPeriod !== 'month' && v.modifiedPeriod !== 'before-month') throw new NotebookError('note_schema','修改时间筛选无效')
+      options.modifiedPeriod = v.modifiedPeriod
+    }
     if(v.recentIds!==undefined){if(!Array.isArray(v.recentIds)||v.recentIds.length>100)throw new NotebookError('note_schema','访问记录无效');options.recentIds=v.recentIds.map(id)}
     if(v.overviewRecentIds!==undefined){
       if(!Array.isArray(v.overviewRecentIds)||v.overviewRecentIds.length>50)throw new NotebookError('note_schema','访问记录无效')
       options.overviewRecentIds=v.overviewRecentIds.map(id)
     }
     if (v.tag !== undefined) options.tag = text(v.tag, 200)
-    if(v.order!==undefined){if(!['recent','oldest','created-recent','created-oldest','title-asc','title-desc'].includes(String(v.order)))throw new NotebookError('note_schema','排序无效');options.order=v.order as NonNullable<NoteListOptions['order']>}
+    if(v.order!==undefined){if(!['recent','oldest','created-recent','created-oldest','title-asc','title-desc','relevance'].includes(String(v.order)))throw new NotebookError('note_schema','排序无效');options.order=v.order as NonNullable<NoteListOptions['order']>}
     if (v.notebookId !== undefined) options.notebookId = v.notebookId === null || v.notebookId === 'null' ? null : id(v.notebookId)
     if (v.status !== undefined) { if (!['active','trashed','all'].includes(String(v.status))) throw new NotebookError('note_schema','笔记筛选不正确'); options.status = v.status as NoteListOptions['status'] & string }
     return { ok: true as const, ...await this.repository.list(options, active) }

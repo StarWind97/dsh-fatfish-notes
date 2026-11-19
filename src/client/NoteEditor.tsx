@@ -12,7 +12,7 @@ import * as React from 'react'
 import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react'
 import { Notebook, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, Trash2, Star, History, Copy, Pin, PinOff, Search, Plus } from 'lucide-react'
 import {Backlinks,Highlight,HistoryDialog,TagSuggestions} from './NoteTools.js'
-import type { NoteView } from '../contracts/notes.js'
+import type { NoteView, SearchHit } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { noteDateTime } from '../notes/date.js'
 import {NoteSource} from './NoteSource.js'
@@ -26,7 +26,7 @@ import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
 import type {ImagePresentation} from './paper/image-presentation.js'
 
-export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,onTrashed,referenceAction,onDownloadNotice}:{onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;onTrashed:(note:NoteSelection)=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
+export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,onTrashed,referenceAction,onDownloadNotice}:{jump?:{noteId:string;query:string;hit:SearchHit}|null;finishJump?:()=>void;onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;onTrashed:(note:NoteSelection)=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read',materialsId=useId()
   const appearance=useAppearance(),[materialsOpen,setMaterialsOpen]=useState(appearance.pinned),[referenceCount,setReferenceCount]=useState<number|null>(null),[supplementTarget,setSupplementTarget]=useState<HTMLDivElement|null>(null)
   const materialSet=state.draft?supplementMaterials(state.draft):null,materialCount=(materialSet?.assetIds.length??0)+(materialSet?.attachmentIds.length??0)
@@ -53,7 +53,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
   useLayoutEffect(()=>{
     if(state.editing||state.loadingNote)return
     const active=document.activeElement as HTMLElement|null
-    if(active?.closest('input,textarea,select,[contenteditable=true],dialog,[role=menu]'))return
+    if(active?.closest('input,textarea,select,[contenteditable=true],dialog,[role=menu],.paper-search-filter-panel,.paper-search button'))return
     root.current?.closest<HTMLElement>('.paper-pane')?.focus({preventScroll:true})
   },[state.noteId,state.loadingNote,state.editing,sourceOpen])
   useLayoutEffect(()=>{
@@ -74,6 +74,27 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     if(pane && block)pane.scrollTop+=block.getBoundingClientRect().top-point.y
     anchor.current=null
   },[mode])
+  useLayoutEffect(()=>{
+    if(!jump)return
+    if(jump.noteId!==state.noteId||state.editing||jump.query!==state.filter.query||!note){finishJump?.();return}
+    if(sourceOpen){setSourceOpen(false);return}
+    const frame=requestAnimationFrame(()=>{
+      const pane=root.current?.closest<HTMLElement>('.paper-pane')
+      const {revision,bodyOffset,alternate}=jump.hit
+      let target:HTMLElement|null|undefined
+      if(alternate){
+        const version=Array.from(pane?.querySelectorAll<HTMLDetailsElement>('details[data-revision]')??[]).find(el=>el.dataset.revision===revision)
+        if(version){version.open=true;target=version}
+      }else if(revision===note.current.revision&&bodyOffset!==undefined){
+        const blocks=Array.from(pane?.querySelectorAll<HTMLElement>('.paper-reading [data-md-pos]')??[])
+        const block=blocks.reverse().find(el=>Number(el.dataset.mdPos)<=bodyOffset)
+        target=block?.querySelector<HTMLElement>('mark')??block
+      }
+      if(pane&&target)pane.scrollTop+=target.getBoundingClientRect().top-pane.getBoundingClientRect().top-pane.clientHeight*.28
+      finishJump?.()
+    })
+    return ()=>cancelAnimationFrame(frame)
+  },[jump,finishJump,state.noteId,state.editing,state.filter.query,note,sourceOpen])
   if(!draft)return null
   const editable=draft.status==='active'&&!state.loadingNote&&!state.operation&&(!state.editing||controller.writable)
   const status=state.error&&state.error!=='note_unsaved'?'notesSaveFailed':state.saving?'notesSaving':state.dirty?'notesPending':'paperDraftSaved'
@@ -162,7 +183,7 @@ export function NoteEditor({controller,state,t,onTagClick,outlineSession,onNoteL
     {mode==='edit'?<section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/></label></section>:<ReadingSummary summary={draft.summary} t={t} query={state.filter.query}/>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
     {state.error&&<p role="alert" style={s.error}>{t(state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
-    {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}
+    {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision} data-revision={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}
     {mode==='edit'&&draft.status==='active'?<PaperWriting supplementTarget={supplementTarget} controller={controller} state={state} t={t} start={anchor.current?.pos??0} anchorY={anchor.current?.y} undo={undo} complete={complete} navigation={writing} presentation={presentation} presentationHandled={()=>setPresentation(null)} done={(pos,y)=>void finish(pos,y)}/>
       :<article className="paper-reading">
       {state.filter.query&&<button className="paper-search-jump" onClick={nextHit}><Search size={14}/>{t('findNextMatch')}</button>}

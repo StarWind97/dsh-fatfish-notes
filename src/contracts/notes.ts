@@ -32,18 +32,25 @@ export interface NoteView {
 export interface NoteSaveInput { noteId?: string; expectedHeads: string[]; content: NoteContent }
 export type NoteDraftRequest = {action:'save'|'finish';editId:string;sequence:number;request:NoteSaveInput & {noteId:string}} | {action:'discard';editId:string;noteId:string}
 export interface NoteDraftResult {ok:true;state:'editing'|'finished'|'discarded';note:NoteView|null}
+export interface SearchHit {
+  field: 'title' | 'file' | 'tag' | 'summary' | 'body'
+  revision: string
+  bodyOffset?: number
+  alternate?: boolean
+}
 export interface NoteListItem {
+  hit?: SearchHit
   sessionRelation?: 'source' | 'manual' | null
   excerpt?: string
   favorite?: boolean; isTemplate?: boolean; pinned?:boolean; createdAt?:string
   noteId: string; heads: string[]; title: string; summary: string; tags: string[]
   notebookId: string | null; status: NoteStatus; savedAt: string; conflicted: boolean
 }
-export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title-asc'|'title-desc'
+export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title-asc'|'title-desc'|'relevance'
 export const NOTE_OVERVIEW_LIMIT = 15
 export interface NoteOverviewItem { noteId: string; title: string; notebookId: string | null; savedAt: string }
 export interface NoteOverview { opened: NoteOverviewItem[]; modified: NoteOverviewItem[] }
-export interface NoteListOptions { cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
+export interface NoteListOptions { modifiedPeriod?: 'month' | 'before-month'; hasFiles?: boolean; cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
 export interface NoteListResult { items: NoteListItem[]; cursor: string | null; overview?: NoteOverview }
 export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }

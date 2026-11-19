@@ -2,6 +2,7 @@
 
 ## 当前状态
 
+- 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)已进入隔离体验。支持先搜索或先选笔记本、同一面板浏览所有标签、按附件名查找和原句定位。rc.4 Web、rc.3 Windows Desktop 主界面及独立窗口已验收，正式发布待确认。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 - [图解使用说明](user-guide.zh.md)优先展示会话顶部小鱼、回答下方的保存按钮和侧栏引用，包含七张实拍标注与流程图。[详细操作参考](user-guide-reference.zh.md)按需查阅。[改造记录与验证](plans/2026-11-18-visual-user-guide.zh.md#实施与验收)。
 - [概览界面精修](plans/2026-11-18-overview-polish.zh.md)已进入隔离体验。原版鱼形与中文标准字沿用尺寸规则，两组最近笔记宽窗并列、窄窗纵排，按标签查找使用原有列表筛选和正文标签入口。81 项专项、rc.3 Windows Desktop、独立窗及 rc.4 Web 通过。四字入口「使用说明」另经[文案专项验证](plans/2026-11-18-overview-polish.zh.md#文案微调)。

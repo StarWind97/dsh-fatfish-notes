@@ -90,7 +90,14 @@ export interface NoteDraftResult {
     state: 'editing' | 'finished' | 'discarded';
     note: NoteView | null;
 }
+export interface SearchHit {
+    field: 'title' | 'file' | 'tag' | 'summary' | 'body';
+    revision: string;
+    bodyOffset?: number;
+    alternate?: boolean;
+}
 export interface NoteListItem {
+    hit?: SearchHit;
     sessionRelation?: 'source' | 'manual' | null;
     excerpt?: string;
     favorite?: boolean;
@@ -107,7 +114,7 @@ export interface NoteListItem {
     savedAt: string;
     conflicted: boolean;
 }
-export type NoteOrder = 'recent' | 'oldest' | 'created-recent' | 'created-oldest' | 'title-asc' | 'title-desc';
+export type NoteOrder = 'recent' | 'oldest' | 'created-recent' | 'created-oldest' | 'title-asc' | 'title-desc' | 'relevance';
 export declare const NOTE_OVERVIEW_LIMIT = 15;
 export interface NoteOverviewItem {
     noteId: string;
@@ -120,6 +127,8 @@ export interface NoteOverview {
     modified: NoteOverviewItem[];
 }
 export interface NoteListOptions {
+    modifiedPeriod?: 'month' | 'before-month';
+    hasFiles?: boolean;
     cursor?: string;
     limit?: number;
     query?: string;

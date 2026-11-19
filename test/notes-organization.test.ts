@@ -43,6 +43,37 @@ test('multiword search prioritizes titles, paginates ranked matches and finds di
   assert.equal(searchNotes(rows,{query:'月面 附加词'}).items.length,1)
   assert.deepEqual(searchNotes(rows,{recentIds:[rows[4]!.noteId,rows[1]!.noteId]}).items.map(n=>n.noteId),[rows[4]!.noteId,rows[1]!.noteId])
 })
+test('local search ranks filenames, titles and matching paragraphs and intersects optional filters',()=>{
+  const now = new Date()
+  const currentMonth = new Date(now.getFullYear(),now.getMonth(),1).toISOString()
+  const previousMonth = new Date(Date.parse(currentMonth)-1).toISOString()
+  const file = {name:'月面 观测.pdf',id:'b'.repeat(64),bytes:20}
+  const row = (noteId:string, at:string, patch:Partial<NoteContent>) => materializeNote([
+    createNoteRevision({version:1,noteId,parents:[],recordedAt:at,...content,...patch})
+  ],noteId)
+  const together = '前文月面\n\n另一个段落\n\n真正的月面 观测记录'
+  const rows = [row(a,previousMonth,{body:'月面\n\n观测'}),row(b,currentMonth,{body:together}),
+    row(c,currentMonth,{attachments:[file],favorite:true}),row(d,currentMonth,{title:'月面 观测'})]
+  const result = searchNotes(rows,{query:'月面 观测'})
+  assert.deepEqual(result.items.map(item=>item.noteId),[d,c,b,a])
+  assert.equal(result.items[1]?.hit?.field,'file')
+  assert.equal(result.items[1]?.excerpt,file.name)
+  assert.equal(result.items[2]?.hit?.bodyOffset,together.lastIndexOf('月面'))
+  assert.match(result.items[2]!.excerpt!,/真正的月面 观测/)
+  assert.deepEqual(searchNotes(rows,{modifiedPeriod:'month',tag:'保留',hasFiles:true,query:'观测.pdf',favorite:true}).items.map(item=>item.noteId),[c])
+  assert.deepEqual(searchNotes(rows,{modifiedPeriod:'before-month',query:'月面 观测',order:'oldest'}).items.map(item=>item.noteId),[a])
+  assert.equal(searchNotes(rows,{query:'月面',order:'oldest'}).items[0]?.noteId,a)
+  assert.equal(searchNotes(rows,{query:'月面',tag:'其他',hasFiles:true}).items.length,0)
+  const alternate=row(a,currentMonth,{title:'其他版本',body:'保留这句旁注',tags:['旧标签']}).current
+  const conflict={...rows[0]!,heads:[rows[0]!.current.revision,alternate.revision],conflicts:[alternate]}
+  const alternateResult=searchNotes([conflict],{tag:'旧标签',query:'旁注'})
+  assert.equal(alternateResult.items.length,1)
+  assert.deepEqual(alternateResult.items[0]!.hit,{field:'body',revision:alternate.revision,alternate:true,bodyOffset:4})
+  assert.match(alternateResult.items[0]!.excerpt!,/旁注/)
+  assert.equal(validNotesResponse('/notes',{ok:true,...alternateResult}),true)
+  assert.equal(validNotesResponse('/notes',{ok:true,cursor:null,items:[{...alternateResult.items[0],hit:{field:'body',revision:file.id}}]}),false)
+  assert.equal(searchNotes([conflict],{tag:'旧标签',query:'月面'}).items.length,0)
+})
 test('favorites survive immutable synchronization, editing and filtering without modifying original material',async t=>{
   const {repo}=await fixture(t),other=(await fixture(t)).repo
   let note=await repo.save({noteId:a,expectedHeads:[],content})

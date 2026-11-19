@@ -43,6 +43,12 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if (path === '/notes/revision') return note(value.note)
   if (path === '/notes/image') return record(value.asset) && typeof value.asset.id === 'string' && /^[a-f0-9]{64}\.(?:png|jpg|gif|webp)$/.test(value.asset.id) && Number.isSafeInteger(value.asset.bytes) && Number(value.asset.bytes)>0 && (value.asset.preview===undefined || typeof value.asset.preview==='string' && /^data:image\/(?:png|jpeg|webp|gif);base64,/.test(value.asset.preview))
   if (['/notes/get','/notes/save','/notes/trash','/notes/restore','/notes/resolve'].includes(path)) return note(value.note)
+  if (path === '/notes' && Array.isArray(value.items) && !value.items.every(row => {
+    if (!record(row) || row.hit === undefined) return true
+    const h=row.hit
+    return record(h) && ['title','file','tag','summary','body'].includes(String(h.field)) && hash(h.revision) && strings(row.heads) && row.heads.includes(String(h.revision)) &&
+      (h.bodyOffset === undefined || Number.isSafeInteger(h.bodyOffset) && Number(h.bodyOffset)>=0) && (h.alternate === undefined || typeof h.alternate === 'boolean')
+  })) return false
   if (path === '/notes') return Array.isArray(value.items) && value.items.length <= 100 && value.items.every(v => record(v) && id(v.noteId) && strings(v.heads) && v.heads.every(hash) && typeof v.title === 'string' && typeof v.summary === 'string' && strings(v.tags) && (v.notebookId === null || id(v.notebookId)) && ['active','trashed'].includes(String(v.status)) && typeof v.savedAt === 'string' && typeof v.conflicted === 'boolean' && (v.sessionRelation===undefined || v.sessionRelation===null || ['source','manual'].includes(String(v.sessionRelation)))) && (value.cursor === null || id(value.cursor)) &&
     (value.overview === undefined || record(value.overview) && overviewItems(value.overview.opened) && overviewItems(value.overview.modified))
   if (path === '/notes/notebooks' || path === '/notes/notebook' || path === '/notes/book-order') return Array.isArray(value.notebooks) && value.notebooks.every(v => record(v) && id(v.notebookId) && strings(v.heads) && v.heads.every(hash) && record(v.current) && v.current.notebookId === v.notebookId && typeof v.current.title === 'string' && ['active','trashed'].includes(String(v.current.status)) && Array.isArray(v.conflicts) && typeof v.isDefault === 'boolean' && Number.isSafeInteger(v.noteCount) && Number(v.noteCount) >= 0)

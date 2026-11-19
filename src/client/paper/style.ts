@@ -185,5 +185,16 @@ export const paperCss = `
 @container paper (max-width:750px){.paper-backup{max-width:100px}.paper-top{gap:8px}.paper-top nav{gap:4px}.paper-list{padding:15px 6px 0 10px}.paper-pane{padding:var(--paper-top-gap) 18px 18px}}
 @container paper (width < 560px){.paper-top{flex-wrap:wrap;padding:5px 10px;min-height:46px}.paper-top>strong{font-size:14px}.paper-backup{display:none}.paper-backup:has([data-attention=true]){display:block;flex-basis:100%;max-width:none}.paper-top nav button{font-size:12px}.paper-top .paper-width button{font-size:11px}.paper-split{display:flex}.paper-list,.paper-detail{width:100%}.paper-divider,.paper-split[data-selected=true] .paper-list,.paper-split[data-selected=false] .paper-detail{display:none}.paper-doc-head .paper-back{display:inline-flex}.paper-title-input{font-size:30px}.paper-actions .paper-attach{padding-inline:4px}}
 .paper-app .paper-document .paper-pane{padding-right:40px}
+.paper-search-filter-panel{display:grid;gap:8px;max-height:clamp(150px,40vh,380px);overflow:auto;scrollbar-width:thin;margin-top:9px;padding:10px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;color:var(--ink);font-size:12px}
+.paper-search-filter-panel header,.paper-tag-heading,.paper-filter-options>label{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.paper-search-filter-panel header>button,.paper-tag-heading button{display:inline-flex;align-items:center;gap:3px;color:var(--ink);font-size:12px}
+.paper-tag-heading,.paper-search-filter-panel small{color:var(--muted)}
+.paper-search-filter-panel>input,.paper-search-filter-panel select{box-sizing:border-box;min-width:0;max-width:100%;border:1px solid var(--rule);border-radius:4px;padding:5px 7px;color:var(--ink);background:var(--base)}
+.paper-search-filter-panel .paper-tag-suggestions{margin:0;max-height:160px;overflow:auto;align-content:flex-start;scrollbar-width:thin}
+.paper-search-filter-panel .paper-tag-suggestions button{max-width:100%;min-width:0}.paper-search-filter-panel .paper-tag-suggestions span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-search-filter-panel .paper-tag-suggestions button[aria-pressed=true]{background:var(--selected);box-shadow:inset 0 0 0 1px currentColor}
+.paper-filter-options{display:grid;gap:8px;padding-top:8px;border-top:1px solid var(--rule)}.paper-filter-options>label:last-child{justify-content:flex-start;cursor:pointer}
+.paper-search-filter-panel .paper-filter-refresh,.paper-list button.paper-scope-all{justify-self:start;font-size:12px;color:var(--muted)}.paper-list button.paper-filter-chip{margin-inline-end:4px}
+.paper-hit-source{color:var(--muted)}.paper-search button[aria-expanded=true]{background:var(--selected)}
 ${experienceCss}
 `
