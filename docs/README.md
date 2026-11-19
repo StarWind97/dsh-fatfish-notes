@@ -2,20 +2,20 @@
 
 ## 当前状态
 
-- 2026-11-19 [新版发布准备与 DSH rc.5 兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)已完成。正式 0.9.2 及新版候选通过 rc.5 隔离验收，候选已验证 Windows Desktop 与 Web 双向保存、真实会话转存、重启读回及 413 项全量回归。候选包暂用 0.9.3，市场固定名切换已演练，两处用户文档方案和正式发布待确认。
-- 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)已进入隔离体验。支持先搜索或先选笔记本、同一面板浏览所有标签、按附件名查找和原句定位。rc.4 Web、rc.3 Windows Desktop 主界面及独立窗口已验收，正式发布待确认。
+- 2026-11-19 正式发布 [0.9.3](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.3)。414 项全量回归通过，rc.5 Windows 桌面与 rc.4、rc.5 Web 验收完成，两套公开链接安装各 255 文件一致。固定链接的市场切换 PR #16876 已提交。见[发布记录](releases/0.9.3/review.zh.md)和[兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)。
+- 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)随 0.9.3 发布。支持先搜索或先选笔记本、在同一面板查标签、按附件名查找和定位正文原句。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
-- [图解使用说明](user-guide.zh.md)优先展示会话顶部小鱼、回答下方的保存按钮和侧栏引用，包含七张实拍标注与流程图。[详细操作参考](user-guide-reference.zh.md)按需查阅。[改造记录与验证](plans/2026-11-18-visual-user-guide.zh.md#实施与验收)。
-- [概览界面精修](plans/2026-11-18-overview-polish.zh.md)已进入隔离体验。原版鱼形与中文标准字沿用尺寸规则，两组最近笔记宽窗并列、窄窗纵排，按标签查找使用原有列表筛选和正文标签入口。81 项专项、rc.3 Windows Desktop、独立窗及 rc.4 Web 通过。四字入口「使用说明」另经[文案专项验证](plans/2026-11-18-overview-polish.zh.md#文案微调)。
+- [图解使用说明](user-guide.zh.md)包含会话保存、侧栏引用和一张查找与筛选的实拍。[详细操作参考](user-guide-reference.zh.md)按需查阅。
+- [概览界面精修](plans/2026-11-18-overview-polish.zh.md)随 0.9.3 发布。两组最近笔记宽窗并列、窄窗纵排。81 项专项、rc.3 Windows Desktop、独立窗及 rc.4 Web 通过。四字入口「使用说明」另经[文案专项验证](plans/2026-11-18-overview-polish.zh.md#文案微调)。
 - [阅读区概览与笔记标签](plans/2026-11-18-reading-overview.zh.md)为当前概览的行为基线。正常启动显示概览，每组按空间显示 5／10／15 篇；右键可关闭所有标签，删除当前笔记后可接续相邻标签。上一轮的独立候选和 84 项专项证据保留用于回退。
-- [列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)已通过 13 项相关测试及实际隔离界面验收，正式发布待用户确认。导入／导出下方从 24 px 收至 4 px。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。
+- [列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)随 0.9.3 发布。13 项相关测试及实际界面通过。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。
 - 后续功能及优先级见[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md#候选清单)。F 待用户选择范围并批准。
 
 ### 进行中的任务
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
-| [0.9.3 正式发布](plans/2026-11-19-release-rc5-preflight.zh.md#093-正式发布已批准) | 主目录 `main`。版本、随包手册、在线说明、发布包与商店下载入口 | 414 项全量、三种宿主组合和简明说明已验，进入公开发布及商店切换。 |
+| 暂无登记 |  |  |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 
