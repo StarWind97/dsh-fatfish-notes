@@ -4,7 +4,7 @@ import {appearanceValue,parseAppearance,defaultAppearance,appearanceColors,palet
 import {codeLanguage,highlightAllowed,searchedTokens} from '../src/client/paper/code-highlight.js'
 import {NotebookPages} from '../src/client/paper/notebook-pages.js'
 import {NotesController} from '../src/client/notes-controller.js'
-import {NoteTabs} from '../src/client/paper/note-tabs.js'
+import {NoteTabs, overviewTabId} from '../src/client/paper/note-tabs.js'
 import type {Api} from '../src/client/api.js'
 import {ApiError} from '../src/client/api.js'
 import type {NoteView,NoteListItem} from '../src/contracts/notes.js'
@@ -166,5 +166,97 @@ test('overview startup loads metadata and leaves both prior and recovered notes 
     assert.equal(f.controller.getSnapshot().noteId,null)
     assert.deepEqual(f.reads,[])
     assert.equal(f.controller.getSnapshot().overview?.modified[0]?.noteId,f.ids[0])
+    assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[overviewTabId])
+    assert.equal(f.tabs.activeId,overviewTabId)
   } finally {f.dispose()}
+})
+
+test('opening from overview uses its slot, while selecting another tab preserves it',async()=>{
+  const f=fixture(true)
+  const [first,second,third]=f.ids as [string,string,string]
+  const order=()=>f.tabs.getSnapshot().map(tab=>tab.id)
+  try {
+    assert.equal(await f.controller.open(first),true)
+    assert.deepEqual(order(),[first])
+    const reads=f.reads.length
+    assert.equal(await f.tabs.select(overviewTabId),true)
+    assert.equal(await f.tabs.select(overviewTabId),true)
+    assert.deepEqual(order(),[first,overviewTabId])
+    assert.equal(f.reads.length,reads)
+    assert.equal(await f.controller.open(second),true)
+    assert.deepEqual(order(),[first,second])
+    assert.equal(await f.tabs.select(overviewTabId),true)
+    assert.equal(f.tabs.move(overviewTabId,first),true)
+    assert.deepEqual(order(),[overviewTabId,first,second])
+    assert.equal(await f.controller.open(third),true)
+    assert.deepEqual(order(),[third,first,second])
+
+    assert.equal(await f.tabs.select(overviewTabId),true)
+    assert.equal(await f.tabs.select(first),true)
+    assert.deepEqual(order(),[third,first,second,overviewTabId])
+    assert.equal(await f.tabs.select(overviewTabId),true)
+    assert.equal(await f.controller.open(second),true)
+    assert.deepEqual(order(),[third,first,second])
+    assert.equal(f.tabs.activeId,second)
+  } finally {f.dispose()}
+})
+
+test('last close and close all select overview, with save and failed-open protection',async()=>{
+  const f=fixture(true)
+  const [first,second]=f.ids as [string,string]
+  const order=()=>f.tabs.getSnapshot().map(tab=>tab.id)
+  try {
+    assert.equal(await f.controller.open('missing'),false)
+    assert.deepEqual(order(),[overviewTabId])
+    assert.equal(f.tabs.activeId,overviewTabId)
+    assert.equal(await f.tabs.close(overviewTabId),false)
+    assert.equal(await f.controller.open(first),true)
+    await f.controller.beginEdit()
+    f.controller.update({body:'retained draft'})
+    f.fail=true
+    assert.equal(await f.tabs.select(overviewTabId),false)
+    assert.equal(await f.tabs.closeAll(),false)
+    assert.deepEqual(order(),[first])
+    assert.equal(f.tabs.activeId,first)
+    assert.equal(f.controller.getSnapshot().draft?.body,'retained draft')
+
+    f.fail=false
+    const reads=f.reads.length
+    assert.equal(await f.tabs.close(first),true)
+    assert.deepEqual(order(),[overviewTabId])
+    assert.equal(f.tabs.activeId,overviewTabId)
+    assert.equal(f.reads.length,reads)
+    assert.equal(f.notes.get(first)?.current.body,'retained draft')
+    await f.controller.open(first)
+    await f.controller.open(second)
+    await f.tabs.select(overviewTabId)
+    assert.equal(await f.tabs.closeAll(),true)
+    assert.deepEqual(order(),[overviewTabId])
+    assert.equal(f.tabs.activeId,overviewTabId)
+  } finally {f.dispose()}
+})
+
+test('tab moves leave the note, draft and scroll position intact and are cleared on repository change',async()=>{
+  const f=fixture(true)
+  const other=fixture(true)
+  const [first,second,third]=f.ids as [string,string,string]
+  try {
+    for(const id of f.ids)await f.controller.open(id)
+    await f.controller.beginEdit()
+    f.controller.update({body:'currently editing'})
+    f.tabs.positions.set(third,220)
+    const reads=f.reads.length
+    assert.equal(f.tabs.move(second,null),true)
+    assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[first,third,second])
+    assert.equal(f.tabs.move(second,third,'after'),false)
+    assert.equal(f.tabs.move('missing',first),false)
+    assert.equal(f.tabs.activeId,third)
+    assert.equal(f.controller.getSnapshot().draft?.body,'currently editing')
+    assert.equal(f.tabs.positions.get(third),220)
+    assert.equal(f.reads.length,reads)
+    assert.deepEqual(other.tabs.getSnapshot().map(tab=>tab.id),[overviewTabId])
+    f.controller.switched()
+    assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[overviewTabId])
+    assert.equal(f.tabs.positions.size,0)
+  } finally {f.dispose();other.dispose()}
 })

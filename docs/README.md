@@ -2,13 +2,14 @@
 
 ## 当前状态
 
+- 2026-11-19 [阅读区标签、概览与拖动排序](plans/2026-11-19-browser-style-reading-tabs.zh.md)已完成隔离验收，待体验。短竖线分隔，概览原位打开笔记，末尾「+」再开概览。rc.5 Windows Desktop 和独立窗口实测通过。用[隔离体验入口](../scripts/Open-Fatfish-Notes.cmd)重开。
 - 2026-11-19 正式发布 [0.9.3](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.3)。414 项全量回归通过，rc.5 Windows 桌面与 rc.4、rc.5 Web 验收完成，两套公开链接安装各 255 文件一致。固定链接的市场切换 PR #16876 已提交。见[发布记录](releases/0.9.3/review.zh.md)和[兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)。
 - 2026-11-19 已落实[回归安排](../AGENTS.md#验证范围)。下一版拟扩大 DSH 兼容范围至 `>=0.2.2-rc.3 <0.3.0-0`，已批准按[兼容声明](../AGENTS.md#兼容声明)在 `0.2.3` 候选可用时启动隔离验收。复核时 DSH 官方发布、npm 和 Windows x64 更新源均为 `0.2.2-rc.5`，实际范围待验收通过后更新。
 - 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)随 0.9.3 发布。支持先搜索或先选笔记本、在同一面板查标签、按附件名查找和定位正文原句。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 待补验。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 - [图解使用说明](user-guide.zh.md)包含会话保存、侧栏引用和一张查找与筛选的实拍。[详细操作参考](user-guide-reference.zh.md)按需查阅。
 - [概览界面精修](plans/2026-11-18-overview-polish.zh.md)随 0.9.3 发布。两组最近笔记宽窗并列、窄窗纵排。81 项专项、rc.3 Windows Desktop、独立窗及 rc.4 Web 通过。四字入口「使用说明」另经[文案专项验证](plans/2026-11-18-overview-polish.zh.md#文案微调)。
-- [阅读区概览与笔记标签](plans/2026-11-18-reading-overview.zh.md)为当前概览的行为基线。正常启动显示概览，每组按空间显示 5／10／15 篇；右键可关闭所有标签，删除当前笔记后可接续相邻标签。上一轮的独立候选和 84 项专项证据保留用于回退。
+- [阅读区概览与笔记标签](plans/2026-11-18-reading-overview.zh.md)记录 0.9.3 的概览数据、近况分组和标签行为基线。每组按空间显示 5／10／15 篇。上一轮的独立候选和 84 项专项证据保留用于回退。
 - [列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)随 0.9.3 发布。13 项相关测试及实际界面通过。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。
 - 后续功能及优先级见[主规划](plans/2026-11-09-product-iteration-roadmap.zh.md#候选清单)。F 待用户选择范围并批准。
 

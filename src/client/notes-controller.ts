@@ -21,7 +21,7 @@ function newId(): string {
 export interface NotesState {
   section: 'notes' | 'notebooks' | 'settings'; items: NoteListItem[]; cursor: string | null; filter: NoteListOptions
   notebooks: NotebookView[]; loadingList: boolean; listError: boolean; loadingNote: boolean
-  noteId: string | null; note: NoteView | null; draft: NoteContent | null; dirty: boolean
+  noteId: string | null; note: NoteView | null; draft: NoteContent | null; dirty: boolean; openedFromTab: boolean
   editing: boolean; saving: boolean; composing: boolean; operation: boolean; error: string | null; conflict: NoteView | null
   jobs: NoteJobOverview[]; jobsError: boolean; jobsCursor: string | null
   overview?: NoteOverview
@@ -34,8 +34,8 @@ export class NotesController {
   catalogEpoch=0
   readonly removedIds=new Set<string>()
   private state: NotesState = this.emptyState()
-  private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){++this.libraryEpoch;this.removedIds.clear();this.endDraft();++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.emit(this.emptyState());void this.initialize(null)}
+  private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, openedFromTab: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
+  switched(){++this.libraryEpoch;this.removedIds.clear();this.endDraft();++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.state=this.emptyState();this.emit({});void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
@@ -87,6 +87,7 @@ export class NotesController {
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
   get api(){return this.call}
+  get hasReadingOverview(){return this.options.overview === true}
   occupiedCount=0
   private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
   recentIds(){return this.visits().read()}
@@ -345,14 +346,14 @@ export class NotesController {
   }
   /** Every full editor replacement belongs to the navigation/operation that
    * started it. An old A readback must never finish a pending open of B. */
-  private accept(note: NoteView, request: DetailRequest): boolean {
+  private accept(note: NoteView, request: DetailRequest, openedFromTab = false): boolean {
     if (note.noteId !== request.noteId || !this.ownsDetail(request)) return false
     if (request.kind !== 'operation' && ((request.kind!=='open'&&this.state.editing) || this.state.dirty || this.state.composing || this.state.saving)) return false
     if(request.kind==='sync'&&equal(note,this.state.note))return true
-    this.emit({ editing:request.kind === 'open' ? false : this.state.editing, noteId: note.noteId, note, draft: noteContent(note), dirty: false, error: null, conflict: note.heads.length > 1 ? note : null, loadingNote: false, jobs: [], jobsError: false, jobsCursor: null }); void this.refreshJobs()
+    this.emit({ editing:request.kind === 'open' ? false : this.state.editing, ...(request.kind==='open' && {openedFromTab}), noteId: note.noteId, note, draft: noteContent(note), dirty: false, error: null, conflict: note.heads.length > 1 ? note : null, loadingNote: false, jobs: [], jobsError: false, jobsCursor: null }); void this.refreshJobs()
     return true
   }
-  async open(noteId: string, activeOnly=false): Promise<boolean> {
+  async open(noteId: string, activeOnly=false, source?: 'tab'): Promise<boolean> {
     if (this.disposed || !await this.prepareLeave()) return false
     const generation = ++this.navigation
     this.detailAbort?.abort();const abort=this.detailAbort=new AbortController()
@@ -365,7 +366,7 @@ export class NotesController {
         if (this.ownsDetail(request)) this.emit({loadingNote:false,error:'note_deleted'})
         return false
       }
-      const accepted=this.accept(result.note, request)
+      const accepted=this.accept(result.note, request, source==='tab')
       if(accepted&&result.note.current.status==='active'){
         this.visits().visit(noteId)
         if (this.options.overview) {
@@ -408,7 +409,7 @@ export class NotesController {
     try{await this.options.editing?.acquire(noteId)}catch(e){this.emit({error:errorCode(e)});return false}
     ++this.navigation
     this.editId=newId();this.draftSequence=0;this.editStart={noteId,content:null}
-    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [], supplements:{assetIds:[],attachmentIds:[]} }, dirty: false, conflict: null, jobs: [], error: null })
+    this.emit({ section: 'notes', editing:true, noteId, note: null, draft: { title: '', body: '', summary: '', tags: [], ...(options.sessionId?{sessionLinks:[options.sessionId]}:{}), notebookId: options.notebookId ?? this.state.filter.notebookId ?? this.state.notebooks.find(b => b.isDefault)?.notebookId ?? null, status: 'active', sourceId: null, assetIds: [], supplements:{assetIds:[],attachmentIds:[]} }, dirty: false, openedFromTab: false, conflict: null, jobs: [], error: null })
     return true
     }finally{this.creating=false}
   }

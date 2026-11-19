@@ -10,11 +10,20 @@ export function writePreference(key:string,value:string){try{localStorage.setIte
 
 export function usePaperColumns(root:React.RefObject<HTMLDivElement>,surface:PaperSurface) {
   const [available,setAvailable]=useState(0),[wide,setWide]=useState(false)
+  const [compact,setCompact]=useState(false)
   const [preferences,setPreferences]=useState<Record<PaperSurface,ColumnPreference>>(()=>({embedded:columnPreference(readPreference('columns.embedded')),standalone:columnPreference(readPreference('columns.standalone'))}))
   useLayoutEffect(()=>{
     const el=root.current!
-    const measure=()=>{if(el.clientWidth){setAvailable(el.clientWidth);setWide(previous=>wideColumns(el.clientWidth,previous))}}
-    measure();const observer=new ResizeObserver(measure);observer.observe(el)
+    const measure=(contentWidth:number)=>{
+      if(!el.clientWidth)return
+      setAvailable(el.clientWidth)
+      setWide(previous=>wideColumns(el.clientWidth,previous))
+      setCompact(contentWidth<560)
+    }
+    const style=getComputedStyle(el)
+    measure(el.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight))
+    const observer=new ResizeObserver(([entry])=>{if(entry)measure(entry.contentRect.width)})
+    observer.observe(el)
     return ()=>observer.disconnect()
   },[root])
   const preference=preferences[surface],sizes=columnSizes(available,preference,wide)
@@ -22,7 +31,7 @@ export function usePaperColumns(root:React.RefObject<HTMLDivElement>,surface:Pap
     const next={...current[surface],...patch};writePreference('columns.'+surface,JSON.stringify(next));return {...current,[surface]:next}
   })}
   function resize(column:'book'|'list',target:number){update({[column]:clamp(Math.round(target),column==='book'?164:240,column==='book'?sizes.bookMax:Math.max(240,sizes.listMax))})}
-  return {...sizes,wide,resize,toggle:()=>update({open:!sizes.expanded}),reset:(column:'book'|'list')=>update({[column]:defaultColumns[column]})}
+  return {...sizes,wide,compact,resize,toggle:()=>update({open:!sizes.expanded}),reset:(column:'book'|'list')=>update({[column]:defaultColumns[column]})}
 }
 type Layout = ReturnType<typeof usePaperColumns>
 
@@ -38,14 +47,15 @@ function Divider({column,layout,t,hidden=false}:{column:'book'|'list';layout:Lay
     onKeyDown={e=>{const target=({ArrowLeft:width-8,ArrowRight:width+8,Home:min,End:max} as Record<string,number>)[e.key];if(target!==undefined){e.preventDefault();layout.resize(column,target)}}}/>
 }
 
-export function PaperColumns({list,notebooks,layout,children,selected,t,hidden=false,section='notes',other,rail}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode;rail?:React.ReactNode}){
+export function PaperColumns({list,notebooks,layout,tabs,children,selected,t,hidden=false,section='notes',other,rail}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;tabs:React.ReactNode;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode;rail?:React.ReactNode}){
   const appearance=useAppearance(),browsing=section==='notes',compactRail=browsing&&appearance.layout==='dock'&&!layout.expanded,showBooks=browsing&&(layout.expanded||compactRail||appearance.layout==='ribbon'||appearance.layout==='archive')
+  const tabsAboveList=browsing&&layout.compact&&!selected
   // Keep all five positions mounted: collapsing navigation must not recreate CodeMirror.
   return <div className="paper-split" hidden={hidden} data-section={section} data-selected={selected} data-notebooks={layout.expanded} data-rail={compactRail} style={{'--book-width':`${showBooks?layout.book:0}px`,'--list-width':`${layout.list}px`} as React.CSSProperties}>
     <aside id="paper-notebook-list" className="paper-notebook-nav" hidden={!showBooks} aria-label={t('notesNotebooks')}>{notebooks}<div className="paper-rail-content">{rail}</div></aside>
     <Divider column="book" layout={layout} t={t} hidden={!browsing||!layout.expanded}/>
-    <aside id="paper-note-list" className="paper-list" aria-label={t('notesLibrary')}>{list}</aside>
+    <aside id="paper-note-list" className="paper-list" aria-label={t('notesLibrary')}>{tabsAboveList&&tabs}{list}</aside>
     <Divider column="list" layout={layout} t={t}/>
-    <div className="paper-detail"><div className="paper-reader" hidden={section!=='notes'}>{children}</div>{other&&<div className="paper-workspace-other">{other}</div>}</div>
+    <div className="paper-detail"><div className="paper-reader" hidden={!browsing}>{browsing&&!tabsAboveList&&tabs}{children}</div>{other&&<div className="paper-workspace-other">{other}</div>}</div>
   </div>
 }
