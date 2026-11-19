@@ -1,6 +1,6 @@
 # 肥鱼笔记项目协作约定
 
-新会话默认从主目录 `D:\DSH-Workspace\dsh-github-notebook` 接手。先读[当前状态](docs/README.md#当前状态)，核对 `git status --short --branch`、近期提交及与请求相关的差异，再按任务读[产品设计](docs/notes-design.zh.md)与专项记录。遇到进行中改动时按[多会话协作](#多会话协作)处理。当天首次处理本项目请求时执行[每日首次会话检查](#每日首次会话检查)。候选功能与阶段顺序见[主规划](docs/plans/2026-11-09-product-iteration-roadmap.zh.md)，F 由用户确认范围后开发。
+新会话默认从主目录 `D:\DSH-Workspace\dsh-github-notebook` 接手。先读[当前状态](docs/README.md#当前状态)，核对 `git status --short --branch`、近期提交及与请求相关的差异，再按任务读[产品设计](docs/notes-design.zh.md)与专项记录。遇到进行中改动时按[多会话协作](#多会话协作)处理。候选功能与阶段顺序见[主规划](docs/plans/2026-11-09-product-iteration-roadmap.zh.md)，F 由用户确认范围后开发。
 
 ## 0. 第一规则：先规划、经批准、再实施（必须遵守）
 
@@ -67,11 +67,13 @@ Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改�
 
 ## 宿主更新检查：兼容、优化与新机会
 
-### 每日首次会话检查
+### DSH 定时日检
 
-1. 按北京时间，在本项目每天第一次收到并开始处理用户请求时检查。新建会话和继续旧会话共用主项目目录下忽略的 `.dsh-home/dsh-update-check.json`。已有当日成功结果可复用。用户明确要求刷新或当天检查未能确认时重试。
-2. 核对 [DSH 官方发布记录](https://github.com/deepseek-ai/deepseek-harness/releases)（含预发布）、[Windows x64 官方更新源](https://download.deepseek.com/dsh-desk/feeds/win-x64/nightly.yml)及必要时的[官方桌面安装包](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe)。对照肥鱼笔记当前发布记录中的实测组合，区分发布标签、可取得的 Windows 桌面版和已实测的 Web、桌面版。成功后记下北京时间日期、检查时间、版本和来源。访问失败时说明查不到的范围，并保留重试机会。
-3. 在触发检查的回复末尾用一两句报告结果。有新宿主或桌面更新可用时，主动提醒需要补验的组合和优先验证事项。没有新进展时，简短说明最新发布、Windows 更新状态及已有待验项。检查为只读操作，安装、兼容声明调整和发布继续按各自授权执行。
+日检由 Codex 的独立定时任务「运行肥鱼笔记 DSH 日检」执行，结果在侧栏「定时任务」查阅。日常项目会话遇到 DSH 版本、兼容性相关工作或用户询问时，按需查阅最近结果。用户要求刷新或工作依赖未核实的版本时，再查证对应信息。
+
+1. 通过 Windows 当前 `dsh://` 默认入口核实本机安装程序的版本。核对 [DSH 官方发布记录](https://github.com/deepseek-ai/deepseek-harness/releases)（含预发布）、Windows x64 的 [nightly 更新源](https://download.deepseek.com/dsh-desk/feeds/win-x64/nightly.yml)、[stable 更新源](https://download.deepseek.com/dsh-desk/feeds/win-x64/stable.yml)及必要时的[官方桌面安装包](https://download.deepseek.com/desktop/dsh-latest-windows-x64.exe)。对照肥鱼笔记当版发布记录中的实测组合，分别说明安装包可用性、渠道推送比例和本机已核实的更新状态。
+2. 用简短列表或表格回答是否需要升级、是否需要兼容性测试、注意事项与建议操作。有新宿主或可用更新时指出优先补测的环境和操作。核对成功后，在主目录忽略的 `.dsh-home/dsh-update-check.json` 记录北京时间、版本、实测与待验组合及来源，供按需查阅。来源访问失败时注明缺项和历史结果的检查时间，在下一次日检重试。
+3. 定时任务负责检查、记录和提出建议。安装、实际兼容性测试、兼容声明调整和发布按各自授权执行。
 
 ### 新版的兼容检查范围
 
