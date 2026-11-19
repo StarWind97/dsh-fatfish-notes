@@ -597,6 +597,8 @@
   "reuseEditingTemplate": "模板 · 修改后只影响以后从此模板新建的笔记",
   "notesOpen": "打开笔记",
   "sessionNotes": "会话笔记",
+  "sessionListTab": "笔记列表",
+  "sessionOpenListTab": "打开笔记列表",
   "sessionSave": "保存当前会话",
   "sessionOperationFailed": "操作未完成，请稍后重试。",
   "sessionUnlinked": "已解除关联，笔记仍在笔记库中。",

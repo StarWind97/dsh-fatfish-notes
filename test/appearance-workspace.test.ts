@@ -7,7 +7,7 @@ import {NotesController} from '../src/client/notes-controller.js'
 import {NoteTabs, overviewTabId} from '../src/client/paper/note-tabs.js'
 import type {Api} from '../src/client/api.js'
 import {ApiError} from '../src/client/api.js'
-import type {NoteView,NoteListItem} from '../src/contracts/notes.js'
+import type {NoteView,NoteListItem,NoteListOptions} from '../src/contracts/notes.js'
 import {createNoteRevision,materializeNote} from '../src/notes/revisions.js'
 
 test('appearance accepts independent valid choices and rejects corrupted or future preferences',()=>{
@@ -50,17 +50,18 @@ test('1,000/5,000 metadata rows seed only existing pages; group paging merges wi
     pages.invalidate();assert.equal(pages.get('book-0'),undefined)
   }
 })
-function fixture(overview=false){
+function fixture(mode?: 'overview' | 'conversation-list'){
+  const overview = mode === 'overview'
   const ids=['01K00000000000000000000000','01K00000000000000000000001','01K00000000000000000000002']
   const notes=new Map(ids.map((id,i)=>[id,materializeNote([createNoteRevision({version:1,noteId:id,parents:[],recordedAt:'2026-11-15T00:00:00.000Z',title:'Note '+i,body:'original',summary:'',tags:[],notebookId:ids[i]!,status:'active',sourceId:null,assetIds:[]})],id)]))
-  let failSave=false,lists=0;const reads:string[]=[]
+  let failSave=false;const reads:string[]=[],listQueries:NoteListOptions[]=[]
   const call:Api=async(path,input)=>{
     if(path==='/notes/get'){const id=(input as {noteId:string}).noteId;reads.push(id);if(!notes.has(id))throw new ApiError('note_not_found');return {ok:true,note:notes.get(id)} as never}
     if(path==='/notes'){
-      lists++
+      listQueries.push(input as NoteListOptions)
       const note=notes.get(ids[0]!)!
       const item={noteId:note.noteId,title:note.current.title,notebookId:note.effectiveNotebookId,savedAt:note.savedAt}
-      return {ok:true,items:overview?[item]:[],cursor:'next',...(overview&&{overview:{opened:[],modified:[item]}})} as never
+      return {ok:true,items:mode?[item]:[],cursor:'next',...(overview&&{overview:{opened:[],modified:[item]}})} as never
     }
     if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
     if(path==='/notes/jobs')return {ok:true,jobs:[],cursor:null} as never
@@ -80,8 +81,8 @@ function fixture(overview=false){
     if(path==='/notes/draft'){if(failSave)throw new ApiError('network');const v=input as {action:string;request:{noteId:string;content:NoteView['current']}};if(v.action==='save')return {ok:true,state:'editing',note:null} as never;const previous=notes.get(v.request.noteId)!;const note={...previous,current:{...previous.current,...v.request.content}};notes.set(note.noteId,note);return {ok:true,state:'finished',note} as never}
     throw Error(path)
   }
-  const controller=new NotesController(call,{overview,autosaveMs:100000,storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}),tabs=new NoteTabs(controller),unbind=controller.subscribe(tabs.reconcile)
-  return {ids,controller,tabs,notes,reads,get lists(){return lists},set fail(value:boolean){failSave=value},dispose(){unbind();controller.dispose()}}
+  const controller=new NotesController(call,{...(mode&&{startTab:mode}),autosaveMs:100000,storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}),tabs=new NoteTabs(controller),unbind=controller.subscribe(tabs.reconcile)
+  return {ids,controller,tabs,notes,reads,listQueries,get lists(){return listQueries.length},set fail(value:boolean){failSave=value},dispose(){unbind();controller.dispose()}}
 }
 test('tab navigation deduplicates, reveals notebook without scanning pagination, and closing last tab does not delete',async()=>{
   const f=fixture();try{
@@ -160,7 +161,7 @@ test('removed notes close their tabs, foreground prefers right, and bulk removal
 })
 
 test('overview startup loads metadata and leaves both prior and recovered notes unselected', async () => {
-  const f=fixture(true)
+  const f=fixture('overview')
   try {
     await f.controller.initialize(f.ids[2]!)
     assert.equal(f.controller.getSnapshot().noteId,null)
@@ -172,7 +173,7 @@ test('overview startup loads metadata and leaves both prior and recovered notes 
 })
 
 test('opening from overview uses its slot, while selecting another tab preserves it',async()=>{
-  const f=fixture(true)
+  const f=fixture('overview')
   const [first,second,third]=f.ids as [string,string,string]
   const order=()=>f.tabs.getSnapshot().map(tab=>tab.id)
   try {
@@ -202,7 +203,7 @@ test('opening from overview uses its slot, while selecting another tab preserves
 })
 
 test('last close and close all select overview, with save and failed-open protection',async()=>{
-  const f=fixture(true)
+  const f=fixture('overview')
   const [first,second]=f.ids as [string,string]
   const order=()=>f.tabs.getSnapshot().map(tab=>tab.id)
   try {
@@ -237,8 +238,8 @@ test('last close and close all select overview, with save and failed-open protec
 })
 
 test('tab moves leave the note, draft and scroll position intact and are cleared on repository change',async()=>{
-  const f=fixture(true)
-  const other=fixture(true)
+  const f=fixture('overview')
+  const other=fixture('overview')
   const [first,second,third]=f.ids as [string,string,string]
   try {
     for(const id of f.ids)await f.controller.open(id)
@@ -259,4 +260,70 @@ test('tab moves leave the note, draft and scroll position intact and are cleared
     assert.deepEqual(f.tabs.getSnapshot().map(tab=>tab.id),[overviewTabId])
     assert.equal(f.tabs.positions.size,0)
   } finally {f.dispose();other.dispose()}
+})
+
+test('conversation starts on the list tab and uses its position when opening a note', async () => {
+  const {controller, tabs, ids, reads, listQueries, dispose} = fixture('conversation-list')
+  const [first, second] = ids as [string, string, string]
+  const list = 'conversation-list'
+  const order = () => tabs.getSnapshot().map(tab => tab.id)
+  try {
+    await controller.initialize(null)
+    assert.equal(tabs.activeId, list)
+    assert.deepEqual(order(), [list])
+    assert.deepEqual(reads, [])
+    assert.equal(listQueries.some(query => query.overviewRecentIds !== undefined), false)
+    assert.ok(await controller.open(first))
+
+    assert.ok(await tabs.select(list))
+    assert.ok(tabs.move(list, first))
+    assert.ok(await controller.open(second))
+    assert.deepEqual(order(), [second, first])
+
+    assert.ok(await tabs.select(list))
+    assert.ok(await tabs.select(first))
+    assert.deepEqual(order(), [second, first, list])
+    assert.ok(await tabs.select(list))
+    assert.ok(await controller.open(second))
+    assert.deepEqual(order(), [second, first])
+
+    assert.ok(await tabs.close(first))
+    assert.ok(await tabs.close(second))
+    assert.equal(tabs.activeId, list)
+    assert.deepEqual(order(), [list])
+  } finally { dispose() }
+})
+
+test('conversation tab switches preserve the filtered page and failed edits keep the note open', async () => {
+  const f = fixture('conversation-list')
+  const {controller, tabs} = f
+  const [first, second] = f.ids as [string, string, string]
+  const list = 'conversation-list'
+  const filter = {order: 'oldest', relation: 'browse', sessionId: 'session-a', query: 'drafts', notebookId: first} as const
+  try {
+    await controller.filter(filter)
+    const {items, cursor} = controller.getSnapshot()
+    const lists = f.lists
+    assert.ok(await controller.open(first))
+    assert.ok(await controller.open(second))
+    assert.ok(await tabs.select(first))
+
+    await controller.beginEdit()
+    controller.update({body: 'Keep this text'})
+    f.fail = true
+    assert.equal(await tabs.select(list), false)
+    assert.equal(tabs.activeId, first)
+    assert.equal(controller.getSnapshot().draft?.body, 'Keep this text')
+    assert.deepEqual(tabs.getSnapshot().map(tab => tab.id), [first, second])
+
+    // A fresh tab selection must not replace the browse results with the open note's notebook.
+    f.fail = false
+    assert.ok(await tabs.select(second))
+    assert.ok(await tabs.select(list))
+    assert.equal(tabs.activeId, list)
+    assert.deepEqual(controller.getSnapshot().filter, filter)
+    assert.equal(controller.getSnapshot().cursor, cursor)
+    assert.deepEqual(controller.getSnapshot().items, items)
+    assert.equal(f.lists, lists + 1) // One list refresh when the edited note is saved.
+  } finally { f.dispose() }
 })

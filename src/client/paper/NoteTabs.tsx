@@ -5,21 +5,18 @@ import {createPortal} from 'react-dom'
 import {RowMenu} from '../RowMenu.js'
 import type {NotesController, NotesState} from '../notes-controller.js'
 import type {T} from '../locale.js'
-import {noteTabs, overviewTabId, type ReadingTab} from './note-tabs.js'
+import {conversationListTabId, noteTabs, type ReadingTab} from './note-tabs.js'
 import {useAppearance, useAppearanceProps} from './appearance.js'
 import {useNoteTabDrag} from './use-note-tab-drag.js'
 
-export function useNoteTabs(controller: NotesController, state: NotesState, root: React.RefObject<HTMLElement>, onSelected?: (id: string) => void) {
-  const selected = useRef(onSelected)
-  selected.current = onSelected
+export function useNoteTabs(controller: NotesController, state: NotesState, root: React.RefObject<HTMLElement>) {
   const session = noteTabs(controller)
   const tabs = useSyncExternalStore(session.subscribe, session.getSnapshot)
   const previous = useRef<string | null>(null)
   const lastPane = useRef<HTMLElement | null>(null)
   useLayoutEffect(() => {
-    const reconcile = () => session.reconcile(id => selected.current?.(id))
-    reconcile()
-    return controller.subscribe(reconcile)
+    session.reconcile()
+    return controller.subscribe(session.reconcile)
   }, [session, controller])
   useLayoutEffect(() => {
     const id = state.noteId
@@ -55,7 +52,7 @@ export function useNoteTabs(controller: NotesController, state: NotesState, root
       const index = tabs.findIndex(tab => tab.id === session.activeId)
       const next = index < 0 ? tabs[event.shiftKey ? tabs.length - 1 : 0]
         : tabs[(index + (event.shiftKey ? tabs.length - 1 : 1)) % tabs.length]
-      if (next) void session.select(next.id).then(ok => { if (ok) selected.current?.(next.id) })
+      if (next) void session.select(next.id)
     }
     el.addEventListener('keydown', key)
     return () => el.removeEventListener('keydown', key)
@@ -71,12 +68,11 @@ type TabBarProps = ReturnType<typeof useNoteTabs> & {
   controller: NotesController
   state: NotesState
   t: T
-  onSelect?: (id: string) => void
   beforeSelect?: () => void
   onEmpty?: () => void
 }
 
-export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect, beforeSelect, onEmpty}: TabBarProps) {
+export function NoteTabBar({controller, state, session, tabs, scope, t, beforeSelect, onEmpty}: TabBarProps) {
   const appearance = useAppearance()
   const appearanceProps = useAppearanceProps()
   const root = useRef<HTMLElement>(null)
@@ -89,7 +85,8 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
   const shown = appearance.tabs && tabs.length > 0
   const busy = state.operation || state.composing || state.loadingNote || controller.importing
   const activeId = session.activeId
-  const available = width - 16 - (session.hasOverview ? 34 : 0)
+  const startTab = session.startTab
+  const available = width - 16 - (startTab ? 34 : 0)
   const tabWidth = 144
   const needsMore = tabs.length * tabWidth > available
   const count = Math.max(1, Math.floor((available - (needsMore ? 44 : 0)) / tabWidth))
@@ -127,7 +124,7 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
   }, [showOverflow])
 
   function title(tab: ReadingTab) {
-    return tab.kind === 'overview' ? t('notesOverviewTab')
+    return tab.kind === 'start' ? t(tab.id === conversationListTabId ? 'sessionListTab' : 'notesOverviewTab')
       : tab.title + (tab.trashed ? ' · ' + t('notesTrash') : '')
   }
   function focusTab(id: string | null) {
@@ -147,7 +144,6 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
     beforeSelect?.()
     if (!await session.select(id)) return
     setMore(false)
-    onSelect?.(id)
     if (focus) focusTab(id)
   }
   async function close(id?: string) {
@@ -155,14 +151,13 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
     if (!await (id ? session.close(id) : session.closeAll())) return
     setMore(false)
     const state = session.getSnapshot()
-    if (onEmpty && (!state.length || (state.length === 1 && session.activeId === overviewTabId))) onEmpty()
+    if (onEmpty && (!state.length || (state.length === 1 && session.activeId === startTab?.id))) onEmpty()
     else focusTab(session.activeId)
   }
   async function closeOthers(id: string) {
     beforeSelect?.()
     if (!await session.closeOthers(id)) return
     setMore(false)
-    onSelect?.(id)
     focusTab(id)
   }
   function move(id: string, target: string | null, side: 'before' | 'after') {
@@ -181,7 +176,7 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
     return [
       {label: t('notesCloseThisTab'), disabled: busy || !session.canClose(id), run: () => void close(id)},
       {label: t('notesCloseOtherTabs'), disabled: busy || tabs.length < 2, run: () => void closeOthers(id)},
-      {label: t(session.hasOverview ? 'notesCloseAllNoteTabs' : 'notesCloseAllTabs'),
+      {label: t(startTab ? 'notesCloseAllNoteTabs' : 'notesCloseAllTabs'),
         disabled: busy || !tabs.some(tab => tab.kind === 'note'), run: () => void close()},
       {label: t('notesMoveTabLeft'), disabled: busy || !left, run: () => { if (left) move(id, left.id, 'before') }},
       {label: t('notesMoveTabRight'), disabled: busy || !right, run: () => { if (right) move(id, right.id, 'after') }},
@@ -214,7 +209,7 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
   if (!shown) return null
   const label = t('notesOpenTabs')
   const moreLabel = t('notesOtherOpenTabsCount', {count: rest.length})
-  const addLabel = t('notesOpenOverviewTab')
+  const addLabel = t(startTab?.id === conversationListTabId ? 'sessionOpenListTab' : 'notesOpenOverviewTab')
   const draggable = !busy && tabs.length > 1
 
   return <nav ref={root} className="paper-note-tabs" aria-label={label} onKeyDown={keys} {...drag.events}>
@@ -236,8 +231,8 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, onSelect
         </div>
       })}
     </div>
-    {session.hasOverview && <button type="button" className="paper-tabs-add" aria-label={addLabel} title={addLabel}
-      disabled={busy} onClick={() => void select(overviewTabId, true)}><Plus size={17} aria-hidden="true"/></button>}
+    {startTab && <button type="button" className="paper-tabs-add" aria-label={addLabel} title={addLabel}
+      disabled={busy} onClick={() => void select(startTab.id, true)}><Plus size={17} aria-hidden="true"/></button>}
     {!!rest.length && <button ref={trigger} type="button" className="paper-tabs-more" aria-label={moreLabel}
       title={moreLabel} aria-expanded={showOverflow} aria-haspopup="dialog" onClick={() => {
         const rect = trigger.current!.getBoundingClientRect()

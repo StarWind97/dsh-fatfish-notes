@@ -13,7 +13,7 @@ import {translate} from './locale.js'
 import {notebookSync} from './notebook-sync.js'
 
 const workspace=new NotesWorkspace('standalone')
-const library=new NotesController(undefined,{overview:true,editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
+const library=new NotesController(undefined,{startTab:'overview',editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
 workspace.bind(library);workspace.start();notebookSync.start()
 const stopAppearance=appearancePreferences.start('standalone',workspace.api,()=>workspace.ready())
 window.addEventListener('pagehide',stopAppearance)

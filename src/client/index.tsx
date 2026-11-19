@@ -37,7 +37,7 @@ export function apply(ctx:Context): void {
   let storage: Storage | undefined
   try { storage = globalThis.localStorage } catch { /* browser policy may disable persistence */ }
   const workspace=new NotesWorkspace('embedded')
-  const library = new NotesController(undefined,{overview:true,editing:workspace,recoveryScope:workspace.recoveryScope,...(storage?{storage}:{}),onSettled:()=>{void notebookSync.request(true)}})
+  const library = new NotesController(undefined,{startTab:'overview',editing:workspace,recoveryScope:workspace.recoveryScope,...(storage?{storage}:{}),onSettled:()=>{void notebookSync.request(true)}})
   workspace.bind(library);workspace.start()
   ctx.effect(()=>appearancePreferences.start('embedded',workspace.api,()=>workspace.ready()),'shared appearance')
   const notes = new NoteCaptureBridge(undefined, storage, async noteId => {

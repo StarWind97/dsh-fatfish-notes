@@ -98,11 +98,12 @@ export class NotesController {
   imagePickerOpen=false
   private inFlight:RecoveryRecord['inFlight']
   private readonly recovery:NoteRecovery
-  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string;stableList?:boolean;overview?:boolean}={}){
+  constructor(private readonly call:Api=api, private readonly options:{storage?:RecoveryStorage;repository?:()=>number|undefined;autosaveMs?:number;maxWaitMs?:number;onSettled?:()=>void;editing?:EditAccess;recoveryScope?:string;stableList?:boolean;startTab?:'overview'|'conversation-list'}={}){
     this.recovery=new NoteRecovery(options.storage??browserStorage(),options.repository??currentRepository,options.recoveryScope)
   }
   get api(){return this.call}
-  get hasReadingOverview(){return this.options.overview === true}
+  get startTab(){return this.options.startTab}
+  private get hasReadingOverview(){return this.startTab === 'overview'}
   occupiedCount=0
   private visits(){return new RecentNotes(this.options.storage??browserStorage(),this.options.repository??currentRepository)}
   recentIds(){return this.visits().read()}
@@ -184,7 +185,7 @@ export class NotesController {
     this.listAbort?.abort();const abort=this.listAbort=new AbortController()
     this.emit({ loadingList: true, listError: false })
     // Start the useful list first. Slow notebook counts must not delay its display.
-    const overviewRecentIds = this.options.overview && reset ? this.recentIds() : undefined
+    const overviewRecentIds = this.hasReadingOverview && reset ? this.recentIds() : undefined
     const list=this.call('/notes', { order:'recent', ...filter, limit: 50, ...(overviewRecentIds && {overviewRecentIds}), ...(!reset && this.state.cursor ? { cursor: this.state.cursor } : {}) },abort.signal)
     const books=this.refreshBooks(refreshBooks)
     try {
@@ -237,7 +238,7 @@ export class NotesController {
     const restore=firstLoad && !this.state.noteId
     const navigation=this.navigation
     await this.refresh()
-    if(this.options.overview||!restore||navigation!==this.navigation||this.state.noteId||this.state.listError||this.disposed)return
+    if(this.startTab||!restore||navigation!==this.navigation||this.state.noteId||this.state.listError||this.disposed)return
     if(lastId && /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(lastId)){
       if(await this.open(lastId) && this.state.draft?.status==='active')return
       if(this.navigation!==navigation+1||this.disposed)return
@@ -384,7 +385,7 @@ export class NotesController {
       const accepted=this.accept(result.note, request, source==='tab')
       if(accepted&&result.note.current.status==='active'){
         this.visits().visit(noteId)
-        if (this.options.overview) {
+        if (this.hasReadingOverview) {
           const {current, effectiveNotebookId: notebookId, savedAt} = result.note
           const previous = this.state.overview
           const opened = [{noteId, title:current.title, notebookId, savedAt}, ...(previous?.opened.filter(item=>item.noteId!==noteId) ?? [])]
@@ -404,7 +405,7 @@ export class NotesController {
     const {title,summary,tags,status,favorite,isTemplate}=note.current
     const selected:NoteListItem={noteId,heads:note.heads,title,summary,tags,status,notebookId:note.effectiveNotebookId,savedAt:note.savedAt,pinned:!!note.pinned,createdAt:note.createdAt??note.savedAt,conflicted:note.heads.length>1,...(favorite!==undefined?{favorite}:{}),...(isTemplate!==undefined?{isTemplate}:{})}
     this.emit({filter,items:[selected],cursor:null,loadingList:true,listError:false})
-    const overviewRecentIds = this.options.overview ? this.recentIds() : undefined
+    const overviewRecentIds = this.hasReadingOverview ? this.recentIds() : undefined
     try{const page=await this.call('/notes',{...filter,limit:50,...(overviewRecentIds && {overviewRecentIds})},abort.signal)
       if(generation!==this.listing||navigation!==this.navigation||epoch!==this.libraryEpoch||this.state.noteId!==noteId)return
       this.emit({items:page.items.some(n=>n.noteId===noteId)?page.items:[selected,...page.items],cursor:page.cursor,loadingList:false,...this.mergeOverview(page.overview,overviewRecentIds)})
@@ -507,7 +508,10 @@ export class NotesController {
       }
     }catch(e){this.occupiedCount=e&&typeof e==='object'&&'affectedCount' in e?Number(e.affectedCount)||0:0;this.emit({error:errorCode(e)});return false}
     finally{this.emit({operation:false});await this.refresh();this.options.onSettled?.()}
-    if(created){await this.filter({order:'recent'});await this.open(created)}
+    if(created){
+      if(this.startTab!=='conversation-list')await this.filter({order:'recent'})
+      await this.open(created)
+    }
     return true
   }
   private async loadConflict(request: DetailRequest) { try { const latest = await this.call('/notes/get', { noteId: request.noteId }); if (this.ownsDetail(request)) this.emit({ conflict: latest.note }) } catch { /* retain text */ } }

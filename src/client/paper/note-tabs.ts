@@ -1,9 +1,10 @@
 import type {NotesController, NotesState} from '../notes-controller.js'
 
 export const overviewTabId = 'overview'
-const overviewTab = {id: overviewTabId, kind: 'overview'} as const
+export const conversationListTabId = 'conversation-list'
+type StartTab = {id: NonNullable<NotesController['startTab']>; kind: 'start'}
 interface NoteTab {id: string; kind: 'note'; title: string; book: string | null; trashed: boolean}
-export type ReadingTab = NoteTab | typeof overviewTab
+export type ReadingTab = NoteTab | StartTab
 
 /** Per controller/window memory: no localStorage and no extra detail readers. */
 export class NoteTabs {
@@ -15,18 +16,21 @@ export class NoteTabs {
   private handledRemoval: NotesState['removal']
   private choosingAfterRemoval: NotesState['removal']
   private overviewInTrash = false
+  readonly startTab?: StartTab
   readonly positions = new Map<string, number>()
 
   constructor(private readonly controller: NotesController) {
     this.epoch = controller.libraryEpoch
     this.previous = controller.getSnapshot()
-    this.tabs = this.hasOverview && !this.previous.noteId ? [overviewTab] : []
+    const id = controller.startTab
+    if (id) this.startTab = {id, kind: 'start'}
+    this.tabs = this.startTab && !this.previous.noteId ? [this.startTab] : []
   }
 
-  get hasOverview() { return this.controller.hasReadingOverview }
   get activeId() {
     const state = this.controller.getSnapshot()
-    return state.noteId ?? (this.wantsOverview(state) && this.tabs.includes(overviewTab) ? overviewTabId : null)
+    const start = this.startTab
+    return state.noteId ?? (start && this.wantsStartTab(state) && this.tabs.includes(start) ? start.id : null)
   }
   getSnapshot = () => this.tabs
   subscribe = (fn: () => void) => {
@@ -37,20 +41,22 @@ export class NoteTabs {
     this.tabs = tabs
     for (const fn of this.listeners) fn()
   }
-  private wantsOverview(state: NotesState) {
-    return this.hasOverview && !state.noteId && (state.filter.status !== 'trashed' || this.overviewInTrash)
+  private wantsStartTab(state: NotesState) {
+    return !state.noteId && (this.startTab?.id === conversationListTabId ||
+      state.filter.status !== 'trashed' || this.overviewInTrash)
   }
   private get blocked() {
     const {composing, operation} = this.controller.getSnapshot()
     return composing || operation || this.controller.importing
   }
 
-  reconcile = (onAutomaticSelect?: (id: string) => void) => {
+  reconcile = () => {
     const state = this.controller.getSnapshot()
     const previous = this.previous
     this.previous = state
     let tabs = this.tabs
-    let replaceOverview = this.wantsOverview(previous) && tabs.includes(overviewTab) && !state.openedFromTab
+    const start = this.startTab
+    let replaceStart = !!start && this.wantsStartTab(previous) && tabs.includes(start) && !state.openedFromTab
     if (state.noteId || previous.filter.status !== state.filter.status) this.overviewInTrash = false
     if (this.epoch !== this.controller.libraryEpoch) {
       this.epoch = this.controller.libraryEpoch
@@ -59,7 +65,7 @@ export class NoteTabs {
       this.choosingAfterRemoval = undefined
       this.overviewInTrash = false
       tabs = []
-      replaceOverview = false
+      replaceStart = false
     }
 
     const removal = state.removal
@@ -78,7 +84,7 @@ export class NoteTabs {
 
     const items = new Map(state.items.map(item => [item.noteId, item]))
     tabs = tabs.filter(tab => !this.controller.removedIds.has(tab.id)).map(tab => {
-      if (tab.kind === 'overview' || tab.id === state.noteId) return tab
+      if (tab.kind === 'start' || tab.id === state.noteId) return tab
       const item = items.get(tab.id)
       if (!item) return tab
       const title = item.title || '无标题'
@@ -93,21 +99,21 @@ export class NoteTabs {
         book: state.draft.notebookId, trashed: state.draft.status === 'trashed'}
       const old = tabs.find(tab => tab.id === next.id)
       if (old?.kind === 'note') {
-        if (replaceOverview) tabs = tabs.filter(tab => tab.kind !== 'overview')
+        if (replaceStart) tabs = tabs.filter(tab => tab !== start)
         if (old.title !== next.title || old.book !== next.book || old.trashed !== next.trashed) {
           tabs = tabs.map(tab => tab === old ? next : tab)
         }
       } else {
-        tabs = replaceOverview ? tabs.map(tab => tab === overviewTab ? next : tab) : [...tabs, next]
+        tabs = replaceStart ? tabs.map(tab => tab === start ? next : tab) : [...tabs, next]
       }
-    } else if (this.hasOverview && !state.noteId && !tabs.includes(overviewTab) &&
-        (!tabs.length || (this.wantsOverview(state) && !state.loadingNote && !this.choosingAfterRemoval))) {
-      tabs = [...tabs, overviewTab]
+    } else if (start && !state.noteId && !tabs.includes(start) &&
+        (!tabs.length || (this.wantsStartTab(state) && !state.loadingNote && !this.choosingAfterRemoval))) {
+      tabs = [...tabs, start]
     }
 
     if (tabs.length !== this.tabs.length || tabs.some((tab, index) => tab !== this.tabs[index])) this.emit(tabs)
     if (neighbors.length) {
-      void this.selectAfterRemoval(neighbors, onAutomaticSelect).finally(() => {
+      void this.selectAfterRemoval(neighbors).finally(() => {
         if (this.choosingAfterRemoval !== removal) return
         this.choosingAfterRemoval = undefined
         this.reconcile()
@@ -119,40 +125,38 @@ export class NoteTabs {
     const error = this.controller.getSnapshot().error
     return error === 'note_deleted' || error === 'note_not_found'
   }
-  private async selectAfterRemoval(neighbors: ReadingTab[], onSelected?: (id: string) => void) {
+  private async selectAfterRemoval(neighbors: ReadingTab[]) {
     for (const tab of neighbors) {
       const generation = this.generation + 1
-      if (await this.select(tab.id, tab.kind === 'note' && !tab.trashed)) {
-        onSelected?.(tab.id)
-        return
-      }
+      if (await this.select(tab.id, tab.kind === 'note' && !tab.trashed)) return
       const state = this.controller.getSnapshot()
       if (this.generation !== generation || state.noteId || state.loadingNote || !this.missing()) return
     }
   }
 
-  private async leaveForOverview() {
+  private async leaveNote() {
     const epoch = this.controller.libraryEpoch
     const generation = ++this.generation
     return await this.controller.back() && epoch === this.controller.libraryEpoch &&
       generation === this.generation && !this.controller.getSnapshot().noteId
   }
 
-  private async selectOverview() {
-    if (!this.hasOverview || this.controller.getSnapshot().loadingNote) return false
-    if (this.activeId === overviewTabId) return true
-    if (!await this.leaveForOverview()) return false
+  private async selectStartTab(start: StartTab) {
+    if (this.controller.getSnapshot().loadingNote) return false
+    if (this.activeId === start.id) return true
+    if (!await this.leaveNote()) return false
     this.overviewInTrash = this.controller.getSnapshot().filter.status === 'trashed'
-    this.emit(this.tabs.includes(overviewTab) ? [...this.tabs] : [...this.tabs, overviewTab])
+    this.emit(this.tabs.includes(start) ? [...this.tabs] : [...this.tabs, start])
     return true
   }
 
   async select(id: string, activeOnly = false) {
     if (this.blocked) return false
-    if (id === overviewTabId) return this.selectOverview()
+    if (this.startTab?.id === id) return this.selectStartTab(this.startTab)
+    const reveal = this.startTab?.id !== conversationListTabId
     const {noteId, loadingNote, editing} = this.controller.getSnapshot()
     if (noteId === id && !loadingNote) {
-      if (!editing) await this.controller.revealCurrent(id)
+      if (reveal && !editing) await this.controller.revealCurrent(id)
       return true
     }
     const generation = ++this.generation
@@ -161,16 +165,16 @@ export class NoteTabs {
       return false
     }
     this.reconcile()
-    await this.controller.revealCurrent(id)
+    if (reveal) await this.controller.revealCurrent(id)
     return generation === this.generation && this.controller.getSnapshot().noteId === id
   }
 
-  canClose(id: string) { return id !== overviewTabId || this.tabs.length > 1 }
+  canClose(id: string) { return id !== this.startTab?.id || this.tabs.length > 1 }
 
   private remove(id: string) {
     this.positions.delete(id)
     const rest = this.tabs.filter(tab => tab.id !== id)
-    if (rest.length !== this.tabs.length) this.emit(!rest.length && this.hasOverview ? [overviewTab] : rest)
+    if (rest.length !== this.tabs.length) this.emit(!rest.length && this.startTab ? [this.startTab] : rest)
   }
 
   async close(id: string) {
@@ -180,9 +184,8 @@ export class NoteTabs {
     const epoch = this.controller.libraryEpoch
     if (this.activeId === id) {
       const next = this.tabs[index + 1] ?? this.tabs[index - 1]
-      const fallback = this.hasOverview ? overviewTabId : null
-      const target = next?.id ?? fallback
-      if (!(target ? await this.select(target) : await this.leaveForOverview())) return false
+      const target = next?.id ?? this.startTab?.id
+      if (!(target ? await this.select(target) : await this.leaveNote())) return false
     }
     if (epoch !== this.controller.libraryEpoch || this.activeId === id) return false
     this.remove(id)
@@ -197,10 +200,10 @@ export class NoteTabs {
   }
 
   async closeAll() {
-    if (this.blocked || this.controller.getSnapshot().loadingNote || !await this.leaveForOverview()) return false
+    if (this.blocked || this.controller.getSnapshot().loadingNote || !await this.leaveNote()) return false
     this.positions.clear()
-    this.overviewInTrash = this.hasOverview && this.controller.getSnapshot().filter.status === 'trashed'
-    this.emit(this.hasOverview ? [overviewTab] : [])
+    this.overviewInTrash = this.startTab?.id === overviewTabId && this.controller.getSnapshot().filter.status === 'trashed'
+    this.emit(this.startTab ? [this.startTab] : [])
     return true
   }
 

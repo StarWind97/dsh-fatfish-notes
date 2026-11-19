@@ -597,6 +597,8 @@
   "reuseEditingTemplate": "Template · Changes apply only to future notes created from this template",
   "notesOpen": "Open note",
   "sessionNotes": "Conversation notes",
+  "sessionListTab": "Note list",
+  "sessionOpenListTab": "Open note list",
   "sessionSave": "Save this conversation",
   "sessionOperationFailed": "Could not complete the operation. Please retry.",
   "sessionUnlinked": "Unlinked. The note remains in your library.",

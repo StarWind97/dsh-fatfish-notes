@@ -18,6 +18,7 @@ import {notesCss} from './notes-style.js'
 import {paperCss} from './paper/style.js'
 import {AppearanceStyle,useAppearanceProps,AppearanceScope} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
+import {conversationListTabId} from './paper/note-tabs.js'
 import {organizationCss} from './organization-style.js'
 import {transferCss} from './NoteAttachments.js'
 import {WorkspaceBookDialog} from './WorkspaceBookDialog.js'
@@ -43,17 +44,16 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   const appearance=useAppearanceProps()
   const pair=useMemo(()=>{
     const workspace=new NotesWorkspace('conversation',undefined,String(tab.id))
-    const controller=new NotesController(workspace.api,{stableList:true,editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
+    const controller=new NotesController(workspace.api,{startTab:'conversation-list',stableList:true,editing:workspace,recoveryScope:workspace.recoveryScope,onSettled:()=>{void notebookSync.request(true)}})
     workspace.bind(controller);return {workspace,controller}
   },[tab.id,sessionId])
   const {workspace,controller}=pair,state=useSyncExternalStore(controller.subscribe,controller.getSnapshot),windowState=useSyncExternalStore(workspace.subscribe,workspace.getSnapshot)
   const [order,setOrder]=useState<NoteOrder>('recent')
-  const [query,setQuery]=useState(''),[group,setGroup]=useState<Group>('linked'),[reading,setReading]=useState(false),[error,setError]=useState(false),[undo,setUndo]=useState<string|null>(null)
+  const [query,setQuery]=useState(''),[group,setGroup]=useState<Group>('linked'),[error,setError]=useState(false),[undo,setUndo]=useState<string|null>(null)
   const [context,setContext]=useState<NotesApiContract['/notes/session-context']['response']|null>(null),[contextFailed,setContextFailed]=useState(false)
   const [book,setBook]=useState<string|null>(null),[booksOpen,setBooksOpen]=useState(false),[setup,setSetup]=useState<'new'|'workspace'|null>(null),[linking,setLinking]=useState<Set<string>>(()=>new Set())
   const root=useRef<HTMLElement>(null),pendingLinks=useRef(new Set<string>())
-  function selectedTab(){setReading(true);setGroup('find');setQuery('');setBook(controller.getSnapshot().note?.effectiveNotebookId??'all')}
-  const noteTabs=useNoteTabs(controller,state,root,selectedTab)
+  const noteTabs=useNoteTabs(controller,state,root)
   const [narrow,setNarrow]=useState(false)
   useLayoutEffect(()=>{const el=root.current;if(!el)return;let prior:boolean|undefined;const observer=new ResizeObserver(([entry])=>{const next=entry!.contentRect.width<=520;if(next!==prior){prior=next;setNarrow(next);setBooksOpen(false)}});observer.observe(el);return()=>observer.disconnect()},[])
   useEffect(()=>{if(!narrow||!booksOpen)return;const outside=(e:PointerEvent)=>{if(!(e.target as HTMLElement).closest('.conversation-books,.conversation-browse-caption'))setBooksOpen(false)};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[narrow,booksOpen])
@@ -66,15 +66,13 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   function exitSelection(){setSelecting(false);setChosen([]);setShowChosen(false)}
   const alive=useRef(false),visible=useRef(tab.visible);visible.current=tab.visible
   const outline=useRef<OutlineSession>({wide:null,open:false}),list=useRef<HTMLDivElement>(null),scroll=useRef(0),restoring=useRef(false)
-  const showDetail=reading&&!!state.draft
-  // A discarded new draft has no document; release the surrounding pane too.
-  useLayoutEffect(()=>{if(reading&&!state.draft&&!state.loadingNote){restoring.current=true;setReading(false)}},[reading,state.draft,state.loadingNote])
+  const showDetail=!!state.draft
   const books=state.notebooks.filter(activeNotebook),mapped=context?.notebookId&&books.some(b=>b.notebookId===context.notebookId)?context.notebookId:null
   const preference=useMemo(()=>windowState.server?.repositoryId&&context?new ConversationBrowse(browserStorage(),windowState.server.repositoryId,context.workspace?.id??null):null,[windowState.server?.repositoryId,context?.workspace?.id,!!context])
   const initializedPreference=useRef<ConversationBrowse|null>(null)
   useEffect(()=>{
     alive.current=true;workspace.start();const unbind=bindLibraryLifecycle(controller)
-    void controller.filter({sessionId,relation:'linked',order:'recent'}).then(()=>controller.initialize(null))
+    void controller.filter({order:'recent',sessionId,relation:'linked'}).then(()=>controller.initialize(null))
     return()=>{alive.current=false;unbind();void controller.leave().finally(()=>{controller.dispose();workspace.dispose()})}
   },[pair,sessionId])
   useEffect(()=>{workspace.setVisible(tab.visible);if(!tab.visible)void controller.leave();else void controller.refresh(true,true)},[tab.visible,pair])
@@ -93,24 +91,45 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   },[preference,state.notebooks,mapped,book,group])
   const browseBook=group==='workspace'?mapped:book,canBrowse=group!=='find'&&group!=='workspace'||!!browseBook||!!query.trim()
   const desiredFilter=useMemo(()=>({order,sessionId,relation:group==='linked'?(sourceOnly?'source' as const:'linked' as const):'browse' as const,...(group==='find'?{query,...(browseBook==='favorites'?{favorite:true}:{})}:{}),...((group==='find'||group==='workspace')&&browseBook&&browseBook!=='all'&&browseBook!=='favorites'?{notebookId:browseBook}:{})}),[query,group,sourceOnly,browseBook,sessionId,order])
+  const filterMatches=JSON.stringify(state.filter)===JSON.stringify(desiredFilter)
   useEffect(()=>{
-    if(!tab.visible||showDetail||!canBrowse)return
-    if(JSON.stringify(controller.getSnapshot().filter)===JSON.stringify(desiredFilter))return
-    const timer=setTimeout(()=>void controller.selectFilter(desiredFilter,false),query&&group==='find'?180:0)
+    if(!tab.visible||showDetail||!canBrowse||filterMatches)return
+    const timer=setTimeout(()=>{
+      if(!controller.getSnapshot().noteId)void controller.filter(desiredFilter)
+    },query&&group==='find'?180:0)
     return()=>clearTimeout(timer)
-  },[desiredFilter,pair,tab.visible,canBrowse,showDetail])
-  useLayoutEffect(()=>{if(!reading&&restoring.current&&!state.loadingList&&list.current){list.current.scrollTop=scroll.current;restoring.current=false}},[reading,state.loadingList,state.items])
-  useEffect(()=>{const saved=(e:Event)=>{const data=(e as CustomEvent<{sessionId:string;noteId:string}>).detail;if(data.sessionId!==sessionId||!visible.current)return;setReading(true);setGroup('linked');setSourceOnly(true);scroll.current=0;void controller.leave().then(async ok=>{if(!ok||!alive.current||!visible.current)return;await controller.filter({sessionId,relation:'linked',order:'recent'});if(alive.current&&visible.current&&await controller.open(data.noteId))setReading(true)})};window.addEventListener('fatfish-notes-captured',saved);return()=>window.removeEventListener('fatfish-notes-captured',saved)},[pair,sessionId])
-  function selectBook(id:string){setBook(id);setBooksOpen(false);scroll.current=0;if(id!=='all'&&id!=='favorites')preference?.choose(id)}
-  async function open(id:string){scroll.current=list.current?.scrollTop??scroll.current;if(await controller.open(id)){setReading(true);return true}return false}
-  async function back(){if(await controller.leave()){restoring.current=true;setReading(false)}}
+  },[desiredFilter,controller,tab.visible,canBrowse,showDetail,filterMatches,query,group])
+  useLayoutEffect(()=>{
+    if(showDetail){restoring.current=true;return}
+    if(!restoring.current||!list.current||!filterMatches||state.loadingList||state.listError)return
+    list.current.scrollTop=scroll.current
+    restoring.current=false
+  },[showDetail,filterMatches,state.loadingList,state.listError,state.items])
+  useEffect(()=>{
+    const saved=(event:Event)=>{
+      const data=(event as CustomEvent<{sessionId:string;noteId:string}>).detail
+      if(data.sessionId!==sessionId||!visible.current)return
+      void controller.open(data.noteId).then(ok=>{
+        if(ok&&alive.current&&visible.current)void controller.refresh(true,false,false)
+      })
+    }
+    window.addEventListener('fatfish-notes-captured',saved)
+    return()=>window.removeEventListener('fatfish-notes-captured',saved)
+  },[controller,sessionId])
+  function resetListScroll(){
+    scroll.current=0
+    restoring.current=false
+    if(list.current)list.current.scrollTop=0
+  }
+  function selectBook(id:string){if(id!==book)resetListScroll();setBook(id);setBooksOpen(false);if(id!=='all'&&id!=='favorites')preference?.choose(id)}
+  function open(id:string){return controller.open(id)}
   async function associate(item:Pick<NoteListItem,'noteId'|'heads'>,linked:boolean){if(pendingLinks.current.has(item.noteId)||removed)return;pendingLinks.current.add(item.noteId);setLinking(new Set(pendingLinks.current));setError(false);try{const {note}=await workspace.api('/notes/associate',{noteId:item.noteId,expectedHeads:item.heads,sessionId,linked});controller.patchAssociation(note,linked?'manual':null);setUndo(linked?null:item.noteId);notebookSync.localChanged()}catch{setError(true)}finally{pendingLinks.current.delete(item.noteId);setLinking(new Set(pendingLinks.current))}}
   async function restore(){if(!undo)return;try{const {note}=await workspace.api('/notes/get',{noteId:undo});await associate(note,true);await controller.refresh(true,false,false)}catch{setError(true)}}
   function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);if(id&&!book){setBook(id);preference?.choose(id)}window.dispatchEvent(new Event('fatfish-workspace-book'))}
-  async function create(notebookId=mapped){if(removed)return;scroll.current=list.current?.scrollTop??scroll.current;if(await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId}))setReading(true)}
-  const actions=useItemActions(controller,state,t,open,()=>setReading(true),root)
+  async function create(notebookId=mapped){if(removed)return;await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId})}
+  const actions=useItemActions(controller,state,t,open,undefined,root)
   const tabs:Group[]=mapped?['linked','workspace','find']:['linked','find']
-  useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,reading,tab.visible])
+  useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,showDetail,tab.visible])
   function resize(value:number){const width=Math.max(160,Math.min(340,value));setBookWidth(width);try{localStorage.setItem('fatfish-sidebar-books-width',String(width))}catch{}}
   function sideBookActions(b:typeof books[number]){return [...actions.bookActions(b).map(a=>a.label===t('notesNew')?{...a,run:()=>void create(b.notebookId)}:a),...(context?.workspace?[{label:'设为当前工作区默认笔记本',disabled:b.notebookId===mapped||state.operation,run:()=>{setSetupBook(b.notebookId);setSetup('workspace')}}]:[])]}
   return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(narrow&&booksOpen){e.stopPropagation();setBooksOpen(false)}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
@@ -119,20 +138,20 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     {actions.dialogs}{reference.dialogs}
     {showChosen&&<PaperDialog title={`已选 ${chosen.length} 篇笔记`} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={`移除选择：${row.title}`} title="移除选择" onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>尚未选择笔记。</p>}</div><footer><button onClick={()=>setShowChosen(false)}>继续选择</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>引用所选</button></footer></PaperDialog>}
     {setup&&<WorkspaceBookDialog mode={setup} workspace={context?.workspace??null} mapped={mapped} initialSelected={setup==='workspace'?setupBook:null} controller={controller} state={state} t={t} close={()=>{setSetup(null);setSetupBook(null)}} changed={mappedBook}/>}
-    <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void back()}><ArrowLeft size={16}/></button>:<BrandMark size={17} color/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
+    <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void noteTabs.session.select(conversationListTabId)}><ArrowLeft size={16}/></button>:<BrandMark size={17} color/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
     <WorkspaceNotice workspace={workspace} t={t}/>
-    <NoteTabBar controller={controller} state={state} {...noteTabs} t={t} onSelect={selectedTab}/>
+    <NoteTabBar controller={controller} state={state} {...noteTabs} t={t}/>
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
     {showDetail?<div className="paper-detail"><NoteEditor onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
 
-      <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{setGroup(key);scroll.current=0}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}<div className="conversation-sort"><select aria-label={t('paperSort')} value={order} onChange={e=>{setOrder(e.target.value as NoteOrder);scroll.current=0}}><option value="recent">修改时间：从新到旧</option><option value="oldest">修改时间：从旧到新</option><option value="created-recent">创建时间：从新到旧</option><option value="created-oldest">创建时间：从旧到新</option><option value="title-asc">标题：升序</option><option value="title-desc">标题：降序</option></select></div></nav>
+      <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{if(group!==key)resetListScroll();setGroup(key)}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}<div className="conversation-sort"><select aria-label={t('paperSort')} value={order} onChange={e=>{setOrder(e.target.value as NoteOrder);resetListScroll()}}><option value="recent">修改时间：从新到旧</option><option value="oldest">修改时间：从旧到新</option><option value="created-recent">创建时间：从新到旧</option><option value="created-oldest">创建时间：从旧到新</option><option value="title-asc">标题：升序</option><option value="title-desc">标题：降序</option></select></div></nav>
       {group==='find'&&<>
-        <div className="conversation-notes-search"><Search size={15}/><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{setQuery(e.target.value);scroll.current=0}}/></div>
+        <div className="conversation-notes-search"><Search size={15}/><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{setQuery(e.target.value);resetListScroll()}}/></div>
         <div className="conversation-browse-caption"><button disabled={!narrow} aria-expanded={narrow?booksOpen:undefined} onClick={()=>{if(narrow)setBooksOpen(!booksOpen)}}><Notebook size={14}/>{books.find(b=>b.notebookId===book)?.current.title??t(book==='all'?'paperAll':book==='favorites'?'findFavorites':'sessionChooseBook')}{narrow&&<ChevronDown size={13}/>}</button><small>{t(book&&book!=='all'&&book!=='favorites'?'sessionSearchBook':'sessionSearchAll')}</small></div>
       </>}
-      {group==='linked'&&<div className="conversation-linked-filter"><span><button aria-pressed={!sourceOnly} onClick={()=>setSourceOnly(false)}>全部关联</button><button aria-pressed={sourceOnly} onClick={()=>setSourceOnly(true)}>{t('sessionSource')}</button></span>{context?.workspace&&!mapped&&<button title="设置工作区笔记本" aria-label="设置工作区笔记本" onClick={()=>setSetup('workspace')}><BookPlus size={16}/></button>}</div>}
+      {group==='linked'&&<div className="conversation-linked-filter"><span><button aria-pressed={!sourceOnly} onClick={()=>{if(sourceOnly)resetListScroll();setSourceOnly(false)}}>全部关联</button><button aria-pressed={sourceOnly} onClick={()=>{if(!sourceOnly)resetListScroll();setSourceOnly(true)}}>{t('sessionSource')}</button></span>{context?.workspace&&!mapped&&<button title="设置工作区笔记本" aria-label="设置工作区笔记本" onClick={()=>setSetup('workspace')}><BookPlus size={16}/></button>}</div>}
       {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={books.find(b=>b.notebookId===mapped)?.current.title}>{books.find(b=>b.notebookId===mapped)?.current.title}</strong><button title="新建笔记" aria-label="在工作区笔记本新建笔记" disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title="工作区笔记本设置" aria-label="工作区笔记本设置" onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title="导出此笔记本" aria-label="导出此笔记本" onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
       <div className="conversation-selection-bar" data-selecting={selecting}>
@@ -140,7 +159,8 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
       </div>
       <div className="conversation-browse" style={{'--conversation-books-width':bookWidth+'px'} as React.CSSProperties} data-browser={group==='find'} data-books-open={narrow&&booksOpen}>
         {group==='find'&&<><nav className="conversation-books" aria-label={t('notesNotebook')}><div className="conversation-books-scroll"><button aria-current={book==='all'?'page':undefined} onClick={()=>selectBook('all')}><BookOpen size={14}/>{t('paperAll')}</button><button aria-current={book==='favorites'?'page':undefined} onClick={()=>selectBook('favorites')}><Star size={14}/>{t('findFavorites')}</button>{books.map(b=><RowMenu key={b.notebookId} label={b.current.title+' · 操作'} actions={sideBookActions(b)} reveal="interaction"><button title={b.current.title} aria-current={book===b.notebookId?'page':undefined} onClick={()=>selectBook(b.notebookId)}><Notebook size={14}/><span>{b.current.title}</span><small className="paper-notebook-count">{b.noteCount}</small></button></RowMenu>)}</div><footer><button onClick={()=>setSetup('new')}><Plus size={15}/>{t('notesNewNotebook')}</button></footer></nav><div className="conversation-book-divider" role="separator" aria-label="调整笔记本列宽" aria-orientation="vertical" aria-valuemin={160} aria-valuemax={340} aria-valuenow={bookWidth} tabIndex={0} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();resize(bookWidth+(e.key==='ArrowRight'?10:-10))}}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.dataset.start=String(e.clientX);e.currentTarget.dataset.width=String(bookWidth)}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))resize(Number(e.currentTarget.dataset.width)+e.clientX-Number(e.currentTarget.dataset.start))}} onPointerUp={e=>e.currentTarget.releasePointerCapture(e.pointerId)}/></>}
-        <div className="conversation-notes-list" ref={list} aria-busy={state.loadingList} data-selecting={selecting}>
+        <div className="conversation-notes-list" ref={list} aria-busy={state.loadingList} data-selecting={selecting}
+          onScroll={e=>{if(!restoring.current)scroll.current=e.currentTarget.scrollTop}}>
           {!canBrowse?<p className="conversation-empty">{t('sessionChooseBookHint')}</p>:state.listError?<p role="alert">{t('sessionLoadFailed')}</p>:!state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='find'||group==='workspace'?'notesEmpty':'sessionEmpty')}</p>:state.items.map(item=>{
             const selected=chosen.some(row=>row.noteId===item.noteId)
             return <article key={item.noteId} data-selected={selected&&selecting}>
