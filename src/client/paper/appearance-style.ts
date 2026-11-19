@@ -37,7 +37,8 @@ export const appearanceCss=layoutThemesCss+`
 .paper-note-tabs .paper-tabs-add{width:30px;padding:0}
 .paper-note-tabs .paper-tabs-more{min-width:32px}
 .paper-tab-announcement{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-:is(.paper-note-tabs,.paper-tabs-overflow) button[data-tab-drag]{cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none}
+:is(.paper-note-tabs,.paper-tabs-overflow) button[type=button]{cursor:default}
+:is(.paper-note-tabs,.paper-tabs-overflow) button[data-tab-drag]{-webkit-user-select:none;user-select:none;touch-action:none}
 :is(.paper-note-tabs,.paper-tabs-overflow) button[data-dragging]{cursor:grabbing;opacity:.58}
 .paper-note-tab[data-tab-drop]::after{content:'';position:absolute;z-index:1;inset-block:3px;border-inline-start:2px solid var(--accent);pointer-events:none}
 .paper-note-tab[data-tab-drop=before]::after{inset-inline-start:-4px}.paper-note-tab[data-tab-drop=after]::after{inset-inline-end:-4px}

@@ -3,7 +3,7 @@
 ## 当前状态
 
 - 2026-11-19 [全库标签整理](plans/2026-11-19-library-tags.zh.md)已完成隔离验收，待体验。「笔记 → 筛选笔记 → 管理标签…」可预览、改名、合并、移除和撤销。rc.5 Web、Windows Desktop 与指定私库的跨端修订已核对。使用[隔离桌面入口](../scripts/Open-Fatfish-Notes.cmd)重开。
-- 2026-11-19 [阅读区标签、概览与拖动排序](plans/2026-11-19-browser-style-reading-tabs.zh.md)已完成隔离验收，待体验。短竖线分隔，概览原位打开笔记，末尾「+」再开概览。rc.5 Windows Desktop 和独立窗口实测通过。用[隔离体验入口](../scripts/Open-Fatfish-Notes.cmd)重开。
+- 2026-11-19 [阅读区标签、概览与拖动排序](plans/2026-11-19-browser-style-reading-tabs.zh.md)已完成隔离验收，待体验。短竖线分隔，概览原位打开笔记，末尾「+」再开概览。悬停使用普通箭头。rc.5 Windows Desktop 和独立窗口实测通过。用[隔离体验入口](../scripts/Open-Fatfish-Notes.cmd)重开。
 - 2026-11-19 正式发布 [0.9.3](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.3)。414 项全量回归通过，rc.5 Windows 桌面与 rc.4、rc.5 Web 验收完成，两套公开链接安装各 255 文件一致。固定链接的市场切换 PR #16876 已提交。见[发布记录](releases/0.9.3/review.zh.md)和[兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)。
 - 2026-11-19 已落实[回归安排](../AGENTS.md#验证范围)。下一版拟扩大 DSH 兼容范围至 `>=0.2.2-rc.3 <0.3.0-0`，已批准按[兼容声明](../AGENTS.md#兼容声明)在 `0.2.3` 候选可用时启动隔离验收。复核时 DSH 官方发布、npm 和 Windows x64 更新源均为 `0.2.2-rc.5`，实际范围待验收通过后更新。
 - 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)随 0.9.3 发布。支持先搜索或先选笔记本、在同一面板查标签、按附件名查找和定位正文原句。
