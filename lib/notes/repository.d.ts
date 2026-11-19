@@ -1,3 +1,4 @@
+import type { TagResponse } from '../contracts/tag-management.js';
 import type { ImageMediaType } from '../contracts/media.js';
 import type { NoteObjects, NoteRevision, NoteView, NoteSaveInput, NoteContent, NotebookView, NotebookRemoval, NoteListOptions, NoteListResult, RecoveryIssue, NoteAsset } from './types.js';
 import { NoteFiles } from './files.js';
@@ -55,6 +56,7 @@ export declare class NoteRepository {
         items: NoteHistoryItem[];
         cursor: string | null;
     }>;
+    tagManagement(input: unknown, signal?: AbortSignal): Promise<TagResponse>;
     catalog(signal?: AbortSignal): Promise<NoteCatalog>;
     backlinks(noteId: string, signal?: AbortSignal): Promise<NoteListResult['items']>;
     backlinkPage(noteId: string, options?: {

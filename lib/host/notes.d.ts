@@ -131,6 +131,7 @@ export declare class NotesApplication {
         note?: import("../contracts/notes.js").NoteView;
         ok: true;
     }>;
+    tags(input: unknown, signal?: AbortSignal): Promise<import("../contracts/tag-management.js").TagResponse>;
     catalog(signal?: AbortSignal): Promise<{
         tags: Array<{
             tag: string;

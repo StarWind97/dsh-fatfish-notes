@@ -37,6 +37,12 @@ export function validNotesResponse(path: ApiPath, value: unknown): boolean | und
   if (path === '/notes/attachment') return attachment(value.attachment)
   if (path === '/notes/batch') return strings(value.completed) && value.completed.every(id)
   if (path === '/notes/manage') return strings(value.completed)&&value.completed.every(id)&&(value.note===undefined||note(value.note))
+  if (path === '/notes/tags') {
+    const change=(v:unknown)=>record(v)&&typeof v.source==='string'&&(v.target===null||typeof v.target==='string')&&['rename','merge','remove'].includes(String(v.mode))&&hash(v.token)&&Array.isArray(v.rows)&&v.rows.length<=5000
+    const p=value.preview,r=value.receipt
+    return (p===undefined||record(p)&&change(p)&&Array.isArray(p.rows)&&p.rows.every(row=>record(row)&&id(row.noteId)&&typeof row.title==='string'&&typeof row.book==='string'&&(row.notebookId===null||id(row.notebookId))&&strings(row.before)&&strings(row.after)))&&
+      (r===null||record(r)&&change(r)&&['applying','done','undoing','undone'].includes(String(r.phase))&&Array.isArray(r.rows)&&r.rows.every(row=>record(row)&&id(row.noteId)&&typeof row.title==='string'&&typeof row.completed==='boolean'))
+  }
   if (path === '/notes/catalog') return Array.isArray(value.tags)&&value.tags.every(v=>record(v)&&typeof v.tag==='string'&&Number.isSafeInteger(v.count)&&Number(v.count)>0)
   if (path === '/notes/history') return Array.isArray(value.items)&&value.items.length<=30&&value.items.every(v=>record(v)&&hash(v.revision)&&typeof v.recordedAt==='string'&&typeof v.title==='string'&&typeof v.summary==='string'&&['active','trashed'].includes(String(v.status)))&&(value.cursor===null||hash(value.cursor))
   if (path === '/notes/backlinks') return validNotesResponse('/notes',value)&&Number.isSafeInteger(value.total)&&Array.isArray(value.items)&&Number(value.total)>=value.items.length

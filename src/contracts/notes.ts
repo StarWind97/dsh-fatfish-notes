@@ -119,6 +119,7 @@ export interface NotesApiContract {
   '/notes/workspace-book': { request: { workspaceId: string; notebookId?: string | null }; response: { ok: true; notebookId: string | null } }
   '/notes/manage': { request: NoteManageRequest; response: { ok: true; completed: string[]; note?: NoteView } }
   '/notes/catalog': { request: undefined; response: { ok: true } & NoteCatalog }
+  '/notes/tags': { request: import('./tag-management.js').TagRequest; response: import('./tag-management.js').TagResponse }
   '/notes/history': { request: { noteId: string; cursor?: string }; response: { ok: true; items: NoteHistoryItem[]; cursor: string | null } }
   '/notes/revision': { request: { noteId: string; revision: string }; response: { ok: true; note: NoteView } }
   '/notes/backlinks': { request: { noteId: string; cursor?:string }; response: { ok: true; items: NoteListItem[]; total:number; cursor:string|null } }

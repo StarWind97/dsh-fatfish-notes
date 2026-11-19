@@ -105,6 +105,7 @@ export class NotesApplication {
   suggest(input:unknown,signal?:AbortSignal){return this.run(async active=>({ok:true as const,metadata:await suggestMetadata(validateCaptureRequest(input),this.conversation,this.model,this.services,AbortSignal.any([active,AbortSignal.timeout(180_000)]))}),signal)}
   get(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, note: await this.repository.get(text(object(input).noteId, 26), active) }), signal) }
   manage(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ok:true as const,...await this.repository.manage(input as NoteManageRequest,active)}),signal) }
+  tags(input:unknown,signal?:AbortSignal){return this.run(active=>this.repository.tagManagement(input,active),signal)}
   catalog(signal?:AbortSignal) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active)}),signal)}
   history(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input);return {ok:true as const,...await this.repository.history(id(v.noteId),v.cursor===undefined?undefined:hash(v.cursor),active)}},signal)}
   revision(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input),row=await this.repository.getRevision(id(v.noteId),hash(v.revision),active);return {ok:true as const,note:{noteId:row.noteId,heads:[row.revision],current:row,conflicts:[],savedAt:row.recordedAt,effectiveNotebookId:row.notebookId}}},signal)}

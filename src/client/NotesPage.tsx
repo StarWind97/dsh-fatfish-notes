@@ -19,6 +19,7 @@ import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
 import { ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X, PanelLeftOpen, Star, Pin , Moon, Sun } from 'lucide-react'
 import {SearchFilterPanel} from './SearchFilterPanel.js'
+import {TagManager} from './TagManager.js'
 import type {NoteListItem, NoteOrder, SearchHit} from '../contracts/notes.js'
 import {Highlight,LinkPreview} from './NoteTools.js'
 import {organizationCss} from './organization-style.js'
@@ -71,6 +72,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const [transfer,setTransfer]=useState(false)
   const [settingsCategory,setSettingsCategory]=useState<SettingsCategory>('appearance')
   const [booksOpen,setBooksOpen]=useState(false)
+  const [tagLibrary,setTagLibrary]=useState<number|null>(null)
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
   const noteTabs=useNoteTabs(controller,state,app)
@@ -198,7 +200,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     {state.filter.modifiedPeriod&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findModified')})} onClick={()=>period('')}>{t('findModified')} · {t(state.filter.modifiedPeriod==='month'?'findThisMonth':'findBeforeMonth')}<X size={13}/></button>}
     {state.filter.hasFiles&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findFilesOnly')})} onClick={()=>files(false)}>{t('findFilesOnly')}<X size={13}/></button>}
     {query.trim()&&state.filter.notebookId!==undefined&&<button className="paper-scope-all" onClick={()=>chooseNotebook()}>{t('findAcross')}</button>}
-    {booksOpen&&<div id={filterPanelId}><SearchFilterPanel controller={controller} filter={state.filter} t={t} onTag={filterTag} onPeriod={period} onFiles={files} close={closeFilters}/></div>}
+    {booksOpen&&<div id={filterPanelId}><SearchFilterPanel controller={controller} filter={state.filter} t={t} onTag={filterTag} onPeriod={period} onFiles={files} close={closeFilters} manage={async()=>{const library=controller.libraryEpoch;if(await controller.saveEdits()&&controller.libraryEpoch===library)setTagLibrary(library)}}/></div>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
     </div><div className="paper-list-scroll">{showOverview&&!state.draft&&overview(true)}{treeActive?<NotebookTree controller={controller} state={state} books={activeBooks} actions={itemActions.noteActions} bookActions={itemActions.bookActions}/>:<><div className="paper-rows">{state.items.map((item,i)=>{
@@ -209,6 +211,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
       </NoteSelectionRow></div></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash||appearanceValue.layout==='tree')&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
   return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss}</style><AppearanceStyle/>
+    {tagLibrary===controller.libraryEpoch&&<TagManager controller={controller} t={t} close={()=>setTagLibrary(null)}/>}
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'notesManagePage':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>theme.setMode(appearance['data-theme']==='dark'?'light':'dark')}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}

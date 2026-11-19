@@ -12,10 +12,11 @@ type Props = {
   onTag: (tag: string) => void
   onPeriod: (period: NonNullable<NoteListOptions['modifiedPeriod']> | '') => void
   onFiles: (enabled: boolean) => void
+  manage: () => void
   close: () => void
 }
 
-export function SearchFilterPanel({controller, filter, t, onTag, onPeriod, onFiles, close}: Props) {
+export function SearchFilterPanel({controller, filter, t, onTag, onPeriod, onFiles, manage, close}: Props) {
   const [tags, setTags] = useState<NoteCatalog['tags']>([])
   const [status, setStatus] = useState<'loading'|'ready'|'failed'>('loading')
   const [draft, setDraft] = useState('')
@@ -49,6 +50,7 @@ export function SearchFilterPanel({controller, filter, t, onTag, onPeriod, onFil
           {filter.tag === tag && <Check size={12}/>}<span>#{tag}</span><small>{count}</small></button>)}</div>
       {!candidates.length && <small role="status">{t(term ? 'findNoTagMatch' : 'findNoTags')}</small>}
     </> : <small role="status">{t(status === 'failed' ? 'findCatalogFailed' : 'loading')} {status === 'failed' && <button type="button" onClick={() => retry(n => n+1)}>{t('noteRetry')}</button>}</small>}
+    <div className="paper-tag-heading"><button type="button" onClick={manage}>{t('tagEntry')}</button></div>
     <div className="paper-filter-options"><label>{t('findModified')} <select value={filter.modifiedPeriod ?? ''} onChange={event => onPeriod(event.target.value as Parameters<Props['onPeriod']>[0])}>
       <option value="">{t('findTimeAny')}</option><option value="month">{t('findThisMonth')}</option><option value="before-month">{t('findBeforeMonth')}</option>
     </select></label><label><input type="checkbox" checked={!!filter.hasFiles} onChange={event => onFiles(event.target.checked)}/>{t('findFilesOnly')}</label></div>

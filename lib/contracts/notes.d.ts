@@ -474,6 +474,10 @@ export interface NotesApiContract {
             ok: true;
         } & NoteCatalog;
     };
+    '/notes/tags': {
+        request: import('./tag-management.js').TagRequest;
+        response: import('./tag-management.js').TagResponse;
+    };
     '/notes/history': {
         request: {
             noteId: string;

@@ -32,6 +32,21 @@ export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Prom
 export class NotesController {
   libraryEpoch=0
   catalogEpoch=0
+  private tagFilterUndo:{token:string;library:number;tag:string|null;original:string}|undefined
+  async tagsChanged(receipt:import('../contracts/tag-management.js').TagReceipt,stopped:boolean) {
+    const filter=this.state.filter,active=filter.tag??null
+    let tag=active
+    if(receipt.phase==='done'&&!stopped&&active===receipt.source){
+      tag=receipt.target
+      this.tagFilterUndo={token:receipt.token,library:this.libraryEpoch,tag,original:receipt.source}
+    }else if(receipt.phase==='undone'&&this.tagFilterUndo?.library===this.libraryEpoch&&this.tagFilterUndo.token===receipt.token&&this.tagFilterUndo.tag===active){
+      tag=this.tagFilterUndo.original
+      this.tagFilterUndo=undefined
+    }
+    if(tag!==active){const {tag:old,...rest}=filter;this.emit({filter:tag?{...rest,tag}:rest})}
+    await this.refresh(true,true)
+    this.options.onSettled?.()
+  }
   readonly removedIds=new Set<string>()
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, openedFromTab: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
@@ -199,7 +214,7 @@ export class NotesController {
       }
     } catch { if (this.ownsDetail(request)) this.emit({ listError: true }) }
   }
-  filter(filter: NoteListOptions) { this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
+  filter(filter: NoteListOptions) { if(filter.tag!==this.state.filter.tag)this.tagFilterUndo=undefined;this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
     if(!await this.prepareLeave())return
     const navigation=this.navigation
