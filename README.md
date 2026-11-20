@@ -11,7 +11,7 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 当前版本 **0.9.3**，声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。已实测 **rc.5 Windows 桌面版、rc.4 Web 和 rc.5 Web 模式**。见[新版说明](docs/releases/0.9.3/release-notes.md)和[验证记录](docs/releases/0.9.3/review.zh.md)。
+> 当前版本 **0.10.0**，推荐使用兼容范围内最新的 DSH。本版声明支持 `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.10.0/release-notes.md)和[验证记录](docs/releases/0.10.0/review.zh.md)。
 
 ![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
@@ -20,7 +20,7 @@
 - **选择并保存**：保存一轮问答、几条消息或整个会话，选择用户上传与 AI 交付的图片和文件。正文保留素材位置，原始会话可以随时对照。
 - **在会话旁使用**：侧栏中查找、阅读、修改和新建笔记，关联当前会话；把笔记副本的读取说明加入输入框，检查后再发送。
 - **自由整理内容**：原地编辑 Markdown，粘贴或拖入图片和附件。纯图片默认展示，混合文件默认链接，图片可随时切换展示形式。
-- **找回并组织**：按文字和附件名搜索，组合筛选并定位正文原句。支持收藏、置顶、笔记互链、批量整理和历史恢复。
+- **找回并组织**：按文字和附件名搜索，组合筛选并定位正文原句。整理标签前可查看受影响的笔记和正文。支持收藏、置顶、笔记互链、批量整理和历史恢复。
 - **按习惯阅读**：八套布局、十种配色，中文与西文字体、代码高亮和字重可调；主界面与独立窗口共享外观偏好，侧栏始终跟随 DSH 明暗。
 - **按用途交付**：单张 PNG 沿用阅读版式与选定宽度；PDF 适合阅读和打印；Markdown 资源包保留图片及附件原件。
 - **本机保存与私库同步**：首次设置完成后，断网仍可编辑保存，联网自动续传。可导入 Markdown 文件、文件夹或 ZIP，也可导出整本或整个笔记库。
@@ -33,7 +33,7 @@
 
 ## 安装与升级
 
-下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.9.3 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.3)。仍使用 rc.1 的用户可保留旧 0.8.0。新版资料需由相应版本的插件读写。
+下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.10.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。如果 DSH 版本过低，请先升级 DSH。新版资料需由相应版本的插件读写。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
@@ -43,7 +43,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-0.9.1 或 0.9.2 用户可以在现有 DSH 资料中直接安装 0.9.3，重启后沿用原私库和笔记。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
+0.9.3 用户可以在现有 DSH 资料中直接安装 0.10.0，重启后沿用原私库和笔记。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
 
 ## 开始使用
 
@@ -61,7 +61,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 ## 使用边界
 
-- 桌面和 Web 的实测范围见 [0.9.3 验证记录](docs/releases/0.9.3/review.zh.md)。
+- 桌面和 Web 的实测范围见 [0.10.0 验证记录](docs/releases/0.10.0/review.zh.md)。
 - 独立窗口使用 Windows 上已安装的 Chrome 或 Edge，依赖 DSH 保持运行。
 - 外观偏好在同一 DSH 内共享，不跨设备同步；明暗手动切换只影响当前视图，宿主再次切换时恢复跟随。收藏、置顶和笔记本顺序随私库同步。
 - 引用不会自动发送，也尚未登记到宿主原生附件栏。AI 只在转存时可选生成标题、摘要和标签，正文由用户编辑。

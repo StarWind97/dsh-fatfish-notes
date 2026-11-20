@@ -11,11 +11,11 @@ import type { SyncResource } from './sync-resources.js'
 
 export interface InitialNotes { objects: NoteObjects; files: Map<string, Buffer> }
 export type InitialNotesProvider = (local: NoteObjects, remote: NoteObjects) => Promise<InitialNotes | undefined>
-const handbookContentVersion = 3
+const handbookContentVersion = 4
 const chapters = [
-  ['welcome','v3/01-welcome.md','01 开始使用','创建、查找与整理，让常用内容随手可得。'],
+  ['welcome','v4/01-welcome.md','01 开始使用','创建、查找与整理，让常用内容随手可得。'],
   ['materials','v2/02-materials.md','02 资料与交付','添加图片和文件，转存会话，选择合适的导出形式。'],
-  ['deliver','v2/03-deliver.md','03 保存与注意事项','分清草稿、正式保存和同步，按自己的习惯阅读。'],
+  ['deliver','v4/03-deliver.md','03 保存与注意事项','分清草稿、正式保存和同步，按自己的习惯阅读。'],
 ] as const
 const legacyKeys=['welcome','write','materials','capture','find','deliver']
 const root = new URL('../../assets/handbook/', import.meta.url)
@@ -62,7 +62,7 @@ function generations(objects:NoteObjects,version=handbookContentVersion):number[
 export function existingHandbook(objects:NoteObjects):string|null {
   const rows=new Map<string,typeof objects.revisions>()
   for(const row of objects.revisions){const list=rows.get(row.noteId)??[];list.push(row);rows.set(row.noteId,list)}
-  for(const version of [handbookContentVersion,2,1])for(const n of generations(objects,version).reverse())for(const key of version===1?legacyKeys:chapters.map(row=>row[0])){
+  for(const version of [handbookContentVersion,3,2,1])for(const n of generations(objects,version).reverse())for(const key of version===1?legacyKeys:chapters.map(row=>row[0])){
     const id=handbookId(n,key,version),revisions=rows.get(id)
     if(!objects.deleted?.includes(id)&&revisions&&materializeNote(revisions,id).current.status==='active')return id
   }

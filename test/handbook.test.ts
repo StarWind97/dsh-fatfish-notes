@@ -29,6 +29,7 @@ test('bundled handbook is deterministic, contains three linked editable chapters
   const {noteId,created}=await openHandbook(repo,true);assert.equal(created,true);assert.equal(noteId,handbookId(0,'welcome'))
   const notes=(await repo.list({order:'recent'})).items;assert.equal(notes[0]!.noteId,noteId)
   assert.match((await repo.get(noteId!)).current.body,/搜索笔记或附件名[\s\S]*点击即可跳到原句/)
+  assert.match((await repo.get(noteId!)).current.body,/分类管理 → 标签[\s\S]*核对正文/)
   for(const row of a.objects.revisions){
     const note=await repo.get(row.noteId);assert.equal(note.current.body,row.body);assert.doesNotMatch(row.body,/handbook-(?:note|asset|file):/)
     for(const match of row.body.matchAll(/fatfish-note:([0-9A-Z]{26})/g))await repo.get(match[1]!)
@@ -164,7 +165,7 @@ test('local empty state restores a populated or trashed remote without adding a 
 })
 
 
-for(const version of [1,2])test(`handbook v${version} identities remain discoverable and edited content is preserved`,async t=>{
+for(const version of [1,2,3])test(`handbook v${version} identities remain discoverable and edited content is preserved`,async t=>{
  const {repo}=await fixture(t),book=await repo.saveNotebook({notebookId:handbookId(0,'book',version),expectedHeads:[],title:'我的旧手册'})
  const note=await repo.save({noteId:handbookId(0,'welcome',version),expectedHeads:[],content:{title:'用户改过的开头',body:'我的补充',summary:'',tags:[],status:'active',notebookId:book.notebookId,sourceId:null,assetIds:[]}})
  assert.notEqual(note.noteId,handbookId(0,'welcome'));assert.equal((await openHandbook(repo,true)).noteId,note.noteId);assert.deepEqual((await repo.get(note.noteId)).heads,note.heads);assert.equal((await repo.list()).items.length,1)

@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+- **0.10.0 已完成候选验收，用户已确认公开发布。** 425 项全量通过，Web 和 Windows 桌面的双向同步通过，随包手册与图解使用说明已更新。[候选验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
+
 - 2026-11-20 [会话侧栏宽窄布局修正](plans/2026-11-20-unified-search-ui.zh.md#侧栏宽窄布局修正)完成隔离桌面和 Web 验收。宽栏自动显示笔记本，窄栏下拉贴着按钮，结果数与「多选」同排。100 项相关测试通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。侧栏查找已有可按需执行的[浏览器回归](../test/browser/README.md#会话侧栏查找)。
 
 - 2026-11-20 [常用标签随空间排布](plans/2026-11-20-adaptive-search-tags.zh.md)完成隔离验收。共用面板使用按内容宽度换行的标签，选中保持原位。91 项相关回归通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
@@ -10,7 +12,7 @@
 - 2026-11-20 [会话侧栏笔记列表标签](plans/2026-11-19-conversation-list-tab.zh.md)已完成隔离验收，待体验。当前会话的列表可用「+」或返回箭头恢复，笔记在列表标签原位打开，窄栏保留「+」。使用[隔离桌面入口](../scripts/Open-Fatfish-Notes.cmd)重开。
 - 2026-11-19 [阅读区标签、概览与拖动排序](plans/2026-11-19-browser-style-reading-tabs.zh.md)已完成隔离验收，待体验。短竖线分隔，概览原位打开笔记，末尾「+」再开概览。悬停使用普通箭头。rc.5 Windows Desktop 和独立窗口实测通过。用[隔离体验入口](../scripts/Open-Fatfish-Notes.cmd)重开。
 - 2026-11-19 正式发布 [0.9.3](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.3)。414 项全量回归通过，rc.5 Windows 桌面与 rc.4、rc.5 Web 验收完成，两套公开链接安装各 255 文件一致。固定链接的市场切换 PR #16876 已提交。见[发布记录](releases/0.9.3/review.zh.md)和[兼容验收](plans/2026-11-19-release-rc5-preflight.zh.md)。
-- 2026-11-19 已落实[回归安排](../AGENTS.md#验证范围)。下一版拟扩大 DSH 兼容范围至 `>=0.2.2-rc.3 <0.3.0-0`。是否启动 `0.2.3` 候选的隔离验收由用户决定，实际范围按[兼容声明](../AGENTS.md#兼容声明)在验收通过后更新。
+- 后续发版按[回归安排](../AGENTS.md#验证范围)和[宿主更新约定](../AGENTS.md#宿主更新检查兼容优化与新机会)执行。新宿主可用后按[实测结果](../AGENTS.md#兼容声明)确定兼容范围。
 - 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)随 0.9.3 发布。支持先搜索或先选笔记本、在同一面板查标签、按附件名查找和定位正文原句。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 未实测。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
 - [图解使用说明](user-guide.zh.md)包含会话保存、侧栏引用和一张查找与筛选的实拍。[详细操作参考](user-guide-reference.zh.md)按需查阅。
@@ -23,6 +25,7 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
+| [0.10.0 正式发布](plans/2026-11-20-release-0100.zh.md#正式发布) | `main`，主目录。宿主更新约定、正式包、GitHub Release 与现有市场入口。 | 正式包已完成 rc.5 桌面及 Web 验收。正在发布并复核公开下载。 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 
