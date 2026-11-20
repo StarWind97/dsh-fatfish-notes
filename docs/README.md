@@ -4,7 +4,7 @@
 
 - 2026-11-20 正式发布 [0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。425 项全量回归及 Web 与 Windows 桌面的双向同步通过。正式包已在 rc.5 桌面和 Web 实装。已更新手册和图解使用说明，市场固定入口指向新版。[发布与验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 
-- 2026-11-20 [0.10.0 公开说明补齐](plans/2026-11-20-public-doc-refresh.zh.md)。两份 README 采用现用 Logo、新版功能介绍和四张实拍，图解补齐侧栏返回说明。后续改版及发版按[文档与展示同步要求](demo-content.zh.md#用户文档与公开展示同步)验收。
+- 2026-11-20 [0.10.0 公开说明补齐](plans/2026-11-20-public-doc-refresh.zh.md)。两份 README 采用现用 Logo、新版功能介绍和四张实拍，图解补齐侧栏返回说明。
 
 - 2026-11-20 [会话侧栏宽窄布局修正](plans/2026-11-20-unified-search-ui.zh.md#侧栏宽窄布局修正)完成隔离桌面和 Web 验收。宽栏自动显示笔记本，窄栏下拉贴着按钮，结果数与「多选」同排。100 项相关测试通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。侧栏查找已有可按需执行的[浏览器回归](../test/browser/README.md#会话侧栏查找)。
 
@@ -60,9 +60,9 @@
 | 查候选项、优先级和授权范围 | [主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)及该任务的专项规划 |
 | 查近期交付或历史决定 | [当前状态](#当前状态)、[0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)及[前序开发交接](handoffs/2026-11-12-development.zh.md) |
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
-| 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项。用户可见的改动按[文档与展示同步](demo-content.zh.md#用户文档与公开展示同步)验收。组件见 `src/client/`，导出见 `src/notes/export/` |
+| 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项。组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |
-| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[文档与展示同步](demo-content.zh.md#用户文档与公开展示同步)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
+| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[图文核对清单](demo-content.zh.md#用户文档与公开展示同步)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
 | 修改手册或体验示例 | [示例内容准则](demo-content.zh.md)、[使用说明](user-guide.zh.md)与 `assets/handbook/` |
 
 关键决定和修改依据应进入对应专题，并从本入口或主规划链接；当前行为更新产品设计，实际覆盖范围更新交付／验证记录。这样接续依赖项目文件，不依赖某个聊天窗口。无需每次通读所有历史文档。
