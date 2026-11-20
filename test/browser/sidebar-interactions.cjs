@@ -46,26 +46,69 @@ async function checkFindNotebookLayout(page){
   const side=page.locator('.conversation-notes:visible');
   const picker=button(side,'搜索范围');
   const books=side.getByRole('navigation',{name:'笔记本',exact:true});
-  const selection=button(side,'多选笔记');
-  const status=side.locator('.paper-search-status');
   const narrow=await side.getAttribute('data-narrow')==='true';
-  const [multiBox,statusBox]=await Promise.all([selection.boundingBox(),status.boundingBox()]);
-  assert.ok(multiBox&&statusBox,'find status and selection are visible together');
-  assert.ok(Math.abs(multiBox.y+multiBox.height/2-statusBox.y-statusBox.height/2)<=2,'status and selection are on the same row');
   if(!narrow){
-    assert.equal(await picker.count(),0,'wide sidebar does not need a range menu');
     assert.equal(await books.isVisible(),true,'wide sidebar opens the notebook list automatically');
+    await button(books,'全部笔记').click({trial:true});
     return;
   }
-  assert.equal(await books.count(),0,'narrow sidebar starts with the list hidden');
-  await picker.press('Enter');
-  await books.waitFor();
-  const [anchor,menu]=await Promise.all([picker.boundingBox(),books.boundingBox()]);
-  assert.ok(anchor&&menu);
-  assert.ok(Math.abs(anchor.x-menu.x)<=1,'menu aligns with the range button');
-  assert.ok(Math.abs(menu.y-anchor.y-anchor.height-4)<=1,'menu opens next to the range button');
+  assert.equal(await books.isVisible(),false,'narrow sidebar starts with the list hidden');
+  await picker.click();
+  await button(books,'全部笔记').click({trial:true});
   await page.keyboard.press('Escape');
   await books.waitFor({state:'hidden'});
   assert.equal(await picker.evaluate(el=>document.activeElement===el),true,'closing returns focus to the range button');
 }
-module.exports={cancelNew,cancelRename,checkFindNotebookLayout};
+
+async function checkFindNotebookFlow(page,capture){
+  const side=page.locator('.conversation-notes:visible');
+  const books=side.getByRole('navigation',{name:'笔记本',exact:true});
+  const picker=button(side,'搜索范围');
+  const rows=side.locator('.conversation-notes-list[aria-busy=false] .conversation-note-row');
+  const bookName='开发手册';
+  const size=async(narrow)=>{
+    await side.locator(`:scope[data-narrow="${narrow}"]`).waitFor();
+    const {width,height}=await side.boundingBox();
+    return {width:Math.round(width),height:Math.round(height)};
+  };
+
+  await button(side,'查找笔记').click();
+  await rows.first().waitFor();
+  const wide=await size(false);
+  await checkFindNotebookLayout(page);
+  await capture(side,'wide');
+
+  await page.setViewportSize({width:800,height:860});
+  const narrow=await size(true);
+  await checkFindNotebookLayout(page);
+  await picker.click();
+  const target=books.locator('button').filter({has:page.getByText(bookName,{exact:true})});
+  await target.click({trial:true});
+  await capture(side,'narrow-menu');
+  await target.click();
+  await books.waitFor({state:'hidden'});
+  await rows.locator('small').filter({hasText:`${bookName} ·`}).first().waitFor();
+  const metadata=await rows.locator('small').allTextContents();
+  assert.ok(metadata.length&&metadata.every(text=>text.trim().startsWith(`${bookName} ·`)),'results should switch to the selected notebook');
+
+  await page.setViewportSize({width:800,height:620});
+  const short=await size(true);
+  assert.equal(await picker.getAttribute('title'),bookName,'the selected scope should survive resizing');
+  await button(side,'筛选笔记').click();
+  await side.locator('.paper-search-filter-panel [data-tag]').first().waitFor();
+  await picker.click();
+  const all=button(books,'全部笔记');
+  await all.click({trial:true});
+  await capture(side,'short-menu');
+  await all.click();
+  await books.waitFor({state:'hidden'});
+  await rows.locator('small').filter({hasNotText:bookName}).first().waitFor();
+  await rows.first().click({trial:true});
+  await capture(side,'short-results');
+  await rows.first().click();
+  await side.locator('.paper-reading').waitFor();
+  await button(side,'返回列表').click();
+  await rows.first().waitFor();
+  return {wide,narrow,short,scopedResults:metadata.length};
+}
+module.exports={cancelNew,cancelRename,checkFindNotebookLayout,checkFindNotebookFlow};
