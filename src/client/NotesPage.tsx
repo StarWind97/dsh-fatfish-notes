@@ -26,7 +26,6 @@ import type {NoteListItem, NoteOrder, SearchHit} from '../contracts/notes.js'
 import {Highlight,LinkPreview} from './NoteTools.js'
 import {organizationCss} from './organization-style.js'
 import { PaperColumns,usePaperColumns,readPreference,writePreference } from './paper/layout.js'
-import type { PaperSurface } from './paper/layout-state.js'
 import { NotebookNavigation } from './paper/NotebookNavigation.js'
 import { paperCss } from './paper/style.js'
 import type { OutlineSession } from './paper/use-outline.js'
@@ -46,9 +45,18 @@ function browseOrder(): NoteOrder {
 }
 const noWorkspaceSubscribe=()=>()=>{}
 const noWorkspaceState=()=>null
-type NotesPageProps={ controller: NotesController; t: T; surface?:PaperSurface;workspace?:NotesWorkspace }
-export function NotesPage(props:NotesPageProps){return <AppearanceScope><NotesPageView {...props}/></AppearanceScope>}
-function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPageProps) {
+type NotesPageProps = {
+  controller: NotesController
+  t: T
+  workspace?: NotesWorkspace
+} & (
+  | { surface: 'embedded'; onToggleDshTheme: () => void }
+  | { surface: 'standalone'; onToggleDshTheme?: never }
+)
+export function NotesPage(props: NotesPageProps) {
+  return <AppearanceScope followHost={props.surface === 'embedded'}><NotesPageView {...props}/></AppearanceScope>
+}
+function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: NotesPageProps) {
   const windowState=useSyncExternalStore(workspace?.subscribe??noWorkspaceSubscribe,workspace?.getSnapshot??noWorkspaceState)
   const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot)
   const selection=useNoteSelection(controller,state,t)
@@ -81,6 +89,10 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const app=useRef<HTMLDivElement>(null)
   const noteTabs=useNoteTabs(controller,state,app)
   const appearance=useAppearanceProps(),theme=useAppearanceTheme()
+  const dark = appearance['data-theme'] === 'dark'
+  const modeToggleLabel = surface === 'embedded'
+    ? t(dark ? 'switchDshToLight' : 'switchDshToDark')
+    : dark ? '切换浅色' : '切换深色'
   const appearanceValue=useAppearance()
   const columns=usePaperColumns(app,surface)
   const outlineSession=useRef<OutlineSession>({wide:null,open:false})
@@ -219,7 +231,12 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss+classificationCss}</style><AppearanceStyle/>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation||classBusy} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'classTitle':'notesSettings')}</button>)}</nav>
-    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>theme.setMode(appearance['data-theme']==='dark'?'light':'dark')}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
+    {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}
+    <button type="button" className="paper-mode-toggle" aria-label={modeToggleLabel} title={modeToggleLabel}
+      onClick={onToggleDshTheme ?? (() => theme.setMode(dark ? 'light' : 'dark'))}>
+      {dark ? <Sun size={16}/> : <Moon size={16}/>}
+    </button>
+    <FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     <PaperColumns t={t} section={state.section} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}
       tabs={<NoteTabBar controller={controller} state={state} {...noteTabs} t={t} beforeSelect={()=>clearTimeout(timer.current)} onEmpty={focusOverview}/>}
       rail={<><button className="paper-books-toggle" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={19}/></button>{activeBooks.map(book=><button key={book.notebookId} title={book.current.title} aria-label={book.current.title} aria-current={state.filter.notebookId===book.notebookId?'page':undefined} onClick={()=>chooseNotebook(book.notebookId)}>{book.current.title.slice(0,1)}</button>)}</>} other={state.section==='settings'?<SettingsWorkspace t={t} category={settingsCategory} onCategory={setSettingsCategory}/>:state.section==='notebooks'?<ClassificationViews tags={tagLibrary?.epoch===controller.libraryEpoch} busy={classBusy} surface={surface} t={t} onSelect={tags=>{

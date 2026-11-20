@@ -6,6 +6,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -28,9 +29,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { captureCss } from './capture-style.js'
 
 export const name = NS
-export const inject = ['slots','locale','layout','sidebarRight','sidebarRightTabs']
+export const inject = ['slots','locale','layout','sidebarRight','sidebarRightTabs','theme']
 export function apply(ctx:Context): void {
   const kind=`${NS}-conversation`
+  const toggleDshTheme = () => {
+    const scheme = ctx.theme.getTheme().active.colorScheme
+    ctx.theme.setTheme(scheme === 'dark' ? 'light' : 'dark')
+  }
   notebookSync.start()
   ctx.effect(()=>ctx.locale.register(NS,dictionaries),'notebook dictionaries')
   const t = ctx.locale.bind(NS)
@@ -66,7 +71,7 @@ export function apply(ctx:Context): void {
   ctx.effect(()=>ctx.slots.inject('sidebar.right.pane.tab',()=>ctx.slots.register({name:'sidebar.right.pane.tab',key:kind,locale:NS},props=><Boundary t={props.t}><ConversationNotes key={props.sessionId} {...props} bridge={notes}/></Boundary>)),'conversation notes body')
   ctx.effect(()=>ctx.slots.inject('conversation.session.header.utilities',()=>ctx.slots.register({name:'conversation.session.header.utilities',id:kind,order:45,locale:NS},props=><button className="capture-action" title={props.t('sessionNotes')} aria-label={props.t('sessionNotes')} onClick={()=>ctx.sidebarRight.openTab(kind)}><BrandMark size={17}/></button>)),'conversation notes entry')
   ctx.effect(()=>ctx.slots.inject('sidebar.panellist',()=>ctx.slots.register({name:'sidebar.panellist',id:NS,order:35,label:()=>t('nav'),locale:NS},props=><BrandMark size={props.size}/>)),'notebook sidebar')
-  ctx.effect(()=>ctx.slots.inject('main',()=>ctx.slots.register({name:'main',key:NS,locale:NS},props=><Boundary t={props.t}><SettingsPage t={props.t}><NotesPage t={props.t} controller={library} workspace={workspace}/></SettingsPage></Boundary>)),'notebook panel')
+  ctx.effect(()=>ctx.slots.inject('main',()=>ctx.slots.register({name:'main',key:NS,locale:NS},props=><Boundary t={props.t}><SettingsPage t={props.t}><NotesPage t={props.t} controller={library} workspace={workspace} surface="embedded" onToggleDshTheme={toggleDshTheme}/></SettingsPage></Boundary>)),'notebook panel')
   ctx.effect(()=>ctx.slots.inject('conversation.chat.assistant-actions',()=>ctx.slots.register({name:'conversation.chat.assistant-actions',id:`${NS}-save`,order:35,locale:NS,inject:sessionId=>({sessionId,notes})},props=><NoteCaptureAction sessionId={props.sessionId} bridge={props.notes} openSetup={()=>ctx.layout.selectPanel(NS as MainPanelId)} messageId={props.messageId} t={props.t}/>)),'note reply action')
   ctx.effect(()=>ctx.slots.inject('conversation.chat.turnTail',()=>ctx.slots.register({name:'conversation.chat.turnTail',id:`${NS}-pick-turn`,order:35,locale:NS,inject:sessionId=>({sessionId,notes})},props=>props.turn.status==='closed' ? <NoteTurnCheckbox sessionId={props.sessionId} bridge={props.notes} seq={props.seq} t={props.t}/> : null)),'in-chat turn selection')
   ctx.effect(()=>ctx.slots.inject('conversation.input.dock',()=>ctx.slots.register({name:'conversation.input.dock',id:`${NS}-selection`,order:35,locale:NS,inject:sessionId=>({sessionId,notes})},props=><NoteCaptureDock sessionId={props.sessionId} bridge={props.notes} t={props.t}/>)),'in-chat selection bar')

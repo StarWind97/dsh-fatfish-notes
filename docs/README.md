@@ -4,6 +4,8 @@
 
 - 2026-11-20 正式发布 [0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。425 项全量回归及 Web 与 Windows 桌面的双向同步通过。正式包已在 rc.5 桌面和 Web 实装。已更新手册和图解使用说明，市场固定入口指向新版。[发布与验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 
+- [从笔记主界面切换 DSH 明暗](plans/2026-11-16-theme-follow-and-actions.zh.md#dsh-全局明暗快捷切换)已通过隔离 Windows 桌面和 Web 验收，待体验。顶栏切换宿主明暗并记住选择，外观设置说明跟随关系，独立窗口保留临时切换。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
+
 - 2026-11-20 [0.10.0 公开说明补齐](plans/2026-11-20-public-doc-refresh.zh.md)。两份 README 采用现用 Logo、新版功能介绍和四张实拍，图解补齐侧栏返回说明。
 
 - 2026-11-20 [会话侧栏宽窄布局修正](plans/2026-11-20-unified-search-ui.zh.md#侧栏宽窄布局修正)完成隔离桌面和 Web 验收。宽栏自动显示笔记本，窄栏下拉贴着按钮，结果数与「多选」同排。100 项相关测试通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。侧栏查找已有可按需执行的[浏览器回归](../test/browser/README.md#会话侧栏查找)。

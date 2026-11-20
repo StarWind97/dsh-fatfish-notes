@@ -73,18 +73,20 @@ export function AppearanceReset(){
   const theme=useAppearanceTheme()
   return <button type="button" onClick={()=>{setAppearance(defaultAppearance);theme.setMode('host')}}>恢复全部外观默认</button>
 }
-export function AppearanceFields({group}:{group:'appearance'|'reading'|'workspace'}){
+export function AppearanceFields({group,t}:{group:'appearance'|'reading'|'workspace';t:T}){
   const value=useAppearance(),theme=useAppearanceTheme()
   function select<K extends keyof Appearance>(key:K,label:string,options:Record<string,string>){return <label>{label}<select aria-label={label} value={String(value[key])} onChange={e=>setAppearance({[key]:typeof value[key]==='number'?Number(e.target.value):e.target.value})}>{Object.entries(options).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>}
   function check(key:'tabs'|'pinned'|'codeWrap'|'codeLines',label:string){return <label className="appearance-check"><input type="checkbox" checked={value[key]} onChange={e=>setAppearance({[key]:e.target.checked})}/>{label}</label>}
   return <section className="appearance-settings">
-    {group==='appearance'&&<><fieldset><legend>界面主题</legend><div className="appearance-layouts">{Object.entries(layouts).map(([key,label],i)=><button key={key} aria-pressed={value.layout===key} onClick={()=>setAppearance({layout:key as Appearance['layout']})}><span className={'layout-glyph layout-'+key} aria-hidden="true"><i/><i/><i/></span><span><small>{String(i+1).padStart(2,'0')}</small> {label}</span></button>)}</div></fieldset><fieldset><legend>配色与层次</legend><div className="appearance-fields">{select('palette','配色方案',palettes)}{!theme.locked&&<label>明暗模式<select aria-label="明暗模式" value={theme.mode} onChange={e=>theme.setMode(e.target.value as ThemeMode)}><option value="host">跟随 DSH</option><option value="light">浅色（本次）</option><option value="dark">深色（本次）</option></select></label>}{select('contrast','对比度',{standard:'标准',soft:'柔和',strong:'鲜明'})}{select('density','面板密度',{compact:'紧凑',balanced:'均衡',spacious:'舒展'})}</div><p>{theme.locked?'此区域的明暗始终跟随 DSH。':'明暗切换仅影响本次视图；DSH 切换明暗或重新打开后恢复跟随。'}</p></fieldset></>}
+    {group==='appearance'&&<><fieldset><legend>界面主题</legend><div className="appearance-layouts">{Object.entries(layouts).map(([key,label],i)=><button key={key} aria-pressed={value.layout===key} onClick={()=>setAppearance({layout:key as Appearance['layout']})}><span className={'layout-glyph layout-'+key} aria-hidden="true"><i/><i/><i/></span><span><small>{String(i+1).padStart(2,'0')}</small> {label}</span></button>)}</div></fieldset><fieldset><legend>配色与层次</legend><div className="appearance-fields">{select('palette','配色方案',palettes)}{!theme.locked&&<label>明暗模式<select aria-label="明暗模式" value={theme.mode} onChange={e=>theme.setMode(e.target.value as ThemeMode)}><option value="host">跟随 DSH</option><option value="light">浅色（本次）</option><option value="dark">深色（本次）</option></select></label>}{select('contrast','对比度',{standard:'标准',soft:'柔和',strong:'鲜明'})}{select('density','面板密度',{compact:'紧凑',balanced:'均衡',spacious:'舒展'})}</div>
+      <p>{theme.locked?t('dshThemeHint'):'明暗切换仅影响本次视图；DSH 切换明暗或重新打开后恢复跟随。'}</p>
+    </fieldset></>}
     {group==='reading'&&<><fieldset><legend>正文与代码</legend><div className="appearance-fields">{select('reading','阅读排版',{modern:'现代清晰',book:'书页',mixed:'标题与正文混排'})}{select('fontCjk','中文字体',cjkFonts)}{select('fontLatin','西文字体',latinFonts)}{select('size','正文字号',{16:'16 px',17:'17 px',18:'18 px',20:'20 px'})}{select('leading','正文行高',{'1.65':'紧凑 · 1.65','1.8':'舒适 · 1.8','2':'宽松 · 2'})}{select('codeWeight','代码字重',{300:'Light',400:'Regular',500:'Medium'})}{select('codeSize','代码字号',{12:'12 px',14:'14 px',16:'16 px'})}</div><div className="appearance-checks">{check('codeWrap','代码自动折行')}{check('codeLines','显示代码行号')}</div><FontPreview/></fieldset></>}
     {group==='workspace'&&<><fieldset><legend>工作区</legend><div className="appearance-fields">{select('materials','资料区位置',{bottom:'底部',right:'右侧'})}{select('rightStyle','右侧资料与目录',{tabs:'切换显示',stack:'上下分区'})}{select('materialStyle','资料排列',{compact:'紧凑行列',cards:'轻量卡片'})}</div><div className="appearance-checks">{check('pinned','固定资料区')}{check('tabs','显示本次打开的笔记标签')}</div></fieldset></>}
   </section>
 }
 export function appearanceTabs(t:T):SettingsTab[]{return [
-  {id:'appearance',label:'外观',content:<AppearanceFields group="appearance"/>},
-  {id:'reading',label:'阅读与代码',content:<AppearanceFields group="reading"/>},
-  {id:'workspace',label:'工作区',content:<><AppearanceFields group="workspace"/><CaptureAppearance t={t}/></>}
+  {id:'appearance',label:'外观',content:<AppearanceFields group="appearance" t={t}/>},
+  {id:'reading',label:'阅读与代码',content:<AppearanceFields group="reading" t={t}/>},
+  {id:'workspace',label:'工作区',content:<><AppearanceFields group="workspace" t={t}/><CaptureAppearance t={t}/></>}
 ]}
