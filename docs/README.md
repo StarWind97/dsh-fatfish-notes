@@ -4,6 +4,8 @@
 
 - 2026-11-20 正式发布 [0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。425 项全量回归及 Web 与 Windows 桌面的双向同步通过。正式包已在 rc.5 桌面和 Web 实装。已更新手册和图解使用说明，市场固定入口指向新版。[发布与验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 
+- 2026-11-20 [0.10.0 公开说明补齐](plans/2026-11-20-public-doc-refresh.zh.md)。两份 README 采用现用 Logo、新版功能介绍和四张实拍，图解补齐侧栏返回说明。后续改版及发版按[文档与展示同步要求](demo-content.zh.md#用户文档与公开展示同步)验收。
+
 - 2026-11-20 [会话侧栏宽窄布局修正](plans/2026-11-20-unified-search-ui.zh.md#侧栏宽窄布局修正)完成隔离桌面和 Web 验收。宽栏自动显示笔记本，窄栏下拉贴着按钮，结果数与「多选」同排。100 项相关测试通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。侧栏查找已有可按需执行的[浏览器回归](../test/browser/README.md#会话侧栏查找)。
 
 - 2026-11-20 [常用标签随空间排布](plans/2026-11-20-adaptive-search-tags.zh.md)完成隔离验收。共用面板使用按内容宽度换行的标签，选中保持原位。91 项相关回归通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
@@ -15,7 +17,7 @@
 - 后续发版按[回归安排](../AGENTS.md#验证范围)和[宿主更新约定](../AGENTS.md#宿主更新检查兼容优化与新机会)执行。新宿主可用后按[实测结果](../AGENTS.md#兼容声明)确定兼容范围。
 - 2026-11-19 [本机搜索与统一筛选](plans/2026-11-19-local-search.zh.md)随 0.9.3 发布。支持先搜索或先选笔记本、在同一面板查标签、按附件名查找和定位正文原句。
 - 2026-11-18 正式发布 [0.9.2](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)。同一候选包通过 rc.3 Windows Desktop 从 0.9.1 升级、rc.4 Web 安装及双向保存同步，407 项全量回归通过。rc.4 Windows Desktop 未实测。见[发布与市场状态](releases/0.9.2/review.zh.md)及[隔离体验](plans/2026-11-18-dsh-compatibility-range-092.zh.md#体验与证据)。
-- [图解使用说明](user-guide.zh.md)包含会话保存、侧栏引用和一张查找与筛选的实拍。[详细操作参考](user-guide-reference.zh.md)按需查阅。
+- [图解使用说明](user-guide.zh.md)包含会话保存、侧栏引用、查找筛选与标签核对。[详细操作参考](user-guide-reference.zh.md)按需查阅。
 - [概览界面精修](plans/2026-11-18-overview-polish.zh.md)随 0.9.3 发布。两组最近笔记宽窗并列、窄窗纵排。81 项专项、rc.3 Windows Desktop、独立窗及 rc.4 Web 通过。四字入口「使用说明」另经[文案专项验证](plans/2026-11-18-overview-polish.zh.md#文案微调)。
 - [阅读区概览与笔记标签](plans/2026-11-18-reading-overview.zh.md)记录 0.9.3 的概览数据、近况分组和标签行为基线。每组按空间显示 5／10／15 篇。上一轮的独立候选和 84 项专项证据保留用于回退。
 - [列表底栏与条目菜单](plans/2026-11-18-list-footer-and-row-menus.zh.md)随 0.9.3 发布。13 项相关测试及实际界面通过。选中笔记本默认显示数量，选中笔记的菜单随实际交互显示。
@@ -58,9 +60,9 @@
 | 查候选项、优先级和授权范围 | [主规划](plans/2026-11-09-product-iteration-roadmap.zh.md)及该任务的专项规划 |
 | 查近期交付或历史决定 | [当前状态](#当前状态)、[0.9.1 开发交接](handoffs/2026-11-18-development.zh.md)及[前序开发交接](handoffs/2026-11-12-development.zh.md) |
 | 修改 Logo、字形、品牌颜色、放置位置或尺寸 | [品牌规则](brand.zh.md) → [Logo 交接](handoffs/2026-11-16-brand-logo.zh.md)与[设计素材索引](brand/README.zh.md) |
-| 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项；组件见 `src/client/`，导出见 `src/notes/export/` |
+| 修改界面、主题、设置、阅读或导出 | [产品设计](notes-design.zh.md)对应章节及本页链接的最近专项。用户可见的改动按[文档与展示同步](demo-content.zh.md#用户文档与公开展示同步)验收。组件见 `src/client/`，导出见 `src/notes/export/` |
 | 排查保存、同步、仓库或宿主问题 | [产品设计](notes-design.zh.md)的存储与运行边界；实现见 `src/notes/`、`src/private-workspace/`、`src/git/`、`src/host/`，结合相关专项和[验证记录](verification-log.zh.md) |
-| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[发布前更新用户文档](demo-content.zh.md#发布前更新用户文档)、[较大版本宣传图片准则](demo-content.zh.md#较大版本发布时的宣传图片)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
+| 选择检查、打开体验或准备发布 | [验证约定](../AGENTS.md#验证范围)、[验证记录](verification-log.zh.md)、[文档与展示同步](demo-content.zh.md#用户文档与公开展示同步)、[本机隔离体验](#本机隔离体验)及[当前状态](#当前状态)链接的当版发布记录。命令见 [package.json](../package.json) |
 | 修改手册或体验示例 | [示例内容准则](demo-content.zh.md)、[使用说明](user-guide.zh.md)与 `assets/handbook/` |
 
 关键决定和修改依据应进入对应专题，并从本入口或主规划链接；当前行为更新产品设计，实际覆盖范围更新交付／验证记录。这样接续依赖项目文件，不依赖某个聊天窗口。无需每次通读所有历史文档。

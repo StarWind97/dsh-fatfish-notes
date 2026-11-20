@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/showcase-20261117/fatfish-brand-transparent-dark.svg">
-    <img src="assets/brand/showcase-20261117/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/fatfish-brand-transparent-dark.svg">
+    <img src="assets/brand/fatfish-brand-transparent-light.svg" width="280" height="280" alt="肥鱼笔记 · Fatfish Notes">
   </picture>
 </p>
 
@@ -13,23 +13,24 @@
 
 > 当前版本 **0.10.0**，声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.10.0/release-notes.md)和[验证记录](docs/releases/0.10.0/review.zh.md)。
 
-![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
+![在阅读标签中保留生图记录与尺寸检查；左侧列表按标签筛选演示笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.10.0/01-image.png)
 
 ## 从会话到笔记
 
 - **选择并保存**：保存一轮问答、几条消息或整个会话，选择用户上传与 AI 交付的图片和文件。正文保留素材位置，原始会话可以随时对照。
-- **在会话旁使用**：侧栏中查找、阅读、修改和新建笔记，关联当前会话；把笔记副本的读取说明加入输入框，检查后再发送。
+- **在会话旁使用**　从「关联的笔记」打开已关联资料，或用「查找笔记」搜全库。通过「笔记列表」回到上次查找。侧栏可以新建、阅读、编辑、关联笔记，也可以把笔记副本的读取说明加入输入框，检查后再发送。
 - **自由整理内容**：原地编辑 Markdown，粘贴或拖入图片和附件。纯图片默认展示，混合文件默认链接，图片可随时切换展示形式。
-- **找回并组织**：按文字和附件名搜索，组合筛选并定位正文原句。整理标签前可查看受影响的笔记和正文。支持收藏、置顶、笔记互链、批量整理和历史恢复。
-- **按习惯阅读**：八套布局、十种配色，中文与西文字体、代码高亮和字重可调；主界面与独立窗口共享外观偏好，侧栏始终跟随 DSH 明暗。
+- **统一查找**　主界面、独立窗口和会话侧栏使用同样的搜索与筛选。搜索文字或附件名，可再按笔记本、标签、修改时间和是否有附件缩小范围。从结果中的正文片段跳回原句。
+- **全库整理**　在「分类管理」改名、合并或移除标签前，可预览受影响的笔记、正文和标签变化。笔记支持收藏、置顶、互链、批量整理和历史恢复。[标签整理图解](docs/user-guide.zh.md#整理笔记本与标签)
+- **按习惯阅读**　同时打开多篇笔记，拖动阅读标签调整顺序，点「+」打开概览查看最近打开或修改的笔记。主界面和独立窗口共享八套布局、十种配色、字体和代码高亮偏好，侧栏明暗跟随 DSH。
 - **按用途交付**：单张 PNG 沿用阅读版式与选定宽度；PDF 适合阅读和打印；Markdown 资源包保留图片及附件原件。
 - **本机保存与私库同步**：首次设置完成后，断网仍可编辑保存，联网自动续传。可导入 Markdown 文件、文件夹或 ZIP，也可导出整本或整个笔记库。
 
-![在会话旁查阅已保存的笔记，接着讨论下一步](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/02-conversation.png)
+![左侧是月面观测的问答与照片，右侧是转存后可继续阅读和引用的笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.10.0/02-conversation.png)
 
 代码片段、检查结果、文件与关联笔记也可以一起保存，便于下次查找和复用。
 
-![深色阅读中的代码高亮、结果表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/03-code.png)
+![深色阅读中的代码高亮、结果表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.10.0/03-code.png)
 
 ## 安装与升级
 
@@ -53,11 +54,11 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 笔记、归档图片和附件位于你的电脑及自己的私有仓库，不存放在插件作者的服务器。首次同步需要联网；之后本机保存与云端同步分别显示状态。
 
-编辑时自动保存。可在 DSH 主页面、会话侧栏或独立窗口继续工作；同一篇笔记在两处编辑时提供交接。收藏与置顶是不同操作。窗口内打开的笔记标签便于切换，关闭窗口后不保留。
+编辑时自动保存。可在 DSH 主页面、会话侧栏或独立窗口继续工作；同一篇笔记在两处编辑时提供交接。收藏与置顶是不同操作。打开的笔记标签在当前窗口内保留。
 
 从笔记列表「导入 / 导出」迁入或导出 Markdown。将导出的副本用于 Obsidian 等软件，不要让其他软件直接写入内部资料目录。「设置 → 同步与存储」可以查看状态、恢复账号授权和更换本机位置。详见[使用说明](docs/user-guide.zh.md)。
 
-![按习惯调整界面布局、配色与密度](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/04-settings.png)
+![在外观设置中选择界面布局与配色](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.10.0/04-settings.png)
 
 ## 使用边界
 
@@ -70,4 +71,4 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 问题与建议可通过 [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues) 提交，请附系统、DSH/插件版本及复现步骤，不要提供凭据或私人笔记。
 
-开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。展示截图取自实际隔离界面，使用演示笔记与编排会话；展示截图保留已接受的场景内容；当前品牌图标见插件实际界面。
+开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。截图来自 0.10.0 的实际界面，使用演示笔记与编排会话。[取景记录](assets/screenshots/0.10.0/README.md)

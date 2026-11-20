@@ -30,4 +30,6 @@
 
 本地证据位于 `.dsh-home/pure-001/release0100/`，包含 `full-test.log`、安装逐文件比对、`handbook-package.json`、`guide-screenshots.json`、`web-minimum.json`、双端修订记录、`publication.json` 和 `public-downloads.json`。本轮启动的宿主验收进程已关闭。
 
+发布后仓库说明已按正式版补齐。README 浅深 Logo、功能概览、实拍和维护规则见[公开说明补齐记录](../../plans/2026-11-20-public-doc-refresh.zh.md)。
+
 [启动已安装的隔离桌面候选](../../../scripts/Open-Fatfish-Notes.cmd)
