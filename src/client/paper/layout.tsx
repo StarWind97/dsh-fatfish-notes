@@ -36,15 +36,25 @@ export function usePaperColumns(root:React.RefObject<HTMLDivElement>,surface:Pap
 type Layout = ReturnType<typeof usePaperColumns>
 
 function Divider({column,layout,t,hidden=false}:{column:'book'|'list';layout:Layout;t:T;hidden?:boolean}){
-  const drag=useRef<{x:number;width:number}|null>(null),books=column==='book'
-  const width=layout[column],min=books?164:layout.listMin,max=books?layout.bookMax:layout.listMax
-  return <div className="paper-divider" hidden={hidden} role="separator" tabIndex={0} aria-orientation="vertical" aria-controls={books?'paper-notebook-list':'paper-note-list'} aria-label={t(books?'paperResizeBooks':'paperResize')} title={t(books?'paperResizeBooks':'paperResize')} aria-valuemin={min} aria-valuemax={max} aria-valuenow={width}
-    onDoubleClick={()=>layout.reset(column)}
-    onPointerDown={e=>{if(!e.isPrimary||e.button!==0)return;e.preventDefault();drag.current={x:e.clientX,width};e.currentTarget.setPointerCapture(e.pointerId)}}
-    onPointerMove={e=>{if(drag.current&&e.currentTarget.hasPointerCapture(e.pointerId))layout.resize(column,drag.current.width+e.clientX-drag.current.x)}}
+  const books=column==='book',label=t(books?'paperResizeBooks':'paperResize')
+  return <ResizeDivider className="paper-divider" hidden={hidden} controls={books?'paper-notebook-list':'paper-note-list'}
+    label={label} title={label} width={layout[column]} min={books?164:layout.listMin} max={books?layout.bookMax:layout.listMax}
+    resize={v=>layout.resize(column,v)} reset={()=>layout.reset(column)}/>
+}
+
+export function ResizeDivider({className,hidden=false,controls,label,title,width,min,max,resize,reset}:{
+  className:string;hidden?:boolean;controls?:string;label:string;title:string;width:number;min:number;max:number;
+  resize:(value:number)=>void;reset:()=>void
+}){
+  const drag=useRef<{x:number;width:number}|null>(null)
+  const move=(value:number)=>resize(clamp(Math.round(value),min,max))
+  return <div className={className} hidden={hidden} role="separator" tabIndex={0} aria-orientation="vertical" aria-controls={controls}
+    aria-label={label} title={title} aria-valuemin={min} aria-valuemax={max} aria-valuenow={width} onDoubleClick={reset}
+    onPointerDown={e=>{if(!e.isPrimary||e.button!==0)return;e.preventDefault();e.currentTarget.focus();drag.current={x:e.clientX,width};e.currentTarget.setPointerCapture(e.pointerId)}}
+    onPointerMove={e=>{if(drag.current&&e.currentTarget.hasPointerCapture(e.pointerId))move(drag.current.width+e.clientX-drag.current.x)}}
     onPointerUp={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);drag.current=null}}
     onLostPointerCapture={()=>{drag.current=null}}
-    onKeyDown={e=>{const target=({ArrowLeft:width-8,ArrowRight:width+8,Home:min,End:max} as Record<string,number>)[e.key];if(target!==undefined){e.preventDefault();layout.resize(column,target)}}}/>
+    onKeyDown={e=>{const target=({ArrowLeft:width-8,ArrowRight:width+8,Home:min,End:max} as Record<string,number>)[e.key];if(target!==undefined){e.preventDefault();move(target)}}}/>
 }
 
 export function PaperColumns({list,notebooks,layout,tabs,children,selected,t,hidden=false,section='notes',other,rail}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;tabs:React.ReactNode;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode;rail?:React.ReactNode}){
