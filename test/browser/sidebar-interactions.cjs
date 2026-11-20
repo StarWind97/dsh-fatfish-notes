@@ -42,4 +42,30 @@ async function cancelRename(page){
   await page.keyboard.press('Escape');await d.waitFor({state:'hidden'});
   return {inline:true,escapeLevels:true,selectionCancelled:true,creationCancelled:true};
 }
-module.exports={cancelNew,cancelRename};
+async function checkFindNotebookLayout(page){
+  const side=page.locator('.conversation-notes:visible');
+  const picker=button(side,'搜索范围');
+  const books=side.getByRole('navigation',{name:'笔记本',exact:true});
+  const selection=button(side,'多选笔记');
+  const status=side.locator('.paper-search-status');
+  const narrow=await side.getAttribute('data-narrow')==='true';
+  const [multiBox,statusBox]=await Promise.all([selection.boundingBox(),status.boundingBox()]);
+  assert.ok(multiBox&&statusBox,'find status and selection are visible together');
+  assert.ok(Math.abs(multiBox.y+multiBox.height/2-statusBox.y-statusBox.height/2)<=2,'status and selection are on the same row');
+  if(!narrow){
+    assert.equal(await picker.count(),0,'wide sidebar does not need a range menu');
+    assert.equal(await books.isVisible(),true,'wide sidebar opens the notebook list automatically');
+    return;
+  }
+  assert.equal(await books.count(),0,'narrow sidebar starts with the list hidden');
+  await picker.press('Enter');
+  await books.waitFor();
+  const [anchor,menu]=await Promise.all([picker.boundingBox(),books.boundingBox()]);
+  assert.ok(anchor&&menu);
+  assert.ok(Math.abs(anchor.x-menu.x)<=1,'menu aligns with the range button');
+  assert.ok(Math.abs(menu.y-anchor.y-anchor.height-4)<=1,'menu opens next to the range button');
+  await page.keyboard.press('Escape');
+  await books.waitFor({state:'hidden'});
+  assert.equal(await picker.evaluate(el=>document.activeElement===el),true,'closing returns focus to the range button');
+}
+module.exports={cancelNew,cancelRename,checkFindNotebookLayout};
