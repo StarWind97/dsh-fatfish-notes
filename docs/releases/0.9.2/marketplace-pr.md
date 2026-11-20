@@ -9,7 +9,7 @@
 
 ## 验证
 
-- 0.9.1 精确声明 rc.3。0.9.2 在 rc.3 Windows 桌面原地升级通过，并在 rc.4 Web 安装、编辑保存、双向同步和重启读回通过。rc.4 Windows 桌面待补验。
+- 0.9.1 精确声明 rc.3。0.9.2 在 rc.3 Windows 桌面原地升级通过，并在 rc.4 Web 安装、编辑保存、双向同步和重启读回通过。rc.4 Windows 桌面未实测。
 - 407 项回归通过。已匿名下载 0.9.2 正式包，从公开地址实际安装到上述两套隔离环境，并核对各 254 个文件与包一致。[公开 Release](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2) · [验收记录](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/docs/releases/0.9.2/review.zh.md)
 
 ## 回退

@@ -27,4 +27,4 @@
 - 实际隔离笔记库中，标签和计数与标签目录一致。桌面用键盘进入标签、打开笔记、关闭后回到标签结果，再返回原标签及键盘焦点。Web 也走通这条路径。桌面新建进入编辑器，空白退出。在线说明核对了链接目标。
 - 实际独立窗口 790 px 阅读区两栏各 10 篇，两个入口同为 45 px，浅色主按钮实测为 `#6C305E`。深色字标为 `#FFF7EE`。320 × 650 px 窄窗每组 5 篇、纵向排列，概览无横向溢出，滚动后触控模拟可进入标签并返回。小屏截图为窗口模拟。
 - 桌面使用同一测试库、1260 × 880 px 插件区域和相同两篇笔记。上轮 176 篇，列表和概览一次样本分别为 1378／1430 ms，10 次切换中位和最大为 157／424 ms。本轮 179 篇，分别为 1518／1526 ms，切换为 164／364 ms。两轮首屏各一次，背景可能在同步。Desktop 和 Web 启动均未额外请求标签目录，也未自动读取正文。
-- 安装包、`desktop.json`、`web.json`、两份安装审计和三张实际界面截图保存在 `.dsh-home/pure-001/overview-design-20261118/`。用[隔离桌面入口](../../scripts/Open-Fatfish-Notes.cmd)或 `.dsh-home/pure-001/compat-092/Open-Fatfish-Notes-Rc4-Web.cmd` 重开。公开发布包未改，rc.4 Windows Desktop 仍待补验。
+- 安装包、`desktop.json`、`web.json`、两份安装审计和三张实际界面截图保存在 `.dsh-home/pure-001/overview-design-20261118/`。用[隔离桌面入口](../../scripts/Open-Fatfish-Notes.cmd)或 `.dsh-home/pure-001/compat-092/Open-Fatfish-Notes-Rc4-Web.cmd` 重开。公开发布包未改，rc.4 Windows Desktop 未实测。

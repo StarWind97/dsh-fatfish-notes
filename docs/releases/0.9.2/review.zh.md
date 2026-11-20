@@ -1,6 +1,6 @@
 # 肥鱼笔记 0.9.2 发布记录
 
-北京时间 2026-11-18 16:20:33，[0.9.2 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)已公开。标签固定指向 `abb86cc7e5ad0367c01f865ca6bd3f9fe342e89d`。兼容范围为 `>=0.2.2-rc.3 <0.2.3-0`，实测组合为 rc.3 Windows 桌面及 rc.4 Web，rc.4 Windows 桌面待补验。[实施规划、候选证据与体验](../../plans/2026-11-18-dsh-compatibility-range-092.zh.md) · [发布说明](release-notes.md)
+北京时间 2026-11-18 16:20:33，[0.9.2 正式版](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.9.2)已公开。标签固定指向 `abb86cc7e5ad0367c01f865ca6bd3f9fe342e89d`。兼容范围为 `>=0.2.2-rc.3 <0.2.3-0`，实测组合为 rc.3 Windows 桌面及 rc.4 Web，rc.4 Windows 桌面未实测。[实施规划、候选证据与体验](../../plans/2026-11-18-dsh-compatibility-range-092.zh.md) · [发布说明](release-notes.md)
 
 ## 候选验收
 
@@ -22,4 +22,4 @@
 
 ## 2026-11-19 补验
 
-用同一公开包在官方 rc.5 Windows Desktop 安装并实际打开主界面、独立窗口和会话侧栏。已有笔记、保存后独立窗口刷新和指定私库同步通过，远端确认收到新修订。官方 rc.5 Windows 包的 Web 模式也通过真实隔离安装、登录和跨端读回。rc.4 Windows Desktop 继续保留待验。[新版准备与证据](../../plans/2026-11-19-release-rc5-preflight.zh.md#实施记录)
+用同一公开包在官方 rc.5 Windows Desktop 安装并实际打开主界面、独立窗口和会话侧栏。已有笔记、保存后独立窗口刷新和指定私库同步通过，远端确认收到新修订。官方 rc.5 Windows 包的 Web 模式也通过真实隔离安装、登录和跨端读回。rc.4 Windows Desktop 未实测。[新版准备与证据](../../plans/2026-11-19-release-rc5-preflight.zh.md#实施记录)
