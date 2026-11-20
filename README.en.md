@@ -11,7 +11,7 @@
 
 Keep useful conversations as Markdown notes. Read, edit and reference them beside your chats, with local storage and sync through your own private GitHub repository.
 
-> Use the latest supported DSH with Fatfish Notes **0.10.0**. This version declares DSH `>=0.2.2-rc.3 <0.2.3-0`. See the [release notes](docs/releases/0.10.0/release-notes.md) and [verification record](docs/releases/0.10.0/review.zh.md).
+> Fatfish Notes **0.10.0** declares support for DSH `>=0.2.2-rc.3 <0.2.3-0`. See the [release notes](docs/releases/0.10.0/release-notes.md) and [verification record](docs/releases/0.10.0/review.zh.md).
 
 ![Keep image results, editing prompts and observations together](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
@@ -33,7 +33,7 @@ Keep code snippets, results, files and related notes together for the next time 
 
 ## Installation and upgrade
 
-Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.10.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0). If your DSH version is too old, update it first.
+Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.10.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0).
 
 Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 

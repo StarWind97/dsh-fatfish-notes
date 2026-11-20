@@ -11,7 +11,7 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 当前版本 **0.10.0**，推荐使用兼容范围内最新的 DSH。本版声明支持 `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.10.0/release-notes.md)和[验证记录](docs/releases/0.10.0/review.zh.md)。
+> 当前版本 **0.10.0**，声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.10.0/release-notes.md)和[验证记录](docs/releases/0.10.0/review.zh.md)。
 
 ![留下生图结果、修改指令和使用心得](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/2026-11-17/01-image.png)
 
@@ -33,7 +33,7 @@
 
 ## 安装与升级
 
-下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.10.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。如果 DSH 版本过低，请先升级 DSH。新版资料需由相应版本的插件读写。
+下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.10.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。新版资料需由相应版本的插件读写。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
