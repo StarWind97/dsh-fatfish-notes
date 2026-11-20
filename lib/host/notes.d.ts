@@ -132,11 +132,8 @@ export declare class NotesApplication {
         ok: true;
     }>;
     tags(input: unknown, signal?: AbortSignal): Promise<import("../contracts/tag-management.js").TagResponse>;
-    catalog(signal?: AbortSignal): Promise<{
-        tags: Array<{
-            tag: string;
-            count: number;
-        }>;
+    catalog(signal?: AbortSignal, details?: boolean): Promise<{
+        tags: import("../contracts/notes.js").TagEntry[];
         ok: true;
     }>;
     history(input: unknown, signal?: AbortSignal): Promise<{
@@ -156,13 +153,14 @@ export declare class NotesApplication {
         };
     }>;
     backlinks(input: unknown, signal?: AbortSignal): Promise<{
+        total: number;
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;
         overview?: import("../contracts/notes.js").NoteOverview;
-        total: number;
         ok: true;
     }>;
     list(input: unknown, signal?: AbortSignal): Promise<{
+        total?: number;
         items: import("../contracts/notes.js").NoteListItem[];
         cursor: string | null;
         overview?: import("../contracts/notes.js").NoteOverview;

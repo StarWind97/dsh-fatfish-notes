@@ -57,7 +57,7 @@ export declare class NoteRepository {
         cursor: string | null;
     }>;
     tagManagement(input: unknown, signal?: AbortSignal): Promise<TagResponse>;
-    catalog(signal?: AbortSignal): Promise<NoteCatalog>;
+    catalog(signal?: AbortSignal, detailed?: boolean): Promise<NoteCatalog>;
     backlinks(noteId: string, signal?: AbortSignal): Promise<NoteListResult['items']>;
     backlinkPage(noteId: string, options?: {
         cursor?: string;

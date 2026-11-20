@@ -14,7 +14,7 @@ export interface TagJournal extends TagChange {
 export function parseTagRequest(raw: unknown): TagRequest {
   const v=object(raw)
   if(v.action==='status'){keys(v,['action']);return {action:'status'}}
-  if(v.action==='resume'||v.action==='undo'||v.action==='finish'){
+  if(v.action==='resume'||v.action==='finish'){
     keys(v,['action','token']);return {action:v.action,token:hash(v.token)}
   }
   if(v.action!=='apply'&&v.action!=='preview')return fail('note_schema')

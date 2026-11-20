@@ -369,7 +369,7 @@ export class NoteRepository {
         let job=await readTagJournal(local)
         if(request.action==='status'&&!job)return {ok:true,receipt:null}
         let state=await this.load()
-        if(request.action==='apply'||request.action==='resume'||request.action==='undo'||request.action==='finish'){
+        if(request.action==='apply'||request.action==='resume'||request.action==='finish'){
           const ids=request.action==='apply'
             ? [...new Set(state.revisions.filter(r=>r.tags.includes(request.source)).map(r=>r.noteId))]
             : job?.rows.map(r=>r.noteId)??[]
@@ -402,14 +402,15 @@ export class NoteRepository {
             active=views()
           }
           const found=active.filter(n=>n.current.tags.includes(source)).sort((a,b)=>a.noteId.localeCompare(b.noteId))
-          const exists=target!==null&&active.some(n=>n.current.tags.includes(target))
+          const targetCount=target===null?0:active.filter(n=>n.current.tags.includes(target)).length
+          const exists=targetCount>0
           if(!found.length||request.mode==='merge'&&!exists)fail('tag_changed')
           const mode=target===null?'remove':exists?'merge':'rename'
           const books=new Map(this.books(state).map(b=>[b.notebookId,b.current.title]))
           const rows=found.map(n=>({noteId:n.noteId,title:n.current.title,notebookId:n.effectiveNotebookId,book:books.get(n.effectiveNotebookId??'')??'',
             before:n.current.tags,after:replaceTag(n.current.tags,source,target)}))
-          const token=digest(canonical([source,target,mode,job?.token,job?.phase,found.map((n,i)=>[n.heads,rows[i]!.book,n.effectiveNotebookId])].map(v=>v??null)))
-          if(request.action==='preview')return {ok:true,receipt:receipt().receipt,preview:{source,target,mode,token,rows}}
+          const token=digest(canonical([source,target,mode,targetCount,job?.token,job?.phase,found.map((n,i)=>[n.heads,rows[i]!.book,n.effectiveNotebookId])].map(v=>v??null)))
+          if(request.action==='preview')return {ok:true,receipt:receipt().receipt,preview:{source,target,mode,token,rows,targetCount}}
           if(token!==request.token||found.some(n=>n.heads.length!==1))fail('tag_changed')
           const at=new Date(this.now()).toISOString()
           job={source,target,mode,token,at,phase:'applying',rows:found.map((n,i)=>({
@@ -421,7 +422,7 @@ export class NoteRepository {
           if(!job||job.token!==request.token)return fail('tag_changed')
           if(request.action==='finish'){
             if(job.phase==='applying'||job.phase==='undoing'){
-              // Keep only work still eligible for undo when the remaining rows are abandoned.
+              // Finalize only materialized changes, including journals left by an older client.
               const undoing=job.phase==='undoing'
               for(const row of job.rows){
                 const head=undoing?row.undo:row.after
@@ -437,16 +438,7 @@ export class NoteRepository {
             }
             return receipt()
           }
-          if(request.action==='undo'&&job.phase==='done'){
-            await check(job.rows.map(r=>r.noteId))
-            const at=new Date(this.now()).toISOString()
-            for(const row of job.rows){
-              const n=this.view(state,row.noteId),before=revisions.get(row.before)
-              if(!before||n.current.revision!==row.after||n.heads.length!==1||n.current.status!=='active')return fail('tag_changed')
-              row.undo=tagRevision(n.current,before.tags,n.effectiveNotebookId,at).revision
-            }
-            job.phase='undoing';job.undoAt=at;await writeTagJournal(local,job)
-          } else if(request.action==='undo'&&job.phase==='applying')return fail('tag_pending')
+
         }
         if(job.phase==='done'||job.phase==='undone')return receipt()
         const undoing=job.phase==='undoing'
@@ -487,14 +479,28 @@ export class NoteRepository {
       } finally { local.inventory.close() }
     },signal)
   }
-  async catalog(signal?:AbortSignal):Promise<NoteCatalog> {
+  async catalog(signal?:AbortSignal, detailed=false):Promise<NoteCatalog> {
     return this.run(async()=>{
-      const state=await this.load(),tags=new Map<string,number>()
-      for(const noteId of new Set(state.revisions.map(r=>r.noteId))) {
-        const row=this.view(state,noteId).current
-        if(row.status==='active')row.tags.forEach(tag=>tags.set(tag,(tags.get(tag)??0)+1))
+      const state=await this.load()
+      const entries=new Map<string,{count:number;latest:string;books:Map<string|null,number>}>()
+      for(const id of new Set(state.revisions.map(r=>r.noteId))){
+        const note=this.view(state,id)
+        if(note.current.status!=='active')continue
+        for(const tag of note.current.tags){
+          const entry=entries.get(tag)??{count:0,latest:'',books:new Map<string|null,number>()}
+          entry.count++
+          if(detailed){
+            if(note.savedAt>entry.latest)entry.latest=note.savedAt
+            const book=note.effectiveNotebookId
+            entry.books.set(book,(entry.books.get(book)??0)+1)
+          }
+          entries.set(tag,entry)
+        }
       }
-      return {tags:[...tags].map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))}
+      const tags=[...entries].map(([tag,entry])=>({tag,count:entry.count,...(detailed&&{
+        latest:entry.latest,books:[...entry.books].map(([id,count])=>({id,count}))
+      })})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))
+      return {tags}
     },signal)
   }
   async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {

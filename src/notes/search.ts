@@ -112,7 +112,7 @@ export function searchNotes(views: NoteView[], options: NoteListOptions = {}): N
   const terms = searchTerms(text(options.query ?? '', 12_000))
   const recent = options.recentIds?.map(id)
   if (recent && recent.length > 100) fail('note_limit')
-  for (const key of ['favorite','templates','hasFiles'] as const) if (options[key] !== undefined && typeof options[key] !== 'boolean') fail('note_schema')
+  for (const key of ['favorite','templates','hasFiles','currentOnly'] as const) if (options[key] !== undefined && typeof options[key] !== 'boolean') fail('note_schema')
   if (options.modifiedPeriod !== undefined && !['month','before-month'].includes(options.modifiedPeriod)) fail('note_schema')
   if (options.status && !['active', 'trashed', 'all'].includes(options.status)) fail()
   if (options.notebookId !== undefined && options.notebookId !== null) id(options.notebookId)
@@ -126,7 +126,7 @@ export function searchNotes(views: NoteView[], options: NoteListOptions = {}): N
     if (options.notebookId !== undefined && options.notebookId !== view.effectiveNotebookId) continue
     if (options.modifiedPeriod === 'month' && (view.savedAt < month || view.savedAt >= nextMonth)) continue
     if (options.modifiedPeriod === 'before-month' && view.savedAt >= month) continue
-    for (const row of [view.current,...view.conflicts]) {
+    for (const row of options.currentOnly?[view.current]:[view.current,...view.conflicts]) {
       if (options.status !== 'all' && row.status !== (options.status ?? 'active')) continue
       if (options.tag && !row.tags.includes(options.tag) || options.favorite && !row.favorite) continue
       if (options.hasFiles && !row.attachments?.length) continue
@@ -158,6 +158,7 @@ export function searchNotes(views: NoteView[], options: NoteListOptions = {}): N
   const start = cursor ? selected.findIndex(entry=>entry.view.noteId===cursor)+1 : 0
   const page = selected.slice(start,start+limit)
   return {
+    ...(options.currentOnly && {total:selected.length}),
     items: page.map(({view,row,match}) => {
       const r = view.current
       return {noteId:view.noteId, heads:view.heads, title:r.title, summary:r.summary, excerpt:resultExcerpt(row,match), ...(match && {hit:match.hit}), tags:r.tags, notebookId:view.effectiveNotebookId, status:r.status, savedAt:view.savedAt,createdAt:view.createdAt??view.savedAt,pinned:!!view.pinned, conflicted:view.conflicts.length>0,...(r.favorite!==undefined?{favorite:r.favorite}:{}),...(r.isTemplate!==undefined?{isTemplate:r.isTemplate}:{})}

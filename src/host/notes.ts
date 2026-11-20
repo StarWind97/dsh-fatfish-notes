@@ -106,7 +106,7 @@ export class NotesApplication {
   get(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, note: await this.repository.get(text(object(input).noteId, 26), active) }), signal) }
   manage(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ok:true as const,...await this.repository.manage(input as NoteManageRequest,active)}),signal) }
   tags(input:unknown,signal?:AbortSignal){return this.run(active=>this.repository.tagManagement(input,active),signal)}
-  catalog(signal?:AbortSignal) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active)}),signal)}
+  catalog(signal?:AbortSignal,details=false) {return this.run(async active=>({ok:true as const,...await this.repository.catalog(active,details)}),signal)}
   history(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input);return {ok:true as const,...await this.repository.history(id(v.noteId),v.cursor===undefined?undefined:hash(v.cursor),active)}},signal)}
   revision(input:unknown,signal?:AbortSignal) {return this.run(async active=>{const v=object(input),row=await this.repository.getRevision(id(v.noteId),hash(v.revision),active);return {ok:true as const,note:{noteId:row.noteId,heads:[row.revision],current:row,conflicts:[],savedAt:row.recordedAt,effectiveNotebookId:row.notebookId}}},signal)}
   backlinks(input:unknown,signal?:AbortSignal) {const v=object(input);return this.run(async active=>({ok:true as const,...await this.repository.backlinkPage(id(v.noteId),{...(v.cursor!==undefined?{cursor:id(v.cursor)}:{}),limit:5},active)}),signal)}
@@ -117,7 +117,7 @@ export class NotesApplication {
     if (v.cursor !== undefined) options.cursor = id(v.cursor)
     if (v.limit !== undefined) options.limit = Number(v.limit)
     if (v.query !== undefined) options.query = text(v.query, 12_000)
-    for(const key of ['favorite','templates','hasFiles'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
+    for(const key of ['favorite','templates','hasFiles','currentOnly'] as const)if(v[key]!==undefined){if(typeof v[key]!=='boolean')throw new NotebookError('note_schema','筛选无效');options[key]=v[key]}
     if (v.modifiedPeriod !== undefined) {
       if (v.modifiedPeriod !== 'month' && v.modifiedPeriod !== 'before-month') throw new NotebookError('note_schema','修改时间筛选无效')
       options.modifiedPeriod = v.modifiedPeriod

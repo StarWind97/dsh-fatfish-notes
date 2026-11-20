@@ -19,6 +19,7 @@ import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
 import { ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X, PanelLeftOpen, Star, Pin , Moon, Sun } from 'lucide-react'
 import {SearchFilterPanel} from './SearchFilterPanel.js'
+import {classificationCss} from './classification-style.js'
 import {TagManager} from './TagManager.js'
 import type {NoteListItem, NoteOrder, SearchHit} from '../contracts/notes.js'
 import {Highlight,LinkPreview} from './NoteTools.js'
@@ -72,7 +73,13 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const [transfer,setTransfer]=useState(false)
   const [settingsCategory,setSettingsCategory]=useState<SettingsCategory>('appearance')
   const [booksOpen,setBooksOpen]=useState(false)
-  const [tagLibrary,setTagLibrary]=useState<number|null>(null)
+  const [tagLibrary,setTagLibrary]=useState<{epoch:number;tag:string}|null>(null)
+  const [classBusy,setClassBusy]=useState(false)
+  async function openClassification(tags:boolean){
+    const epoch=controller.libraryEpoch
+    setTagLibrary(tags?{epoch,tag:controller.getSnapshot().filter.tag??''}:null)
+    await navigate('notebooks')
+  }
   const [full,setFull]=useState(()=>readPreference('width')==='full')
   const app=useRef<HTMLDivElement>(null)
   const noteTabs=useNoteTabs(controller,state,app)
@@ -94,17 +101,19 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     if(section===controller.getSnapshot().section)return true
     if(controller.getSnapshot().section==='notes')readingPosition.current={noteId:controller.getSnapshot().noteId,pane:app.current?.querySelector('.paper-pane')?.scrollTop??0,list:app.current?.querySelector('.paper-list-scroll')?.scrollTop??0}
     if(!await controller.navigate(section))return false
-    if(section==='notebooks')await controller.refresh()
+    if(section==='notebooks')void controller.refresh()
+    if(section==='notes')void controller.refreshSelected()
     return true
   }
   async function openNotebook(notebookId:string){
     readingPosition.current=null
     if(await navigate('notes'))await choose({notebookId,order:controller.getSnapshot().filter.order??'recent'})
   }
-  function choose(filter:NotesState['filter']) {
+  function choose(filter:NotesState['filter'],keepReading=false) {
     const before=controller.getSnapshot().filter
     if(filter.query?.trim()&&!before.query?.trim())filter={...filter,order:'relevance'}
     if(!filter.query?.trim()&&(before.query?.trim()||filter.order==='relevance'))filter={...filter,order:browseOrder()}
+    if(keepReading)return controller.filter(filter)
     return controller.selectFilter(filter,(app.current?.clientWidth??560)>=560 &&
       (!!controller.getSnapshot().draft || filter.status==='trashed'))
   }
@@ -122,7 +131,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   function filterTag(value?:string) {
     clearTimeout(timer.current)
     const {tag:previous,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(value && value!==previous ? {tag:value} : {})})
+    void choose({...rest,query,...(value && value!==previous ? {tag:value} : {})},true)
   }
   function period(value:NonNullable<NotesState['filter']['modifiedPeriod']>|''){
     clearTimeout(timer.current)
@@ -177,12 +186,12 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   }
   const itemActions=useItemActions(controller,state,t,id=>controller.open(id),undefined,app)
   const selectedBook=activeBooks.find(b=>b.notebookId===state.filter.notebookId||(state.filter.notebookId===null&&b.isDefault))
-  const notebooks=<NotebookNavigation reorder={ids=>void controller.reorderNotebooks(ids)} favorites={view==='favorites'} openFavorites={()=>chooseView('favorites',true)} books={activeBooks} actual={state.note?.effectiveNotebookId??state.draft?.notebookId??null} actions={itemActions.bookActions} selected={state.filter.notebookId} trash={inTrash} disabled={state.operation} t={t} collapse={toggleNotebooks} choose={id=>id?chooseNotebook(id):chooseView('all',true)} manage={()=>void navigate('notebooks')} openTrash={()=>{if(!inTrash)toggleTrash()}}/>
+  const notebooks=<NotebookNavigation reorder={ids=>void controller.reorderNotebooks(ids)} favorites={view==='favorites'} openFavorites={()=>chooseView('favorites',true)} books={activeBooks} actual={state.note?.effectiveNotebookId??state.draft?.notebookId??null} actions={itemActions.bookActions} selected={state.filter.notebookId} trash={inTrash} disabled={state.operation} t={t} collapse={toggleNotebooks} choose={id=>id?chooseNotebook(id):chooseView('all',true)} manage={()=>void openClassification(false)} openTrash={()=>{if(!inTrash)toggleTrash()}}/>
   const list=<><div className="paper-list-controls"><div className="paper-list-head">
     {!columns.expanded&&columns.wide&&!['dock','tree','ribbon','archive'].includes(appearanceValue.layout)&&<button className="paper-expand-notebooks paper-books-toggle" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={19}/></button>}
     {inTrash?<strong className="paper-trash-title">{t('notesTrash')}</strong>:columns.expanded?<h2 className="paper-list-title" title={selectedBook?.current.title??t('paperAll')}>{selectedBook?.current.title??t('paperAll')}</h2>:<label className="paper-picker"><select aria-label={t('notesNotebook')} value={state.filter.notebookId===undefined?'all':selectedBook?.notebookId??'all'} onChange={e=>{
     const option=e.target.value
-    if(option==='manage'){clearTimeout(timer.current);void navigate('notebooks');return}
+    if(option==='manage'){clearTimeout(timer.current);void openClassification(false);return}
     chooseNotebook(option==='all'?undefined:option)
   }}><option value="all">{t('paperAll')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}<option value="manage">{t('notesManageBooks')}…</option></select><ChevronDown size={14}/></label>}
       {!inTrash&&<span className="paper-new-actions"><button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button></span>}</div>
@@ -200,7 +209,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     {state.filter.modifiedPeriod&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findModified')})} onClick={()=>period('')}>{t('findModified')} · {t(state.filter.modifiedPeriod==='month'?'findThisMonth':'findBeforeMonth')}<X size={13}/></button>}
     {state.filter.hasFiles&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findFilesOnly')})} onClick={()=>files(false)}>{t('findFilesOnly')}<X size={13}/></button>}
     {query.trim()&&state.filter.notebookId!==undefined&&<button className="paper-scope-all" onClick={()=>chooseNotebook()}>{t('findAcross')}</button>}
-    {booksOpen&&<div id={filterPanelId}><SearchFilterPanel controller={controller} filter={state.filter} t={t} onTag={filterTag} onPeriod={period} onFiles={files} close={closeFilters} manage={async()=>{const library=controller.libraryEpoch;if(await controller.saveEdits()&&controller.libraryEpoch===library)setTagLibrary(library)}}/></div>}
+    {booksOpen&&<div id={filterPanelId}><SearchFilterPanel controller={controller} filter={state.filter} t={t} onTag={filterTag} onPeriod={period} onFiles={files} close={closeFilters} manage={()=>openClassification(true)}/></div>}
     {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
     </div><div className="paper-list-scroll">{showOverview&&!state.draft&&overview(true)}{treeActive?<NotebookTree controller={controller} state={state} books={activeBooks} actions={itemActions.noteActions} bookActions={itemActions.bookActions}/>:<><div className="paper-rows">{state.items.map((item,i)=>{
@@ -210,14 +219,16 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
         <strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} fill="currentColor" aria-label={t('findFavorites')}/>} <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong><span>{(item.conflicted||state.filter.notebookId===undefined)&&<small className="paper-row-meta">{item.conflicted?t('notesConflict'):activeBooks.find(b=>b.notebookId===item.notebookId)?.current.title??t('notesDefaultBook')} · </small>}{item.hit&&<small className="paper-hit-source">{item.hit.alternate&&t('findOtherVersion')+' · '}{t(hitLabels[item.hit.field])} · </small>}<Highlight value={item.excerpt||item.summary} query={state.filter.query}/></span>
       </NoteSelectionRow></div></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash||appearanceValue.layout==='tree')&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
-  return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss}</style><AppearanceStyle/>
-    {tagLibrary===controller.libraryEpoch&&<TagManager controller={controller} t={t} close={()=>setTagLibrary(null)}/>}
+  return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss+classificationCss}</style><AppearanceStyle/>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
-    {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'notesManagePage':'notesSettings')}</button>)}</nav>
+    {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation||classBusy} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'classTitle':'notesSettings')}</button>)}</nav>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}<button className="paper-mode-toggle" aria-label={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} title={appearance['data-theme']==='dark'?'切换浅色':'切换深色'} onClick={()=>theme.setMode(appearance['data-theme']==='dark'?'light':'dark')}>{appearance['data-theme']==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button><FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     <PaperColumns t={t} section={state.section} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}
       tabs={<NoteTabBar controller={controller} state={state} {...noteTabs} t={t} beforeSelect={()=>clearTimeout(timer.current)} onEmpty={focusOverview}/>}
-      rail={<><button className="paper-books-toggle" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={19}/></button>{activeBooks.map(book=><button key={book.notebookId} title={book.current.title} aria-label={book.current.title} aria-current={state.filter.notebookId===book.notebookId?'page':undefined} onClick={()=>chooseNotebook(book.notebookId)}>{book.current.title.slice(0,1)}</button>)}</>} other={state.section==='settings'?<SettingsWorkspace t={t} category={settingsCategory} onCategory={setSettingsCategory}/>:state.section==='notebooks'?<NotebookManager controller={controller} state={state} t={t} onOpen={openNotebook}/>:null}>
+      rail={<><button className="paper-books-toggle" title={t('paperExpandBooks')} aria-label={t('paperExpandBooks')} aria-expanded={false} aria-controls="paper-notebook-list" onClick={toggleNotebooks}><PanelLeftOpen size={19}/></button>{activeBooks.map(book=><button key={book.notebookId} title={book.current.title} aria-label={book.current.title} aria-current={state.filter.notebookId===book.notebookId?'page':undefined} onClick={()=>chooseNotebook(book.notebookId)}>{book.current.title.slice(0,1)}</button>)}</>} other={state.section==='settings'?<SettingsWorkspace t={t} category={settingsCategory} onCategory={setSettingsCategory}/>:state.section==='notebooks'?<><div className="class-tabs" role="group" aria-label={t('classTitle')}>
+        <button disabled={classBusy} aria-pressed={tagLibrary?.epoch!==controller.libraryEpoch} onClick={()=>setTagLibrary(null)}>{t('notesNotebook')}</button>
+        <button disabled={classBusy} aria-pressed={tagLibrary?.epoch===controller.libraryEpoch} onClick={()=>{if(tagLibrary?.epoch!==controller.libraryEpoch)setTagLibrary({epoch:controller.libraryEpoch,tag:''})}}>{t('classTags')}</button>
+      </div>{tagLibrary?.epoch===controller.libraryEpoch?<TagManager key={tagLibrary.epoch} controller={controller} state={state} initialTag={tagLibrary.tag} t={t} setBusy={setClassBusy}/>:<NotebookManager controller={controller} state={state} t={t} onOpen={openNotebook}/>}</>:null}>
       {state.draft?<NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={itemActions.setDownloadNotice} onNoteLink={setPreviewLink} onReturn={history.length?()=>void returnNote():undefined} onPurge={()=>state.note&&selection.purge({noteId:state.note.noteId,expectedHeads:state.note.heads})} onTrashed={itemActions.offerUndo} outlineSession={outlineSession} onTagClick={filterTag} key={state.noteId} state={state} controller={controller} t={t}/>:showOverview?overview():<div className="paper-empty"><Trash2 size={32}/><h2>{t('notesTrash')}</h2><p>{t('notesEmptyTrash')}</p></div>}
       {(state.loadingNote||state.listError||(!state.draft&&state.error))&&<p role="status">{t(state.loadingNote?'loading':state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':'notesOpenFailed')}</p>}
     </PaperColumns>

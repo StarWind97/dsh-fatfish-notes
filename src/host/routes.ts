@@ -125,7 +125,7 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         case '/notes/get':value=await app.notes.get(body,signal);break
         case '/notes/tags':value=await app.notes.tags(body,signal);break
         case '/notes/manage':value=await app.notes.manage(body);break
-        case '/notes/catalog':value=await app.notes.catalog(signal);break
+        case '/notes/catalog':value=await app.notes.catalog(signal,typeof body==='object'&&body!==null&&'details' in body&&body.details===true);break
         case '/notes/history':value=await app.notes.history(body,signal);break
         case '/notes/revision':value=await app.notes.revision(body,signal);break
         case '/notes/backlinks':value=await app.notes.backlinks(body,signal);break

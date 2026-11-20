@@ -127,6 +127,7 @@ export interface NoteOverview {
     modified: NoteOverviewItem[];
 }
 export interface NoteListOptions {
+    currentOnly?: boolean;
     modifiedPeriod?: 'month' | 'before-month';
     hasFiles?: boolean;
     cursor?: string;
@@ -144,6 +145,7 @@ export interface NoteListOptions {
     relation?: 'source' | 'linked' | 'browse';
 }
 export interface NoteListResult {
+    total?: number;
     items: NoteListItem[];
     cursor: string | null;
     overview?: NoteOverview;
@@ -166,11 +168,17 @@ export interface NoteHistoryItem {
     summary: string;
     status: NoteStatus;
 }
-export interface NoteCatalog {
-    tags: Array<{
-        tag: string;
+export interface TagEntry {
+    tag: string;
+    count: number;
+    latest?: string;
+    books?: Array<{
+        id: string | null;
         count: number;
     }>;
+}
+export interface NoteCatalog {
+    tags: TagEntry[];
 }
 export interface NotebookRevision {
     version: 1;
@@ -469,7 +477,9 @@ export interface NotesApiContract {
         };
     };
     '/notes/catalog': {
-        request: undefined;
+        request: {
+            details: true;
+        } | undefined;
         response: {
             ok: true;
         } & NoteCatalog;

@@ -32,18 +32,10 @@ export interface EditAccess { ready():Promise<void>; acquire(noteId:string):Prom
 export class NotesController {
   libraryEpoch=0
   catalogEpoch=0
-  private tagFilterUndo:{token:string;library:number;tag:string|null;original:string}|undefined
   async tagsChanged(receipt:import('../contracts/tag-management.js').TagReceipt,stopped:boolean) {
-    const filter=this.state.filter,active=filter.tag??null
-    let tag=active
-    if(receipt.phase==='done'&&!stopped&&active===receipt.source){
-      tag=receipt.target
-      this.tagFilterUndo={token:receipt.token,library:this.libraryEpoch,tag,original:receipt.source}
-    }else if(receipt.phase==='undone'&&this.tagFilterUndo?.library===this.libraryEpoch&&this.tagFilterUndo.token===receipt.token&&this.tagFilterUndo.tag===active){
-      tag=this.tagFilterUndo.original
-      this.tagFilterUndo=undefined
-    }
-    if(tag!==active){const {tag:old,...rest}=filter;this.emit({filter:tag?{...rest,tag}:rest})}
+    const {tag,...rest}=this.state.filter
+    if(receipt.phase==='done'&&!stopped&&tag===receipt.source)
+      this.emit({filter:receipt.target?{...rest,tag:receipt.target}:rest})
     await this.refresh(true,true)
     this.options.onSettled?.()
   }
@@ -202,7 +194,7 @@ export class NotesController {
     finally { await Promise.all([selected,...(refreshBooks?[books]:[])]) }
   }
   /** Pulls refresh reading mode; an active editor keeps its original revision base. */
-  private async refreshSelected(): Promise<void> {
+  async refreshSelected(): Promise<void> {
     const noteId = this.state.noteId
     if (this.state.editing || !noteId || !this.state.note || this.state.section !== 'notes' || this.state.loadingNote || this.state.operation || this.state.saving) return
     const request = this.detailRequest('sync', noteId)
@@ -215,7 +207,7 @@ export class NotesController {
       }
     } catch { if (this.ownsDetail(request)) this.emit({ listError: true }) }
   }
-  filter(filter: NoteListOptions) { if(filter.tag!==this.state.filter.tag)this.tagFilterUndo=undefined;this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
+  filter(filter: NoteListOptions) { this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
     if(!await this.prepareLeave())return
     const navigation=this.navigation

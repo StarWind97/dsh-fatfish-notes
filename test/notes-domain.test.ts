@@ -34,6 +34,8 @@ test('overview is bounded and ignores list filters, pagination and pin priority'
   assert.equal(searchNotes(views).overview, undefined)
   const conflicted = [{...views[18]!,conflicts:[revision([], '冲突内容', {noteId:views[18]!.noteId,tags:['共用']})]}, ...views.slice(0,18)]
   assert.equal(searchNotes(conflicted,{tag:'共用'}).items.length,8)
+  const page=searchNotes(conflicted,{tag:'共用',currentOnly:true,limit:3})
+  assert.equal(page.total,7);assert.equal(page.items.length,3);assert.ok(page.cursor)
 })
 
 test('both modification-time orders paginate the entire filtered list consistently',()=>{
@@ -48,6 +50,8 @@ test('both modification-time orders paginate the entire filtered list consistent
       const page=searchNotes(views,{order,limit:50,query:'正文',...(cursor?{cursor}:{})})
       ids.push(...page.items.map(x=>x.noteId));cursor=page.cursor
     } while(cursor)
+    const managed=searchNotes(views,{currentOnly:true,limit:20,cursor:ids[19]!,order})
+    assert.equal(managed.total,103);assert.deepEqual(managed.items.map(x=>x.noteId),ids.slice(20,40))
     const expected=[...views].sort((a,b)=>(order==='oldest'?1:-1)*a.savedAt.localeCompare(b.savedAt)||a.noteId.localeCompare(b.noteId))
     assert.deepEqual(ids,expected.map(v=>v.noteId))
   }

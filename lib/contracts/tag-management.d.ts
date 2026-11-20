@@ -12,7 +12,7 @@ export type TagRequest = {
     action: 'apply';
     token: string;
 } & TagChange) | {
-    action: 'resume' | 'undo' | 'finish';
+    action: 'resume' | 'finish';
     token: string;
 };
 export interface TagPreviewRow {
@@ -24,6 +24,7 @@ export interface TagPreviewRow {
     after: string[];
 }
 export interface TagPreview extends TagChange {
+    targetCount: number;
     token: string;
     rows: TagPreviewRow[];
 }

@@ -4,6 +4,8 @@ import {mkdtemp,rm,readFile} from 'node:fs/promises'
 import {join} from 'node:path'
 import {tmpdir} from 'node:os'
 import {NoteRepository} from '../src/notes/repository.js'
+import {NoteFiles} from '../src/notes/files.js'
+import {readTagJournal,writeTagJournal,tagRevision} from '../src/notes/tag-management.js'
 import {revisionContent} from '../src/notes/conflicts.js'
 import {markFolder} from '../src/private-workspace/folder.js'
 import {copyForMove} from '../src/private-workspace/move.js'
@@ -26,10 +28,11 @@ async function fixture(t:TestContext){
   const preview=async(change:TagChange)=>(await repo.tagManagement({...change,action:'preview'})).preview!
   return {repo,dir,a,b,save,preview,fault:(f:(path:string)=>void)=>{fault=f}}
 }
-test('global tag preview spans notebooks, merges a rename collision, and undo restores the distinct original tags',async t=>{
+test('global tag preview spans notebooks, merges a rename collision, and deduplicates the final count without changing archived content',async t=>{
   const {repo,a,b,save,preview}=await fixture(t),trash=await save('回收站',['访谈'])
   await repo.trash(trash.noteId,trash.heads)
   const p=await preview(merge)
+  assert.equal(p.targetCount,1);assert.equal(p.targetCount+p.rows.filter(r=>!r.before.includes('用户访谈')).length,2)
   assert.equal(p.mode,'merge');assert.equal(p.rows.length,2);assert.equal(new Set(p.rows.map(r=>r.notebookId)).size,2)
   assert.equal(p.rows.filter(r=>r.before.includes('用户访谈')).length,1)
   const req={...merge,action:'apply',token:p.token}
@@ -38,8 +41,8 @@ test('global tag preview spans notebooks, merges a rename collision, and undo re
   assert.deepEqual(after.tags,['其他','用户访谈']);assert.equal(after.body,a.current.body)
   assert.equal((await repo.get(trash.noteId)).current.tags.includes('访谈'),true)
   await repo.tagManagement(req);assert.equal((await repo.get(a.noteId)).current.revision,after.revision)
-  await repo.tagManagement({action:'undo',token:p.token})
-  for(const n of [a,b])assert.deepEqual(revisionContent((await repo.get(n.noteId)).current),revisionContent(n.current))
+  await assert.rejects(repo.tagManagement({action:'undo',token:p.token}),{code:'note_schema'})
+  assert.deepEqual((await repo.get(b.noteId)).current.tags,['用户访谈'])
   assert.deepEqual((await repo.getRevision(a.noteId,a.current.revision)).tags,a.current.tags)
 })
 test('a new match, a target collision, an active editor and edits after preview are checked before any write',async t=>{
@@ -56,7 +59,7 @@ test('a new match, a target collision, an active editor and edits after preview 
   await repo.save({noteId:b.noteId,expectedHeads:b.heads,content:{...revisionContent(b.current),body:'后来写的内容'}})
   await assert.rejects(apply,{code:'tag_changed'});assert.equal((await repo.get(a.noteId)).current.revision,a.current.revision)
 })
-test('interrupted projection survives restart and a replay finishes only outstanding revisions, including undo',async t=>{
+test('interrupted projection survives restart and a replay finishes only outstanding revisions, including an undo journal from the previous release',async t=>{
   const {repo,dir,a,b,preview,fault}=await fixture(t)
   const p=await preview(remove),first=p.rows[0]!.noteId
   fault(path=>{if(path==='documents/'+first+'.md')throw Error('interrupted')})
@@ -67,13 +70,22 @@ test('interrupted projection survives restart and a replay finishes only outstan
   await second.tagManagement({action:'resume',token:p.token})
   assert.equal((await snapshot()).phase,'done')
   assert.match(await readFile(join(dir,'notes','documents',first+'.md'),'utf8'),new RegExp((await second.get(first)).current.revision))
-  await assert.rejects(repo.tagManagement({action:'undo',token:p.token}),/interrupted/)
+  const local=new NoteFiles(join(dir,'local-tag-management'))
+  try{
+    const job=(await readTagJournal(local))!
+    job.phase='undoing';job.undoAt=new Date().toISOString()
+    for(const row of job.rows){
+      const n=await second.get(row.noteId),prior=await second.getRevision(row.noteId,row.before)
+      row.undo=tagRevision(n.current,prior.tags,n.effectiveNotebookId,job.undoAt).revision
+    }
+    await writeTagJournal(local,job)
+  }finally{local.inventory.close()}
   assert.equal((await snapshot()).phase,'undoing')
   await second.tagManagement({action:'resume',token:p.token})
   assert.equal((await snapshot()).phase,'undone')
   for(const n of [a,b])assert.deepEqual((await second.get(n.noteId)).current.tags,n.current.tags)
 })
-test('keeping a partially completed result limits undo to the finished notes and later edits remain protected',async t=>{
+test('keeping a partially completed result preserves the completed notes and subsequent edits',async t=>{
   const {repo,preview,fault}=await fixture(t)
   const p=await preview(remove),last=p.rows[1]!.noteId
   fault(path=>{if(path.startsWith('revisions/'+last+'/'))throw Error('interrupted')})
@@ -83,12 +95,12 @@ test('keeping a partially completed result limits undo to the finished notes and
   assert.equal(stop.receipt!.rows.length,1)
   const n=await repo.get(p.rows[0]!.noteId)
   await repo.save({noteId:n.noteId,expectedHeads:n.heads,content:{...revisionContent(n.current),title:'后来手动改名'}})
-  await assert.rejects(repo.tagManagement({action:'undo',token:p.token}),{code:'tag_changed'})
+  await repo.tagManagement({action:'resume',token:p.token})
   assert.equal((await repo.get(n.noteId)).current.title,'后来手动改名')
   assert.ok((await repo.get(last)).current.tags.includes('访谈'))
 })
 
-test('an offline library move preserves undo and only formal changes travel to a second library',async t=>{
+test('an offline library move preserves the completed receipt and only formal changes travel to a second library',async t=>{
   const {repo,dir,a,b,preview}=await fixture(t)
   const outer=await mkdtemp(join(tmpdir(),'fatfish-tags-move-'))
   const movedDir=join(outer,'moved'),peer=new NoteRepository(join(outer,'peer'))
@@ -102,8 +114,8 @@ test('an offline library move preserves undo and only formal changes travel to a
   await copyForMove(dir,dir,movedDir,123,new AbortController().signal)
   const moved=new NoteRepository(movedDir)
   try {
-    await moved.tagManagement({action:'undo',token:p.token})
+    assert.equal((await moved.tagManagement({action:'status'})).receipt?.phase,'done')
     await peer.importObjects(await moved.exportObjects())
-    for(const n of [a,b])assert.deepEqual((await peer.get(n.noteId)).current.tags,n.current.tags)
+    for(const n of [a,b])assert.deepEqual((await peer.get(n.noteId)).current.tags,(await moved.get(n.noteId)).current.tags)
   } finally {moved.close()}
 })

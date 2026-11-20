@@ -50,12 +50,13 @@ export type NoteOrder='recent'|'oldest'|'created-recent'|'created-oldest'|'title
 export const NOTE_OVERVIEW_LIMIT = 15
 export interface NoteOverviewItem { noteId: string; title: string; notebookId: string | null; savedAt: string }
 export interface NoteOverview { opened: NoteOverviewItem[]; modified: NoteOverviewItem[] }
-export interface NoteListOptions { modifiedPeriod?: 'month' | 'before-month'; hasFiles?: boolean; cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
-export interface NoteListResult { items: NoteListItem[]; cursor: string | null; overview?: NoteOverview }
+export interface NoteListOptions { currentOnly?:boolean; modifiedPeriod?: 'month' | 'before-month'; hasFiles?: boolean; cursor?: string; limit?: number; query?: string; tag?: string; notebookId?: string | null; status?: NoteStatus | 'all'; order?: NoteOrder; favorite?: boolean; templates?: boolean; recentIds?: string[]; overviewRecentIds?: string[]; sessionId?: string; relation?: 'source' | 'linked' | 'browse' }
+export interface NoteListResult { total?:number; items: NoteListItem[]; cursor: string | null; overview?: NoteOverview }
 export type NoteManageAction = 'rename' | 'favorite' | 'unfavorite' | 'pin' | 'unpin' | 'move' | 'add-tags' | 'remove-tags' | 'duplicate' | 'template' | 'instantiate' | 'revision' | 'revision-copy'
 export interface NoteManageRequest { notes: NoteSelection[]; action: NoteManageAction; notebookId?: string; tags?: string[]; revision?: string; title?: string; date?: string; targetId?: string }
 export interface NoteHistoryItem { revision: string; recordedAt: string; title: string; summary: string; status: NoteStatus }
-export interface NoteCatalog { tags: Array<{tag: string; count: number}> }
+export interface TagEntry { tag:string; count:number; latest?:string; books?:Array<{id:string|null; count:number}> }
+export interface NoteCatalog { tags: TagEntry[] }
 export interface NotebookRevision {
   version: 1; notebookId: string; revision: string; parents: string[]; recordedAt: string
   title: string; status: NoteStatus; defaultSelectedAt?: string
@@ -118,7 +119,7 @@ export interface NotesApiContract {
   '/notes/associate': { request: { noteId: string; expectedHeads: string[]; sessionId: string; linked: boolean }; response: { ok: true; note: NoteView } }
   '/notes/workspace-book': { request: { workspaceId: string; notebookId?: string | null }; response: { ok: true; notebookId: string | null } }
   '/notes/manage': { request: NoteManageRequest; response: { ok: true; completed: string[]; note?: NoteView } }
-  '/notes/catalog': { request: undefined; response: { ok: true } & NoteCatalog }
+  '/notes/catalog': { request: {details:true} | undefined; response: { ok: true } & NoteCatalog }
   '/notes/tags': { request: import('./tag-management.js').TagRequest; response: import('./tag-management.js').TagResponse }
   '/notes/history': { request: { noteId: string; cursor?: string }; response: { ok: true; items: NoteHistoryItem[]; cursor: string | null } }
   '/notes/revision': { request: { noteId: string; revision: string }; response: { ok: true; note: NoteView } }
