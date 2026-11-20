@@ -1,6 +1,6 @@
-# 肥鱼笔记 0.10.0 候选验收
+# 肥鱼笔记 0.10.0 发布与验收
 
-2026-11-20。0.10.0 已完成候选验收，用户已确认公开发布。范围和回退方案见[本轮规划](../../plans/2026-11-20-release-0100.zh.md)。
+北京时间 2026-11-20 21:39:39，[肥鱼笔记 0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0) 已公开设为 GitHub 最新正式版。范围和回退方案见[本轮规划](../../plans/2026-11-20-release-0100.zh.md)。
 
 ## 候选包
 
@@ -22,6 +22,12 @@
 
 在隔离 rc.5 Windows 桌面与 Web 安装正式包，各 261 个文件与包内一致。桌面主界面、独立窗口和 Web 均读回先前同步的笔记。桌面主界面与 Web 均能打开旧手册，Web 分类管理可打开。Web 匿名请求返回 401，宿主授权后返回 200。
 
-本地证据位于 `.dsh-home/pure-001/release0100/`，包含 `full-test.log`、安装逐文件比对、`handbook-package.json`、`guide-screenshots.json`、`web-minimum.json` 和双端修订记录。本轮启动的验收进程已关闭。
+## 发布与市场
+
+标签 `v0.10.0` 对应提交 `8abee274fe293ea93961965f8eef2c134475a2d9`。固定名安装包、带版本名安装包和 `SHA256SUMS-0.10.0.txt` 已从公开地址匿名下载，完整文件与发布前摘要一致。旧版 0.9.3 可从其发布页取得。
+
+[市场的肥鱼笔记条目](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml)已采用[固定下载链接](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。该入口实际下载了 0.10.0。按[市场升级查找流程](https://github.com/dsh-market/dsh-market/blob/main/src/release-updates.ts)核对了最新版跳转、标签内的版本信息和带标签的安装地址，均指向 0.10.0。
+
+本地证据位于 `.dsh-home/pure-001/release0100/`，包含 `full-test.log`、安装逐文件比对、`handbook-package.json`、`guide-screenshots.json`、`web-minimum.json`、双端修订记录、`publication.json` 和 `public-downloads.json`。本轮启动的宿主验收进程已关闭。
 
 [启动已安装的隔离桌面候选](../../../scripts/Open-Fatfish-Notes.cmd)

@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- **0.10.0 已完成候选验收，用户已确认公开发布。** 425 项全量通过，Web 和 Windows 桌面的双向同步通过，随包手册与图解使用说明已更新。[候选验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
+- 2026-11-20 正式发布 [0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。425 项全量回归及 Web 与 Windows 桌面的双向同步通过。正式包已在 rc.5 桌面和 Web 实装。已更新手册和图解使用说明，市场固定入口指向新版。[发布与验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 
 - 2026-11-20 [会话侧栏宽窄布局修正](plans/2026-11-20-unified-search-ui.zh.md#侧栏宽窄布局修正)完成隔离桌面和 Web 验收。宽栏自动显示笔记本，窄栏下拉贴着按钮，结果数与「多选」同排。100 项相关测试通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。侧栏查找已有可按需执行的[浏览器回归](../test/browser/README.md#会话侧栏查找)。
 
@@ -25,7 +25,6 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
-| [0.10.0 正式发布](plans/2026-11-20-release-0100.zh.md#正式发布) | `main`，主目录。宿主更新约定、正式包、GitHub Release 与现有市场入口。 | 正式包已完成 rc.5 桌面及 Web 验收。正在发布并复核公开下载。 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 
