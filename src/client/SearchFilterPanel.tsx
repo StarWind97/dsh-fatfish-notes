@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ArrowDownUp, Check, ChevronRight, ChevronUp, Filter, Search, X } from 'lucide-react'
-import type { NoteCatalog, NoteListOptions, NoteOrder } from '../contracts/notes.js'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ArrowDownUp, ChevronRight, ChevronUp, Filter, Search, X } from 'lucide-react'
+import type { NoteCatalog, NoteListOptions, NoteOrder, TagEntry } from '../contracts/notes.js'
 import type { NotesController } from './notes-controller.js'
 import type { LocaleKey, T } from './locale.js'
 
@@ -73,6 +73,10 @@ export function SearchControls({controller,filter,query,expanded,t,onQuery,onExp
 type Catalog = {controller: NotesController; library: number; epoch: number; tags: NoteCatalog['tags']}
 const cachedCatalogs = new WeakMap<NotesController,Catalog>()
 
+function SearchTagContent({tag,count}:TagEntry) {
+  return <><span>#{tag}</span><small>{count}</small></>
+}
+
 function SearchFilterPanel({id,controller,facets,t,onFacets,close,manage}: Pick<ControlsProps,'controller'|'t'|'onFacets'|'manage'> & {
   id: string; facets: SearchFacets; close: () => void
 }) {
@@ -82,7 +86,8 @@ function SearchFilterPanel({id,controller,facets,t,onFacets,close,manage}: Pick<
   const [all,setAll] = useState(false)
   const [loaded,setLoaded] = useState<Catalog>()
   const input = useRef<HTMLInputElement>(null)
-  const list = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null), probe = useRef<HTMLDivElement>(null)
+  const [commonCount,setCommonCount] = useState(0)
   const library = controller.libraryEpoch, epoch = controller.catalogEpoch
   const entry = cachedCatalogs.get(controller) ?? loaded
   const tags = entry?.controller===controller&&entry.library===library&&entry.epoch===epoch ? entry.tags : undefined
@@ -99,8 +104,45 @@ function SearchFilterPanel({id,controller,facets,t,onFacets,close,manage}: Pick<
     return ()=>request.abort()
   },[controller,library,epoch,attempt,tags])
   const directory = useMemo(()=>[...(tags??[])].sort((a,b)=>a.tag.localeCompare(b.tag,'zh-CN',{numeric:true})),[tags])
-  const common = tags?.slice(0,8)??[]
+  const measureChips = useMemo(()=>tags?.map(entry=><span key={entry.tag} className="paper-search-tag">
+    <SearchTagContent {...entry}/>
+  </span>),[tags])
+
+  useLayoutEffect(()=>{
+    const sample = probe.current
+    if(!sample||!tags?.length)return
+    const pane = sample.closest<HTMLElement>('.paper-list,.conversation-notes')
+    function measure() {
+      if(!sample?.clientWidth)return
+      const rowLimit = (pane?.clientHeight??window.innerHeight)<=640 ? 2 : 3
+      let rows = 0, previousTop = -1, count = 0
+      // Read the rows formed by the browser, including the actual font and tag lengths.
+      for(const child of sample.children as HTMLCollectionOf<HTMLElement>){
+        if(child.offsetTop!==previousTop){
+          if(++rows>rowLimit)break
+          previousTop=child.offsetTop
+        }
+        count++
+      }
+      const visible = list.current, active = document.activeElement
+      if(active&&visible?.dataset.directory==='false'&&Array.from(visible.children).indexOf(active)>=count)
+        input.current?.focus({preventScroll:true})
+      setCommonCount(count)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(sample)
+    if(pane)observer.observe(pane)
+    document.fonts?.addEventListener('loadingdone',measure)
+    return ()=>{
+      observer.disconnect()
+      document.fonts?.removeEventListener('loadingdone',measure)
+    }
+  },[tags])
+
+  const common = tags?.slice(0,commonCount)??[]
   const term = draft.trim().toLocaleLowerCase()
+  const showDirectory = !!term||all
   const candidates = term ? directory.filter(entry=>entry.tag.toLocaleLowerCase().includes(term)) : all ? directory : common
   function choose(tag: string) {
     const next = {...facets}
@@ -138,14 +180,22 @@ function SearchFilterPanel({id,controller,facets,t,onFacets,close,manage}: Pick<
     {tags ? <>
       <div className="paper-tag-heading">
         <span title={t('findTagCountsScope')}>{term?t('findTagCount',{count:candidates.length}):t(all?'findAllByName':'findCommonTags')}</span>
-        {tags.length>8&&!term&&<button className="paper-filter-text" type="button" onClick={()=>{
+        {(all||tags.length>commonCount)&&!term&&<button className="paper-filter-text" type="button" onClick={()=>{
           setAll(!all);if(list.current)list.current.scrollTop=0
         }}>{all?t('findCommonOnly'):t('findAllTags',{count:tags.length})}</button>}
       </div>
-      {candidates.length>0?<div ref={list} className="paper-search-tag-choices" aria-label={t('findTagCountsScope')}>{candidates.map(({tag,count})=>
-        <button key={tag} type="button" data-tag={tag} title={tag} aria-pressed={facets.tag===tag} onClick={()=>choose(tag)}>
-          <span>{facets.tag===tag&&<Check size={12} aria-hidden="true"/>}#{tag}</span><small>{count}</small>
-        </button>)}</div>:<small role="status">{t(term?'findNoTagMatch':'findNoTags')}</small>}
+      <div className="paper-search-tag-layout">
+        <div className="paper-search-tag-measure" aria-hidden="true">
+          <div ref={probe} className="paper-search-tag-probe">{measureChips}</div>
+        </div>
+        {candidates.length>0?<div ref={list} className="paper-search-tag-choices" data-directory={showDirectory}
+          aria-label={t('findTagCountsScope')}>
+          {candidates.map(entry=><button key={entry.tag} className="paper-search-tag" type="button" data-tag={entry.tag}
+            title={entry.tag} aria-pressed={facets.tag===entry.tag} onClick={()=>choose(entry.tag)}>
+            <SearchTagContent {...entry}/>
+          </button>)}
+        </div>:(!tags.length||showDirectory)&&<small role="status">{t(term?'findNoTagMatch':'findNoTags')}</small>}
+      </div>
     </>:<small role="status">{t(failed?'findCatalogFailed':'loading')} {failed&&<button className="paper-filter-text" type="button" onClick={()=>retry(n=>n+1)}>{t('noteRetry')}</button>}</small>}
     {manage&&<div className="paper-filter-management"><button className="paper-filter-text" type="button" onClick={manage}>{t('tagEntry')}<ChevronRight size={12} aria-hidden="true"/></button></div>}
   </section>

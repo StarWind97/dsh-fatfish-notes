@@ -243,26 +243,28 @@ export const paperCss = `
 .paper-app .paper-filter-options input[type=checkbox]{width:13px;height:13px;margin:0;accent-color:var(--accent)}
 .paper-app .paper-tag-heading,.paper-app .paper-search-filter-panel>small{color:var(--muted);font-size:11px}
 .paper-app .paper-tag-heading button{flex:none;white-space:nowrap}
-.paper-app .paper-search-tag-choices{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:4px;
+.paper-app .paper-search-tag-layout{position:relative;min-width:0}
+.paper-app .paper-search-tag-measure{position:absolute;inset:0 0 auto;height:0;overflow:hidden;visibility:hidden;pointer-events:none}
+.paper-app :is(.paper-search-tag-choices,.paper-search-tag-probe){display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px;min-width:0}
+.paper-app .paper-search-tag-choices[data-directory=true]{
   max-block-size:clamp(72px,15dvh,116px);overflow:auto;scrollbar-width:thin;overscroll-behavior:contain
 }
-.paper-app .paper-search-controls .paper-search-tag-choices button{
-  display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;min-height:25px;
-  padding:3px 5px;margin:0;border:1px solid var(--rule);border-radius:5px;background:var(--input);
-  color:var(--ink);font-size:11px;text-align:start
+.paper-app .paper-search-controls .paper-search-tag{
+  display:inline-flex;flex:none;align-items:center;justify-content:flex-start;gap:4px;min-width:0;min-height:25px;
+  max-width:min(100%,190px);padding:3px 6px;margin:0;border:1px solid var(--rule);border-radius:6px;background:var(--input);
+  color:var(--ink);font-size:11px;line-height:1.35;text-align:start;white-space:nowrap
 }
-.paper-app .paper-search-tag-choices span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.paper-app .paper-search-tag-choices svg{margin-right:3px}
-.paper-app .paper-search-tag-choices small{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
-.paper-app .paper-search-controls .paper-search-tag-choices button:hover{border-color:var(--accent)}
-.paper-app .paper-search-controls .paper-search-tag-choices button[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent)}
+.paper-app .paper-search-tag>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.paper-app .paper-search-tag>small{flex:none;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.paper-app .paper-search-controls button.paper-search-tag:hover{border-color:var(--accent)}
+.paper-app .paper-search-controls button.paper-search-tag[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent)}
+.paper-app :is(.paper-list-controls,.conversation-search-area):has(.paper-search-filter-panel){scrollbar-width:thin;scrollbar-gutter:stable}
 .paper-app .paper-filter-management{border-block-start:1px solid var(--rule);padding-top:2px}
 .paper-app :is(.paper-search-controls,.paper-search-status) :is(button,select):focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .paper-app .paper-search-status{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;margin-top:6px;color:var(--muted);font-size:11px}
 .paper-app .paper-search-status span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .paper-app .paper-search-status .paper-scope-all{flex:none}
-@media(max-height:720px){.paper-app .paper-search-tag-choices{max-block-size:82px}}
+@media(max-height:720px){.paper-app .paper-search-tag-choices[data-directory=true]{max-block-size:82px}}
 .paper-hit-source{color:var(--accent)}
 ${experienceCss}
 `

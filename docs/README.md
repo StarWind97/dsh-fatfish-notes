@@ -2,6 +2,7 @@
 
 ## 当前状态
 
+- 2026-11-20 [常用标签随空间排布](plans/2026-11-20-adaptive-search-tags.zh.md)完成隔离验收。共用面板使用按内容宽度换行的标签，选中保持原位。91 项相关回归通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 - 2026-11-20 [主界面与会话侧栏共用搜索和筛选](plans/2026-11-20-unified-search-ui.zh.md)完成隔离桌面、独立窗口和 Web 验收。侧栏查找从全库开始，关联与工作区直接浏览。两处共用行内面板。91 项专项通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 - 2026-11-20 [分类管理三栏与标签核对](plans/2026-11-20-classification-layout.zh.md)已完成隔离桌面和 Web 验收，待体验。支持调整栏宽、切换主题、按需追加笔记和核对标签变更，425 项全量回归通过。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 - 2026-11-20 [会话侧栏笔记列表标签](plans/2026-11-19-conversation-list-tab.zh.md)已完成隔离验收，待体验。当前会话的列表可用「+」或返回箭头恢复，笔记在列表标签原位打开，窄栏保留「+」。使用[隔离桌面入口](../scripts/Open-Fatfish-Notes.cmd)重开。
