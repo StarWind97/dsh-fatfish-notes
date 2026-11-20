@@ -53,7 +53,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   useLayoutEffect(()=>{
     if(state.editing||state.loadingNote)return
     const active=document.activeElement as HTMLElement|null
-    if(active?.closest('input,textarea,select,[contenteditable=true],dialog,[role=menu],.paper-search-filter-panel,.paper-search button'))return
+    if(active?.closest('input,textarea,select,[contenteditable=true],dialog,[role=menu],.paper-search-controls'))return
     root.current?.closest<HTMLElement>('.paper-pane')?.focus({preventScroll:true})
   },[state.noteId,state.loadingNote,state.editing,sourceOpen])
   useLayoutEffect(()=>{

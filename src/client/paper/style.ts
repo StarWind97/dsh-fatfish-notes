@@ -185,16 +185,84 @@ export const paperCss = `
 @container paper (max-width:750px){.paper-backup{max-width:100px}.paper-top{gap:8px}.paper-top nav{gap:4px}.paper-list{padding:15px 6px 0 10px}.paper-pane{padding:var(--paper-top-gap) 18px 18px}}
 @container paper (width < 560px){.paper-top{flex-wrap:wrap;padding:5px 10px;min-height:46px}.paper-top>strong{font-size:14px}.paper-backup{display:none}.paper-backup:has([data-attention=true]){display:block;flex-basis:100%;max-width:none}.paper-top nav button{font-size:12px}.paper-top .paper-width button{font-size:11px}.paper-split{display:flex}.paper-list,.paper-detail{width:100%}.paper-divider,.paper-split[data-selected=true] .paper-list,.paper-split[data-selected=false] .paper-detail{display:none}.paper-doc-head .paper-back{display:inline-flex}.paper-title-input{font-size:30px}.paper-actions .paper-attach{padding-inline:4px}}
 .paper-app .paper-document .paper-pane{padding-right:40px}
-.paper-search-filter-panel{display:grid;gap:8px;max-height:clamp(150px,40vh,380px);overflow:auto;scrollbar-width:thin;margin-top:9px;padding:10px;background:var(--paper);border:1px solid var(--rule);border-radius:7px;color:var(--ink);font-size:12px}
-.paper-search-filter-panel header,.paper-tag-heading,.paper-filter-options>label{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.paper-search-filter-panel header>button,.paper-tag-heading button{display:inline-flex;align-items:center;gap:3px;color:var(--ink);font-size:12px}
-.paper-tag-heading,.paper-search-filter-panel small{color:var(--muted)}
-.paper-search-filter-panel>input,.paper-search-filter-panel select{box-sizing:border-box;min-width:0;max-width:100%;border:1px solid var(--rule);border-radius:4px;padding:5px 7px;color:var(--ink);background:var(--base)}
-.paper-search-filter-panel .paper-tag-suggestions{margin:0;max-height:160px;overflow:auto;align-content:flex-start;scrollbar-width:thin}
-.paper-search-filter-panel .paper-tag-suggestions button{max-width:100%;min-width:0}.paper-search-filter-panel .paper-tag-suggestions span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.paper-search-filter-panel .paper-tag-suggestions button[aria-pressed=true]{background:var(--selected);box-shadow:inset 0 0 0 1px currentColor}
-.paper-filter-options{display:grid;gap:8px;padding-top:8px;border-top:1px solid var(--rule)}.paper-filter-options>label:last-child{justify-content:flex-start;cursor:pointer}
-.paper-search-filter-panel .paper-filter-refresh,.paper-list button.paper-scope-all{justify-self:start;font-size:12px;color:var(--muted)}.paper-list button.paper-filter-chip{margin-inline-end:4px}
-.paper-hit-source{color:var(--muted)}.paper-search button[aria-expanded=true]{background:var(--selected)}
+
+/* Shared by the library list and conversation lookup. */
+.paper-app .paper-search-controls{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:12px}
+.paper-app[data-density=compact] .paper-search-controls{gap:6px}
+.paper-app[data-density=spacious] .paper-search-controls{gap:9px}
+.paper-app .paper-search-row{display:flex;align-items:stretch;gap:5px;min-width:0}
+.paper-app .paper-search-row .paper-search,.paper-app .paper-tag-search{
+  display:flex;align-items:center;gap:5px;flex:1;min-width:0;box-sizing:border-box;
+  padding:0 7px;margin:0;border:1px solid var(--rule);border-radius:7px;background:var(--input);color:var(--muted)
+}
+.paper-app :is(.paper-search-row .paper-search,.paper-tag-search):focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.paper-app :is(.paper-search-row .paper-search,.paper-tag-search) input{
+  width:100%;min-width:0;min-height:30px;margin:0;padding:2px 0;border:0;outline:none;
+  background:transparent;color:var(--ink);box-shadow:none;font:inherit
+}
+.paper-app .paper-tag-search input{min-height:25px}
+.paper-app .paper-search-controls :is(.paper-list-tools){margin:0;gap:4px 7px}
+.paper-app .paper-search-controls :is(.paper-order,.paper-quick-view){display:inline-flex;align-items:center;gap:4px;margin:0;min-width:0}
+.paper-app .paper-search-controls select{
+  box-sizing:border-box;min-width:0;max-width:100%;min-height:25px;padding:2px 4px;margin:0;
+  background:var(--input);color:var(--ink);border:1px solid var(--rule);border-radius:5px;font:inherit;text-overflow:ellipsis
+}
+.paper-app .paper-search-controls .paper-order select{max-width:min(120px,100%)}
+.paper-app .paper-search-controls .paper-quick-view small{font-size:10px;color:var(--muted)}
+.paper-app .paper-search-controls .paper-search-toggle{
+  display:inline-flex;flex:none;align-items:center;justify-content:center;gap:4px;white-space:nowrap;
+  padding:0 6px;border:1px solid var(--rule);border-radius:7px;background:var(--paper);color:var(--ink);font:inherit
+}
+.paper-app .paper-search-controls .paper-search-toggle:is(:hover,[aria-expanded=true],[data-active=true]){
+  background:var(--selected);color:var(--accent)
+}
+.paper-app .paper-search-controls .paper-search-toggle[aria-expanded=true]{border-color:color-mix(in srgb,var(--accent) 43%,var(--rule))}
+.paper-app .paper-search-toggle b{font-variant-numeric:tabular-nums;font-size:11px}
+.paper-app .paper-search-chips{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+.paper-app .paper-search-controls .paper-filter-chip{
+  display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;margin:0;
+  border:0;border-radius:5px;padding:3px 6px;background:var(--selected);color:var(--accent);font-size:11px
+}
+.paper-app .paper-filter-chip span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-app .paper-search-controls .paper-filter-chip:hover{box-shadow:inset 0 0 0 1px var(--accent)}
+.paper-app :is(.paper-search-controls,.paper-search-status) .paper-filter-text{
+  display:inline-flex;align-items:center;gap:3px;min-height:22px;min-width:0;padding:2px 4px;margin:0;
+  background:transparent;color:var(--accent);border:0;border-radius:5px;font-size:11px
+}
+.paper-app :is(.paper-search-controls,.paper-search-status) .paper-filter-text:hover{background:var(--selected)}
+.paper-app .paper-search-filter-panel{
+  display:grid;align-content:start;gap:6px;min-width:0;box-sizing:border-box;padding:8px;
+  background:color-mix(in srgb,var(--shelf) 94%,var(--accent));border:1px solid var(--rule);border-radius:8px;color:var(--ink)
+}
+.paper-app[data-layout=ink] .paper-search-filter-panel{border-radius:0}
+.paper-app .paper-search-filter-panel :is(header,.paper-tag-heading,.paper-filter-options){
+  display:flex;align-items:center;justify-content:space-between;gap:4px 6px;min-width:0
+}
+.paper-app .paper-filter-options{flex-wrap:wrap}
+.paper-app .paper-filter-options label{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.paper-app .paper-filter-options input[type=checkbox]{width:13px;height:13px;margin:0;accent-color:var(--accent)}
+.paper-app .paper-tag-heading,.paper-app .paper-search-filter-panel>small{color:var(--muted);font-size:11px}
+.paper-app .paper-tag-heading button{flex:none;white-space:nowrap}
+.paper-app .paper-search-tag-choices{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:4px;
+  max-block-size:clamp(72px,15dvh,116px);overflow:auto;scrollbar-width:thin;overscroll-behavior:contain
+}
+.paper-app .paper-search-controls .paper-search-tag-choices button{
+  display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;min-height:25px;
+  padding:3px 5px;margin:0;border:1px solid var(--rule);border-radius:5px;background:var(--input);
+  color:var(--ink);font-size:11px;text-align:start
+}
+.paper-app .paper-search-tag-choices span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-app .paper-search-tag-choices svg{margin-right:3px}
+.paper-app .paper-search-tag-choices small{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.paper-app .paper-search-controls .paper-search-tag-choices button:hover{border-color:var(--accent)}
+.paper-app .paper-search-controls .paper-search-tag-choices button[aria-pressed=true]{background:var(--selected);border-color:var(--accent);color:var(--accent)}
+.paper-app .paper-filter-management{border-block-start:1px solid var(--rule);padding-top:2px}
+.paper-app :is(.paper-search-controls,.paper-search-status) :is(button,select):focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.paper-app .paper-search-status{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;margin-top:6px;color:var(--muted);font-size:11px}
+.paper-app .paper-search-status span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper-app .paper-search-status .paper-scope-all{flex:none}
+@media(max-height:720px){.paper-app .paper-search-tag-choices{max-block-size:82px}}
+.paper-hit-source{color:var(--accent)}
 ${experienceCss}
 `

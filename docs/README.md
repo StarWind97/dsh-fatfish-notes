@@ -2,6 +2,7 @@
 
 ## 当前状态
 
+- 2026-11-20 [主界面与会话侧栏共用搜索和筛选](plans/2026-11-20-unified-search-ui.zh.md)完成隔离桌面、独立窗口和 Web 验收。侧栏查找从全库开始，关联与工作区直接浏览。两处共用行内面板。91 项专项通过，待体验。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 - 2026-11-20 [分类管理三栏与标签核对](plans/2026-11-20-classification-layout.zh.md)已完成隔离桌面和 Web 验收，待体验。支持调整栏宽、切换主题、按需追加笔记和核对标签变更，425 项全量回归通过。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 - 2026-11-20 [会话侧栏笔记列表标签](plans/2026-11-19-conversation-list-tab.zh.md)已完成隔离验收，待体验。当前会话的列表可用「+」或返回箭头恢复，笔记在列表标签原位打开，窄栏保留「+」。使用[隔离桌面入口](../scripts/Open-Fatfish-Notes.cmd)重开。
 - 2026-11-19 [阅读区标签、概览与拖动排序](plans/2026-11-19-browser-style-reading-tabs.zh.md)已完成隔离验收，待体验。短竖线分隔，概览原位打开笔记，末尾「+」再开概览。悬停使用普通箭头。rc.5 Windows Desktop 和独立窗口实测通过。用[隔离体验入口](../scripts/Open-Fatfish-Notes.cmd)重开。

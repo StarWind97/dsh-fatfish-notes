@@ -17,8 +17,8 @@ import type {SettingsCategory} from './SettingsTabs.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
-import { ChevronDown, SquarePen, Search, SlidersHorizontal, ArrowDownUp, Trash2, ArrowLeft, X, PanelLeftOpen, Star, Pin , Moon, Sun } from 'lucide-react'
-import {SearchFilterPanel} from './SearchFilterPanel.js'
+import { ChevronDown, SquarePen, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin , Moon, Sun } from 'lucide-react'
+import {SearchControls,SearchOrderPicker,SearchResultStatus,SearchViewPicker,hitLabels,readSearchFacets,replaceSearchFacets,type SearchFacets,type SearchView} from './SearchFilterPanel.js'
 import {classificationCss} from './classification-style.js'
 import {ClassificationViews} from './ClassificationViews.js'
 import {TagManager} from './TagManager.js'
@@ -44,7 +44,6 @@ function browseOrder(): NoteOrder {
   const order = readPreference('order') as NoteOrder
   return browseOrders.includes(order) ? order : 'recent'
 }
-const hitLabels = {title:'findHitTitle',file:'findHitFile',tag:'findHitTag',summary:'findHitSummary',body:'findHitBody'} as const
 const noWorkspaceSubscribe=()=>()=>{}
 const noWorkspaceState=()=>null
 type NotesPageProps={ controller: NotesController; t: T; surface?:PaperSurface;workspace?:NotesWorkspace }
@@ -61,9 +60,6 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   const [query,setQuery]=useState(state.filter.query??'')
   const [jump,setJump]=useState<{noteId:string;query:string;hit:SearchHit}|null>(null)
   const finishJump=useCallback(()=>setJump(null),[])
-  const filterButton=useRef<HTMLButtonElement>(null)
-  const filterPanelId=React.useId()
-  function closeFilters(){setBooksOpen(false);filterButton.current?.focus({preventScroll:true})}
   async function openResult(item:NoteListItem){
     const filter=controller.getSnapshot().filter
     if(query!==(filter.query??''))return
@@ -73,7 +69,7 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   }
   const [transfer,setTransfer]=useState(false)
   const [settingsCategory,setSettingsCategory]=useState<SettingsCategory>('appearance')
-  const [booksOpen,setBooksOpen]=useState(false)
+  const [filtersOpen,setFiltersOpen]=useState(false)
   const [tagLibrary,setTagLibrary]=useState<{epoch:number;tag:string}|null>(null)
   const [classBusy,setClassBusy]=useState(false)
   async function openClassification(tags:boolean){
@@ -128,21 +124,23 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
   },[controller,state.noteId,state.section])
   const pulled=useCallback(()=>{void controller.refresh(true,true)},[controller])
   const activeBooks=state.notebooks.filter(activeNotebook)
-  function search(value:string){setQuery(value);clearTimeout(timer.current);timer.current=setTimeout(()=>void choose({...controller.getSnapshot().filter,query:value}),220)}
-  function filterTag(value?:string) {
+  function refine(filter:NotesState['filter']){
     clearTimeout(timer.current)
-    const {tag:previous,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(value && value!==previous ? {tag:value} : {})},true)
+    void choose(filter,controller.getSnapshot().filter.status!=='trashed')
   }
-  function period(value:NonNullable<NotesState['filter']['modifiedPeriod']>|''){
+  function search(value:string){
+    setQuery(value)
     clearTimeout(timer.current)
-    const {modifiedPeriod,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(value && {modifiedPeriod:value})})
+    timer.current=setTimeout(()=>refine({...controller.getSnapshot().filter,query:value}),220)
   }
-  function files(value:boolean){
-    clearTimeout(timer.current)
-    const {hasFiles,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(value && {hasFiles:true})})
+  function setFacets(facets:SearchFacets){
+    refine(replaceSearchFacets({...controller.getSnapshot().filter,query},facets))
+  }
+  function filterTag(value:string) {
+    const facets=readSearchFacets(controller.getSnapshot().filter)
+    if(facets.tag===value)delete facets.tag
+    else facets.tag=value
+    setFacets(facets)
   }
   async function create(){clearTimeout(timer.current);await controller.create()}
   const inTrash=state.filter.status==='trashed'
@@ -163,23 +161,22 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     })
   }
   const view=state.filter.favorite?'favorites':state.filter.recentIds?'visits':'all'
-  function chooseView(value:string,allNotebooks=false){
+  function chooseView(value:SearchView,allNotebooks=false){
     clearTimeout(timer.current)
     const {favorite,recentIds,status,notebookId,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(!allNotebooks&&notebookId!==undefined?{notebookId}:{}),...(value==='favorites'?{favorite:true}:value==='visits'?{recentIds:controller.recentIds()}:{})})
+    refine({...rest,query,...(!allNotebooks&&notebookId!==undefined?{notebookId}:{}),...(value==='favorites'?{favorite:true}:value==='visits'?{recentIds:controller.recentIds()}:{})})
   }
   const treeActive=appearanceValue.layout==='tree'&&!selection.selecting&&!query&&!state.filter.tag&&!state.filter.hasFiles&&!state.filter.modifiedPeriod&&!inTrash&&view==='all'
   const previousFilter=useRef<NotesState['filter']>({})
   function toggleTrash() {
-    clearTimeout(timer.current);setBooksOpen(false)
+    clearTimeout(timer.current);setFiltersOpen(false)
     if(!inTrash)previousFilter.current=state.filter
     const order=state.filter.order??'recent'
     void choose(inTrash?{...previousFilter.current,order}:{status:'trashed',order})
   }
   function chooseNotebook(id?:string){
-    clearTimeout(timer.current);setHistory([]);setBooksOpen(false)
-    const {notebookId:ignored,status:previousStatus,templates:ignoredTemplates,...rest}=controller.getSnapshot().filter
-    void choose({...rest,query,...(id?{notebookId:id}:{})})
+    const {notebookId,status,templates,...rest}=controller.getSnapshot().filter
+    refine({...rest,query,...(id?{notebookId:id}:{})})
   }
   function toggleNotebooks(){
     columns.toggle()
@@ -196,22 +193,21 @@ function NotesPageView({ controller, t, surface='embedded',workspace }: NotesPag
     chooseNotebook(option==='all'?undefined:option)
   }}><option value="all">{t('paperAll')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}<option value="manage">{t('notesManageBooks')}…</option></select><ChevronDown size={14}/></label>}
       {!inTrash&&<span className="paper-new-actions"><button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button></span>}</div>
-    <div className="paper-search"><Search size={16}/><input aria-label={t('notesSearch')} type="search" placeholder={t('notesSearch')} value={query} onChange={e=>search(e.target.value)}/>
-      <button ref={filterButton} aria-controls={filterPanelId} aria-label={t('findFilters')} title={t('findFilters')} aria-expanded={booksOpen} onClick={()=>setBooksOpen(!booksOpen)}><SlidersHorizontal size={15}/></button></div>
-    <div className="paper-list-tools" data-selecting={selection.selecting}>
-    {!inTrash&&<div className="paper-quick-view"><select aria-label={t('findView')} value={view} onChange={e=>chooseView(e.target.value)}><option value="all">{t('paperAll')}</option><option value="favorites">{t('findFavorites')}</option><option value="visits">{t('findRecent')}</option></select>{view==='visits'&&<small>{t('findLocal')}</small>}</div>}
-    <label className="paper-order" hidden={view==='visits'}><ArrowDownUp size={14}/><select aria-label={t('paperSort')} value={state.filter.order??'recent'} onChange={e=>{
-      const order=e.target.value as NonNullable<NotesState['filter']['order']>
-      clearTimeout(timer.current);if(!query.trim())writePreference('order',order);void choose({...state.filter,query,order})
-    }}>{state.filter.query?.trim()&&<option value="relevance">{t('findRank')}</option>}<option value="recent">修改时间：从新到旧</option><option value="oldest">修改时间：从旧到新</option><option value="created-recent">创建时间：从新到旧</option><option value="created-oldest">创建时间：从旧到新</option><option value="title-asc">标题：升序</option><option value="title-desc">标题：降序</option></select></label>{selection.controls}</div>
-    {state.filter.tag&&<button className="paper-filter-chip" aria-label={t('notesClearTag',{tag:state.filter.tag})} onClick={()=>filterTag()}>
-      <span>{t('notesFilterTag',{tag:state.filter.tag})}</span><X size={13} aria-hidden="true"/>
-    </button>}
-    {state.filter.modifiedPeriod&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findModified')})} onClick={()=>period('')}>{t('findModified')} · {t(state.filter.modifiedPeriod==='month'?'findThisMonth':'findBeforeMonth')}<X size={13}/></button>}
-    {state.filter.hasFiles&&<button className="paper-filter-chip" aria-label={t('findRemove',{name:t('findFilesOnly')})} onClick={()=>files(false)}>{t('findFilesOnly')}<X size={13}/></button>}
-    {query.trim()&&state.filter.notebookId!==undefined&&<button className="paper-scope-all" onClick={()=>chooseNotebook()}>{t('findAcross')}</button>}
-    {booksOpen&&<div id={filterPanelId}><SearchFilterPanel controller={controller} filter={state.filter} t={t} onTag={filterTag} onPeriod={period} onFiles={files} close={closeFilters} manage={()=>openClassification(true)}/></div>}
-    {state.listError&&<p role="alert">{t('notesListFailed')}</p>}
+    <SearchControls controller={controller} filter={state.filter} query={query} expanded={state.section==='notes'&&filtersOpen} t={t}
+      onQuery={search} onExpanded={setFiltersOpen} onFacets={setFacets} manage={()=>void openClassification(true)}>
+      <div className="paper-list-tools" data-selecting={selection.selecting}>
+        {!inTrash&&<SearchViewPicker view={view} onChange={chooseView} t={t}/>}
+        {view!=='visits'&&<SearchOrderPicker value={state.filter.order??'recent'} query={query} t={t} onChange={order=>{
+          if(!query.trim())writePreference('order',order)
+          refine({...controller.getSnapshot().filter,query,order})
+        }}/>}
+        {selection.controls}
+      </div>
+    </SearchControls>
+    {!state.listError&&<SearchResultStatus count={state.items.length} more={!!state.cursor} loading={state.loadingList||query!==(state.filter.query??'')}
+      scope={inTrash?t('notesTrash'):selectedBook?.current.title??t('paperAll')} t={t}
+      {...(!inTrash&&state.filter.notebookId!==undefined&&{onAll:()=>chooseNotebook()})}/>}
+    {state.listError&&<p role="alert">{t('notesListFailed')} <button type="button" onClick={()=>void controller.refresh(true,false,false)}>{t('noteRetry')}</button></p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
     </div><div className="paper-list-scroll">{showOverview&&!state.draft&&overview(true)}{treeActive?<NotebookTree controller={controller} state={state} books={activeBooks} actions={itemActions.noteActions} bookActions={itemActions.bookActions}/>:<><div className="paper-rows">{state.items.map((item,i)=>{
       const stamp=(row:typeof item)=>noteDateTime(state.filter.order?.startsWith('created-')?row.createdAt??row.savedAt:row.savedAt).slice(0,10)

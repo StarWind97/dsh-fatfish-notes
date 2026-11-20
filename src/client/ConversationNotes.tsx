@@ -3,12 +3,12 @@ import {useNoteReference,referenceTooltip} from './use-note-reference.js'
 import type {ReferenceTarget} from './note-reference.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import * as React from 'react'
-import {useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react'
+import {useCallback,useEffect,useId,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react'
 import type {PropsRuntime} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import {BrandMark} from './Brand.js'
-import {BookOpen,ArrowLeft,Search,Link2,LoaderCircle,Download,BookPlus,Check,Notebook,ChevronDown,SquarePen,Plus,Settings,MessageSquarePlus,ListChecks,X,Star,Pin} from 'lucide-react'
+import {BookOpen,ArrowLeft,Link2,LoaderCircle,Download,BookPlus,Check,Notebook,ChevronDown,SquarePen,Plus,Settings,MessageSquarePlus,ListChecks,X,Star,Pin} from 'lucide-react'
 import {NotesWorkspace} from './workspace.js'
 import {NotesController} from './notes-controller.js'
 import {NoteEditor} from './NoteEditor.js'
@@ -26,19 +26,22 @@ import {RowMenu} from './RowMenu.js'
 import {NoteSelectionRow} from './NoteSelectionRow.js'
 import {useItemActions} from './ItemActions.js'
 import {TransientNotice} from './TransientNotice.js'
-import {ConversationBrowse} from './conversation-browse.js'
-import {browserStorage} from './note-recovery.js'
+import {SearchControls,SearchOrderPicker,SearchResultStatus,SearchViewPicker,hitLabels,type SearchFacets,type SearchView} from './SearchFilterPanel.js'
+import {Highlight} from './SearchText.js'
+import {ResizeDivider} from './paper/layout.js'
 import {activeNotebook} from '../notes/notebooks.js'
 import {notebookSync} from './notebook-sync.js'
 import {noteDateTime} from '../notes/date.js'
 import type {OutlineSession} from './paper/use-outline.js'
 import type {T} from './locale.js'
 import type {NoteCaptureBridge} from './note-capture-bridge.js'
-import type {NoteListItem,NotesApiContract} from '../contracts/notes.js'
+import type {NoteListItem,NoteListOptions,NotesApiContract,SearchHit} from '../contracts/notes.js'
 
 type Group='linked'|'workspace'|'find'
+type ConversationSearch = {query:string; order:NoteOrder; browseOrder:NoteOrder; bookId:string|null; view:SearchView; visits:string[]; facets:SearchFacets}
+const initialSearch = ():ConversationSearch => ({query:'',order:'recent',browseOrder:'recent',bookId:null,view:'all',visits:[],facets:{}})
 type ConversationProps=PropsRuntime<'sidebar.right.pane.tab'>&{bridge:NoteCaptureBridge;t:T}
-export function ConversationNotes(props:ConversationProps){return <AppearanceScope followHost><ConversationNotesView {...props}/></AppearanceScope>}
+export function ConversationNotes(props:ConversationProps){return <AppearanceScope followHost><ConversationNotesView key={props.sessionId} {...props}/></AppearanceScope>}
 function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,useInput,bridge,t}:ConversationProps){
   const {tab}=useTabInfo(),removed=useSession((s:{removed:boolean})=>s.removed)
   const appearance=useAppearanceProps()
@@ -48,16 +51,40 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     workspace.bind(controller);return {workspace,controller}
   },[tab.id,sessionId])
   const {workspace,controller}=pair,state=useSyncExternalStore(controller.subscribe,controller.getSnapshot),windowState=useSyncExternalStore(workspace.subscribe,workspace.getSnapshot)
-  const [order,setOrder]=useState<NoteOrder>('recent')
-  const [query,setQuery]=useState(''),[group,setGroup]=useState<Group>('linked'),[error,setError]=useState(false),[undo,setUndo]=useState<string|null>(null)
+  const [search,setSearch]=useState(initialSearch),[filtersOpen,setFiltersOpen]=useState(false)
+  const [group,setGroup]=useState<Group>('linked'),[error,setError]=useState(false),[undo,setUndo]=useState<string|null>(null)
   const [context,setContext]=useState<NotesApiContract['/notes/session-context']['response']|null>(null),[contextFailed,setContextFailed]=useState(false)
-  const [book,setBook]=useState<string|null>(null),[booksOpen,setBooksOpen]=useState(false),[setup,setSetup]=useState<'new'|'workspace'|null>(null),[linking,setLinking]=useState<Set<string>>(()=>new Set())
+  const [booksOpen,setBooksOpen]=useState(false),[setup,setSetup]=useState<'new'|'workspace'|null>(null),[linking,setLinking]=useState<Set<string>>(()=>new Set())
+  const scopeButton=useRef<HTMLButtonElement>(null),scopeId=useId()
+  const [jump,setJump]=useState<{noteId:string;query:string;hit:SearchHit}|null>(null)
+  const finishJump=useCallback(()=>setJump(null),[])
   const root=useRef<HTMLElement>(null),pendingLinks=useRef(new Set<string>())
   const noteTabs=useNoteTabs(controller,state,root)
-  const [narrow,setNarrow]=useState(false)
-  useLayoutEffect(()=>{const el=root.current;if(!el)return;let prior:boolean|undefined;const observer=new ResizeObserver(([entry])=>{const next=entry!.contentRect.width<=520;if(next!==prior){prior=next;setNarrow(next);setBooksOpen(false)}});observer.observe(el);return()=>observer.disconnect()},[])
-  useEffect(()=>{if(!narrow||!booksOpen)return;const outside=(e:PointerEvent)=>{if(!(e.target as HTMLElement).closest('.conversation-books,.conversation-browse-caption'))setBooksOpen(false)};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[narrow,booksOpen])
-  const [sourceOnly,setSourceOnly]=useState(false),[bookWidth,setBookWidth]=useState(()=>{try{return Math.max(160,Math.min(340,Number(localStorage.getItem('fatfish-sidebar-books-width'))||220))}catch{return 220}})
+  const [width,setWidth]=useState(0),narrow=width<=520
+  useLayoutEffect(()=>{
+    const element=root.current
+    if(!element)return
+    let wasNarrow=element.clientWidth<=520
+    const observer=new ResizeObserver(([entry])=>{
+      const measured=entry!.contentRect.width
+      setWidth(measured)
+      if((measured<=520)!==wasNarrow){wasNarrow=measured<=520;setBooksOpen(false)}
+    })
+    observer.observe(element)
+    return ()=>observer.disconnect()
+  },[])
+  useEffect(()=>{
+    if(!narrow||!booksOpen)return
+    const outside=(event:PointerEvent)=>{
+      if(!(event.target as HTMLElement).closest('.conversation-books,.conversation-scope'))setBooksOpen(false)
+    }
+    document.addEventListener('pointerdown',outside)
+    return ()=>document.removeEventListener('pointerdown',outside)
+  },[narrow,booksOpen])
+  const [bookWidth,setBookWidth]=useState(()=>{
+    try{return Math.max(160,Math.min(340,Number(localStorage.getItem('fatfish-sidebar-books-width'))||220))}catch{return 220}
+  })
+  const railMax=Math.max(160,Math.min(340,Math.floor(width*.42))),railWidth=Math.min(bookWidth,railMax)
   const [setupBook,setSetupBook]=useState<string|null>(null)
   const [selecting,setSelecting]=useState(false),[chosen,setChosen]=useState<ReferenceTarget[]>([]),[showChosen,setShowChosen]=useState(false)
   const reference=useNoteReference({controller,inputActions,useInput,sessionId,visible:tab.visible,available:!removed,scope:String(windowState.server?.repositoryId??''),t,inserted:ids=>{setChosen(rows=>rows.filter(r=>!ids.includes(r.noteId)));setShowChosen(false)}})
@@ -65,11 +92,16 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   function toggleChosen(row:ReferenceTarget){setChosen(rows=>rows.some(r=>r.noteId===row.noteId)?rows.filter(r=>r.noteId!==row.noteId):[...rows,{noteId:row.noteId,title:row.title}])}
   function exitSelection(){setSelecting(false);setChosen([]);setShowChosen(false)}
   const alive=useRef(false),visible=useRef(tab.visible);visible.current=tab.visible
-  const outline=useRef<OutlineSession>({wide:null,open:false}),list=useRef<HTMLDivElement>(null),scroll=useRef(0),restoring=useRef(false)
+  const outline=useRef<OutlineSession>({wide:null,open:false}),list=useRef<HTMLDivElement>(null)
+  const positions=useRef<Partial<Record<Group,{top:number;rows:number}>>>({}),restoring=useRef<Group|null>(null)
   const showDetail=!!state.draft
   const books=state.notebooks.filter(activeNotebook),mapped=context?.notebookId&&books.some(b=>b.notebookId===context.notebookId)?context.notebookId:null
-  const preference=useMemo(()=>windowState.server?.repositoryId&&context?new ConversationBrowse(browserStorage(),windowState.server.repositoryId,context.workspace?.id??null):null,[windowState.server?.repositoryId,context?.workspace?.id,!!context])
-  const initializedPreference=useRef<ConversationBrowse|null>(null)
+  const libraryEpoch=controller.libraryEpoch,library=useRef(libraryEpoch)
+  useLayoutEffect(()=>{
+    if(library.current===libraryEpoch)return
+    library.current=libraryEpoch;positions.current={};restoring.current=null
+    setSearch(initialSearch());setGroup('linked');setBooksOpen(false);setFiltersOpen(false);setContext(null);setSetup(null);setJump(null)
+  },[libraryEpoch])
   useEffect(()=>{
     alive.current=true;workspace.start();const unbind=bindLibraryLifecycle(controller)
     void controller.filter({order:'recent',sessionId,relation:'linked'}).then(()=>controller.initialize(null))
@@ -82,29 +114,43 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     const refresh=async()=>{if(pending)return;pending=true;try{const next=await workspace.api('/notes/session-context',{sessionId},abort.signal);setContext(old=>JSON.stringify(old)===JSON.stringify(next)?old:next);setContextFailed(false)}catch{if(!abort.signal.aborted)setContextFailed(true)}finally{pending=false}}
     void refresh();const timer=setInterval(()=>void refresh(),15000);window.addEventListener('focus',refresh);window.addEventListener('fatfish-workspace-book',refresh)
     return()=>{abort.abort();clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('fatfish-workspace-book',refresh)}
-  },[pair,sessionId,tab.visible])
+  },[pair,sessionId,tab.visible,libraryEpoch])
+  const selectedBook=books.find(book=>book.notebookId===search.bookId)
   useEffect(()=>{
-    if(!preference||!books.length)return
-    if(initializedPreference.current!==preference){initializedPreference.current=preference;setBook(preference.initial(books,mapped));setBooksOpen(false);setSetup(null)}
-    else if(book&&book!=='all'&&book!=='favorites'&&!books.some(b=>b.notebookId===book))setBook(preference.initial(books,mapped))
-    if(group==='workspace'&&!mapped)setGroup('find')
-  },[preference,state.notebooks,mapped,book,group])
-  const browseBook=group==='workspace'?mapped:book,canBrowse=group!=='find'&&group!=='workspace'||!!browseBook||!!query.trim()
-  const desiredFilter=useMemo(()=>({order,sessionId,relation:group==='linked'?(sourceOnly?'source' as const:'linked' as const):'browse' as const,...(group==='find'?{query,...(browseBook==='favorites'?{favorite:true}:{})}:{}),...((group==='find'||group==='workspace')&&browseBook&&browseBook!=='all'&&browseBook!=='favorites'?{notebookId:browseBook}:{})}),[query,group,sourceOnly,browseBook,sessionId,order])
+    if(context&&group==='workspace'&&!mapped)switchGroup('linked')
+    if(search.bookId&&state.notebooks.length&&!selectedBook){
+      if(group==='find')resetListScroll()
+      else delete positions.current.find
+      setSearch(previous=>({...previous,bookId:null}))
+    }
+  },[context,group,mapped,search.bookId,selectedBook,state.notebooks.length])
+  const scope=group==='workspace'?mapped:group==='find'?selectedBook?.notebookId:null
+  const desiredFilter=useMemo<NoteListOptions>(()=>({
+    order:group==='find'?search.order:'recent',
+    sessionId,
+    relation:group==='linked'?'linked':'browse',
+    ...(scope&&{notebookId:scope}),
+    ...(group==='find'&&{query:search.query,...search.facets,
+      ...(search.view==='favorites'?{favorite:true}:search.view==='visits'?{recentIds:search.visits}:{})})
+  }),[group,scope,search,sessionId])
   const filterMatches=JSON.stringify(state.filter)===JSON.stringify(desiredFilter)
+  const ready=filterMatches&&!state.loadingList&&!state.listError
   useEffect(()=>{
-    if(!tab.visible||showDetail||!canBrowse||filterMatches)return
+    if(!tab.visible||showDetail||filterMatches||(group==='workspace'&&!mapped))return
+    const typing=group==='find'&&search.query.trim()&&search.query!==(state.filter.query??'')
     const timer=setTimeout(()=>{
-      if(!controller.getSnapshot().noteId)void controller.filter(desiredFilter)
-    },query&&group==='find'?180:0)
-    return()=>clearTimeout(timer)
-  },[desiredFilter,controller,tab.visible,canBrowse,showDetail,filterMatches,query,group])
+      if(controller.getSnapshot().noteId)return
+      const rows=restoring.current===group?positions.current[group]?.rows??0:0
+      void controller.filter(desiredFilter,rows)
+    },typing?180:0)
+    return ()=>clearTimeout(timer)
+  },[desiredFilter,controller,tab.visible,showDetail,filterMatches,search.query,state.filter.query,group,mapped])
   useLayoutEffect(()=>{
-    if(showDetail){restoring.current=true;return}
-    if(!restoring.current||!list.current||!filterMatches||state.loadingList||state.listError)return
-    list.current.scrollTop=scroll.current
-    restoring.current=false
-  },[showDetail,filterMatches,state.loadingList,state.listError,state.items])
+    if(showDetail){restoring.current=group;return}
+    if(restoring.current!==group||!list.current||!ready)return
+    list.current.scrollTop=positions.current[group]?.top??0
+    restoring.current=null
+  },[group,showDetail,ready,state.items])
   useEffect(()=>{
     const saved=(event:Event)=>{
       const data=(event as CustomEvent<{sessionId:string;noteId:string}>).detail
@@ -116,24 +162,53 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     window.addEventListener('fatfish-notes-captured',saved)
     return()=>window.removeEventListener('fatfish-notes-captured',saved)
   },[controller,sessionId])
-  function resetListScroll(){
-    scroll.current=0
-    restoring.current=false
+  function rememberPosition() {
+    const element=list.current
+    if(element&&filterMatches&&!state.listError&&!restoring.current)
+      positions.current[group]={top:element.scrollTop,rows:state.items.length}
+  }
+  function resetListScroll() {
+    delete positions.current[group]
+    restoring.current=null
     if(list.current)list.current.scrollTop=0
   }
-  function selectBook(id:string){if(id!==book)resetListScroll();setBook(id);setBooksOpen(false);if(id!=='all'&&id!=='favorites')preference?.choose(id)}
-  function open(id:string){return controller.open(id)}
+  function switchGroup(next:Group) {
+    if(next===group)return
+    rememberPosition()
+    restoring.current=next
+    setGroup(next)
+  }
+  function changeSearch(patch:Partial<ConversationSearch>) {
+    resetListScroll()
+    setSearch(previous=>({...previous,...patch}))
+  }
+  function searchNotes(query:string) {
+    const order=query.trim()?search.query.trim()?search.order:'relevance':search.browseOrder
+    changeSearch({query,order})
+  }
+  function selectBook(bookId:string|null) {
+    if(bookId!==search.bookId)changeSearch({bookId})
+    if(narrow){setBooksOpen(false);scopeButton.current?.focus({preventScroll:true})}
+  }
+  function open(id:string){setJump(null);return controller.open(id)}
+  async function openResult(item:NoteListItem) {
+    if(!filterMatches||state.listError)return
+    const filter=state.filter
+    rememberPosition()
+    if(!await open(item.noteId)||controller.getSnapshot().filter!==filter)return
+    if(group==='find'&&filter.query&&item.hit)setJump({noteId:item.noteId,query:filter.query,hit:item.hit})
+  }
   async function associate(item:Pick<NoteListItem,'noteId'|'heads'>,linked:boolean){if(pendingLinks.current.has(item.noteId)||removed)return;pendingLinks.current.add(item.noteId);setLinking(new Set(pendingLinks.current));setError(false);try{const {note}=await workspace.api('/notes/associate',{noteId:item.noteId,expectedHeads:item.heads,sessionId,linked});controller.patchAssociation(note,linked?'manual':null);setUndo(linked?null:item.noteId);notebookSync.localChanged()}catch{setError(true)}finally{pendingLinks.current.delete(item.noteId);setLinking(new Set(pendingLinks.current))}}
   async function restore(){if(!undo)return;try{const {note}=await workspace.api('/notes/get',{noteId:undo});await associate(note,true);await controller.refresh(true,false,false)}catch{setError(true)}}
-  function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);if(id&&!book){setBook(id);preference?.choose(id)}window.dispatchEvent(new Event('fatfish-workspace-book'))}
+  function mappedBook(id:string|null){setContext(c=>c?{...c,notebookId:id}:c);window.dispatchEvent(new Event('fatfish-workspace-book'))}
   async function create(notebookId=mapped){if(removed)return;await controller.create({notebookId:notebookId??state.notebooks.find(b=>b.isDefault)?.notebookId??null,sessionId})}
   const actions=useItemActions(controller,state,t,open,undefined,root)
   const tabs:Group[]=mapped?['linked','workspace','find']:['linked','find']
-  useEffect(()=>{setUndo(null)},[sessionId,group,sourceOnly,book,showDetail,tab.visible])
+  useEffect(()=>{setUndo(null)},[sessionId,group,search.bookId,showDetail,tab.visible])
   function resize(value:number){const width=Math.max(160,Math.min(340,value));setBookWidth(width);try{localStorage.setItem('fatfish-sidebar-books-width',String(width))}catch{}}
   function sideBookActions(b:typeof books[number]){return [...actions.bookActions(b).map(a=>a.label===t('notesNew')?{...a,run:()=>void create(b.notebookId)}:a),...(context?.workspace?[{label:'设为当前工作区默认笔记本',disabled:b.notebookId===mapped||state.operation,run:()=>{setSetupBook(b.notebookId);setSetup('workspace')}}]:[])]}
-  return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(narrow&&booksOpen){e.stopPropagation();setBooksOpen(false)}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
-    <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+sidebarFollowupCss+referenceListCss}</style>
+  return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(!showDetail&&booksOpen&&group==='find'){e.stopPropagation();setBooksOpen(false);scopeButton.current?.focus({preventScroll:true})}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
+    <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+referenceListCss}</style>
     <AppearanceStyle/>
     {actions.dialogs}{reference.dialogs}
     {showChosen&&<PaperDialog title={`已选 ${chosen.length} 篇笔记`} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={`移除选择：${row.title}`} title="移除选择" onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>尚未选择笔记。</p>}</div><footer><button onClick={()=>setShowChosen(false)}>继续选择</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>引用所选</button></footer></PaperDialog>}
@@ -144,32 +219,72 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {showDetail?<div className="paper-detail"><NoteEditor onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {showDetail?<div className="paper-detail"><NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
 
-      <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>{tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>{if(group!==key)resetListScroll();setGroup(key)}}>{t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}</button>)}<div className="conversation-sort"><select aria-label={t('paperSort')} value={order} onChange={e=>{setOrder(e.target.value as NoteOrder);resetListScroll()}}><option value="recent">修改时间：从新到旧</option><option value="oldest">修改时间：从旧到新</option><option value="created-recent">创建时间：从新到旧</option><option value="created-oldest">创建时间：从旧到新</option><option value="title-asc">标题：升序</option><option value="title-desc">标题：降序</option></select></div></nav>
-      {group==='find'&&<>
-        <div className="conversation-notes-search"><Search size={15}/><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{setQuery(e.target.value);resetListScroll()}}/></div>
-        <div className="conversation-browse-caption"><button disabled={!narrow} aria-expanded={narrow?booksOpen:undefined} onClick={()=>{if(narrow)setBooksOpen(!booksOpen)}}><Notebook size={14}/>{books.find(b=>b.notebookId===book)?.current.title??t(book==='all'?'paperAll':book==='favorites'?'findFavorites':'sessionChooseBook')}{narrow&&<ChevronDown size={13}/>}</button><small>{t(book&&book!=='all'&&book!=='favorites'?'sessionSearchBook':'sessionSearchAll')}</small></div>
-      </>}
-      {group==='linked'&&<div className="conversation-linked-filter"><span><button aria-pressed={!sourceOnly} onClick={()=>{if(sourceOnly)resetListScroll();setSourceOnly(false)}}>全部关联</button><button aria-pressed={sourceOnly} onClick={()=>{if(!sourceOnly)resetListScroll();setSourceOnly(true)}}>{t('sessionSource')}</button></span>{context?.workspace&&!mapped&&<button title="设置工作区笔记本" aria-label="设置工作区笔记本" onClick={()=>setSetup('workspace')}><BookPlus size={16}/></button>}</div>}
+      <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>
+        {tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>switchGroup(key)}>
+          {t(key==='linked'?'sessionLinked':key==='workspace'?'sessionWorkspaceBook':'sessionFind')}
+        </button>)}
+      </nav>
+      {group==='find'&&<div className="conversation-search-area">
+        <SearchControls controller={controller} filter={desiredFilter} query={search.query} expanded={filtersOpen} t={t}
+          onQuery={searchNotes} onExpanded={setFiltersOpen} onFacets={facets=>changeSearch({facets})}>
+          <div className="paper-list-tools">
+            <button ref={scopeButton} className="conversation-scope" type="button" aria-label={t('findBookScope')}
+              aria-expanded={booksOpen} aria-controls={scopeId} title={selectedBook?.current.title??t('paperAll')} onClick={()=>setBooksOpen(!booksOpen)}>
+              <Notebook size={14}/><span>{selectedBook?.current.title??t('paperAll')}</span><ChevronDown size={13}/>
+            </button>
+            <SearchViewPicker view={search.view} t={t} onChange={view=>changeSearch({view,visits:view==='visits'?controller.recentIds():[]})}/>
+            {search.view!=='visits'&&<SearchOrderPicker value={search.order} query={search.query} t={t}
+              onChange={order=>changeSearch({order,...(!search.query.trim()&&{browseOrder:order})})}/>}
+          </div>
+        </SearchControls>
+        {(!filterMatches||!state.listError)&&<SearchResultStatus count={state.items.length} more={!!state.cursor}
+          loading={!filterMatches||state.loadingList} scope={selectedBook?.current.title??t('paperAll')} t={t}
+          {...(selectedBook&&{onAll:()=>selectBook(null)})}/>}
+      </div>}
+      {group==='linked'&&context?.workspace&&!mapped&&<div className="conversation-workspace-title">
+        <button type="button" title="设置工作区笔记本" onClick={()=>setSetup('workspace')}><BookPlus size={16}/>设置工作区笔记本</button>
+      </div>}
       {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={books.find(b=>b.notebookId===mapped)?.current.title}>{books.find(b=>b.notebookId===mapped)?.current.title}</strong><button title="新建笔记" aria-label="在工作区笔记本新建笔记" disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title="工作区笔记本设置" aria-label="工作区笔记本设置" onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title="导出此笔记本" aria-label="导出此笔记本" onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
       <div className="conversation-selection-bar" data-selecting={selecting}>
         {selecting?<><strong>已选 {chosen.length} 篇</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>查看已选</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>引用所选</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>清空</button><button onClick={exitSelection}>退出多选</button></>:<button aria-label="多选笔记" disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>多选</button>}
       </div>
-      <div className="conversation-browse" style={{'--conversation-books-width':bookWidth+'px'} as React.CSSProperties} data-browser={group==='find'} data-books-open={narrow&&booksOpen}>
-        {group==='find'&&<><nav className="conversation-books" aria-label={t('notesNotebook')}><div className="conversation-books-scroll"><button aria-current={book==='all'?'page':undefined} onClick={()=>selectBook('all')}><BookOpen size={14}/>{t('paperAll')}</button><button aria-current={book==='favorites'?'page':undefined} onClick={()=>selectBook('favorites')}><Star size={14}/>{t('findFavorites')}</button>{books.map(b=><RowMenu key={b.notebookId} label={b.current.title+' · 操作'} actions={sideBookActions(b)} reveal="interaction"><button title={b.current.title} aria-current={book===b.notebookId?'page':undefined} onClick={()=>selectBook(b.notebookId)}><Notebook size={14}/><span>{b.current.title}</span><small className="paper-notebook-count">{b.noteCount}</small></button></RowMenu>)}</div><footer><button onClick={()=>setSetup('new')}><Plus size={15}/>{t('notesNewNotebook')}</button></footer></nav><div className="conversation-book-divider" role="separator" aria-label="调整笔记本列宽" aria-orientation="vertical" aria-valuemin={160} aria-valuemax={340} aria-valuenow={bookWidth} tabIndex={0} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();resize(bookWidth+(e.key==='ArrowRight'?10:-10))}}} onPointerDown={e=>{e.currentTarget.setPointerCapture(e.pointerId);e.currentTarget.dataset.start=String(e.clientX);e.currentTarget.dataset.width=String(bookWidth)}} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))resize(Number(e.currentTarget.dataset.width)+e.clientX-Number(e.currentTarget.dataset.start))}} onPointerUp={e=>e.currentTarget.releasePointerCapture(e.pointerId)}/></>}
-        <div className="conversation-notes-list" ref={list} aria-busy={state.loadingList} data-selecting={selecting}
-          onScroll={e=>{if(!restoring.current)scroll.current=e.currentTarget.scrollTop}}>
-          {!canBrowse?<p className="conversation-empty">{t('sessionChooseBookHint')}</p>:state.listError?<p role="alert">{t('sessionLoadFailed')}</p>:!state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='find'||group==='workspace'?'notesEmpty':'sessionEmpty')}</p>:state.items.map(item=>{
+      <div className="conversation-browse" style={{'--conversation-books-width':railWidth+'px'} as React.CSSProperties}
+        data-browser={group==='find'} data-books-open={group==='find'&&booksOpen}>
+        {group==='find'&&booksOpen&&<>
+          <nav id={scopeId} className="conversation-books" aria-label={t('notesNotebook')}>
+            <div className="conversation-books-scroll">
+              <button type="button" aria-current={!selectedBook?'page':undefined} onClick={()=>selectBook(null)}><BookOpen size={14}/>{t('paperAll')}</button>
+              {books.map(book=><RowMenu key={book.notebookId} label={book.current.title+' · 操作'} actions={sideBookActions(book)} reveal="interaction">
+                <button type="button" title={book.current.title} aria-current={book.notebookId===selectedBook?.notebookId?'page':undefined} onClick={()=>selectBook(book.notebookId)}>
+                  <Notebook size={14}/><span>{book.current.title}</span><small className="paper-notebook-count">{book.noteCount}</small>
+                </button>
+              </RowMenu>)}
+            </div>
+            <footer><button type="button" onClick={()=>{if(narrow)setBooksOpen(false);setSetup('new')}}><Plus size={15}/>{t('notesNewNotebook')}</button></footer>
+          </nav>
+          {!narrow&&<ResizeDivider className="conversation-book-divider" controls={scopeId} label={t('paperResizeBooks')} title={t('paperResizeBooks')}
+            width={railWidth} min={160} max={railMax} resize={resize} reset={()=>resize(220)}/>}
+        </>}
+        <div className="conversation-notes-list" ref={list} aria-busy={!filterMatches||state.loadingList} data-selecting={selecting} onScroll={rememberPosition}>
+          {!filterMatches?<p className="conversation-empty">{t('loading')}</p>:
+            state.listError?<p role="alert">{t('sessionLoadFailed')} <button type="button" onClick={()=>void controller.refresh(true,false,false)}>{t('noteRetry')}</button></p>:
+            !state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='linked'?'sessionEmpty':'notesEmpty')}</p>:state.items.map(item=>{
             const selected=chosen.some(row=>row.noteId===item.noteId)
             return <article key={item.noteId} data-selected={selected&&selecting}>
-              <NoteSelectionRow selecting={selecting} selected={selected} current={item.noteId===state.noteId} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void open(item.noteId)} actions={[
+              <NoteSelectionRow selecting={selecting} selected={selected} current={item.noteId===state.noteId} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void openResult(item)} actions={[
                 {label:'引用到当前会话',disabled:!reference.enabled,run:()=>reference.open([item])},
                 {label:'加入多选',disabled:!!removed,run:()=>{setSelecting(true);if(!selected)toggleChosen(item)}},
                 ...(item.sessionRelation==='source'?[]:[{label:t(item.sessionRelation?'sessionDissociate':'sessionAssociate'),run:()=>void associate(item,!item.sessionRelation),disabled:linking.has(item.noteId)||!!removed}]),...actions.noteActions(item)
               ]}>
-                <strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} aria-label="已收藏"/>}{item.title}</strong><p>{item.summary||item.excerpt}</p><small>{noteDateTime(item.savedAt)}</small>
+                <strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} aria-label={t('findFavorites')}/>}
+                  <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong>
+                <p>{item.hit&&<span className="paper-hit-source">{item.hit.alternate&&t('findOtherVersion')+' · '}{t(hitLabels[item.hit.field])} · </span>}
+                  <Highlight value={item.excerpt||item.summary} query={state.filter.query}/></p>
+                <small>{group==='find'&&(books.find(book=>book.notebookId===item.notebookId)?.current.title??t('notesDefaultBook'))+' · '}
+                  {noteDateTime(item.savedAt)}{group==='linked'&&item.sessionRelation==='source'&&' · '+t('sessionSource')}</small>
               </NoteSelectionRow>
               {!selecting&&<div className="conversation-relation">
                 <button className="conversation-quote" title={referenceTooltip} aria-label={`引用《${item.title}》`} disabled={!reference.enabled} onClick={()=>reference.open([item])}><MessageSquarePlus size={16}/></button>
@@ -177,7 +292,7 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
               </div>}
             </article>
           })}
-          {canBrowse&&state.cursor&&<button onClick={()=>void controller.refresh(false)}>{t('loadMore')}</button>}
+          {filterMatches&&state.cursor&&!state.listError&&<button type="button" disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('loadMore')}</button>}
         </div>
       </div><footer className="conversation-notes-foot">{t('sessionPrivacy')}</footer>
     </>}
@@ -185,23 +300,52 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
 }
 
 export const conversationNotesCss=`
-.conversation-sort{margin-left:auto;display:flex;align-items:center}.conversation-sort select{max-width:100%;font-size:12px;color:var(--muted);background:var(--base);border:1px solid var(--rule);border-radius:5px;padding:3px}.conversation-reference{padding:7px 14px;border-bottom:1px solid var(--rule);font-size:12px}.conversation-reference p{margin:5px 0;color:var(--muted)}.conversation-notes button{border:0;background:transparent;color:inherit;cursor:pointer;border-radius:6px;padding:5px 8px;display:inline-flex;align-items:center;gap:5px}.conversation-notes button:hover{background:var(--selected)}.conversation-notes-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--base);border-bottom:1px solid var(--rule);flex-shrink:0}.conversation-notes-head strong,.conversation-notes-head>span{display:flex;align-items:center;gap:8px}.conversation-notes-search{display:flex;align-items:center;gap:7px;margin:14px 14px 8px;border:1px solid var(--rule);border-radius:7px;background:var(--base);padding:6px 9px}.conversation-notes-search input{min-width:0;width:100%;border:0;background:transparent;outline:none;color:var(--ink)}.conversation-notes-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:0 12px 9px;font-size:12px}.conversation-notes-tabs [aria-pressed=true]{background:var(--selected);font-weight:600}.conversation-notes-list{overflow:auto;min-height:0;flex:1;padding:0 12px}.conversation-notes-list article{position:relative;border-bottom:1px solid var(--rule);padding:5px 0}.conversation-notes-list .conversation-note-row{display:block;width:100%;text-align:left;padding:9px}.conversation-note-row strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-note-row p{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:6px 0}.conversation-note-row small{font-size:11px;color:var(--muted)}.conversation-link{position:absolute;right:0;top:12px}.conversation-notes-foot,.conversation-empty{font-size:12px;color:var(--muted);padding:16px}.conversation-notes .paper-detail{min-width:0;min-height:0;flex:1;display:flex;flex-direction:column}.conversation-notes .paper-window-notice{padding:8px 12px}.conversation-message{padding:6px 14px;font-size:12px}
+.conversation-reference{padding:7px 14px;border-bottom:1px solid var(--rule);font-size:12px}.conversation-reference p{margin:5px 0;color:var(--muted)}.conversation-notes button{border:0;background:transparent;color:inherit;cursor:pointer;border-radius:6px;padding:5px 8px;display:inline-flex;align-items:center;gap:5px}.conversation-notes button:hover{background:var(--selected)}.conversation-notes-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--base);border-bottom:1px solid var(--rule);flex-shrink:0}.conversation-notes-head strong,.conversation-notes-head>span{display:flex;align-items:center;gap:8px}.conversation-notes-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:0 12px 9px;font-size:12px}.conversation-notes-tabs [aria-pressed=true]{background:var(--selected);font-weight:600}.conversation-notes-list{overflow:auto;min-height:0;flex:1;padding:0 12px}.conversation-notes-list article{position:relative;border-bottom:1px solid var(--rule);padding:5px 0}.conversation-notes-list .conversation-note-row{display:block;width:100%;text-align:left;padding:9px}.conversation-note-row strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-note-row p{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:6px 0}.conversation-note-row small{font-size:11px;color:var(--muted)}.conversation-notes-foot,.conversation-empty{font-size:12px;color:var(--muted);padding:16px}.conversation-notes .paper-detail{min-width:0;min-height:0;flex:1;display:flex;flex-direction:column}.conversation-notes .paper-window-notice{padding:8px 12px}.conversation-message{padding:6px 14px;font-size:12px}
 `
 
 const conversationBrowseCss=`
 .conversation-notes .paper-doc-head .paper-back{display:none}
-.conversation-notes-tabs{padding-top:12px;flex-wrap:wrap;flex:none}.conversation-browse{min-height:0;flex:1;display:flex}.conversation-browse[data-browser=true]{display:grid;grid-template-columns:minmax(110px,30%) minmax(0,1fr)}.conversation-books{min-height:0;overflow:auto;border-right:1px solid var(--rule);padding:4px 7px;scrollbar-width:thin}.conversation-books button{width:100%;text-align:left;justify-content:flex-start;padding:9px 7px;gap:6px;font-size:12px}.conversation-books button span{min-width:0;overflow-wrap:anywhere}.conversation-books small{margin-left:auto;color:var(--muted)}.conversation-books svg{flex:none}.conversation-books [aria-current=page]{background:var(--selected);font-weight:600}.conversation-browse .conversation-notes-list{padding:0 10px}.conversation-browse .conversation-note-row{padding:12px 5px 6px}.conversation-relation{display:flex;align-items:center;gap:5px;padding:0 4px 6px;color:var(--muted);font-size:11px}.conversation-relation small{display:inline-flex;align-items:center;gap:4px}.conversation-relation button{font-size:11px}.conversation-browse-caption{display:flex;align-items:center;justify-content:space-between;padding:0 14px 9px;gap:8px;font-size:12px}.conversation-browse-caption small{color:var(--muted)}.conversation-workspace-prompt{margin:0 14px 10px;padding:10px 12px;background:var(--shelf);border-radius:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}.conversation-workspace-prompt strong{font-weight:500}.conversation-workspace-setup{padding:4px 14px 12px;flex:none;max-height:40%;overflow:auto}.conversation-notes-foot{padding:9px 14px;flex:none}.conversation-browse .conversation-empty{padding:12px 8px}
-@container paper (max-width:520px){.conversation-browse[data-browser=true]{display:flex;position:relative}.conversation-browse[data-browser=true] .conversation-books{display:none;width:190px;max-width:65%;flex:none}.conversation-browse[data-books-open=true] .conversation-books{display:block}.conversation-browse-caption small{display:none}}
-`
-
-const sidebarFollowupCss=`
-.conversation-browse[data-browser=true]{grid-template-columns:minmax(160px,min(var(--conversation-books-width),42%)) 5px minmax(210px,1fr)}
-.conversation-books{display:flex;flex-direction:column;padding:4px 3px 0;overflow:hidden}.conversation-books-scroll{flex:1;min-height:0;overflow:auto}.conversation-books .paper-menu-row>button:first-of-type{width:auto}.conversation-books .paper-menu-row>button.paper-row-more{width:25px}.conversation-books button span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-books footer{flex:none;border-top:1px solid var(--rule);padding:7px 3px;background:var(--base)}.conversation-book-divider{cursor:col-resize;touch-action:none;background:transparent}.conversation-book-divider:hover,.conversation-book-divider:focus{background:var(--selected)}
-.conversation-linked-filter,.conversation-workspace-title{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px 10px;flex:none;font-size:12px}.conversation-linked-filter [aria-pressed=true]{background:var(--selected)}.conversation-workspace-title strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-notes-list article .paper-menu-row{padding-right:0}.conversation-notes-list .conversation-note-row{padding:12px 5px!important;min-height:92px}.conversation-relation{position:absolute;right:33px;top:15px;max-width:122px;padding:0;flex-wrap:wrap;justify-content:flex-end}.conversation-relation small{font-size:11px}
-@container paper (max-width:520px){.conversation-browse[data-browser=true]{display:flex}.conversation-book-divider{display:none}.conversation-browse[data-browser=true] .conversation-books{width:min(var(--conversation-books-width),45%);min-width:145px}.conversation-browse[data-books-open=true] .conversation-books{display:flex}.conversation-relation{max-width:86px}}
-.conversation-notes-list .paper-menu-row>.paper-row-more{right:0;top:44px;transform:none;margin:0;width:28px;height:26px}.conversation-relation{right:0;top:10px;max-width:32px;width:30px;height:28px;justify-content:center}.conversation-relation button,.conversation-relation>span{display:inline-flex;justify-content:center;align-items:center;width:30px;height:28px;position:relative;padding:0!important}.conversation-relation[data-linked=true]{color:light-dark(#387b4b,#93bf9a)}.conversation-link-plus{position:absolute;right:0;bottom:0;font-size:11px;background:var(--paper);line-height:12px}.conversation-link-spinner{animation:conversation-spin 1s linear infinite}@keyframes conversation-spin{to{transform:rotate(360deg)}}
-.conversation-browse-caption button:disabled{opacity:1;cursor:default}.conversation-browse{position:relative}.conversation-browse .conversation-notes-list{min-width:0;flex:1}
-.conversation-notes[data-narrow=true] .conversation-browse[data-browser=true]{display:flex}.conversation-notes[data-narrow=true] .conversation-book-divider{display:none}.conversation-notes[data-narrow=true] .conversation-browse .conversation-books{display:none;position:absolute;inset:0 auto 8px 8px;width:min(300px,calc(100% - 16px));max-width:calc(100% - 16px);min-width:0;z-index:12;background:var(--base);border:1px solid var(--rule);border-radius:8px;box-shadow:0 6px 24px #0003}.conversation-notes[data-narrow=true] .conversation-browse[data-books-open=true] .conversation-books{display:flex}
+.conversation-notes-tabs{padding-top:12px;flex-wrap:wrap;flex:none}
+.conversation-notes-tabs [aria-pressed=true]{color:var(--accent)}
+.conversation-search-area{flex:0 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;padding:1px 12px 6px}
+.conversation-notes .conversation-scope{display:inline-flex;align-items:center;gap:4px;min-width:0;max-width:min(48%,210px);min-height:25px;padding:2px 4px;
+  border:1px solid var(--rule);border-radius:5px;background:var(--input);font-size:12px}
+.conversation-scope span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-scope svg{flex:none}
+.conversation-notes .conversation-scope[aria-expanded=true]{background:var(--selected);color:var(--accent)}
+.conversation-browse{position:relative;display:flex;flex:1;min-height:0;min-width:0;overflow:hidden}
+.conversation-browse[data-browser=true]{min-height:100px}
+.conversation-browse[data-books-open=true]{display:grid;grid-template-columns:var(--conversation-books-width) 5px minmax(0,1fr)}
+.conversation-books{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;border-inline-end:1px solid var(--rule);padding:4px 3px 0}
+.conversation-books-scroll{flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
+.conversation-books button{width:100%;text-align:left;justify-content:flex-start;padding:9px 7px;gap:6px;font-size:12px}
+.conversation-books button span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-books small{margin-left:auto;color:var(--muted)}
+.conversation-books svg{flex:none}
+.conversation-books [aria-current=page]{background:var(--selected);color:var(--accent);font-weight:600}
+.conversation-books .paper-menu-row>button:first-of-type{width:auto}
+.conversation-books .paper-menu-row>button.paper-row-more{width:25px}
+.conversation-books footer{flex:none;border-top:1px solid var(--rule);padding:7px 3px;background:var(--base)}
+.conversation-book-divider{cursor:col-resize;touch-action:none;background:transparent}
+.conversation-book-divider:is(:hover,:focus){background:var(--accent)}
+.conversation-browse .conversation-notes-list{min-width:0;flex:1;padding:0 10px;scrollbar-width:thin}
+.conversation-browse .conversation-empty{padding:12px 8px}
+.conversation-workspace-title{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px 7px;flex:none;font-size:12px}
+.conversation-workspace-title strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conversation-notes-list article .paper-menu-row{padding-right:0}
+.conversation-notes-list .conversation-note-row{padding:8px 5px!important;min-height:69px}
+.conversation-notes-list .conversation-note-row p{margin:3px 0;font-size:12px}
+.conversation-notes-list .paper-menu-row>.paper-row-more{right:0;top:36px;transform:none;margin:0;width:28px;height:26px}
+.conversation-relation{position:absolute;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.conversation-relation button,.conversation-relation>span{display:inline-flex;justify-content:center;align-items:center;width:30px;height:28px;position:relative;padding:0!important}
+.conversation-link-plus{position:absolute;right:0;bottom:0;font-size:11px;background:var(--paper);line-height:12px}
+.conversation-link-spinner{animation:conversation-spin 1s linear infinite}@keyframes conversation-spin{to{transform:rotate(360deg)}}
+.conversation-notes-foot{padding:7px 14px;flex:none}
+.conversation-notes[data-narrow=true] .conversation-browse[data-books-open=true]{display:flex}
+.conversation-notes[data-narrow=true] .conversation-browse .conversation-books{
+  position:absolute;inset:0 auto 4px 8px;width:min(300px,calc(100% - 16px));z-index:12;
+  background:var(--base);border:1px solid var(--rule);border-radius:8px;box-shadow:0 6px 24px #0003
+}
 `
 
 const referenceListCss=`

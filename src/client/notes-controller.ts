@@ -42,11 +42,12 @@ export class NotesController {
   readonly removedIds=new Set<string>()
   private state: NotesState = this.emptyState()
   private emptyState():NotesState {return { section: 'notes', items: [], cursor: null, filter: {}, notebooks: [], loadingList: false, listError: false, loadingNote: false, noteId: null, note: null, draft: null, dirty: false, openedFromTab: false, editing: false, saving: false, composing: false, operation: false, error: null, conflict: null, jobs: [], jobsError: false, jobsCursor: null }}
-  switched(){++this.libraryEpoch;this.removedIds.clear();this.endDraft();++this.navigation;++this.listing;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.state=this.emptyState();this.emit({});void this.initialize(null)}
+  switched(){++this.libraryEpoch;this.removedIds.clear();this.endDraft();++this.navigation;++this.listing;this.minimumListRows=0;++this.jobGeneration;++this.booksGeneration;this.listAbort?.abort();this.detailAbort?.abort();this.booksReady=false;this.booksRequest=undefined;this.clearTimers();this.finishPending=false;this.recoveryProtected=false;this.recoveredHeads=[];this.clearDraftImages();this.initialized=false;this.state=this.emptyState();this.emit({});void this.initialize(null)}
   private listeners = new Set<() => void>()
   private saving: Promise<boolean> | null = null
   private navigation = 0
   private listing = 0
+  private minimumListRows = 0
   private jobGeneration = 0
   private polling = false
   private bookSaving = false
@@ -174,6 +175,7 @@ export class NotesController {
     if(reset&&refreshBooks)++this.catalogEpoch
     const selected = includeSelected ? this.refreshSelected() : Promise.resolve()
     const generation = ++this.listing, filter = this.state.filter
+    const minimumRows = this.minimumListRows
     this.listAbort?.abort();const abort=this.listAbort=new AbortController()
     this.emit({ loadingList: true, listError: false })
     // Start the useful list first. Slow notebook counts must not delay its display.
@@ -182,12 +184,14 @@ export class NotesController {
     const books=this.refreshBooks(refreshBooks)
     try {
       const result = await list
+      if(generation!==this.listing)return
       if(reset&&this.options.stableList){
-        const count=this.state.items.length
+        const count=Math.max(this.state.items.length,minimumRows)
         while(result.cursor&&result.items.length<count){const page=await this.call('/notes',{order:'recent',...filter,limit:50,cursor:result.cursor},abort.signal);result.items.push(...page.items);result.cursor=page.cursor}
         const order=new Map(this.state.items.map((n,i)=>[n.noteId,i]));result.items.sort((a,b)=>(order.get(a.noteId)??Infinity)-(order.get(b.noteId)??Infinity))
       }
       if (generation !== this.listing) return
+      this.minimumListRows=0
       const items = reset ? result.items : [...this.state.items, ...result.items.filter(x => !this.state.items.some(v => v.noteId === x.noteId))]
       this.emit({ items, cursor: result.cursor, loadingList: false, ...this.mergeOverview(result.overview, overviewRecentIds) })
     } catch { if (generation === this.listing) this.emit({ loadingList: false, listError: true }) }
@@ -207,7 +211,12 @@ export class NotesController {
       }
     } catch { if (this.ownsDetail(request)) this.emit({ listError: true }) }
   }
-  filter(filter: NoteListOptions) { this.emit({ filter, ...(this.options.stableList&&!equal(filter,this.state.filter)?{items:[],cursor:null}:{}) }); return this.refresh(true,false,false) }
+  filter(filter: NoteListOptions, minimumRows = 0) {
+    const changed=!equal(filter,this.state.filter)
+    if(changed||minimumRows)this.minimumListRows=minimumRows
+    this.emit({filter,...(this.options.stableList&&changed?{items:[],cursor:null}:{})})
+    return this.refresh(true,false,false)
+  }
   async selectFilter(filter:NoteListOptions,selectFirst=true) {
     if(!await this.prepareLeave())return
     const navigation=this.navigation

@@ -37,8 +37,9 @@ test('sidebar new draft associates its first save and preserves the chosen noteb
 })
 
 test('sidebar association refresh retains loaded pages and order, while a different filter resets them',async()=>{
-  const rows:NoteListItem[]=Array.from({length:120},(_,i)=>({noteId:String(i),heads:['old'],title:String(i),summary:'',tags:[],notebookId:null,status:'active',savedAt:'2026-11-11',conflicted:false,sessionRelation:null}));let ordered=[...rows]
+  const rows:NoteListItem[]=Array.from({length:120},(_,i)=>({noteId:String(i),heads:['old'],title:String(i),summary:'',tags:[],notebookId:null,status:'active',savedAt:'2026-11-11',conflicted:false,sessionRelation:null}));let ordered=[...rows],hold:Promise<void>|undefined
   const c=new NotesController(async(path,input)=>{
+    if(path==='/notes'&&hold){const gate=hold;hold=undefined;await gate}
     if(path==='/notes/notebooks')return {ok:true,notebooks:[]} as never
     if(path==='/notes'){const v=input as {cursor?:string};const offset=Number(v.cursor??0);return {ok:true,items:ordered.slice(offset,offset+50),cursor:offset+50<ordered.length?String(offset+50):null} as never}
     throw new Error(path)
@@ -49,6 +50,13 @@ test('sidebar association refresh retains loaded pages and order, while a differ
     ordered=[{...rows[72]!,heads:['linked'],sessionRelation:'manual'} as typeof rows[number],...rows.filter(n=>n.noteId!=='72')]
     await c.refresh();assert.deepEqual(c.getSnapshot().items.map(n=>n.noteId),ids);assert.equal(c.getSnapshot().cursor,'100')
     await c.filter({sessionId:'s',relation:'linked'});assert.equal(c.getSnapshot().items.length,50);assert.equal(c.getSnapshot().items[0]?.noteId,'72')
+    const gate=deferred<void>();hold=gate.promise
+    const restoring=c.filter({sessionId:'s',relation:'browse'},100)
+    await c.refresh()
+    gate.resolve();await restoring
+    assert.equal(c.getSnapshot().items.length,100);assert.equal(c.getSnapshot().cursor,'100')
+    await c.filter({sessionId:'s',relation:'browse',tag:'different'})
+    assert.equal(c.getSnapshot().items.length,50);assert.equal(c.getSnapshot().cursor,'50')
   }finally{c.dispose()}
 })
 test('navigation waits for a pending pasted image and automatically saves it',async()=>{
