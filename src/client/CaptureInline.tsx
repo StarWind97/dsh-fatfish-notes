@@ -14,7 +14,7 @@ export function NoteTurnCheckbox({bridge, sessionId, seq, t}: {bridge:NoteCaptur
   const whole = state.scope==='session'
   return <label className="capture-inline-turn" data-picked={whole || count>0}>
     <input type="checkbox" aria-label={t('captureTurn',{n:index+1})} checked={whole || count===ids.length}
-      ref={box=>{if(box)box.indeterminate=!whole && count>0 && count<ids.length}} disabled={whole}
+      ref={box=>{if(box)box.indeterminate=!whole && count>0 && count<ids.length}} disabled={whole&&!!state.exporting}
       onChange={()=>bridge.toggleMessages(ids)}/>
     <span>{t('capturePickTurn')}</span>
   </label>

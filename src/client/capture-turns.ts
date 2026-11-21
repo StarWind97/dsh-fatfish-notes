@@ -14,3 +14,13 @@ export function indexCaptureTurns(selection: CaptureSelection) {
 }
 
 export type IndexedSelection = ReturnType<typeof indexCaptureTurns>
+
+export function toggleCaptureMessages(selected: ReadonlySet<string>, ids: readonly string[]): Set<string> {
+  const next = new Set(selected)
+  const remove = ids.every(id => selected.has(id))
+  for (const id of ids) {
+    if (remove) next.delete(id)
+    else next.add(id)
+  }
+  return next
+}

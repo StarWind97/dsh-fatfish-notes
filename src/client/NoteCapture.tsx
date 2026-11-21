@@ -1,7 +1,7 @@
 import {PaperDialog} from './paper/PaperDialog.js'
 import {CaptureMaterials} from './CaptureMaterials.js'
-import {CaptureNotebook} from './CaptureNotebook.js'
-import {CaptureMetadata} from './CaptureMetadata.js'
+import {CaptureOptions} from './CaptureOptions.js'
+import {CaptureRecoveries} from './CaptureRecoveries.js'
 import {conversationNotesCss} from './ConversationNotes.js'
 import * as React from 'react'
 import { useSyncExternalStore, useEffect, useRef } from 'react'
@@ -39,7 +39,6 @@ export function NoteCaptureAction({ bridge, sessionId, messageId, openSetup, t, 
 }
 export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptureBridge; sessionId: string; t: T }) {
   const state = useSyncExternalStore(bridge.subscribe, bridge.getSnapshot, bridge.getSnapshot), dialog = useRef<HTMLDivElement>(null)
-  const [bookValid,setBookValid]=React.useState(false)
   const inline=inChatSelection(state,sessionId)
   useEffect(() => {
     if (state?.sessionId !== sessionId || inline) return
@@ -53,6 +52,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
   if (!state || state.sessionId !== sessionId || state.minimized ) return null
   if (inline) return null
   if(state.exporting?.dialog)return <ConversationExportDialog state={state} bridge={bridge} t={t}/>
+  if(state.status==='selecting' && state.selection && !state.exporting) return <CaptureOptions state={state} selection={state.selection} bridge={bridge} t={t}/>
   const busy = state.status === 'loading' || state.status === 'saving'
   const count=state.scope==='session' ? state.selection?.messages.length??0 : state.selected.length
   return <PaperDialog className="capture-dialog" title={t(state.exporting?'captureFine':'captureOptions')} closeLabel={t('paperClose')} onClose={()=>busy?bridge.cancel():state.status==='selecting'?bridge.showDetail(false):bridge.close()}><div className="notes-surface notes-capture capture-panel" ref={dialog} tabIndex={-1} aria-label={t(state.exporting?'captureFine':'noteCaptureReply')} onKeyDown={event => {
@@ -68,12 +68,10 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
     {state.status==='selecting' && state.selection && <>
       <div className="capture-preview"><CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/>{state.exporting&&<CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/>}</div>
       {state.recoveries.length>0 && <p role="note">{t('noteNewSaveWarning')}</p>}
-      {!state.exporting && <div className="capture-options"><CaptureNotebook value={state.notebookId} choose={id=>bridge.notebook(id)} onValid={setBookValid} t={t}/>
-      <CaptureMetadata state={state} bridge={bridge}/><CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/></div>}
     </>}
     {busy && <p className="capture-progress" role="status"><LoaderCircle size={18} aria-hidden="true"/>{t(state.status==='loading'?'noteLoadingHistory':'noteSaving')}</p>}
     {(state.status === 'failed' || state.status === 'cancelled') && <><p role="alert">{t(state.error === 'note_limit' ? 'noteLimitRecovery' : state.status === 'cancelled' ? 'noteCancelled' : 'noteFailed')}</p><button type="button" style={s.button} onClick={() => state.request ? void bridge.save() : void bridge.reselect()}>{t(state.request ? 'noteRetryOriginal' : 'noteRetry')}</button>{state.request && <button type="button" style={s.button} onClick={() => void bridge.reselect()}>{t('noteReselect')}</button>}</>}
-    {state.recoveries.some(item=>item.request.requestId!==state.request?.requestId) && <section aria-label={t('noteRecoveries')}><p>{t('noteRecoveryNotice')}</p>{state.recoveries.map((recovery, index) => recovery.request.requestId === state.request?.requestId ? null : <button key={recovery.request.requestId} type="button" style={s.button} disabled={busy} onClick={() => void bridge.resume(recovery.request.requestId)}>{t(recovery.request.scope === 'session' ? 'noteRecoverSession' : 'noteRecoverSelection', { index: index + 1 })}</button>)}</section>}
+    <CaptureRecoveries state={state} bridge={bridge} t={t} disabled={busy}/>
     {state.result && <><p className="capture-result" role="status"><CheckCircle2 size={20} aria-hidden="true"/>{t(state.result.complete ? 'noteSaved' : 'noteSavedPartial', { count: state.result.messageCount, missing: state.result.missingAssetIds.length })}</p><p style={s.muted}>{t('noteCut', { time: noteDateTime(state.result.cut.capturedAt) })}</p><button type="button" style={s.button} className="notes-primary" onClick={() => void bridge.openNote()}>{t('noteOpen')}</button></>}
     {state.result?.issues.includes('image_links_kept_as_text') && <p>{t('noteTextOnlyImages')}</p>}
     {state.job && <section aria-label={t('noteAiTask')}><p role="status">{t('noteAiProgress', { done: state.job.stages.filter(stage => stage.status === 'done').length, total: state.job.stages.length })} · {t(state.job.status === 'completed' ? 'noteAiCompleted' : state.job.status === 'candidate' ? 'noteAiCandidate' : state.job.status === 'cancelled' ? 'noteAiCancelled' : state.job.status === 'failed' || state.job.error ? 'noteAiFailed' : 'noteAiRunning')}</p>
@@ -87,7 +85,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
     </div>
     {state.status==='selecting' && <footer className="capture-foot"><span aria-live="polite">{t('noteSelectionCount',{count})}</span>
       <button type="button" className="capture-back" onClick={()=>bridge.showDetail(false)}>{t('captureBack')}</button>
-      <button type="button" style={s.button} className="notes-primary" disabled={!count||!state.exporting&&(!bookValid||state.suggesting||!state.metadata?.title.trim())} onClick={()=>state.exporting?bridge.exportDialog():void bridge.save()}>{t(state.exporting?'chatExportContinue':'noteCaptureReply')}</button>
+      <button type="button" style={s.button} className="notes-primary" disabled={!count} onClick={()=>bridge.exportDialog()}>{t('chatExportContinue')}</button>
     </footer>}
   </div></PaperDialog>
 }

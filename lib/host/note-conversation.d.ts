@@ -14,6 +14,7 @@ export declare class NoteConversation {
     constructor(provider: () => NoteConversationController | undefined, services?: ConversationFileServices);
     private controller;
     open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>;
+    readTranscript(sessionId: string, cut: Pick<CaptureCut, 'throughSeq'>, signal: AbortSignal): Promise<CaptureRead>;
     read(sessionId: string, cut: Pick<CaptureCut, 'throughSeq'>, signal: AbortSignal): Promise<CaptureRead>;
     material(sessionId: string, material: CaptureMaterial, reference: MaterialReference, signal: AbortSignal, progress?: (bytes: number) => void): Promise<Buffer<ArrayBufferLike>>;
     attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{

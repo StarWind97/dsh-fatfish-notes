@@ -290,6 +290,7 @@ export interface CaptureSelectionRequest {
 export interface CaptureSelection extends CaptureTranscript {
     cut: CaptureCut;
     defaultMessageIds: string[];
+    sessionTitle?: string;
 }
 export type ConversationExportFormat = 'markdown' | 'pdf' | 'png-long';
 export interface ConversationExportRequest {

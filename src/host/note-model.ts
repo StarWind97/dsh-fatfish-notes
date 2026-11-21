@@ -47,7 +47,7 @@ export class NoteModelBridge implements NoteModel {
       if(!fallback)fail('ai_unavailable');return {provider:fallback.provider,model:fallback.model}
     }finally{stop.abort();await iterator.return?.()}
   }
-  async dispatch(job: Pick<NoteJob,'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal, previewImages?:ReadonlyMap<string,Buffer>) {
+  async dispatch(job: Pick<NoteJob,'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal) {
     const llm=this.services.llm?.();if(!llm)fail('ai_unavailable','后台模型服务不可用')
     const selected=await this.selection(job.sessionId,signal),images:ContentBlock[]=[]
     if(stage.assetIds.length){
@@ -55,7 +55,7 @@ export class NoteModelBridge implements NoteModel {
       const limits=store.imageLimits;let total=0
       if(stage.assetIds.length>limits.maxImagesPerMessage)fail('ai_image_budget')
       for(const asset of stage.assetIds){
-        const bytes=previewImages?.get(asset)??await this.repository.getAsset(asset,signal),mediaType=mediaTypeFor(asset);total+=bytes.length
+        const bytes=await this.repository.getAsset(asset,signal),mediaType=mediaTypeFor(asset);total+=bytes.length
         if(bytes.length>limits.maxImageBytes||total>limits.maxMessageImageBytes||!limits.mediaTypes.includes(mediaType))fail('ai_image_budget')
         signal.throwIfAborted();images.push({type:'image',attachment:await store.saveImage({data:bytes,mediaType,name:asset})})
       }

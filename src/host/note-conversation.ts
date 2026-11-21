@@ -24,8 +24,12 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
   const messages: CaptureMessage[] = [], issues = new Set<string>(), ids = new Set<string>()
   const materials:CaptureMaterial[]=[],materialReferences=new Map<string,MaterialReference>();let turn:number|undefined
   const imageReferences = new Map<string, ImageAttachmentRef>()
+  let sessionTitle: string | undefined
   for (const event of events) {
     const eventData=object(event.data)
+    if (event.type === 'session/title' && typeof eventData.title === 'string') {
+      sessionTitle = eventData.title.replace(/\s+/g, ' ').trim().slice(0, 200).replace(/[\uD800-\uDBFF]$/, '') || undefined
+    }
     if(event.type==='turn/start'&&typeof eventData.turn==='number')turn=eventData.turn
     if(event.type==='deliverables/presented'&&Array.isArray(eventData.files)){
       for(const [i,raw]of eventData.files.entries()){
@@ -86,7 +90,7 @@ export function projectTranscript(events: readonly SessionWireEvent[]): CaptureR
   const links=captureLinks(messages,materials,new Map([...materialReferences].flatMap(([id,ref])=>ref.kind==='delivery'?[[id,ref.path] as const]:[])))
   const uploads=new Set(messages.flatMap(m=>m.blocks.flatMap(b=>b.type==='text'&&b.materialId?[b.materialId]:[])))
   for(const material of materials)material.placement=material.imageId||links.has(material.id)||uploads.has(material.id)?'body':'supplement'
-  return { messages, complete: !issues.size, issues: [...issues], imageReferences,materials,materialReferences }
+  return { messages, complete: !issues.size, issues: [...issues], imageReferences,materials,materialReferences, ...(sessionTitle ? { sessionTitle } : {}) }
 }
 
 export class NoteConversation {
@@ -109,8 +113,11 @@ export class NoteConversation {
       return { throughSeq: first.value.cursor, capturedAt: new Date().toISOString(), isSeeded: first.value.header.isSeeded }
     } finally { controller.abort(); await iterator.return?.() }
   }
+  async readTranscript(sessionId: string, cut: Pick<CaptureCut,'throughSeq'>, signal: AbortSignal): Promise<CaptureRead> {
+    return projectTranscript(await readNoteHistory(this.controller(), sessionId, cut.throughSeq, signal))
+  }
   async read(sessionId: string, cut: Pick<CaptureCut,'throughSeq'>, signal: AbortSignal): Promise<CaptureRead> {
-    const result=projectTranscript(await readNoteHistory(this.controller(), sessionId, cut.throughSeq, signal))
+    const result=await this.readTranscript(sessionId, cut, signal)
     for(const material of result.materials??[]){const ref=result.materialReferences?.get(material.id);if(ref)await this.files.describe(sessionId,material,ref,signal)}
     return result
   }

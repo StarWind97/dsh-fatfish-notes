@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+- 2026-11-21 [会话转存布局与纯文字 AI 建议](plans/2026-11-21-capture-layout-and-text-suggestions.zh.md)完成隔离桌面和 Web 验证，待体验。宽窗并排三栏，窄窗默认紧凑，手动展开后从上到下排成一列。极小窗口也保留收起和关闭按钮。已有会话标题预填。桌面多图会话的真实模型建议和按所选范围归档读回通过。
+
 - 2026-11-20 正式发布 [0.10.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。425 项全量回归及 Web 与 Windows 桌面的双向同步通过。正式包已在 rc.5 桌面和 Web 实装。已更新手册和图解使用说明，市场固定入口指向新版。[发布与验收](releases/0.10.0/review.zh.md) · [实施规划](plans/2026-11-20-release-0100.zh.md) · [启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。
 
 - [从笔记主界面切换 DSH 明暗](plans/2026-11-16-theme-follow-and-actions.zh.md#dsh-全局明暗快捷切换)已通过隔离 Windows 桌面和 Web 验收，待体验。顶栏切换宿主明暗并记住选择，外观设置说明跟随关系，独立窗口保留临时切换。[启动隔离桌面](../scripts/Open-Fatfish-Notes.cmd)。

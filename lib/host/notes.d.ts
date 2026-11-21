@@ -112,6 +112,7 @@ export declare class NotesApplication {
     selection(input: unknown, signal?: AbortSignal): Promise<{
         cut: import("../contracts/notes.js").CaptureCut;
         defaultMessageIds: string[];
+        sessionTitle?: string;
         messages: import("../contracts/notes.js").CaptureMessage[];
         complete: boolean;
         issues: string[];

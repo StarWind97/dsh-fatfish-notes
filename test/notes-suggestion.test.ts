@@ -10,7 +10,7 @@ import {NoteRepository} from '../src/notes/repository.js'
 import {NoteCaptureService} from '../src/notes/capture.js'
 import {NoteCaptureBridge} from '../src/client/note-capture-bridge.js'
 import {fixture,request} from './fixtures/notes-capture.js'
-import type {CaptureRequest} from '../src/contracts/notes.js'
+import type {CaptureMessage,CaptureRequest,CaptureSelection} from '../src/contracts/notes.js'
 import {ApiError} from '../src/client/api.js'
 
 const metadata={title:'观测笔记',summary:'保留这次观测的结论和线索。',tags:['观测']}
@@ -22,7 +22,7 @@ test('preview generates selected metadata without a note or conversation message
   const services={llm:()=>llm as never},conversation=new NoteConversation(()=>f.controller),model=new NoteModelBridge(()=>controller as never,repo,services)
   try{
     const cut=await conversation.open(request.sessionId,signals.signal),selected:CaptureRequest={...request,scope:'selection',messageIds:['m2','m3'],cut}
-    assert.deepEqual(await suggestMetadata(selected,conversation,model,services,signals.signal),metadata)
+    assert.deepEqual(await suggestMetadata(selected,conversation,model,signals.signal),metadata)
     assert.match(prompts[0]!,/answer 3/);assert.doesNotMatch(prompts[0]!,/answer 111/)
     assert.equal((await repo.files.scan()).paths.length,0,'preview creates no note, journal or source')
     const service=new NoteCaptureService(repo,conversation)
@@ -32,6 +32,67 @@ test('preview generates selected metadata without a note or conversation message
     assert.match(saved.note.current.body,/answer 3/);assert.equal(saved.enrichmentJobId,null)
     await assert.rejects(service.capture({...selected,metadata:{...metadata,title:'Changed'}}),{code:'capture_request_mismatch'})
   }finally{await rm(dir,{recursive:true,force:true})}
+})
+
+test('metadata suggestions send a bounded sample of text in one call even with many images',async()=>{
+  const cut={throughSeq:96,capturedAt:'2026-11-21T00:00:00Z',isSeeded:false}
+  const messages:CaptureMessage[]=Array.from({length:96},(_,seq)=>({
+    id:`m${seq}`,seq,role:seq%2?'assistant':'user',blocks:[
+      {type:'text',text:`第 ${seq} 条的内容 `+'长段落'.repeat(2000)+` 第 ${seq} 条的结论`},
+      {type:'image',attachmentId:`image-${seq}`,mediaType:'image/png'},
+      {type:'text',text:'仅作附件占位',materialId:`upload:${seq}:0`},
+    ],
+  }))
+  messages.push({id:'image-only',seq:96,role:'assistant',blocks:[{type:'image',attachmentId:'single',mediaType:'image/png'}]})
+  const conversation={async readTranscript(){return {messages,complete:true,issues:[]}}}
+  let calls=0
+  const model:Pick<NoteModelBridge,'dispatch'>={async dispatch(_job,stage){
+    calls++
+    assert.equal(stage.kind,'final');assert.deepEqual(stage.assetIds,[])
+    assert.ok(stage.input.length<=8000)
+    assert.match(stage.input,/第 0 条的内容/);assert.match(stage.input,/第 95 条的结论$/)
+    assert.doesNotMatch(stage.input,/仅作附件占位|image-/)
+    return metadata
+  }}
+  const signal=new AbortController().signal
+  assert.deepEqual(await suggestMetadata({...request,scope:'session',cut},conversation,model,signal),metadata)
+  await assert.rejects(suggestMetadata({...request,scope:'selection',cut,messageIds:['image-only']},conversation,model,signal),{code:'ai_no_text'})
+  assert.equal(calls,1)
+})
+
+test('existing session title and selections survive full-session subtraction and independent file edits',async()=>{
+  const messages:CaptureMessage[]=Array.from({length:4},(_,seq)=>({id:`m${seq}`,seq,role:seq%2?'assistant':'user',blocks:[{type:'text',text:`原文 ${seq}`}]}))
+  const selection:CaptureSelection={cut:{throughSeq:3,capturedAt:'2026-11-21T00:00:00Z',isSeeded:false},sessionTitle:'会话原题',
+    messages,complete:true,issues:[],defaultMessageIds:['m0','m1']}
+  const bridge=new NoteCaptureBridge(async(path,input)=>{
+    if(path==='/notes/session-context')return {ok:true,workspace:null,notebookId:null} as never
+    if(path==='/notes/selection')return selection as never
+    if(path==='/notes/suggest'){
+      assert.equal((input as CaptureRequest).materialIds,undefined)
+      assert.deepEqual((input as CaptureRequest).messageIds,['m0','m2','m3'])
+      return {ok:true,metadata} as never
+    }
+    throw Error(path)
+  })
+  try{
+    await bridge.open('s','m1')
+    assert.equal(bridge.getSnapshot()?.metadata?.title,'会话原题')
+    bridge.setScope('session')
+    bridge.chooseMessages(new Set(messages.map(message=>message.id)))
+    assert.equal(bridge.getSnapshot()?.scope,'session')
+    bridge.toggleMessages(['m1'])
+    assert.equal(bridge.getSnapshot()?.scope,'selection')
+    assert.deepEqual(bridge.getSnapshot()?.selected,['m0','m2','m3'])
+    assert.equal(bridge.getSnapshot()?.metadata?.title,'会话原题')
+    bridge.materials(['image:1:0'])
+    await bridge.suggest()
+    bridge.materials([])
+    assert.deepEqual(bridge.getSnapshot()?.metadata,metadata)
+    assert.equal(bridge.getSnapshot()?.suggestionStale,false)
+    bridge.toggleMessages(['m2','m3'])
+    assert.deepEqual(bridge.getSnapshot()?.metadata,metadata)
+    assert.equal(bridge.getSnapshot()?.suggestionStale,true)
+  }finally{bridge.dispose()}
 })
 
 test('suggestion cancellation and range changes cannot adopt stale metadata or save early',async()=>{

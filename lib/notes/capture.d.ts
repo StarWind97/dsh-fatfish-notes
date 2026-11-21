@@ -6,6 +6,7 @@ import { NoteRepository } from './repository.js';
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
 export interface CaptureRead extends CaptureTranscript {
+    sessionTitle?: string;
     imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;
     materialReferences?: ReadonlyMap<string, MaterialReference>;
 }

@@ -20,7 +20,7 @@ interface CaptureJournal {
   cut: CaptureCut | null; sourceId: string | null; revision: NoteRevision | null; finished: boolean
 }
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
-export interface CaptureRead extends CaptureTranscript { imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;materialReferences?:ReadonlyMap<string,MaterialReference> }
+export interface CaptureRead extends CaptureTranscript { sessionTitle?: string; imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;materialReferences?:ReadonlyMap<string,MaterialReference> }
 export interface CaptureConversation {
   open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>
   read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>
@@ -105,7 +105,7 @@ export class NoteCaptureService {
     const sessionId = identifier(input.sessionId), cut = await this.conversation.open(sessionId, signal)
     const transcript = await this.conversation.read(sessionId, cut, signal)
     const selected = input.anchorMessageId ? selectMessages(transcript.messages, { scope: 'turn', anchorMessageId: identifier(input.anchorMessageId) }) : transcript.messages
-    return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, ...(transcript.materials?{materials:transcript.materials}:{}), cut, defaultMessageIds: selected.map(m => m.id) }
+    return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, ...(transcript.materials?{materials:transcript.materials}:{}), ...(transcript.sessionTitle?{sessionTitle:transcript.sessionTitle}:{}), cut, defaultMessageIds: selected.map(m => m.id) }
   }
   private async perform(request: CaptureRequest, signal: AbortSignal,progress?:(value:CaptureProgress)=>void): Promise<CaptureResult> {
     signal.throwIfAborted()

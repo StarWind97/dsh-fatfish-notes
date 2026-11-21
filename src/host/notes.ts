@@ -102,7 +102,18 @@ export class NotesApplication {
     const v = object(input), request: CaptureSelectionRequest = { sessionId: text(v.sessionId, 512), ...(v.anchorMessageId === undefined ? {} : { anchorMessageId: text(v.anchorMessageId, 512) }) }
     return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active) }), signal)
   }
-  suggest(input:unknown,signal?:AbortSignal){return this.run(async active=>({ok:true as const,metadata:await suggestMetadata(validateCaptureRequest(input),this.conversation,this.model,this.services,AbortSignal.any([active,AbortSignal.timeout(180_000)]))}),signal)}
+  suggest(input: unknown, signal?: AbortSignal) {
+    return this.run(async active => {
+      const timeout = AbortSignal.timeout(180_000)
+      try {
+        const metadata = await suggestMetadata(validateCaptureRequest(input), this.conversation, this.model, AbortSignal.any([active, timeout]))
+        return { ok: true as const, metadata }
+      } catch (error) {
+        if (timeout.aborted && !active.aborted) throw new NotebookError('ai_timeout', '生成建议超时', 408)
+        throw error
+      }
+    }, signal)
+  }
   get(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, note: await this.repository.get(text(object(input).noteId, 26), active) }), signal) }
   manage(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ok:true as const,...await this.repository.manage(input as NoteManageRequest,active)}),signal) }
   tags(input:unknown,signal?:AbortSignal){return this.run(active=>this.repository.tagManagement(input,active),signal)}

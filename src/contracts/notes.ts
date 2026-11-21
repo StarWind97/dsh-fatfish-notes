@@ -93,7 +93,7 @@ export interface CaptureResult {
   cut: CaptureCut; issues: string[]
 }
 export interface CaptureSelectionRequest { sessionId: string; anchorMessageId?: string }
-export interface CaptureSelection extends CaptureTranscript { cut: CaptureCut; defaultMessageIds: string[] }
+export interface CaptureSelection extends CaptureTranscript { cut: CaptureCut; defaultMessageIds: string[]; sessionTitle?: string }
 export type ConversationExportFormat = 'markdown' | 'pdf' | 'png-long'
 export interface ConversationExportRequest {
   sessionId:string; throughSeq:number; messageIds:string[]; format:'markdown'|'snapshot'|'pdf'

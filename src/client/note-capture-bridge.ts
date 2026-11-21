@@ -3,11 +3,11 @@ import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
 import { api, currentRepository, type Api } from './api.js'
 import type { CaptureProgress, CaptureRequest, CaptureResult, ConversationExportFormat, NoteView, NoteJob,NoteStageResult } from '../contracts/notes.js'
 
-import { indexCaptureTurns, type IndexedSelection } from './capture-turns.js'
+import { indexCaptureTurns, toggleCaptureMessages, type IndexedSelection } from './capture-turns.js'
 
 export interface CaptureRecovery { request: CaptureRequest; error: string | null }
 export interface NoteCaptureState {
-  metadata?:NoteStageResult;metadataTouched?:boolean;suggesting?:boolean;suggestionError?:string|null;suggestionStale?:boolean
+  metadata?:NoteStageResult;metadataTouched?:boolean;metadataSuggested?:boolean;suggesting?:boolean;suggestionError?:string|null;suggestionStale?:boolean
   progress?:CaptureProgress; minimized?:boolean
   materialIds?:string[];allowLarge?:boolean
   workspace?:{id:string;title:string}|null
@@ -31,9 +31,18 @@ export class NoteCaptureBridge {
   private suggestionGeneration=0
   cancelSuggestion(){this.suggestionController?.abort();this.suggestionGeneration++;if(this.state?.suggesting)this.emit({...this.state,suggesting:false})}
   metadata(patch:Partial<NoteStageResult>){if(this.state?.status==='selecting'&&!this.state.suggesting)this.emit({...this.state,metadata:{...(this.state.metadata??{title:'',summary:'',tags:[]}),...patch},metadataTouched:true})}
-  private changedSelection(patch:Partial<NoteCaptureState>){this.cancelSuggestion();const state=this.state;if(!state)return;const next={...state,...patch,suggestionStale:!!state.metadata?.summary};if(!state.metadataTouched)next.metadata=this.defaultMetadata(next);this.emit(next)}
+  private changedSelection(patch: Partial<NoteCaptureState>) {
+    this.cancelSuggestion()
+    const state = this.state
+    if (!state) return
+    const next = { ...state, ...patch, allowLarge: false, suggestionStale: !!state.metadataSuggested }
+    if (!state.metadataTouched && !state.metadataSuggested) next.metadata = this.defaultMetadata(next)
+    this.emit(next)
+  }
   private defaultMetadata(state:NoteCaptureState):NoteStageResult{
-    const first=state.selection?.messages.filter(m=>state.scope==='session'||state.selected.includes(m.id)).find(m=>m.role==='user')
+    if (state.selection?.sessionTitle) return { title: state.selection.sessionTitle, summary: '', tags: [] }
+    const selected = new Set(state.selected)
+    const first=state.selection?.messages.find(m=>m.role==='user'&&(state.scope==='session'||selected.has(m.id)))
     const text=first?.blocks.flatMap(b=>b.type==='text'&&!b.materialId?[b.text]:[]).join(' ').split(/[\r\n]/)[0]?.replace(/^[#>*\s-]+/,'').trim()??''
     return {title:[...text].slice(0,40).join('')||'会话笔记',summary:'',tags:[]}
   }
@@ -44,8 +53,8 @@ export class NoteCaptureBridge {
     const generation=++this.suggestionGeneration,controller=this.suggestionController=new AbortController()
     this.emit({...state,suggesting:true,suggestionError:null})
     try{
-      const result=await this.call('/notes/suggest',{requestId:crypto.randomUUID(),sessionId:state.sessionId,scope:'selection',messageIds,mode:'raw',autoMetadata:false,notebookId:state.notebookId,cut:state.selection.cut,...(state.materialIds?{materialIds:materialsFor(state.selection.messages.filter(m=>messageIds.includes(m.id)),state.selection.materials??[]).filter(m=>state.materialIds!.includes(m.id)).map(m=>m.id)}:{})},controller.signal)
-      if(generation===this.suggestionGeneration&&this.state)this.emit({...this.state,metadata:result.metadata,metadataTouched:false,suggesting:false,suggestionStale:false,suggestionError:null})
+      const result=await this.call('/notes/suggest',{requestId:crypto.randomUUID(),sessionId:state.sessionId,scope:state.scope,...(state.scope==='selection'?{messageIds}:{}),mode:'raw',autoMetadata:false,notebookId:state.notebookId,cut:state.selection.cut},controller.signal)
+      if(generation===this.suggestionGeneration&&this.state)this.emit({...this.state,metadata:result.metadata,metadataTouched:false,metadataSuggested:true,suggesting:false,suggestionStale:false,suggestionError:null})
     }catch(e){if(generation===this.suggestionGeneration&&this.state)this.emit({...this.state,suggesting:false,suggestionError:controller.signal.aborted?null:e instanceof Error&&'code' in e?String(e.code):'request_failed'})}
   }
   private readonly recoveries = new Map<string, CaptureRecovery[]>()
@@ -135,23 +144,27 @@ export class NoteCaptureBridge {
     if(state?.exporting)this.emit({...state,detail:false,exporting:{...state.exporting,range:state.scope==='session'?'session':'custom',dialog:true}})
   }
   setScope(scope: NoteCaptureState['scope']) {
-    if (this.state?.status === 'selecting') this.changedSelection({scope})
+    if (this.state?.status === 'selecting' && scope !== this.state.scope) this.changedSelection({scope})
   }
   toggleMessages(ids: string[]) {
-    if (this.state?.status !== 'selecting') return
     const state = this.state
-    const selected = new Set(state.selected)
-    const remove = ids.every(id => selected.has(id))
-    for (const id of ids) {
-      if (remove) selected.delete(id)
-      else selected.add(id)
-    }
-    this.changedSelection({scope:'selection',selected:[...selected]})
+    if (state?.status !== 'selecting' || !state.selection) return
+    const current = state.scope === 'session' ? state.selection.messages.map(message => message.id) : state.selected
+    this.chooseMessages(toggleCaptureMessages(new Set(current), ids))
+  }
+  chooseMessages(ids: ReadonlySet<string>) {
+    const state = this.state
+    if (state?.status !== 'selecting' || !state.selection) return
+    const available = new Set(state.selection.messages.map(message=>message.id))
+    const selected = [...ids].filter(id=>available.has(id))
+    const current = state.scope === 'session' ? state.selection.messages.map(message => message.id) : state.selected
+    if (selected.length === current.length && current.every(id => ids.has(id))) return
+    this.changedSelection({ scope: 'selection', selected })
   }
   toggle(id: string) { this.toggleMessages([id]) }
   options(autoMetadata: boolean) { if (this.state?.status === 'selecting') this.emit({ ...this.state, autoMetadata }) }
   notebook(notebookId: string | null) { if (this.state?.status === 'selecting') this.emit({ ...this.state, notebookId }) }
-  materials(ids:string[]){if(this.state?.status==='selecting')this.changedSelection({materialIds:ids,allowLarge:false})}
+  materials(ids:string[],allowLarge=false){if(this.state?.status==='selecting')this.emit({...this.state,materialIds:ids,allowLarge})}
   large(allowLarge:boolean){if(this.state?.status==='selecting')this.emit({...this.state,allowLarge})}
   async save() {
     const state = this.state
