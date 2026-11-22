@@ -31,4 +31,9 @@
 
 ## 发布与市场
 
-正式发布等待用户确认。发布后核对公开安装包与此候选的摘要、GitHub 两种语言的 README 以及市场两种语言的详情和安装入口。
+- 2026-11-23 00:51（北京时间）公开 `v0.12.0` 并设为最新版，标签指向 `4a507e0b0cd9d5b624d13abfd1297d1ca94fb99b`。发布前核对了 GitHub 记录的两个附件摘要。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0)
+- 两个公开下载入口分别取得 18,233,740 字节、269 个文件的安装包，包内版本均为 0.12.0。下载的校验文件及两个安装包的 SHA-256 均与已验收候选一致。[版本安装包](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.12.0/dsh-fatfish-notes.tgz) · [最新版入口](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz) · [校验文件](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.12.0/dsh-fatfish-notes.tgz.sha256)
+- GitHub 主分支的两份 README、截图清单和八张发布实拍已按源码提交逐文件核对。市场两种语言详情的安装命令都使用已验证的最新版下载入口。[中文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.md) · [英文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.en.md) · [市场条目](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml)
+- 发布后在实际市场页切换语言确认，两页仍显示 0.10.0 的正文并加载同一组旧图。目录也仍列旧图，原条目的固定安装入口已取得新版。市场的常规推送构建沿用现有正文快照，定时探测完成并部署后再复核双语内容。[中文详情](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/) · [英文详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [市场构建流程](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/.github/workflows/build-site.yml)
+
+本机发布和公开下载记录位于 `dist/i18n-0120/publication/`。市场页面的观测记录位于 `dist/i18n-0120/market-verification/`。

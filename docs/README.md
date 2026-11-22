@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-23 **0.12.0 双语候选已验收，待确认发布。** 同一候选通过官方 DSH 0.2.2-rc.5 隔离桌面和 Web 的中英文复验。最终配图、双语引用及候选摘要已核对。[验收记录](releases/0.12.0/review.zh.md) · [实施规划](plans/2026-11-22-bilingual-localization.zh.md#改号与新候选复验)
+- 2026-11-23 **0.12.0 已正式发布。** 公开包与通过隔离桌面和 Web 双语验收的候选摘要一致。市场固定安装入口已取得新版，双语正文和配图待市场定时刷新。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0) · [发布与市场验证](releases/0.12.0/review.zh.md#发布与市场)
 
 - 2026-11-22 正式发布 [0.11.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)。公开安装包与已通过 428 项全量及双端验收的候选逐字节一致。市场安装与升级入口已指向 0.11.0，详情页的说明等待市场站点重建。[发布与市场验证](releases/0.11.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
@@ -35,6 +35,7 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
+| [0.12.0 市场详情复核](plans/2026-11-22-bilingual-localization.zh.md#正式发布与市场同步) | `main`，主目录，市场公开详情及发布证据 | GitHub 和市场固定安装入口已通过。等待市场定时刷新后核对中英文正文及配图。 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 
