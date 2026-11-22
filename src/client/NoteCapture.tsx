@@ -91,7 +91,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
 }
 
 const captureDialogCss=`
-.paper-dialog.capture-dialog{width:min(1220px,calc(100vw - 48px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 48px)}
+.paper-dialog.capture-dialog{--paper-dialog-width:1220px;--paper-dialog-inline-inset:48px;--paper-dialog-block-inset:48px}
 .capture-dialog .capture-panel{position:static;inset:auto;width:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;display:flex;flex:1;flex-direction:column;min-height:0;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222)}
 .capture-dialog .capture-scroll{padding:20px;overflow:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start;gap:20px}
 .capture-dialog .capture-preview{min-width:0}.capture-dialog .capture-options{margin:0;padding:0 0 0 20px;border:0;border-left:1px solid var(--dsw-alias-border-l2,#ddd);display:flex;flex-direction:column;gap:14px;position:sticky;top:0}.capture-dialog .capture-foot{flex:none;padding:14px 20px;background:var(--dsw-alias-bg-layer-1,#fff)}

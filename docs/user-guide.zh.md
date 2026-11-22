@@ -12,7 +12,11 @@
 
 ![转存三步图。点回答下方的保存按钮，选择本轮、多个轮次、整个会话或指定消息。点下一步，选择笔记本和要保留的图片、文件，再确认保存。图中放大显示仅图标模式的书本加号。](images/user-guide/save-conversation.png)
 
-点 **「下一步」** 打开「保存选项」。在这里还可以逐条勾选消息。选好笔记本，确认标题和要保留的图片、文件，再点 **「保存到笔记」**。标题、摘要和标签可以手填，也可以选用「AI 建议」。
+点 **「下一步」** 打开「保存选项」。宽窗从左到右显示轮次和消息、图片与文件、笔记信息。窄窗可以点标题栏的 **「展开布局」**，也可以在紧凑布局中单独核对范围和文件。切换布局会保留选择与已填内容。
+
+![实际保存选项。左栏勾选会话轮次，中栏核对图片与文件，右栏显示笔记本、预填标题和 AI 建议。](images/user-guide/save-options-0110.png)
+
+选好笔记本和要保留的内容，确认预填的会话标题。你可以手填摘要和标签，也可以点 **「AI 建议」**，让模型根据所选消息的文字建议标题、摘要和标签。最后点 **「保存到笔记」**。
 
 ## 在会话侧栏使用笔记
 
@@ -84,4 +88,4 @@
 
 [图片与附件](user-guide-reference.zh.md#图片正文文件与补充附件) · [导入与整库导出](user-guide-reference.zh.md#导入整库导出与附件) · [笔记本管理](user-guide-reference.zh.md#笔记本管理) · [标签管理](user-guide-reference.zh.md#标签管理) · [回收站](user-guide-reference.zh.md#多选和清空回收站) · [会话侧栏设置](user-guide-reference.zh.md#工作区笔记本设置与取消操作)
 
-适用 **0.10.0**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.10.0/release-notes.md)。使用公开版 0.9.3 时，可查看 [0.9.3 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.9.3/docs/user-guide.zh.md)。
+适用 **0.11.0**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.11.0/release-notes.md)。使用 0.10.0 时，可查看 [0.10.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.10.0/docs/user-guide.zh.md)。

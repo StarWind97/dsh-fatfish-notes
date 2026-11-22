@@ -1,4 +1,8 @@
-# 真实侧栏交互回归
+# 浏览器回归
+
+## 共享弹窗尺寸
+
+改动共享弹窗、外观或转存尺寸后，运行 `node --import tsx test/browser/check-dialog-sizes.mjs`。检查后挂载的外观样式、嵌套弹窗的独立尺寸、宽窗三栏和极小窗口单列。使用本机 Chrome 和 Playwright，可通过 `FATFISH_CHROME`、`FATFISH_PLAYWRIGHT` 指定路径。此检查直接加载项目 CSS，实际入口和操作另在隔离宿主验收。
 
 ## 会话侧栏查找
 

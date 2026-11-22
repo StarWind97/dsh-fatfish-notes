@@ -1,7 +1,7 @@
 export const captureOptionsCss = `
-.paper-dialog.capture-save{--capture-width:556px;--capture-inline-inset:32px;--capture-block-inset:32px;width:min(var(--capture-width),calc(100dvw - var(--capture-inline-inset)));max-width:calc(100dvw - var(--capture-inline-inset));max-height:calc(100dvh - var(--capture-block-inset))}
-.paper-dialog.capture-save-expanded{--capture-width:1280px;height:min(780px,calc(100dvh - var(--capture-block-inset)))}
-.paper-dialog.capture-save-review{--capture-width:680px}
+.paper-dialog.capture-save-compact{--paper-dialog-width:556px}
+.paper-dialog.capture-save-expanded{--paper-dialog-width:1280px;--paper-dialog-height:780px}
+.paper-dialog.capture-save-review{--paper-dialog-width:680px}
 .capture-save:modal{overscroll-behavior:contain}
 .capture-save::backdrop{overflow:hidden;overscroll-behavior:contain}
 .capture-save>header{display:grid;grid-template-columns:minmax(0,1fr) auto}
@@ -42,7 +42,7 @@ export const captureOptionsCss = `
   .capture-save-expanded .capture-save-details{overflow:auto;overscroll-behavior:contain}
 }
 @media(max-width:520px){
-  .paper-dialog.capture-save{--capture-inline-inset:12px}
+  .paper-dialog.capture-save{--paper-dialog-inline-inset:12px}
   .capture-save>header{padding-inline:8px;gap:4px}
   .capture-save>header .paper-dialog-actions{gap:4px}
   .capture-save>header button{box-sizing:border-box;width:32px;min-height:32px;padding:0;justify-content:center}
@@ -57,7 +57,7 @@ export const captureOptionsCss = `
   .capture-save>header button{width:24px;min-height:24px}
 }
 @media(max-height:320px){
-  .paper-dialog.capture-save{--capture-block-inset:12px}
+  .paper-dialog.capture-save{--paper-dialog-block-inset:12px}
   .capture-save>header{padding-block:4px}
   .capture-save .capture-save-foot{padding-block:6px}
 }

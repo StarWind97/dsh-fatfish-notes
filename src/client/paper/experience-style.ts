@@ -13,7 +13,6 @@ export const experienceCss=`
 .paper-app .paper-supplement-row>svg{color:var(--accent)}.paper-app .paper-supplement-row button{min-width:28px;min-height:28px}
 .paper-app .paper-backlinks ul{list-style:none;padding:0;margin:10px 0 0}.paper-app .paper-backlinks li{margin:4px 0}.paper-app .paper-backlinks li button{width:100%;justify-content:space-between;text-align:left;padding:7px 8px;min-height:32px;color:var(--ink)}
 .paper-app .paper-backlinks p{margin:10px 0 0;font:inherit;color:var(--muted)}
-.paper-dialog.paper-history-dialog{width:min(940px,calc(100vw - 32px))}
 .paper-app .paper-reading a,.paper-app .paper-source a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
 .paper-app .paper-meta{gap:8px 16px}.paper-app .paper-stamp{flex-wrap:wrap;white-space:normal}
 .paper-app .paper-summary{background:var(--shelf);border-left-color:var(--accent);border-radius:0 8px 8px 0}
