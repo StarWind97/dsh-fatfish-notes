@@ -54,7 +54,7 @@ export class AppearancePreferences {
     this.surface=surface;this.api=api;this.ready=ready;this.stopped=false;this.state('connecting');void this.connect()
     if(typeof window!=='undefined'){
       window.addEventListener('online',this.refresh);window.addEventListener('focus',this.refresh)
-      if(surface==='embedded'){this.observer=new MutationObserver(()=>void this.publishTheme());for(const node of [document.body,document.documentElement])this.observer.observe(node,{attributes:true,attributeFilter:['class','style','data-ds-dark-theme']})}
+      if(surface==='embedded'){this.observer=new MutationObserver(()=>void this.publishTheme());for(const node of [document.body,document.documentElement])this.observer.observe(node,{attributes:true,attributeFilter:['class','style','data-ds-dark-theme','lang']})}
     }
     return()=>this.stop()
   }

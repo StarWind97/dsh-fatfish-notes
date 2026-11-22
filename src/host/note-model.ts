@@ -9,6 +9,7 @@ import type { NoteConversationController } from './note-conversation.js'
 import type { ConversationFileServices } from './conversation-files.js'
 import type { ContentBlock, RequestUserInput } from '@deepseek-ai/dsh-llm/types'
 import { stageResult, AI_LIMITS } from '../notes/enrichment-plan.js'
+import {translator,type T} from '../domain/localization.js'
 declare module '@deepseek-ai/dsh-llm/types' { interface LlmRequestPurposeMap { 'fatfish-notes-metadata': true } }
 
 export type NoteModelController = NoteConversationController & Partial<Pick<SessionController, 'modelCatalog'>>
@@ -47,7 +48,7 @@ export class NoteModelBridge implements NoteModel {
       if(!fallback)fail('ai_unavailable');return {provider:fallback.provider,model:fallback.model}
     }finally{stop.abort();await iterator.return?.()}
   }
-  async dispatch(job: Pick<NoteJob,'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal) {
+  async dispatch(job: Pick<NoteJob,'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal,t:T=translator('zh')) {
     const llm=this.services.llm?.();if(!llm)fail('ai_unavailable','后台模型服务不可用')
     const selected=await this.selection(job.sessionId,signal),images:ContentBlock[]=[]
     if(stage.assetIds.length){
@@ -71,7 +72,7 @@ export class NoteModelBridge implements NoteModel {
         if(chunk.type==='finish'){if(chunk.reason.kind!=='stop')fail('ai_no_candidate');finished=true}
       }
       if(!finished)fail('ai_no_candidate')
-      try{return stageResult(JSON.parse(output.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')),stage,true)}catch{if(attempt)fail('ai_no_candidate','未得到简短有效的建议')}
+      try{return stageResult(JSON.parse(output.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')),stage,true,t)}catch{if(attempt)fail('ai_no_candidate','未得到简短有效的建议')}
     }
     fail('ai_no_candidate')
   }

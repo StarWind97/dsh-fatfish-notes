@@ -125,7 +125,7 @@ export function NoteTabBar({controller, state, session, tabs, scope, t, beforeSe
 
   function title(tab: ReadingTab) {
     return tab.kind === 'start' ? t(tab.id === conversationListTabId ? 'sessionListTab' : 'notesOverviewTab')
-      : tab.title + (tab.trashed ? ' · ' + t('notesTrash') : '')
+      : (tab.title||t('notesUntitled')) + (tab.trashed ? ' · ' + t('notesTrash') : '')
   }
   function focusTab(id: string | null) {
     requestAnimationFrame(() => {

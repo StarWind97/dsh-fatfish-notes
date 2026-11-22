@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+- 2026-11-22 **0.11.1 双语候选已验收，待确认发布。** 同一候选在官方 DSH 0.2.2-rc.5 的隔离 Windows 桌面和 Web 通过简体中文与英文验收。两语界面、随包手册、图解和四组实拍已补齐，语言一致性已纳入开发和发布检查。[验收记录](releases/0.11.1/review.zh.md) · [实施规划](plans/2026-11-22-bilingual-localization.zh.md)
+
 - 2026-11-22 正式发布 [0.11.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)。公开安装包与已通过 428 项全量及双端验收的候选逐字节一致。市场安装与升级入口已指向 0.11.0，详情页的说明等待市场站点重建。[发布与市场验证](releases/0.11.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
 - 2026-11-21 [会话转存布局与纯文字 AI 建议](plans/2026-11-21-capture-layout-and-text-suggestions.zh.md)完成隔离桌面和 Web 验证，待体验。宽窗并排三栏，窄窗默认紧凑，手动展开后从上到下排成一列。极小窗口也保留收起和关闭按钮。已有会话标题预填。桌面多图会话的真实模型建议和按所选范围归档读回通过。

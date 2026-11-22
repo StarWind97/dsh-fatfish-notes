@@ -53,6 +53,24 @@ test('handbook lookup survives renamed books, moved notes and edited titles with
   assert.equal((await repo.get(material.noteId)).current.status,'trashed')
   assert.equal((await repo.listNotebooks()).length,2)
 })
+test('English and Chinese handbook editions coexist and open their own linked content',async t=>{
+  const {repo}=await fixture(t)
+  const english=await handbookBundle(0,undefined,'en')
+  const chinese=await handbookBundle()
+  assert.deepEqual(english,await handbookBundle(0,undefined,'en'))
+  assert.ok(english.objects.revisions.every(row=>!/\p{Script=Han}/u.test(row.title+row.summary+row.body)))
+  assert.ok(english.objects.revisions.every(row=>chinese.objects.revisions.every(other=>other.noteId!==row.noteId)))
+  const [en,zh,repeat]=await Promise.all([openHandbook(repo,true,undefined,'en'),openHandbook(repo,true),openHandbook(repo,true,undefined,'en')])
+  assert.equal(en.noteId,handbookId(0,'welcome',5,'en'))
+  assert.equal(zh.noteId,handbookId(0,'welcome'))
+  assert.equal(en.noteId,repeat.noteId)
+  assert.equal(repeat.created,false)
+  assert.equal((await repo.list()).items.length,6)
+  const materials=await repo.get(handbookId(0,'materials',5,'en'))
+  assert.match(materials.current.body,/Save a conversation/)
+  for(const file of materials.current.attachments??[])assert.equal((await repo.getAttachment(file.id)).length,file.bytes)
+  assert.equal((await openHandbook(repo,false,undefined,'en')).noteId,en.noteId)
+})
 test('purged handbook stays deleted; manual addition uses new identities and remaps its links',async t=>{
   const {repo}=await fixture(t);await openHandbook(repo,true)
   for(const item of (await repo.list()).items){const trashed=await repo.trash(item.noteId,item.heads);await repo.batch([{noteId:item.noteId,expectedHeads:trashed.heads}],'purge')}
@@ -107,7 +125,7 @@ async function syncFixture(t:{after(fn:()=>Promise<void>):void}){
   const instances:Array<{notes:NoteRepository;sync:PrivateWorkspaceSync}>=[]
   t.after(async()=>{for(const i of instances){await i.sync.close();i.notes.close()}await rm(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})})
   async function instance(name:string,handbook=true){const notes=new NoteRepository(join(dir,name)),sync=new PrivateWorkspaceSync({dir:join(dir,name),notes,gateway,remoteForTest:()=>pathToFileURL(remote).href,gitRunner:(a,o)=>runner(a,o),batchMs:3600000,...(handbook?{initialNotes:initialHandbook}:{})});await sync.load();instances.push({notes,sync});return {notes,sync}}
-  async function connect(sync:PrivateWorkspaceSync){const {preview}=await sync.preview({mode:repository?'existing':'create',repo:'manual-test'});await sync.connect({previewId:preview.id,confirmPrivate:true})}
+  async function connect(sync:PrivateWorkspaceSync,language:'zh'|'en'='zh'){const {preview}=await sync.preview({mode:repository?'existing':'create',repo:'manual-test'});await sync.connect({previewId:preview.id,confirmPrivate:true},undefined,language)}
   return {dir,remote,gateway,instance,connect,set runner(r:GitRunner){runner=r}}
 }
 test('production initialization and another device produce one handbook, preserve edits and never refill a cleared library',async t=>{
@@ -131,6 +149,21 @@ test('failed first push leaves no visible handbook; retry and a second clone con
   await assert.rejects(f.connect(a.sync));assert.equal((await a.notes.list()).items.length,0)
   f.runner=runGit;await a.sync.sync();const b=await f.instance('other');await f.connect(b.sync)
   assert.equal((await b.notes.list()).items.length,3);assert.equal(existingHandbook(await b.notes.exportObjects()),handbookId(0,'welcome'))
+})
+test('the first successful sync uses the initial language across a restart',async t=>{
+  const f=await syncFixture(t),a=await f.instance('english-retry')
+  f.runner=async(args,options)=>{if(args.includes('push'))throw Error('network unavailable');return runGit(args,options)}
+  await assert.rejects(f.connect(a.sync,'en'))
+  await a.sync.close();a.notes.close()
+  f.runner=runGit
+  const restarted=await f.instance('english-retry')
+  await restarted.sync.sync()
+  const b=await f.instance('another-device')
+  await f.connect(b.sync,'zh')
+  const objects=await b.notes.exportObjects()
+  assert.equal(objects.revisions.length,3)
+  assert.equal(existingHandbook(objects,'en'),handbookId(0,'welcome',5,'en'))
+  assert.equal(existingHandbook(objects,'zh'),null)
 })
 test('application wires the real handbook provider and manual help requires completed setup',async t=>{
   const f=await syncFixture(t),app=await createApplication({dir:join(f.dir,'application'),personal:{gateway:f.gateway,remoteForTest:()=>pathToFileURL(f.remote).href}})

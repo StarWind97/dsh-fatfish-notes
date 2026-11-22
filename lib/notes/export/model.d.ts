@@ -1,4 +1,5 @@
 import type { Root } from 'mdast';
+import { type T } from '../../domain/localization.js';
 export interface ExportRun {
     text: string;
     strong?: boolean;
@@ -46,4 +47,4 @@ export declare class ExportError extends Error {
 export declare function exportLink(url: string): string | undefined;
 export declare function exportTree(body: string): Root;
 /** Safe projection, shared by PDF and the isolated image renderer. No HTML or URL fetch. */
-export declare function exportModel(title: string, body: string, allowed: readonly string[], markdownOnly?: boolean): ExportModel;
+export declare function exportModel(title: string, body: string, allowed: readonly string[], markdownOnly?: boolean, t?: T): ExportModel;

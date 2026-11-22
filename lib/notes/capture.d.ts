@@ -3,6 +3,7 @@ import type { CaptureMaterial, CaptureProgress } from '../contracts/notes.js';
 import type { CaptureRequest, CaptureResult, CaptureSource, CaptureCut, CaptureMessage, CaptureSelectionRequest, CaptureSelection, CaptureTranscript } from '../contracts/notes.js';
 import type { ImageMediaType } from '../contracts/media.js';
 import { NoteRepository } from './repository.js';
+import { type T } from '../domain/localization.js';
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
 export interface CaptureRead extends CaptureTranscript {
@@ -12,7 +13,7 @@ export interface CaptureRead extends CaptureTranscript {
 }
 export interface CaptureConversation {
     open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>;
-    read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>;
+    read(sessionId: string, cut: CaptureCut, signal: AbortSignal, t?: T): Promise<CaptureRead>;
     material?(sessionId: string, material: CaptureMaterial, reference: MaterialReference, signal: AbortSignal, progress?: (bytes: number) => void): Promise<Buffer>;
     attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{
         bytes: Buffer;
@@ -21,7 +22,7 @@ export interface CaptureConversation {
 }
 export declare function validateCaptureRequest(input: unknown): CaptureRequest;
 export declare function selectMessages(messages: CaptureMessage[], request: Pick<CaptureRequest, 'scope' | 'messageIds' | 'anchorMessageId'>): CaptureMessage[];
-export declare function rawBody(source: CaptureSource): string;
+export declare function rawBody(source: CaptureSource, t?: T): string;
 /** Durable request identity is written BEFORE reading history; a frozen cut is
  * persisted before pagination. Retrying never selects a newer tail or note ID. */
 export declare class NoteCaptureService {
@@ -29,7 +30,7 @@ export declare class NoteCaptureService {
     private readonly conversation;
     private tail;
     constructor(repository: NoteRepository, conversation: CaptureConversation);
-    capture(input: unknown, signal?: AbortSignal, progress?: (value: CaptureProgress) => void): Promise<CaptureResult>;
-    selection(input: CaptureSelectionRequest, signal?: AbortSignal): Promise<CaptureSelection>;
+    capture(input: unknown, signal?: AbortSignal, progress?: (value: CaptureProgress) => void, t?: T): Promise<CaptureResult>;
+    selection(input: CaptureSelectionRequest, signal?: AbortSignal, t?: T): Promise<CaptureSelection>;
     private perform;
 }

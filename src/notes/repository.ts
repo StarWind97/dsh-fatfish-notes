@@ -1,4 +1,5 @@
 import {createOrganization,mergeOrganization,organizationPath,organizationState,organizationManifest,validateOrganization,validateOrganizationManifest} from './organization.js'
+import {DEFAULT_UNTITLED_NOTE_TITLE} from '../contracts/notes.js'
 import {BacklinkIndex} from './backlinks.js'
 import type { TagResponse } from '../contracts/tag-management.js'
 import { parseTagRequest, readTagJournal, replaceTag, tagRevision, writeTagJournal } from './tag-management.js'
@@ -19,7 +20,7 @@ import { parseNoteMarkdown, serializeNoteMarkdown, NOTE_METADATA_BYTES } from '.
 import { NoteFiles, missing, safePath, utf8 } from './files.js'
 import { checkReferences, sourceAttachments, sourceBytes, validateAsset, mediaTypeFor } from './assets.js'
 import { searchNotes } from './search.js'
-import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from './notebooks.js'
+import { activeNotebook, defaultNotebook, DEFAULT_NOTEBOOK_ID, DEFAULT_NOTEBOOK_TIME, DEFAULT_NOTEBOOK_TITLE, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from './notebooks.js'
 import { deletionIds, deletionData, readDeletion, moduleVersion } from './deletion.js'
 import { attachment } from './validation.js'
 import { ATTACHMENT_LIMIT, SINGLE_TRANSFER_LIMIT, type NoteAttachment, type NoteSelection, type NoteManageRequest, type NoteHistoryItem, type NoteCatalog } from '../contracts/notes.js'
@@ -101,7 +102,7 @@ export class NoteRepository {
     if (state.issues.length) return
     const books = this.books(state), seed = books.find(b => b.notebookId === DEFAULT_NOTEBOOK_ID)
     if ((!seed && !books.some(b => b.current.defaultSelectedAt)) || !this.defaultBook(state)) {
-      const row = createNotebookRevision({ version: 1, notebookId: DEFAULT_NOTEBOOK_ID, title: seed?.current.title ?? '默认笔记本', status: 'active',
+      const row = createNotebookRevision({ version: 1, notebookId: DEFAULT_NOTEBOOK_ID, title: seed?.current.title ?? DEFAULT_NOTEBOOK_TITLE, status: 'active',
         parents: seed?.heads ?? [], recordedAt: seed?.current.recordedAt ?? DEFAULT_NOTEBOOK_TIME, defaultSelectedAt: DEFAULT_NOTEBOOK_TIME })
       state.notebooks = mergeNotebookRevisions(state.notebooks, [row])
       await this.files.write(notebookPath(row), canonical(row), true); await this.manifest(state)
@@ -634,7 +635,7 @@ export class NoteRepository {
   private async draftView(noteId:string):Promise<NoteView|null>{const s=await this.load([noteId]);return s.revisions.some(r=>r.noteId===noteId)&&!s.deleted?.includes(noteId)?this.view(s,noteId):null}
   private async finishDraft(row:LocalDraft):Promise<NoteDraftResult>{
     const request=row.request!,c=request.content
-    const empty=!request.expectedHeads.length&&(!c.title.trim()||c.title==='无标题')&&!c.body.trim()&&!c.summary.trim()&&!c.tags.length&&!c.assetIds.length&&!c.attachments?.length
+    const empty=!request.expectedHeads.length&&(!c.title.trim()||c.title===DEFAULT_UNTITLED_NOTE_TITLE)&&!c.body.trim()&&!c.summary.trim()&&!c.tags.length&&!c.assetIds.length&&!c.attachments?.length
     const note=empty?null:await this.saveContent(row.noteId,request.expectedHeads,c,true,true)
     row={editId:row.editId,noteId:row.noteId,sequence:row.sequence,state:'finished',files:row.files,...(note?{resultId:note.noteId,resultHeads:note.heads}:{})}
     await this.drafts.write(row);await this.cleanupDraft(row)

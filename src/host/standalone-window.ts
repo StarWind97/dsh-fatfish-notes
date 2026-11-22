@@ -9,6 +9,7 @@ import type {NotebookApplication} from './application.js'
 import {createHttpHandler,fence} from './routes.js'
 import {standaloneAsset} from './standalone-assets.js'
 import {NotebookError} from '../domain/errors.js'
+import {resolveLanguage} from '../domain/localization.js'
 const exec=promisify(execFile)
 const fail=()=>new NotebookError('window_unavailable','暂时无法打开独立笔记窗口，请稍后重试',409)
 interface BrowserRecord {pid:number;startTicks:string}
@@ -42,7 +43,7 @@ export async function enableStandalone(app:NotebookApplication,dir:string){
         fence(req,origin())
         const path=new URL(req.url??'/',origin()).pathname
         if(path.startsWith('/dsh-fatfish-notes/')){await handler(req,res);return}
-        const asset=req.method==='GET'?await standaloneAsset(path):undefined
+        const asset=req.method==='GET'?await standaloneAsset(path,app.appearance.language??resolveLanguage(req.headers['accept-language']?.split(/[;,]/,1)[0]?.trim())):undefined
         if(!asset){res.writeHead(404);res.end();return}
         res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"});res.end(asset.content)
       }catch{if(!res.headersSent)res.writeHead(403);res.end()}

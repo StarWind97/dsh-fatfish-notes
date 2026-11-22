@@ -2,6 +2,7 @@ import {ReadingTitle,ReadingMeta,ReadingSummary,ReadingBody} from './NoteReading
 import {Supplements} from './NoteAttachments.js'
 import {supplementMaterials} from '../notes/note-materials.js'
 import {useAppearance} from './paper/appearance.js'
+import {notebookTitle} from '../notes/notebooks.js'
 import {MaterialsPanel,MaterialsToggle} from './paper/MaterialsPanel.js'
 import type {NoteSelection} from '../contracts/notes.js'
 import {PaperDialog} from './paper/PaperDialog.js'
@@ -98,7 +99,8 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   if(!draft)return null
   const editable=draft.status==='active'&&!state.loadingNote&&!state.operation&&(!state.editing||controller.writable)
   const status=state.error&&state.error!=='note_unsaved'?'notesSaveFailed':state.saving?'notesSaving':state.dirty?'notesPending':'paperDraftSaved'
-  const book=state.notebooks.find(b=>b.notebookId===draft.notebookId)?.current.title??state.notebooks.find(b=>b.isDefault)?.current.title??t('notesDefaultBook')
+  const currentBook=state.notebooks.find(b=>b.notebookId===draft.notebookId)??state.notebooks.find(b=>b.isDefault)
+  const book=currentBook?notebookTitle(currentBook,t):t('notesDefaultBook')
   function edit(target?:HTMLElement){
     if(!root.current||!editable)return
     const pane=root.current.closest<HTMLElement>('.paper-pane')!
@@ -146,7 +148,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   if(note && !sourceOpen && !state.editing) actions.push(
     {label:t('notesExport'),icon:Download,run:()=>{onDownloadNotice(false);setPanel('export')}},
     ...(draft.status==='active'?[
-      {label:note.pinned?'取消置顶':'置顶笔记',icon:note.pinned?PinOff:Pin,menuOnly:true,disabled:state.operation,run:()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:note.pinned?'unpin':'pin'})},
+      {label:note.pinned?t('paperUnpinNote'):t('paperPinNote'),icon:note.pinned?PinOff:Pin,menuOnly:true,disabled:state.operation,run:()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:note.pinned?'unpin':'pin'})},
       {label:t('organizeHistory'),icon:History,menuOnly:true,disabled:state.operation,run:()=>setPanel('history')},
       {label:t('organizeDuplicate'),icon:Copy,menuOnly:true,disabled:state.operation,run:()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:'duplicate'})},
     ]:[]),
@@ -155,7 +157,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
     <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
       <>{onReturn&&<button title={t('linkReturn')} aria-label={t('linkReturn')} onClick={onReturn}><ArrowLeft size={16}/></button>}</><NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
-        {note&&!sourceOpen&&!state.editing&&draft.status==='trashed'&&<button title={t('batchPurge')} aria-label={t('batchPurge')} onClick={onPurge}><Trash2 size={16}/></button>}{!sourceOpen&&<>{appearance.materials==='right'&&<MaterialsToggle open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>}<button ref={outline.trigger} type="button" className="paper-outline-toggle" aria-label={t('paperOutline')} title={t('paperOutline')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={toggleOutline}><ListTree size={17}/></button></>}
+        {note&&!sourceOpen&&!state.editing&&draft.status==='trashed'&&<button title={t('batchPurge')} aria-label={t('batchPurge')} onClick={onPurge}><Trash2 size={16}/></button>}{!sourceOpen&&<>{appearance.materials==='right'&&<MaterialsToggle t={t} open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>}<button ref={outline.trigger} type="button" className="paper-outline-toggle" aria-label={t('paperOutline')} title={t('paperOutline')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={toggleOutline}><ListTree size={17}/></button></>}
         {note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<button title={t(draft.favorite?'findUnfavorite':'findFavorite')} aria-label={t(draft.favorite?'findUnfavorite':'findFavorite')} aria-pressed={!!draft.favorite} disabled={state.operation} className="paper-favorite" onClick={()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:draft.favorite?'unfavorite':'favorite'})}><Star size={16} fill={draft.favorite?'currentColor':'none'}/></button>}
       </NoteActions></div>
       {note?.current.sourceId&&<nav className="paper-views" aria-label={t('paperViews')}>
@@ -165,14 +167,14 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     <div className="paper-document-body">
     <div className="paper-pane" tabIndex={mode==='read'?0:undefined} aria-label={t('notesDetail')} onKeyDown={e=>readingKey(e,state.editing)} onPointerDown={e=>{if(!state.editing&&!(e.target as HTMLElement).closest('a,button,input,textarea,select,[contenteditable=true],dialog'))e.currentTarget.focus({preventScroll:true})}}>
     <section ref={root} className="paper-leaf" aria-label={t('notesDetail')}>
-    {cancelOpen&&<PaperDialog title="放弃本次编辑？" closeLabel={t('paperClose')} locked={state.operation} onClose={()=>setCancelOpen(false)}><div className="paper-dialog-content"><p>放弃这次编辑的草稿，原有笔记不会改变。新建草稿将直接丢弃。</p></div><footer><button disabled={state.operation} onClick={()=>setCancelOpen(false)}>继续编辑</button><button className="paper-primary" disabled={state.operation} onClick={()=>void controller.cancelEdits().then(ok=>{if(ok){setCancelOpen(false);setTag('');undo.current=null}})}>放弃修改</button></footer></PaperDialog>}
+    {cancelOpen&&<PaperDialog title={t('editorDiscardTitle')} closeLabel={t('paperClose')} locked={state.operation} onClose={()=>setCancelOpen(false)}><div className="paper-dialog-content"><p>{t('editorDiscardBody')}</p></div><footer><button disabled={state.operation} onClick={()=>setCancelOpen(false)}>{t('editorKeepEditing')}</button><button className="paper-primary" disabled={state.operation} onClick={()=>void controller.cancelEdits().then(ok=>{if(ok){setCancelOpen(false);setTag('');undo.current=null}})}>{t('editorDiscard')}</button></footer></PaperDialog>}
     {panel==='export'&&note&&<NoteExport readingElement={root.current} allTags={allTags} controller={controller} state={state} t={t} onClose={()=>setPanel(null)} onDownloaded={()=>{setPanel(null);onDownloadNotice(true)}}/>}
     {panel==='history'&&note&&<HistoryDialog note={note} controller={controller} t={t} close={()=>setPanel(null)}/>}
     <div hidden={sourceOpen}>
     {mode==='edit'?<input disabled={!editable} className="paper-title-input" aria-label={t('notesTitle')} placeholder={t('notesUntitled')} value={draft.title} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({title:e.target.value})}/>:<ReadingTitle title={draft.title} t={t} query={state.filter.query}/>}
     {state.editing?<div className="paper-meta"><span className="paper-stamp">{note&&<time dateTime={note.savedAt} title={t('noteModifiedAt')}>{noteDateTime(note.savedAt)}</time>}<span role="status">{t(status)}</span></span></div>:<ReadingMeta content={draft} savedAt={note?.savedAt} t={t} allTags={allTags} toggleTags={()=>setAllTags(!allTags)} onTagClick={onTagClick} tag={state.filter.tag??undefined}/>}
     {state.editing&&<aside className="paper-metadata" onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}>
-      <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? state.notebooks.find(b=>b.isDefault)?.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}>{state.notebooks.filter(activeNotebook).map(book => <option key={book.notebookId} value={book.notebookId}>{book.current.title}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
+      <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? state.notebooks.find(b=>b.isDefault)?.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}>{state.notebooks.filter(activeNotebook).map(book => <option key={book.notebookId} value={book.notebookId}>{notebookTitle(book,t)}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
       <div className="paper-tag-editor"><span>{t('notesTag')}</span><div className="paper-tag-items">
         {draft.tags.map(value=><button type="button" disabled={!editable} key={value} aria-label={t('notesRemoveTag',{tag:value})} onClick={()=>controller.update({tags:draft.tags.filter(tag=>tag!==value)})}>#{value} ×</button>)}
         <form onSubmit={event=>{event.preventDefault();if(!state.composing)addTag()}}>
@@ -192,7 +194,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     {sourceVisited&&note&&<div hidden={!sourceOpen} className="paper-source"><h1>{draft.title||t('notesUntitled')}</h1><NoteSource note={note} t={t}/></div>}
   </section>
   </div>
-  <MaterialsPanel id={materialsId} open={materialsOpen} setOpen={setMaterialsOpen} files={materialCount} references={referenceCount} hidden={sourceOpen}>
+  <MaterialsPanel t={t} id={materialsId} open={materialsOpen} setOpen={setMaterialsOpen} files={materialCount} references={referenceCount} hidden={sourceOpen}>
     <div ref={setSupplementTarget} className="paper-material-files">{!state.editing&&<Supplements content={draft} note={note} t={t}/>}</div>
     {note&&<Backlinks note={note} t={t} open={onNoteLink} refreshToken={state.items} onTotal={setReferenceCount}/>}
   </MaterialsPanel>
@@ -201,6 +203,6 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     <svg width="16" height="44" viewBox="0 0 16 44" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M1 1 7 22 1 43 M9 1 15 22 9 43"/></svg>
   </button>}
   </div>
-  {!sourceOpen&&<DocumentTools body={draft.body} t={t} materials={appearance.materials==='bottom'?<MaterialsToggle open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>:null}/>}
+  {!sourceOpen&&<DocumentTools body={draft.body} t={t} materials={appearance.materials==='bottom'?<MaterialsToggle t={t} open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>:null}/>}
   </div>
 }

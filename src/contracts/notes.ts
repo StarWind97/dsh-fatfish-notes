@@ -1,3 +1,5 @@
+// Canonical fallback used by old revisions and draft comparisons.
+export const DEFAULT_UNTITLED_NOTE_TITLE = '无标题'
 export type NoteMode = 'raw'
 export type NoteStatus = 'active' | 'trashed'
 /** Binary export endpoint is handled separately from the JSON NotesApiContract. */

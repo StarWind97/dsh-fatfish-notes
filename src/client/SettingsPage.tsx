@@ -131,7 +131,7 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
   return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
     <header><span className="setup-icon" style={brandStyle}><BrandMark size={28} color/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
-    {sync?.ready&&!wizard&&!grouped&&<HandbookHelp/>}
+    {sync?.ready&&!wizard&&!grouped&&<HandbookHelp t={t}/>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}
     {wizard && (preview?<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupReview')}</strong>
       {resetting&&<small>{t('resetFrom',{repo:repoLabel})}</small>}
@@ -198,7 +198,7 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
       <BoundGitHubLogin key={sync.binding.repositoryId} sync={sync} t={t}/>
       <section className="setup-section"><strong><Folder size={16}/>{t('setupFolder')}</strong><code>{sync.folder}</code>{sync.ready&&<button disabled={busy} onClick={()=>{setManage('move');setCustom('');setNotice(null);setError(null)}}>{t('moveTitle')}</button>}</section>
       <div className={grouped?'setup-section':undefined}><style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
-      {sync.error&&<p role="alert">{sync.errorCode&&setupErrors[sync.errorCode]?t(setupErrors[sync.errorCode]!):sync.error}</p>}
+      {sync.error&&<p role="alert">{t((sync.errorCode&&setupErrors[sync.errorCode])||'personalFailed')}</p>}
       <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button></div>
       <NoteUsage t={t} details/></div>{!grouped&&<CaptureAppearance t={t}/>}
       {sync.ready&&<footer className="setup-reset"><button disabled={busy||sync.pending} onClick={()=>{setManage('reset');setRepo(DEFAULT_PRIVATE_REPO_NAME);setMode('create');setCustom(null);setRecovery(null);setEditingFolder(false);setPreview(null);setError(null);setNotice(null)}}>{t('resetTitle')}</button><small>{t(sync.pending?'resetPending':'resetFoot')}</small></footer>}

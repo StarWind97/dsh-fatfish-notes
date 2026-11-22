@@ -4,6 +4,7 @@ import { attemptId, stagePrompt } from '../notes/enrichment-plan.js'
 import { fail } from '../notes/validation.js'
 import type { NoteConversation } from './note-conversation.js'
 import type { NoteModelBridge } from './note-model.js'
+import {translator,type T} from '../domain/localization.js'
 
 const inputLimit = 8_000
 const sampledMessages = 24
@@ -34,7 +35,7 @@ function suggestionInput(messages: CaptureMessage[]): string {
 /** Read only the fixed selection. The model receives text without opening any attachment. */
 export async function suggestMetadata(
   request: CaptureRequest, conversation: Pick<NoteConversation, 'readTranscript'>,
-  model: Pick<NoteModelBridge, 'dispatch'>, signal: AbortSignal,
+  model: Pick<NoteModelBridge, 'dispatch'>, signal: AbortSignal,t:T=translator('zh'),
 ): Promise<NoteStageResult> {
   if (!request.cut) fail('capture_request')
   const transcript = await conversation.readTranscript(request.sessionId, request.cut, signal)
@@ -46,5 +47,7 @@ export async function suggestMetadata(
   }
   signal.throwIfAborted()
   const job = { sessionId: request.sessionId }
-  return model.dispatch(job, stage, stagePrompt(job, stage).replace('已保存素材', '所选文字'), signal)
+  const outputLanguage=t.language==='en'?'Write the title, summary and tags in English.':'标题、摘要和标签使用简体中文。'
+  const prompt=outputLanguage+'\n'+stagePrompt(job, stage).replace('已保存素材', '所选文字')
+  return model.dispatch(job, stage, prompt, signal,t)
 }

@@ -1,5 +1,6 @@
 import type { ApiContract, ApiPath } from '../contracts/api.js'
 import { validNotesResponse } from './notes-validation.js'
+import {clientLanguage,currentTranslator} from './locale.js'
 const record=(x:unknown):x is Record<string,unknown>=>!!x&&typeof x==='object'&&!Array.isArray(x)
 const text=(x:unknown):x is string=>typeof x==='string'
 function assertResponse<P extends ApiPath>(path:P,value:unknown):asserts value is ApiContract[P]['response'] {
@@ -17,7 +18,7 @@ function assertResponse<P extends ApiPath>(path:P,value:unknown):asserts value i
   throw new ApiError('invalid_response')
 }
 export class ApiError extends Error {
-  constructor(readonly code: string, readonly operationId?: string, readonly targetKey?: string, readonly previousFolder?:string,readonly affectedCount?:number) { super('请求未完成，请核对连接后重试。'); this.name = 'ApiError' }
+  constructor(readonly code: string, readonly operationId?: string, readonly targetKey?: string, readonly previousFolder?:string,readonly affectedCount?:number) { super(currentTranslator()('requestFailed')); this.name = 'ApiError' }
 }
 export type Api = <P extends ApiPath>(path: P, body: ApiContract[P]['request'], signal?: AbortSignal) => Promise<ApiContract[P]['response']>
 let clientRepository:number|undefined
@@ -33,6 +34,7 @@ export function createApi(fetcher: typeof fetch = globalThis.fetch, actorHeaders
     signal?.throwIfAborted()
     let response: Response
     const headers:Record<string,string>=path==='/workspace/register'?{}:(actorHeaders??windowHeaders)(path,body)
+    if(typeof document!=='undefined')headers['Accept-Language']=clientLanguage()
     if((path.startsWith('/notes')||path==='/workspace/action'||path==='/workspace/open') && clientRepository!==undefined)headers['x-notebook-repository']=String(clientRepository)
     if(body!==undefined)headers['Content-Type']='application/json'
     try { response = await fetcher(`/dsh-fatfish-notes${path}`, {method:body === undefined ? 'GET' : 'POST',credentials:'same-origin',headers, ...(body === undefined ? {} : {body:JSON.stringify(body)}), ...(signal ? {signal} : {})}) }

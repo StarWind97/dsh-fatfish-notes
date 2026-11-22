@@ -26,4 +26,4 @@ export declare class ConversationFiles {
     describe(sessionId: string, material: CaptureMaterial, ref: MaterialReference, signal: AbortSignal): Promise<void>;
     read(sessionId: string, material: CaptureMaterial, ref: MaterialReference, signal: AbortSignal, progress?: (bytes: number) => void): Promise<Buffer>;
 }
-export declare const materialName: (path: string) => string;
+export declare const materialName: (path: string, fallback: string) => string;

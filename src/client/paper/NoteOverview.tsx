@@ -1,3 +1,4 @@
+import {notebookTitle} from "../../notes/notebooks.js"
 import * as React from 'react'
 import type { NoteOverview as NoteOverviewData, NoteOverviewItem, NotebookView } from '../../contracts/notes.js'
 import { noteDateTime } from '../../notes/date.js'
@@ -16,7 +17,7 @@ export function NoteOverview({overview, books, t, compact=false, disabled, open,
   open: (id:string)=>void
   create: ()=>void
 }) {
-  const titles = new Map(books.map(book=>[book.notebookId, book.current.title]))
+  const titles = new Map(books.map(book=>[book.notebookId, notebookTitle(book,t)]))
   const currentYear = String(new Date().getFullYear())
   function rows(items:NoteOverviewItem[], showDate:boolean) {
     return <ul className="paper-overview-notes">{items.map(({noteId,title,notebookId,savedAt}) => {
@@ -39,7 +40,7 @@ export function NoteOverview({overview, books, t, compact=false, disabled, open,
     <section className="paper-overview" aria-label={t('notesOverview')}>
       <header>
         <h2 className="paper-overview-brand" aria-label={t('nav')} tabIndex={-1}>
-          <BrandMark size={144} color/><BrandWordmark/>
+          <BrandMark size={144} color/><BrandWordmark t={t}/>
         </h2>
         <div className="paper-overview-actions">
           <button type="button" className="paper-overview-new" disabled={disabled} onClick={create}><Plus size={16} aria-hidden="true"/>{t('notesNew')}</button>

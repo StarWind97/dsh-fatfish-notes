@@ -8,9 +8,9 @@ import {FeedbackLink} from './FeedbackLink.js'
 import {BrandSignature} from './Brand.js'
 
 export function SettingsWorkspace({t,category,onCategory}:{t:T;category:SettingsCategory;onCategory:(value:SettingsCategory)=>void}){
-  return <SettingsTabs heading="设置" value={category} onChange={onCategory} actions={category==='appearance'?<><AppearanceStatus/><AppearanceReset/></>:category==='reading'||category==='workspace'?<AppearanceStatus/>:undefined} items={[
+  return <SettingsTabs t={t} heading={t('notesSettings')} value={category} onChange={onCategory} actions={category==='appearance'?<><AppearanceStatus t={t}/><AppearanceReset t={t}/></>:category==='reading'||category==='workspace'?<AppearanceStatus t={t}/>:undefined} items={[
     ...appearanceTabs(t),
-    {id:'sync',label:'同步与存储',content:<SettingsPage t={t} grouped showFeedback={false}/>},
-    {id:'help',label:'帮助',content:<><div className="settings-help"><HandbookHelp/></div><section className="settings-help"><strong>问题与建议</strong><p>反馈使用中遇到的问题，或提出改进建议。</p><FeedbackLink t={t}/></section><footer className="settings-brand"><BrandSignature/></footer></>}
+    {id:'sync',label:t('settingsSyncStorage'),content:<SettingsPage t={t} grouped showFeedback={false}/>},
+    {id:'help',label:t('settingsHelp'),content:<><div className="settings-help"><HandbookHelp t={t}/></div><section className="settings-help"><strong>{t('feedback')}</strong><p>{t('settingsFeedbackHint')}</p><FeedbackLink t={t}/></section><footer className="settings-brand"><BrandSignature t={t}/></footer></>}
   ]}/>
 }

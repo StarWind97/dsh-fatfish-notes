@@ -1,3 +1,4 @@
+import { type Language } from '../domain/localization.js';
 import { type GitRunner } from '../git/backend.js';
 import { type NotebookLocation } from './folder.js';
 import type { GitHubGateway } from '../onboarding/types.js';
@@ -75,12 +76,12 @@ export declare class PrivateWorkspaceSync {
         preview: PersonalPreview;
     }>;
     private checkResetLocation;
-    reset(input: unknown, signal?: AbortSignal): Promise<void>;
+    reset(input: unknown, signal?: AbortSignal, language?: Language): Promise<void>;
     preview(input: unknown, signal?: AbortSignal): Promise<{
         ok: true;
         preview: PersonalPreview;
     }>;
-    connect(input: unknown, signal?: AbortSignal): Promise<void>;
+    connect(input: unknown, signal?: AbortSignal, language?: Language): Promise<void>;
     private checkTarget;
     private backend;
     private validateRemote;

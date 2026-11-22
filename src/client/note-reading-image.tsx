@@ -9,7 +9,7 @@ import {ReadingTitle,ReadingMeta,ReadingSummary,ReadingBody} from './NoteReading
 import {SourceContent} from './NoteSource.js'
 import {paperCss} from './paper/style.js'
 import {transferCss} from './NoteAttachments.js'
-import {translate} from './locale.js'
+import {currentTranslator,type T} from './locale.js'
 import {appearanceCss} from './paper/appearance-style.js'
 import {codeFontCss} from './paper/appearance-assets.js'
 
@@ -34,7 +34,7 @@ export function restoreCaptureFonts(svgUrl:string):string {
   for(const node of xml.querySelectorAll<HTMLElement>('[data-export-font]')){node.style.fontSize=node.getAttribute('data-export-font')!;node.removeAttribute('data-export-font')}
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(xml))
 }
-export async function readingImage(value:ReadingSnapshot,options:ReadingImageOptions,signal:AbortSignal):Promise<{blob:Blob;filename:string}>{
+export async function readingImage(value:ReadingSnapshot,options:ReadingImageOptions,signal:AbortSignal,t:T=currentTranslator()):Promise<{blob:Blob;filename:string}>{
   const {width,pixelRatio}=options
   if(!Number.isFinite(width)||width<160||width>2160||![1,2].includes(pixelRatio))throw new ExportError('export_dimensions')
   const holder=document.createElement('div');holder.className='paper-app';holder.setAttribute('aria-hidden','true');holder.inert=true
@@ -51,9 +51,9 @@ export async function readingImage(value:ReadingSnapshot,options:ReadingImageOpt
   try {
     const assetUrl=(id:string)=>{const url=value.assets[id];if(!url)throw new ExportError('export_image_missing');return url}
     flushSync(()=>root.render(<><style>{paperCss+transferCss+appearanceCss}</style><div className="paper-detail" style={{width:width+48,display:'block',height:'auto',overflow:'visible'}}><div data-export-viewport style={{width:width+48,overflow:'hidden',position:'relative',background:options.background==='transparent'?'transparent':'var(--paper)'}}><div data-export-content style={{padding:24,width:width+48,display:'flow-root'}}><section className="paper-leaf" style={{width,maxWidth:'none',margin:0}}>
-      <ReadingTitle title={value.note.current.title} t={translate}/><ReadingMeta content={value.note.current} savedAt={value.note.savedAt} t={translate} allTags={options.appearance?.allTags??false}/><ReadingSummary summary={value.note.current.summary} t={translate}/>
-      <article className="paper-reading"><ReadingBody note={value.note} t={translate} staticView assetUrl={assetUrl}/></article>
-      {value.source&&<div className="paper-source"><h2>{translate('notesSource')}</h2><SourceContent source={value.source} staticView note={value.note} t={translate} assetUrl={assetUrl}/></div>}
+      <ReadingTitle title={value.note.current.title} t={t}/><ReadingMeta content={value.note.current} savedAt={value.note.savedAt} t={t} allTags={options.appearance?.allTags??false}/><ReadingSummary summary={value.note.current.summary} t={t}/>
+      <article className="paper-reading"><ReadingBody note={value.note} t={t} staticView assetUrl={assetUrl}/></article>
+      {value.source&&<div className="paper-source"><h2>{t('notesSource')}</h2><SourceContent source={value.source} staticView note={value.note} t={t} assetUrl={assetUrl}/></div>}
     </section></div></div></div></>))
     await ready(document.fonts.ready,signal)
     await ready(Promise.all([...holder.querySelectorAll('img')].map(img=>img.decode())),signal)
@@ -79,6 +79,6 @@ export async function readingImage(value:ReadingSnapshot,options:ReadingImageOpt
     const blob=await ready(new Promise<Blob>((resolve,reject)=>canvas.toBlob(result=>result?resolve(result):reject(new ExportError('export_failed')),'image/png')),signal)
     canvas.width=0;canvas.height=0;image.src=''
     if(blob.size>128*1024*1024)throw new ExportError('export_output_limit')
-    signal.throwIfAborted();return {blob,filename:`${value.filename}-长图.png`}
+    signal.throwIfAborted();return {blob,filename:`${value.filename}-${t('artifactPngSuffix')}.png`}
   } finally {root.unmount();holder.remove();canvas.width=0;canvas.height=0}
 }

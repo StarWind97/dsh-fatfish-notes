@@ -1,8 +1,8 @@
 /** Local presentation only. Never serialize this into a note or repository. */
-export const layouts = {outline:'秩序工作台',soft:'柔和分区',ribbon:'横向导航',dock:'侧轨资料台',ink:'墨线书房',tree:'目录树工作室',island:'浮岛桌面',archive:'边签档案'} as const
-export const palettes = {native:'DSH 原生',lilac:'柔紫',mint:'青绿',blue:'雾蓝',amber:'暖砂',rose:'莓红',graphite:'石墨',clearblue:'澄蓝',pine:'松青',inkwhite:'墨白'} as const
-export const cjkFonts={host:'跟随 DSH',yahei:'微软雅黑',deng:'等线',song:'宋体',kai:'楷体'} as const
-export const latinFonts={host:'跟随 DSH',segoe:'Segoe UI',arial:'Arial',georgia:'Georgia',times:'Times New Roman'} as const
+export const layouts = {outline:'appearanceLayoutOutline',soft:'appearanceLayoutSoft',ribbon:'appearanceLayoutRibbon',dock:'appearanceLayoutDock',ink:'appearanceLayoutInk',tree:'appearanceLayoutTree',island:'appearanceLayoutIsland',archive:'appearanceLayoutArchive'} as const
+export const palettes = {native:'appearancePaletteNative',lilac:'appearancePaletteLilac',mint:'appearancePaletteMint',blue:'appearancePaletteBlue',amber:'appearancePaletteAmber',rose:'appearancePaletteRose',graphite:'appearancePaletteGraphite',clearblue:'appearancePaletteClearblue',pine:'appearancePalettePine',inkwhite:'appearancePaletteInkwhite'} as const
+export const cjkFonts={host:'appearanceFollow',yahei:'appearanceFontYahei',deng:'appearanceFontDeng',song:'appearanceFontSong',kai:'appearanceFontKai'} as const
+export const latinFonts={host:'appearanceFollow',segoe:'appearanceFontSegoe',arial:'appearanceFontArial',georgia:'appearanceFontGeorgia',times:'appearanceFontTimes'} as const
 export interface Appearance {
   version:1;layout:keyof typeof layouts;palette:keyof typeof palettes;contrast:'standard'|'soft'|'strong';mode:'host'|'light'|'dark';
   fontCjk:keyof typeof cjkFonts;fontLatin:keyof typeof latinFonts;

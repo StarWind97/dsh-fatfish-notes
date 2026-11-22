@@ -4,6 +4,7 @@ import type { NoteModel } from '../notes/enrichment.js';
 import type { NoteRepository } from '../notes/repository.js';
 import type { NoteConversationController } from './note-conversation.js';
 import type { ConversationFileServices } from './conversation-files.js';
+import { type T } from '../domain/localization.js';
 declare module '@deepseek-ai/dsh-llm/types' {
     interface LlmRequestPurposeMap {
         'fatfish-notes-metadata': true;
@@ -27,5 +28,5 @@ export declare class NoteModelBridge implements NoteModel {
         ended: string[];
     }>;
     private selection;
-    dispatch(job: Pick<NoteJob, 'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal): Promise<import("../contracts/notes.js").NoteStageResult>;
+    dispatch(job: Pick<NoteJob, 'sessionId'>, stage: NoteStage, prompt: string, signal: AbortSignal, t?: T): Promise<import("../contracts/notes.js").NoteStageResult>;
 }

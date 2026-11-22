@@ -1,0 +1,5 @@
+Available width,Reading mode,What to check,Result,Notes
+360,Comfortable,Inline images and long filenames,,
+520,Comfortable,Text with the outline open,,
+900,Comfortable,Code indentation and tables,,
+1200,Full width,Exported image and current reading width,,

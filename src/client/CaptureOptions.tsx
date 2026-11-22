@@ -10,7 +10,7 @@ import { CaptureTurnList } from './CaptureSelection.js'
 import { fileSize } from './NoteAttachments.js'
 import { captureCss } from './capture-style.js'
 import { captureOptionsCss } from './capture-options-style.js'
-import { toggleCaptureMessages, type IndexedSelection } from './capture-turns.js'
+import {captureRangeLabel,toggleCaptureMessages,type IndexedSelection} from './capture-turns.js'
 import type { T } from './locale.js'
 import type { NoteCaptureBridge, NoteCaptureState } from './note-capture-bridge.js'
 import { notesCss, notesStyles } from './notes-style.js'
@@ -49,7 +49,7 @@ export function CaptureOptions({ state, selection, bridge, t }: {
   const allowLarge = review?.kind==='files' ? review.allowLarge : state.allowLarge??false
   const kept = materials.filter(material=>selectedFiles.has(material.id)&&captureMaterialAvailable(material))
   const needsLarge = kept.some(material=>Number(material.bytes)>ATTACHMENT_WARNING)
-  const rangeLabel = t('capturePicked', {turns:selection.turns.filter(turn=>turn.some(message=>selected.has(message.id))).length, messages:selected.size})
+  const rangeLabel = captureRangeLabel(t,selection.turns.filter(turn=>turn.some(message=>selected.has(message.id))).length,selected.size)
   const fileLabel = materials.length ? t('captureFileCount', {
     count:kept.length,total:materials.length,size:fileSize(kept.reduce((size,material)=>size+(material.bytes??0),0)),
   }) : t('captureNoMaterials')

@@ -4,7 +4,7 @@ import {Check,LoaderCircle,Pencil,Notebook,X} from 'lucide-react'
 import {PaperDialog} from './paper/PaperDialog.js'
 import {importId} from './library-import.js'
 import {notebookSync} from './notebook-sync.js'
-import {activeNotebook,sameNamedNotebook,NOTEBOOK_NAME_TAKEN} from '../notes/notebooks.js'
+import {activeNotebook,editedNotebookTitle,notebookTitle,sameNamedNotebook} from '../notes/notebooks.js'
 import type {NotesController,NotesState} from './notes-controller.js'
 import type {T} from './locale.js'
 
@@ -26,7 +26,7 @@ export function WorkspaceBookDialog({mode,workspace,mapped,initialSelected,contr
   function choose(next:Exclude<Choice,null>,button:HTMLButtonElement){
     if(submitting.current)return
     origin.current=button;setError('');setChoice(next)
-    setTitle(next==='rename'?current?.current.title??'':workspaceNameTaken?'':workspace?.title??'')
+    setTitle(next==='rename'?(current?notebookTitle(current,t):''):workspaceNameTaken?'':workspace?.title??'')
     setSelected(mapped??state.notebooks.find(b=>b.isDefault)?.notebookId??'')
   }
   async function save(unbind=false){
@@ -35,7 +35,7 @@ export function WorkspaceBookDialog({mode,workspace,mapped,initialSelected,contr
     let created=false
     try{
       if(choice==='rename'&&!unbind){
-        if(!current||!await controller.notebook(title.trim(),current))throw Object.assign(Error('rename'),{code:controller.getSnapshot().error})
+        if(!current||!await controller.notebook(editedNotebookTitle(current,title,t),current))throw Object.assign(Error('rename'),{code:controller.getSnapshot().error})
         reset();return
       }
       let id=selected
@@ -50,42 +50,42 @@ export function WorkspaceBookDialog({mode,workspace,mapped,initialSelected,contr
       }
       await controller.refresh(true,true);void notebookSync.request(true)
       if(mode==='new')close();else reset()
-    }catch(e){setError(e&&typeof e==='object'&&'code'in e&&e.code==='notebook_name_taken'?NOTEBOOK_NAME_TAKEN:created?'笔记本已创建，工作区关联未完成。请重试。':'操作未完成，请重试。')}
+    }catch(e){setError(e&&typeof e==='object'&&'code'in e&&e.code==='notebook_name_taken'?t('notesBookNameTaken'):created?t('workspaceBookCreatedNotLinked'):t('workspaceBookActionFailed'))}
     finally{submitting.current=false;setBusy(false)}
   }
-  const acceptLabel=choice==='rename'?'保存名称':choice==='existing'?'确认选用':bind&&workspace?'创建并关联工作区':'创建笔记本'
-  const cancelLabel=choice==='rename'?'取消改名':choice==='existing'?'取消选用':'取消新建'
+  const acceptLabel=choice==='rename'?t('workspaceBookSaveName'):choice==='existing'?t('workspaceBookConfirmChoice'):bind&&workspace?t('workspaceBookCreateAndLink'):t('workspaceBookCreate')
+  const cancelLabel=choice==='rename'?t('workspaceBookCancelRename'):choice==='existing'?t('workspaceBookCancelChoice'):t('workspaceBookCancelCreate')
   const controls=<span className="workspace-book-inline-actions">
     <button type="submit" className="workspace-book-accept" title={acceptLabel} aria-label={acceptLabel} disabled={busy||duplicate||!(choice==='existing'?selected:title.trim())}>{busy?<LoaderCircle className="workspace-book-spinner" size={17}/>:<Check size={18}/>}</button>
     <button type="button" title={cancelLabel} aria-label={cancelLabel} disabled={busy} onClick={cancel}><X size={18}/></button>
   </span>
   const keys=(e:React.KeyboardEvent)=>{if(e.nativeEvent.isComposing&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopPropagation()}}
   const submit=(e:React.FormEvent)=>{e.preventDefault();void save()}
-  return <PaperDialog title={mode==='new'?t('notesNewNotebook'):'工作区笔记本设置'} closeLabel={t('paperClose')} onClose={close} onCancel={()=>choice?cancel():close()} locked={busy} className="workspace-book-dialog">
+  return <PaperDialog title={mode==='new'?t('notesNewNotebook'):t('workspaceBookSettings')} closeLabel={t('paperClose')} onClose={close} onCancel={()=>choice?cancel():close()} locked={busy} className="workspace-book-dialog">
     <style>{workspaceBookCss}</style><div className="paper-dialog-content workspace-book-fields">
       {mode==='workspace'&&<>
         {current&&<div className="workspace-book-current"><Notebook size={17} aria-hidden="true"/>
-          {choice==='rename'?<form className="workspace-book-inline" onSubmit={submit} onKeyDown={keys}><input aria-label="修改笔记本名称" aria-invalid={duplicate||undefined} aria-describedby={duplicate?fieldId+'-error':undefined} autoFocus maxLength={240} disabled={busy} value={title} onChange={e=>{setTitle(e.target.value);setError('')}}/>{controls}</form>:<><strong title={current.current.title}>{current.current.title}</strong><button ref={renameButton} disabled={busy} title="重命名笔记本" aria-label="重命名笔记本" onClick={e=>choose('rename',e.currentTarget)}><Pencil size={16}/></button></>}
+          {choice==='rename'?<form className="workspace-book-inline" onSubmit={submit} onKeyDown={keys}><input aria-label={t('workspaceBookEditName')} aria-invalid={duplicate||undefined} aria-describedby={duplicate?fieldId+'-error':undefined} autoFocus maxLength={240} disabled={busy} value={title} onChange={e=>{setTitle(e.target.value);setError('')}}/>{controls}</form>:<><strong title={notebookTitle(current,t)}>{notebookTitle(current,t)}</strong><button ref={renameButton} disabled={busy} title={t('workspaceBookRename')} aria-label={t('workspaceBookRename')} onClick={e=>choose('rename',e.currentTarget)}><Pencil size={16}/></button></>}
         </div>}
-        {choice==='rename'&&duplicate&&<p id={fieldId+'-error'} role="alert">{NOTEBOOK_NAME_TAKEN}</p>}
-        <div className="workspace-book-choices" role="group" aria-label="选择笔记本方式">
-          <button disabled={busy} aria-expanded={choice==='existing'} onClick={e=>choose('existing',e.currentTarget)}>选用其他笔记本</button>
-          <button disabled={busy} aria-expanded={choice==='new'} onClick={e=>choose('new',e.currentTarget)}>新建笔记本</button>
+        {choice==='rename'&&duplicate&&<p id={fieldId+'-error'} role="alert">{t('notesBookNameTaken')}</p>}
+        <div className="workspace-book-choices" role="group" aria-label={t('workspaceBookChoiceMode')}>
+          <button disabled={busy} aria-expanded={choice==='existing'} onClick={e=>choose('existing',e.currentTarget)}>{t('workspaceBookChooseOther')}</button>
+          <button disabled={busy} aria-expanded={choice==='new'} onClick={e=>choose('new',e.currentTarget)}>{t('notesNewBook')}</button>
         </div>
       </>}
       {(choice==='new'||choice==='existing')&&<form className="workspace-book-entry" onSubmit={submit} onKeyDown={keys}>
-        <label htmlFor={fieldId}>{choice==='new'?'笔记本名称':'选择笔记本'}</label>
+        <label htmlFor={fieldId}>{choice==='new'?t('notesBookName'):t('sessionChooseBook')}</label>
         <div className="workspace-book-inline">
-          {choice==='new'?<input id={fieldId} placeholder="填写新名称" aria-invalid={duplicate||undefined} aria-describedby={duplicate?fieldId+'-error':undefined} autoFocus maxLength={240} disabled={busy} value={title} onChange={e=>{setTitle(e.target.value);setError('')}}/>:<select id={fieldId} autoFocus disabled={busy} value={selected} onChange={e=>setSelected(e.target.value)}>{state.notebooks.filter(activeNotebook).map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}</option>)}</select>}
+          {choice==='new'?<input id={fieldId} placeholder={t('workspaceBookNewName')} aria-invalid={duplicate||undefined} aria-describedby={duplicate?fieldId+'-error':undefined} autoFocus maxLength={240} disabled={busy} value={title} onChange={e=>{setTitle(e.target.value);setError('')}}/>:<select id={fieldId} autoFocus disabled={busy} value={selected} onChange={e=>setSelected(e.target.value)}>{state.notebooks.filter(activeNotebook).map(b=><option key={b.notebookId} value={b.notebookId}>{notebookTitle(b,t)}</option>)}</select>}
           {controls}
         </div>
-        {choice==='new'&&duplicate&&<p id={fieldId+'-error'} role="alert">{NOTEBOOK_NAME_TAKEN}</p>}
-        {choice==='new'&&mode==='workspace'&&workspaceNameTaken&&!title.trim()&&<p className="paper-hint">已有名为“{workspace?.title}”的笔记本，可选用已有的，或填写新名称。</p>}
-        {mode==='new'&&workspace&&<label className="workspace-book-bind"><input type="checkbox" disabled={busy} checked={bind} onChange={e=>setBind(e.target.checked)}/> 用作当前工作区的默认笔记本</label>}
+        {choice==='new'&&duplicate&&<p id={fieldId+'-error'} role="alert">{t('notesBookNameTaken')}</p>}
+        {choice==='new'&&mode==='workspace'&&workspaceNameTaken&&!title.trim()&&<p className="paper-hint">{t('workspaceBookExisting',{name:workspace?.title})}</p>}
+        {mode==='new'&&workspace&&<label className="workspace-book-bind"><input type="checkbox" disabled={busy} checked={bind} onChange={e=>setBind(e.target.checked)}/>{t('workspaceBookDefault')}</label>}
       </form>}
-      <p className="paper-hint">{choice==='rename'?'改名后，其他工作区和界面也会显示新名称。':bind&&mapped&&choice==='existing'&&selected!==mapped?'替换当前默认本，已有笔记不会移动。':'用于预选保存位置，仍可保存到其他笔记本。'}</p>
+      <p className="paper-hint">{choice==='rename'?t('workspaceBookRenameHint'):bind&&mapped&&choice==='existing'&&selected!==mapped?t('workspaceBookSwitchHint'):t('workspaceBookDefaultHint')}</p>
       {error&&<p role="alert">{error}</p>}
-    </div><footer>{mode==='workspace'&&mapped&&!choice&&<button className="workspace-book-unbind" disabled={busy} onClick={()=>void save(true)}>解除工作区关联</button>}<button disabled={busy} onClick={close}>{t('paperClose')}</button></footer>
+    </div><footer>{mode==='workspace'&&mapped&&!choice&&<button className="workspace-book-unbind" disabled={busy} onClick={()=>void save(true)}>{t('workspaceBookUnlink')}</button>}<button disabled={busy} onClick={close}>{t('paperClose')}</button></footer>
   </PaperDialog>
 }
 const workspaceBookCss=`

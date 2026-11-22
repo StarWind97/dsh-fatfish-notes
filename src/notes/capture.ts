@@ -13,17 +13,18 @@ import { createNoteRevision, materializeNote, validateNoteRevision } from './rev
 import { ulid } from '../domain/id.js'
 import { validateBodyAssets } from './assets.js'
 import { NotebookError } from '../domain/errors.js'
+import {translator,type Language,type T} from '../domain/localization.js'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 
 interface CaptureJournal {
-  version: 1; request: CaptureRequest; noteId: string; recordedAt: string
+  version: 1; language?:Language; request: CaptureRequest; noteId: string; recordedAt: string
   cut: CaptureCut | null; sourceId: string | null; revision: NoteRevision | null; finished: boolean
 }
 /** Host image references travel with a frozen read, but are not archived or sent to the UI. */
 export interface CaptureRead extends CaptureTranscript { sessionTitle?: string; imageReferences?: ReadonlyMap<string, ImageAttachmentRef>;materialReferences?:ReadonlyMap<string,MaterialReference> }
 export interface CaptureConversation {
   open(sessionId: string, signal: AbortSignal): Promise<CaptureCut>
-  read(sessionId: string, cut: CaptureCut, signal: AbortSignal): Promise<CaptureRead>
+  read(sessionId: string, cut: CaptureCut, signal: AbortSignal,t?:T): Promise<CaptureRead>
   material?(sessionId:string,material:CaptureMaterial,reference:MaterialReference,signal:AbortSignal,progress?:(bytes:number)=>void):Promise<Buffer>
   attachment(sessionId: string, attachmentId: string, mediaType: string, signal: AbortSignal, reference?: ImageAttachmentRef): Promise<{ bytes: Buffer; mediaType: ImageMediaType }>
 }
@@ -56,17 +57,17 @@ export function selectMessages(messages: CaptureMessage[], request: Pick<Capture
   while (start > 0 && messages[start]!.role !== 'user') start--
   return messages.slice(start, end + 1)
 }
-export function rawBody(source: CaptureSource): string {
+export function rawBody(source: CaptureSource,t:T=translator('zh')): string {
   const literal = new Set(source.textOnlyBlocks.map(b => `${b.messageId}:${b.blockIndex}`))
   const fenced = (value: string): string => { let width = 3; for (const match of value.matchAll(/`+/g)) width = Math.max(width, match[0].length + 1); const fence = '`'.repeat(width); return `${fence}text\n${value}\n${fence}` }
   return source.messages.map(m => {
-    const hasFiles=m.blocks.some(b=>capturedFile(b,m,source.archivedMaterials)!==null)
+    const hasFiles=m.blocks.some(b=>capturedFile(b,m,source.archivedMaterials,t)!==null)
     const blocks=m.blocks.map((b,i)=>{
-      const file=capturedFile(b,m,source.archivedMaterials);if(file)return file.markdown
+      const file=capturedFile(b,m,source.archivedMaterials,t);if(file)return file.markdown
       if(b.type==='text')return literal.has(`${m.id}:${i}`)?fenced(b.text):capturedText(b.text,source.archivedMaterials)
-      return source.assets[b.attachmentId]?`![会话图片](../assets/${source.assets[b.attachmentId]})`:source.archivedMaterials?.some(m=>m.imageId===b.attachmentId&&m.saved)?'[图片原件已保存到补充附件]':source.archivedMaterials!==undefined?'[图片未包含]':'[图片未归档]'
+      return source.assets[b.attachmentId]?`![${t('artifactConversationImage')}](../assets/${source.assets[b.attachmentId]})`:source.archivedMaterials?.some(m=>m.imageId===b.attachmentId&&m.saved)?`[${t('artifactImageAttachment')}]`:`[${t(source.archivedMaterials!==undefined?'artifactImageOmitted':'artifactImageUnarchived')}]`
     })
-    return `## ${m.role === 'user' ? '用户' : 'AI'}\n\n`+(hasFiles?blocks.map(closeCaptureFence).join('\n\n'):blocks.join('\n'))
+    return `## ${t(m.role==='user'?'artifactRoleUser':'artifactRoleAssistant')}\n\n`+(hasFiles?blocks.map(closeCaptureFence).join('\n\n'):blocks.join('\n'))
   }).join('\n\n---\n\n')
 }
 /** Keep a following native file card outside an unfinished text code fence. */
@@ -80,14 +81,14 @@ function closeCaptureFence(body:string):string{
   }
   return open?body+(body.endsWith('\n')?'':'\n')+open:body
 }
-function markTextOnlyImages(source: CaptureSource): void {
+function markTextOnlyImages(source: CaptureSource,t:T): void {
   const safe = (body: string): boolean => { try { validateBodyAssets(body, Object.values(source.assets)); return true } catch (e) { if (!(e instanceof NotebookError) || e.code !== 'note_asset') throw e; return false } }
   for (const message of source.messages) message.blocks.forEach((block, blockIndex) => {
     if (block.type === 'text' && !capturedFile(block,message,source.archivedMaterials) && !safe(capturedText(block.text,source.archivedMaterials))) source.textOnlyBlocks.push({ messageId: message.id, blockIndex })
   })
   // Cross-message reference definitions can also create an unsafe image link.
   // In that rare case retain all text blocks literally instead of following it.
-  if (!safe(rawBody(source))) source.textOnlyBlocks = source.messages.flatMap(m => m.blocks.flatMap((b, blockIndex) => b.type === 'text' ? [{ messageId: m.id, blockIndex }] : []))
+  if (!safe(rawBody(source,t))) source.textOnlyBlocks = source.messages.flatMap(m => m.blocks.flatMap((b, blockIndex) => b.type === 'text' ? [{ messageId: m.id, blockIndex }] : []))
   if (source.textOnlyBlocks.length) { source.complete = false; source.issues.push('image_links_kept_as_text') }
 }
 
@@ -96,18 +97,18 @@ function markTextOnlyImages(source: CaptureSource): void {
 export class NoteCaptureService {
   private tail: Promise<unknown> = Promise.resolve()
   constructor(readonly repository: NoteRepository, private readonly conversation: CaptureConversation) {}
-  capture(input: unknown, signal: AbortSignal = new AbortController().signal,progress?:(value:CaptureProgress)=>void): Promise<CaptureResult> {
+  capture(input: unknown, signal: AbortSignal = new AbortController().signal,progress?:(value:CaptureProgress)=>void,t:T=translator('zh')): Promise<CaptureResult> {
     const request = validateCaptureRequest(input)
-    const result = this.tail.catch(() => {}).then(() => this.perform(request, signal,progress))
+    const result = this.tail.catch(() => {}).then(() => this.perform(request, signal,progress,t.language))
     this.tail = result; return result
   }
-  async selection(input: CaptureSelectionRequest, signal: AbortSignal = new AbortController().signal): Promise<CaptureSelection> {
+  async selection(input: CaptureSelectionRequest, signal: AbortSignal = new AbortController().signal,t:T=translator('zh')): Promise<CaptureSelection> {
     const sessionId = identifier(input.sessionId), cut = await this.conversation.open(sessionId, signal)
-    const transcript = await this.conversation.read(sessionId, cut, signal)
+    const transcript = await this.conversation.read(sessionId, cut, signal,t)
     const selected = input.anchorMessageId ? selectMessages(transcript.messages, { scope: 'turn', anchorMessageId: identifier(input.anchorMessageId) }) : transcript.messages
     return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, ...(transcript.materials?{materials:transcript.materials}:{}), ...(transcript.sessionTitle?{sessionTitle:transcript.sessionTitle}:{}), cut, defaultMessageIds: selected.map(m => m.id) }
   }
-  private async perform(request: CaptureRequest, signal: AbortSignal,progress?:(value:CaptureProgress)=>void): Promise<CaptureResult> {
+  private async perform(request: CaptureRequest, signal: AbortSignal,progress:((value:CaptureProgress)=>void)|undefined,language:Language): Promise<CaptureResult> {
     signal.throwIfAborted()
     const path = `captures/${digest(request.requestId)}.json`, files = this.repository.files
     const write = async (journal: CaptureJournal) => { const data = canonical(journal); await files.write(path, canonical({ hash: digest(data), data: journal }), false) }
@@ -115,7 +116,7 @@ export class NoteCaptureService {
     let journal: CaptureJournal
     if (bytes) {
       const envelope = object(JSON.parse(utf8(bytes)) as unknown), value = object(envelope.data)
-      if (envelope.hash !== digest(canonical(value)) || value.version !== 1) fail('capture_corrupt')
+      if (envelope.hash !== digest(canonical(value)) || value.version !== 1 || (value.language!==undefined&&value.language!=='zh'&&value.language!=='en')) fail('capture_corrupt')
       if (canonical(validateCaptureRequest(value.request)) !== canonical(request)) fail('capture_request_mismatch', '同一保存请求不能改变来源或选项，请重试原请求')
       id(value.noteId)
       journal = value as unknown as CaptureJournal
@@ -130,13 +131,14 @@ export class NoteCaptureService {
         const book = (await this.repository.listNotebooks(signal)).find(b => b.notebookId === request.notebookId)
         if (!book || [book.current, ...book.conflicts].some(b => b.status !== 'active')) fail('notebook_unavailable', '所选笔记本不可用')
       }
-      journal = { version: 1, request, noteId: ulid(), recordedAt: new Date().toISOString(), cut: null, sourceId: null, revision: null, finished: false }
+      journal = { version: 1, language, request, noteId: ulid(), recordedAt: new Date().toISOString(), cut: null, sourceId: null, revision: null, finished: false }
       await write(journal)
     }
+    const t=translator(journal.language??'zh')
     if (!journal.cut) { journal.cut = request.cut ?? await this.conversation.open(request.sessionId, signal); await write(journal) }
     signal.throwIfAborted()
     if (!journal.sourceId) {
-      const transcript = await this.conversation.read(request.sessionId, journal.cut, signal)
+      const transcript = await this.conversation.read(request.sessionId, journal.cut, signal,t)
       const messages = selectMessages(transcript.messages, request), assets: Record<string, string> = Object.create(null) as Record<string, string>, missingAssetIds: string[] = []
       const images = new Map<string, Extract<CaptureMessage['blocks'][number], { type: 'image' }>>()
       for (const block of messages.flatMap(m => m.blocks)) if (block.type === 'image') {
@@ -187,15 +189,16 @@ export class NoteCaptureService {
       }
       }
       const source: CaptureSource = { ...(archivedMaterials?{archivedMaterials}:{}),version: 1, sessionId: request.sessionId, scope: request.scope, cut: journal.cut, messages, assets, missingAssetIds, textOnlyBlocks: [], complete: transcript.complete && !missingAssetIds.length, issues: [...transcript.issues, ...(missingAssetIds.length ? ['missing_assets'] : [])] }
-      markTextOnlyImages(source)
+      markTextOnlyImages(source,t)
       journal.sourceId = await this.repository.putSource(source, signal); await write(journal)
     }
     const source = await this.repository.getSource(journal.sourceId, signal) as unknown as CaptureSource
     if (!journal.revision) {
       const notebookId = request.notebookId ?? (await this.repository.listNotebooks(signal)).find(book => book.isDefault)!.notebookId
-      const body=rawBody(source),used=bodyMaterials(body),attachments=[...new Map((source.archivedMaterials??[]).flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]
+      const body=rawBody(source,t),used=bodyMaterials(body),attachments=[...new Map((source.archivedMaterials??[]).flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]
       used.attachmentIds.push(...used.assetIds.map(id=>id.slice(0,64)))
-      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title: request.metadata?.title ?? (request.scope === 'session' ? '会话笔记' : '问答笔记'), body, supplements:{assetIds:[...new Set(Object.values(source.assets))].filter(id=>!used.assetIds.includes(id)),attachmentIds:attachments.filter(f=>!used.attachmentIds.includes(f.id)).map(f=>f.id)}, summary: request.metadata?.summary ?? '', tags: request.metadata?.tags ?? [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
+      const title=request.metadata?.title??t(request.scope==='session'?'artifactSessionNote':'artifactExchangeNote')
+      journal.revision = createNoteRevision({ version: 1, noteId: journal.noteId, parents: [], recordedAt: journal.recordedAt, title, body, supplements:{assetIds:[...new Set(Object.values(source.assets))].filter(id=>!used.assetIds.includes(id)),attachmentIds:attachments.filter(f=>!used.attachmentIds.includes(f.id)).map(f=>f.id)}, summary: request.metadata?.summary ?? '', tags: request.metadata?.tags ?? [], notebookId, status: 'active', sourceId: journal.sourceId, assetIds: [...new Set(Object.values(source.assets))],...(source.archivedMaterials?{attachments:[...new Map(source.archivedMaterials.flatMap(m=>m.saved?[[m.saved.id,m.saved] as const]:[])).values()]}:{}) })
       await write(journal)
     }
     signal.throwIfAborted()

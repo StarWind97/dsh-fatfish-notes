@@ -87,7 +87,7 @@ export class NoteTabs {
       if (tab.kind === 'start' || tab.id === state.noteId) return tab
       const item = items.get(tab.id)
       if (!item) return tab
-      const title = item.title || '无标题'
+      const title = item.title
       const trashed = item.status === 'trashed'
       if (tab.title === title && tab.book === item.notebookId && tab.trashed === trashed) return tab
       return {...tab, title, book: item.notebookId, trashed}
@@ -95,7 +95,7 @@ export class NoteTabs {
     for (const id of this.controller.removedIds) this.positions.delete(id)
 
     if (state.draft && state.noteId && !state.loadingNote) {
-      const next: NoteTab = {kind: 'note', id: state.noteId, title: state.draft.title || '无标题',
+      const next: NoteTab = {kind: 'note', id: state.noteId, title: state.draft.title,
         book: state.draft.notebookId, trashed: state.draft.status === 'trashed'}
       const old = tabs.find(tab => tab.id === next.id)
       if (old?.kind === 'note') {

@@ -12,6 +12,7 @@ import {NoteCaptureBridge} from '../src/client/note-capture-bridge.js'
 import {fixture,request} from './fixtures/notes-capture.js'
 import type {CaptureMessage,CaptureRequest,CaptureSelection} from '../src/contracts/notes.js'
 import {ApiError} from '../src/client/api.js'
+import {translator} from '../src/domain/localization.js'
 
 const metadata={title:'观测笔记',summary:'保留这次观测的结论和线索。',tags:['观测']}
 test('preview generates selected metadata without a note or conversation message; only confirmation saves',async()=>{
@@ -24,6 +25,9 @@ test('preview generates selected metadata without a note or conversation message
     const cut=await conversation.open(request.sessionId,signals.signal),selected:CaptureRequest={...request,scope:'selection',messageIds:['m2','m3'],cut}
     assert.deepEqual(await suggestMetadata(selected,conversation,model,signals.signal),metadata)
     assert.match(prompts[0]!,/answer 3/);assert.doesNotMatch(prompts[0]!,/answer 111/)
+    await suggestMetadata(selected,conversation,model,signals.signal,translator('en'))
+    assert.match(prompts[1]!,/^Write the title, summary and tags in English\./)
+    assert.match(prompts[1]!,/answer 3/)
     assert.equal((await repo.files.scan()).paths.length,0,'preview creates no note, journal or source')
     const service=new NoteCaptureService(repo,conversation)
     assert.throws(()=>service.capture({...selected,metadata:{...metadata,title:'  '}}),{code:'capture_title'})

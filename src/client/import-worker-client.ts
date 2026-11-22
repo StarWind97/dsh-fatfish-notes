@@ -1,4 +1,5 @@
 import type {Api} from './api.js'
+import {currentTranslator} from './locale.js'
 import type {ImportNote} from './library-import.js'
 export interface WorkerPlan {notes:ImportNote[];warnings:string[];bytes:number;entries:Array<{path:string;bytes:number}>}
 export interface WorkerProgress {bytes:number;total:number;path:string}
@@ -19,7 +20,7 @@ export class ImportWorkerClient {
     // Reclaim only this plugin's abandoned temporary archives, never active/recent imports.
     if(indexedDB.databases)void indexedDB.databases().then(rows=>{for(const {name} of rows){const match=/^fatfish-import-(\d+)-[a-f0-9-]{36}$/.exec(name??'');if(match&&Date.now()-Number(match[1])>24*60*60_000)indexedDB.deleteDatabase(name!)}}).catch(()=>{})
     this.worker=new Worker(new URL('/dsh-fatfish-notes/notes/import-worker',location.href),{name:'Fatfish Notes import'})
-    this.worker.onerror=()=>{this.cancel(Error('后台处理无法启动，请重新打开笔记后重试。'))}
+    this.worker.onerror=()=>{this.cancel(Error(currentTranslator()('transferWorkerUnavailable')))}
     this.worker.onmessage=({data:m})=>{
       if(m.kind==='progress'){this.latestProgress=m as WorkerProgress;if(!this.progressTimer)this.progressTimer=setTimeout(()=>{this.progressTimer=undefined;if(this.latestProgress)this.progress(this.latestProgress)},50);return}
       if(m.kind==='api'){
@@ -32,7 +33,7 @@ export class ImportWorkerClient {
           if(['finish','cancel'].includes(m.body.action))this.uploads.delete(m.body.uploadId)
         }
         this.worker?.postMessage({action:'api-result',id:m.id,value})
-      }).catch(e=>this.worker?.postMessage({action:'api-result',id:m.id,error:e instanceof Error?('code'in e?String(e.code)+': ':'')+e.message:'Request failed'}))
+      }).catch(e=>this.worker?.postMessage({action:'api-result',id:m.id,error:e instanceof Error?('code'in e?String(e.code)+': ':'')+e.message:currentTranslator()('requestFailed')}))
         if(committing){this.commits.add(request);void request.finally(()=>this.commits.delete(request))}return}
       const call=this.calls.get(m.id);this.calls.delete(m.id);m.error?call?.reject(Error(m.error)):call?.resolve(m.value)
     }

@@ -16,6 +16,7 @@ import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
 import type {SyncResource} from './sync-resources.js'
 import {VerifiedSnapshotFiles} from './sync-cache.js'
 import type {InitialNotesProvider} from './handbook.js'
+import type {Language} from '../domain/localization.js'
 
 interface LazyFile {length:number;load:()=>Promise<Buffer>}
 type StoredFile=Buffer|LazyFile
@@ -193,10 +194,10 @@ export class NotesSyncModule {
     if(installed&&installed.generation===this.repository.generation)this.currentToken=token(installed.objects)
     else await this.local(signal)
   }
-  async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot,initialContent?:InitialNotesProvider) {
+  async prepare(backend:GitBackend,snapshot:GitSnapshot, signal?: AbortSignal, verified?:Snapshot,initialContent?:InitialNotesProvider,language:Language='zh') {
     const remote=verified??await this.readSnapshot(backend,snapshot,signal)
     const local=(await this.local(signal)).objects
-    const initial=await initialContent?.(local,remote.objects)
+    const initial=await initialContent?.(local,remote.objects,language)
     signal?.throwIfAborted()
     if(initial){local.revisions=mergeNoteRevisions(local.revisions,initial.objects.revisions);local.notebooks=mergeNotebookRevisions(local.notebooks,initial.objects.notebooks)}
     const deleted = [...new Set([...(local.deleted ?? []), ...(remote.objects.deleted ?? [])])].sort()

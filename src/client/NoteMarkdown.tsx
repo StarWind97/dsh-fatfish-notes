@@ -24,9 +24,6 @@ export function resolveNoteImage(url: string, note: NoteView): string | null {
 }
 const components: Components = {
   ...Object.fromEntries((['p','h1','h2','h3','h4','h5','h6','li','blockquote','table'] as const).map(tag=>[tag,({node,children}:{node?:{position?:{start:{offset?:number}}};children?:React.ReactNode})=>React.createElement(tag,{'data-md-pos':node?.position?.start.offset},children)])),
-  a: ({ href, children }) => href ? <a href={href} target="_blank" rel="noopener noreferrer">{children}</a> : <span>{children}</span>,
-  img: ({ src, alt }) => src&&/^https?:/.test(src)?<a href={src} target="_blank" rel="noopener noreferrer">{alt||'外部图片'}（链接，未归档）</a>:src ? <img src={src} alt={alt ?? ''} loading="lazy" style={{ maxWidth: '100%', maxHeight: 560, objectFit: 'contain' }} /> : <span role="img" aria-label={alt ?? ''}>[{alt || 'Image'}]</span>,
-
 }
 /** Never fetch an arbitrary Markdown image, even when it is host-relative. */
 export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNoteLink,onPresentation,query='',t=translate,staticView=false,assetUrl }: { body: string; note: NoteView;onNoteLink?:(id:string)=>void;onPresentation?:(item:ImagePresentation)=>void;query?:string|undefined;t?:T;staticView?:boolean|undefined;assetUrl?:(id:string)=>string }) {
@@ -40,7 +37,9 @@ export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNote
     return <ImageActions image={item.image} download={download} name={name} t={t} {...(onPresentation?{change:()=>onPresentation(item)}:{})}>{children}</ImageActions>
   }
   return <div className="note-markdown" style={{ lineHeight: 'inherit', overflowWrap: 'anywhere' }}><style>{imageActionsCss}</style><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
-    if(!src||/^https?:/.test(src))return src?<a href={src} target="_blank" rel="noopener noreferrer">{alt||'外部图片'}（链接，未归档）</a>:<span role="img" aria-label={alt??''}>[{alt||'Image'}]</span>
+    if(!src||/^https?:/.test(src))return src
+      ? <a href={src} target="_blank" rel="noopener noreferrer">{t('markdownExternalImage',{alt:alt||t('markdownImage')})}</a>
+      : <span role="img" aria-label={alt??t('markdownImage')}>[{alt||t('markdownImage')}]</span>
     return media(node?.position?.start.offset,<img src={src} alt={alt??''} loading={staticView?"eager":"lazy"} style={{maxWidth:'100%',maxHeight:560,objectFit:'contain'}}/>,src)
   },pre:({node})=>{const child=node?.children.find(n=>n.type==='element'&&n.tagName==='code'),language=child?.type==='element'?String(child.properties.className??'').replace(/^language-/,''):'';return <CodeBlock text={codeText(node)} language={language} t={t} staticView={staticView} query={query} position={node?.position?.start.offset}/>},code:({className,children})=><code className={className}>{typeof children==='string'?<Highlight value={children} query={query}/>:children}</code>,a:({node,href,children})=>{
     const id=noteLinkId(href??''),file=attachmentLinkId(href??'')

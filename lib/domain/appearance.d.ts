@@ -1,39 +1,39 @@
 /** Local presentation only. Never serialize this into a note or repository. */
 export declare const layouts: {
-    readonly outline: "秩序工作台";
-    readonly soft: "柔和分区";
-    readonly ribbon: "横向导航";
-    readonly dock: "侧轨资料台";
-    readonly ink: "墨线书房";
-    readonly tree: "目录树工作室";
-    readonly island: "浮岛桌面";
-    readonly archive: "边签档案";
+    readonly outline: "appearanceLayoutOutline";
+    readonly soft: "appearanceLayoutSoft";
+    readonly ribbon: "appearanceLayoutRibbon";
+    readonly dock: "appearanceLayoutDock";
+    readonly ink: "appearanceLayoutInk";
+    readonly tree: "appearanceLayoutTree";
+    readonly island: "appearanceLayoutIsland";
+    readonly archive: "appearanceLayoutArchive";
 };
 export declare const palettes: {
-    readonly native: "DSH 原生";
-    readonly lilac: "柔紫";
-    readonly mint: "青绿";
-    readonly blue: "雾蓝";
-    readonly amber: "暖砂";
-    readonly rose: "莓红";
-    readonly graphite: "石墨";
-    readonly clearblue: "澄蓝";
-    readonly pine: "松青";
-    readonly inkwhite: "墨白";
+    readonly native: "appearancePaletteNative";
+    readonly lilac: "appearancePaletteLilac";
+    readonly mint: "appearancePaletteMint";
+    readonly blue: "appearancePaletteBlue";
+    readonly amber: "appearancePaletteAmber";
+    readonly rose: "appearancePaletteRose";
+    readonly graphite: "appearancePaletteGraphite";
+    readonly clearblue: "appearancePaletteClearblue";
+    readonly pine: "appearancePalettePine";
+    readonly inkwhite: "appearancePaletteInkwhite";
 };
 export declare const cjkFonts: {
-    readonly host: "跟随 DSH";
-    readonly yahei: "微软雅黑";
-    readonly deng: "等线";
-    readonly song: "宋体";
-    readonly kai: "楷体";
+    readonly host: "appearanceFollow";
+    readonly yahei: "appearanceFontYahei";
+    readonly deng: "appearanceFontDeng";
+    readonly song: "appearanceFontSong";
+    readonly kai: "appearanceFontKai";
 };
 export declare const latinFonts: {
-    readonly host: "跟随 DSH";
-    readonly segoe: "Segoe UI";
-    readonly arial: "Arial";
-    readonly georgia: "Georgia";
-    readonly times: "Times New Roman";
+    readonly host: "appearanceFollow";
+    readonly segoe: "appearanceFontSegoe";
+    readonly arial: "appearanceFontArial";
+    readonly georgia: "appearanceFontGeorgia";
+    readonly times: "appearanceFontTimes";
 };
 export interface Appearance {
     version: 1;

@@ -4,6 +4,8 @@ import {ATTACHMENT_LIMIT} from '../contracts/notes.js'
 
 const crcTable=Uint32Array.from({length:256},(_,n)=>{for(let i=0;i<8;i++)n=n&1?0xedb88320^(n>>>1):n>>>1;return n>>>0})
 function crc(data:Uint8Array,value:number){for(const n of data)value=crcTable[(value^n)&255]!^(value>>>8);return value}
+import {translate,type T} from './locale.js'
+
 export const IMPORT_CHUNK=1024*1024
 /** Archive bytes live in browser-managed temporary storage, not an in-memory archive map. */
 export class ImportWorkerStore {
@@ -13,7 +15,7 @@ export class ImportWorkerStore {
   private put(key:string,value:Uint8Array){return new Promise<void>((resolve,reject)=>{const tx=this.db!.transaction('chunks','readwrite');tx.objectStore('chunks').put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
   private get(key:string){return new Promise<Uint8Array>((resolve,reject)=>{const r=this.db!.transaction('chunks').objectStore('chunks').get(key);r.onsuccess=()=>r.result?resolve(r.result as Uint8Array):reject(Error('Missing archive chunk'));r.onerror=()=>reject(r.error)})}
   async close(){this.db?.close();this.db=null}
-  async unzip(file:File,progress:(bytes:number,total:number,path:string)=>void):Promise<{entries:ImportEntry[];warnings:string[]}>{
+  async unzip(file:File,progress:(bytes:number,total:number,path:string)=>void,t:T=translate):Promise<{entries:ImportEntry[];warnings:string[]}>{
     // Central-directory sizes and CRCs let us reject truncated/changed archives and ZIP bombs.
     const tail=new Uint8Array(await file.slice(Math.max(0,file.size-65557)).arrayBuffer()),dv=new DataView(tail.buffer)
     let end=-1;for(let i=tail.length-22;i>=0;i--)if(dv.getUint32(i,true)===0x06054b50&&i+22+dv.getUint16(i+20,true)===tail.length){end=i;break}
@@ -31,9 +33,9 @@ export class ImportWorkerStore {
       if(names.has(raw))throw Error('Duplicate ZIP entry');names.add(raw)
       if(!raw.endsWith('/')&&path&&!path.split('/').some(p=>p.startsWith('.'))){
         if(view.getUint16(at+8,true)&1)throw Error('Encrypted ZIP is not supported')
-        if(bytes>ATTACHMENT_LIMIT)warnings.push(`${path}: 文件超过保存上限，已跳过`)
+        if(bytes>ATTACHMENT_LIMIT)warnings.push(t('transferImportLimitFile',{path}))
         else expected.set(raw,{size:bytes,crc:view.getUint32(at+16,true)})
-      }else if(!raw.endsWith('/'))warnings.push(`${raw}: 已跳过隐藏文件或不安全路径`)
+      }else if(!raw.endsWith('/'))warnings.push(t('transferImportSkippedFile',{path:raw}))
       at+=46+n+extra+comment
     }
     if(at!==directory.length)throw Error('Invalid ZIP directory length')
@@ -55,7 +57,7 @@ export class ImportWorkerStore {
         }
       };f.start()
     });unzip.register(UnzipInflate)
-    for(let start=0;start<offset;start+=64*1024){const to=Math.min(offset,start+64*1024);unzip.push(new Uint8Array(await file.slice(start,to).arrayBuffer()),to===offset);await Promise.all(pending);pending=[];if(error)throw error;progress(to,offset,'解压文件')}
+    for(let start=0;start<offset;start+=64*1024){const to=Math.min(offset,start+64*1024);unzip.push(new Uint8Array(await file.slice(start,to).arrayBuffer()),to===offset);await Promise.all(pending);pending=[];if(error)throw error;progress(to,offset,t('transferImportExtracting'))}
     if(entries.length!==expected.size)throw Error('Incomplete ZIP')
     return {entries,warnings}
   }

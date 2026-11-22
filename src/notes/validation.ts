@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import {DEFAULT_UNTITLED_NOTE_TITLE} from '../contracts/notes.js'
 import { NotebookError } from '../domain/errors.js'
 import type { NoteContent, NoteAttachment } from './types.js'
 import { ATTACHMENT_LIMIT } from '../contracts/notes.js'
@@ -55,7 +56,7 @@ export function normalizeContent(value: unknown): NoteContent {
     if(supplements.assetIds.some(id=>!registered.includes(id))||supplements.attachmentIds.some(id=>!attachments?.some(f=>f.id===id)))fail('note_asset','补充附件不属于此笔记')
   }
   return {
-    title: text(v.title, 1200).trim() || '无标题', body: text(v.body, NOTE_LIMITS.body),
+    title: text(v.title, 1200).trim() || DEFAULT_UNTITLED_NOTE_TITLE, body: text(v.body, NOTE_LIMITS.body),
     summary: text(v.summary, 12_000).trim(), tags: sortedStrings(v.tags, 50, v => { const s = text(v, 200).trim(); if (!s) fail(); return s }),
     notebookId: v.notebookId === null ? null : id(v.notebookId), status: status(v.status),
     sourceId: v.sourceId === null ? null : hash(v.sourceId), assetIds: sortedStrings(v.assetIds, NOTE_LIMITS.images, assetId),

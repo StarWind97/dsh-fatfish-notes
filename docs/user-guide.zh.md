@@ -1,5 +1,9 @@
 # 肥鱼笔记使用说明
 
+[English](user-guide.en.md)
+
+肥鱼笔记跟随 DSH 的界面语言。可以在 DSH「设置 → 通用设置 → 语言」切换简体中文和英文。笔记和会话原文采用其原有语言。
+
 在 DSH 会话里，**点顶部小鱼打开「会话笔记」**，或点 **AI 回答下方的「保存到笔记」**。边聊边查资料，有用的问答也可以留到下次继续用。
 
 ![DSH 会话截图。标注 1 指向会话标题栏靠右的小鱼，标注 2 指向已完成回答下方的「保存到笔记」。右侧是打开后的会话笔记。](images/user-guide/conversation-entries.png)
@@ -14,7 +18,7 @@
 
 点 **「下一步」** 打开「保存选项」。宽窗从左到右显示轮次和消息、图片与文件、笔记信息。窄窗可以点标题栏的 **「展开布局」**，也可以在紧凑布局中单独核对范围和文件。切换布局会保留选择与已填内容。
 
-![实际保存选项。左栏勾选会话轮次，中栏核对图片与文件，右栏显示笔记本、预填标题和 AI 建议。](images/user-guide/save-options-0110.png)
+![实际保存选项。左栏勾选会话轮次，中栏核对图片与文件，右栏显示笔记本、预填标题和 AI 建议。](images/user-guide/zh/save-options.png)
 
 选好笔记本和要保留的内容，确认预填的会话标题。你可以手填摘要和标签，也可以点 **「AI 建议」**，让模型根据所选消息的文字建议标题、摘要和标签。最后点 **「保存到笔记」**。
 
@@ -88,4 +92,4 @@
 
 [图片与附件](user-guide-reference.zh.md#图片正文文件与补充附件) · [导入与整库导出](user-guide-reference.zh.md#导入整库导出与附件) · [笔记本管理](user-guide-reference.zh.md#笔记本管理) · [标签管理](user-guide-reference.zh.md#标签管理) · [回收站](user-guide-reference.zh.md#多选和清空回收站) · [会话侧栏设置](user-guide-reference.zh.md#工作区笔记本设置与取消操作)
 
-适用 **0.11.0**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.11.0/release-notes.md)。使用 0.10.0 时，可查看 [0.10.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.10.0/docs/user-guide.zh.md)。
+适用 **0.11.1**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.11.1/release-notes.md)。使用 0.10.0 时，可查看 [0.10.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.10.0/docs/user-guide.zh.md)。

@@ -1,5 +1,6 @@
+import {notebookTitle} from '../notes/notebooks.js'
 import type {NoteOrder} from '../contracts/notes.js'
-import {useNoteReference,referenceTooltip} from './use-note-reference.js'
+import {useNoteReference} from './use-note-reference.js'
 import type {ReferenceTarget} from './note-reference.js'
 import {PaperDialog} from './paper/PaperDialog.js'
 import * as React from 'react'
@@ -155,6 +156,8 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     return()=>{abort.abort();clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('fatfish-workspace-book',refresh)}
   },[pair,sessionId,tab.visible,libraryEpoch])
   const selectedBook=books.find(book=>book.notebookId===search.bookId)
+  const selectedBookTitle=selectedBook?notebookTitle(selectedBook,t):t('paperAll')
+  const bookTitle=(id:string|null)=>{const book=books.find(book=>book.notebookId===id);return book?notebookTitle(book,t):undefined}
   useEffect(()=>{
     if(context&&group==='workspace'&&!mapped)switchGroup('linked')
     if(search.bookId&&state.notebooks.length&&!selectedBook){
@@ -246,14 +249,14 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   const tabs:Group[]=mapped?['linked','workspace','find']:['linked','find']
   useEffect(()=>{setUndo(null)},[sessionId,group,search.bookId,showDetail,tab.visible])
   function resize(value:number){const width=Math.max(160,Math.min(340,value));setBookWidth(width);try{localStorage.setItem('fatfish-sidebar-books-width',String(width))}catch{}}
-  function sideBookActions(b:typeof books[number]){return [...actions.bookActions(b).map(a=>a.label===t('notesNew')?{...a,run:()=>void create(b.notebookId)}:a),...(context?.workspace?[{label:'设为当前工作区默认笔记本',disabled:b.notebookId===mapped||state.operation,run:()=>{setSetupBook(b.notebookId);setSetup('workspace')}}]:[])]}
+  function sideBookActions(b:typeof books[number]){return [...actions.bookActions(b).map(a=>a.label===t('notesNew')?{...a,run:()=>void create(b.notebookId)}:a),...(context?.workspace?[{label:t('sidebarWorkspaceDefault'),disabled:b.notebookId===mapped||state.operation,run:()=>{setSetupBook(b.notebookId);setSetup('workspace')}}]:[])]}
   const bookNavigation=(showBookRail||bookPickerOpen)&&!showDetail&&<nav id={scopeId} ref={bookPickerOpen?bookPicker:undefined}
     className={bookPickerOpen?'conversation-books conversation-book-picker':'conversation-books'} aria-label={t('notesNotebook')}>
     <div className="conversation-books-scroll">
       <button type="button" aria-current={!selectedBook?'page':undefined} onClick={()=>selectBook(null)}><BookOpen size={14}/>{t('paperAll')}</button>
-      {books.map(book=><RowMenu key={book.notebookId} label={book.current.title+' · 操作'} actions={sideBookActions(book)} reveal="interaction">
-        <button type="button" title={book.current.title} aria-current={book.notebookId===selectedBook?.notebookId?'page':undefined} onClick={()=>selectBook(book.notebookId)}>
-          <Notebook size={14}/><span>{book.current.title}</span><small className="paper-notebook-count">{book.noteCount}</small>
+      {books.map(book=><RowMenu key={book.notebookId} label={t('rowActionsLabel',{title:notebookTitle(book,t)})} actions={sideBookActions(book)} reveal="interaction">
+        <button type="button" title={notebookTitle(book,t)} aria-current={book.notebookId===selectedBook?.notebookId?'page':undefined} onClick={()=>selectBook(book.notebookId)}>
+          <Notebook size={14}/><span>{notebookTitle(book,t)}</span><small className="paper-notebook-count">{book.noteCount}</small>
         </button>
       </RowMenu>)}
     </div>
@@ -263,15 +266,15 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+referenceListCss}</style>
     <AppearanceStyle/>
     {actions.dialogs}{reference.dialogs}
-    {showChosen&&<PaperDialog title={`已选 ${chosen.length} 篇笔记`} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={`移除选择：${row.title}`} title="移除选择" onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>尚未选择笔记。</p>}</div><footer><button onClick={()=>setShowChosen(false)}>继续选择</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>引用所选</button></footer></PaperDialog>}
+    {showChosen&&<PaperDialog title={t('sidebarSelectedCount',{count:chosen.length})} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={t('sidebarRemoveNamedSelection',{title:row.title})} title={t('sidebarRemoveSelection')} onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>{t('sidebarNoneSelected')}</p>}</div><footer><button onClick={()=>setShowChosen(false)}>{t('sidebarKeepSelecting')}</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>{t('sidebarReferenceSelected')}</button></footer></PaperDialog>}
     {setup&&<WorkspaceBookDialog mode={setup} workspace={context?.workspace??null} mapped={mapped} initialSelected={setup==='workspace'?setupBook:null} controller={controller} state={state} t={t} close={()=>{setSetup(null);setSetupBook(null)}} changed={mappedBook}/>}
     <header className="conversation-notes-head"><strong>{showDetail?<button title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>void noteTabs.session.select(conversationListTabId)}><ArrowLeft size={16}/></button>:<BrandMark size={17} color/>}<span>{t('sessionNotes')}</span></strong><span><button disabled={!!removed||state.operation} title={t('notesNew')} aria-label={t('notesNew')} onClick={()=>void create()}><SquarePen size={17}/></button><button disabled={!!removed} title={t('sessionSave')} aria-label={t('sessionSave')} onClick={()=>void bridge.open(sessionId)}><BookPlus size={17}/></button><WindowButton workspace={workspace} t={t}/></span></header>
     <WorkspaceNotice workspace={workspace} t={t}/>
     <NoteTabBar controller={controller} state={state} {...noteTabs} t={t}/>
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
-    {undo&&<TransientNotice identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {showDetail?<div className="paper-detail"><NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:"引用",ariaLabel:"引用到当前会话",title:referenceTooltip,icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {undo&&<TransientNotice t={t} identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
+    {showDetail?<div className="paper-detail"><NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:t('paperQuote'),ariaLabel:t('referenceTitle'),title:t('referenceTooltip'),icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
 
       <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>
         {tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>switchGroup(key)}>
@@ -283,8 +286,8 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
           onQuery={searchNotes} onExpanded={setFiltersOpen} onFacets={facets=>changeSearch({facets})}>
           <div className="paper-list-tools">
             {narrow&&<button ref={scopeButton} className="conversation-scope" type="button" aria-label={t('findBookScope')}
-              aria-expanded={bookPickerOpen} aria-controls={scopeId} title={selectedBook?.current.title??t('paperAll')} onClick={()=>setBooksOpen(open=>!open)}>
-              <Notebook size={14}/><span>{selectedBook?.current.title??t('paperAll')}</span><ChevronDown size={13}/>
+              aria-expanded={bookPickerOpen} aria-controls={scopeId} title={selectedBookTitle} onClick={()=>setBooksOpen(open=>!open)}>
+              <Notebook size={14}/><span>{selectedBookTitle}</span><ChevronDown size={13}/>
             </button>}
             <SearchViewPicker view={search.view} t={t} onChange={view=>changeSearch({view,visits:view==='visits'?controller.recentIds():[]})}/>
             {search.view!=='visits'&&<SearchOrderPicker value={search.order} query={search.query} t={t}
@@ -294,15 +297,15 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
       </div>}
       {bookPickerOpen&&bookNavigation}
       {group==='linked'&&context?.workspace&&!mapped&&<div className="conversation-workspace-title">
-        <button type="button" title="设置工作区笔记本" onClick={()=>setSetup('workspace')}><BookPlus size={16}/>设置工作区笔记本</button>
+        <button type="button" title={t('sidebarSetWorkspaceBook')} onClick={()=>setSetup('workspace')}><BookPlus size={16}/>{t('sidebarSetWorkspaceBook')}</button>
       </div>}
-      {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={books.find(b=>b.notebookId===mapped)?.current.title}>{books.find(b=>b.notebookId===mapped)?.current.title}</strong><button title="新建笔记" aria-label="在工作区笔记本新建笔记" disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title="工作区笔记本设置" aria-label="工作区笔记本设置" onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title="导出此笔记本" aria-label="导出此笔记本" onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
+      {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={bookTitle(mapped)}>{bookTitle(mapped)}</strong><button title={t('notesNew')} aria-label={t('sidebarCreateInWorkspace')} disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title={t('workspaceBookSettings')} aria-label={t('workspaceBookSettings')} onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title={t('bookExport')} aria-label={t('bookExport')} onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
       <div className="conversation-selection-bar" data-find={group==='find'} data-selecting={selecting}>
         {group==='find'&&(!filterMatches||!state.listError)&&<SearchResultStatus count={state.items.length} more={!!state.cursor}
-          loading={!filterMatches||state.loadingList} scope={selectedBook?.current.title??t('paperAll')} t={t}
+          loading={!filterMatches||state.loadingList} scope={selectedBookTitle} t={t}
           {...(selectedBook&&{onAll:()=>selectBook(null)})}/>}
-        {selecting?<><strong>已选 {chosen.length} 篇</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>查看已选</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>引用所选</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>清空</button><button onClick={exitSelection}>退出多选</button></>:<button aria-label="多选笔记" disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>多选</button>}
+        {selecting?<><strong>{t('sidebarSelectedCount',{count:chosen.length})}</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>{t('sidebarReviewSelected')}</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>{t('sidebarReferenceSelected')}</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>{t('sidebarClearSelection')}</button><button onClick={exitSelection}>{t('sidebarExitSelection')}</button></>:<button aria-label={t('sidebarSelectNotes')} disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>{t('batchSelect')}</button>}
       </div>
       <div className="conversation-browse" style={{'--conversation-books-width':railWidth+'px'} as React.CSSProperties}
         data-browser={group==='find'} data-book-rail={showBookRail}>
@@ -317,21 +320,21 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
             !state.items.length?<p className="conversation-empty">{t(state.loadingList?'loading':group==='linked'?'sessionEmpty':'notesEmpty')}</p>:state.items.map(item=>{
             const selected=chosen.some(row=>row.noteId===item.noteId)
             return <article key={item.noteId} data-selected={selected&&selecting}>
-              <NoteSelectionRow selecting={selecting} selected={selected} current={item.noteId===state.noteId} label={`选择笔记：${item.title}`} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void openResult(item)} actions={[
-                {label:'引用到当前会话',disabled:!reference.enabled,run:()=>reference.open([item])},
-                {label:'加入多选',disabled:!!removed,run:()=>{setSelecting(true);if(!selected)toggleChosen(item)}},
+              <NoteSelectionRow t={t} selecting={selecting} selected={selected} current={item.noteId===state.noteId} label={t('sidebarSelectNamedNote',{title:item.title})} rowClass="conversation-note-row" toggle={()=>toggleChosen(item)} open={()=>void openResult(item)} actions={[
+                {label:t('referenceTitle'),disabled:!reference.enabled,run:()=>reference.open([item])},
+                {label:t('sidebarAddSelection'),disabled:!!removed,run:()=>{setSelecting(true);if(!selected)toggleChosen(item)}},
                 ...(item.sessionRelation==='source'?[]:[{label:t(item.sessionRelation?'sessionDissociate':'sessionAssociate'),run:()=>void associate(item,!item.sessionRelation),disabled:linking.has(item.noteId)||!!removed}]),...actions.noteActions(item)
               ]}>
-                <strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} aria-label={t('findFavorites')}/>}
+                <strong>{item.pinned&&<Pin size={12} aria-label={t('paperPinned')}/>}{item.favorite&&<Star size={12} aria-label={t('findFavorites')}/>}
                   <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong>
                 <p>{item.hit&&<span className="paper-hit-source">{item.hit.alternate&&t('findOtherVersion')+' · '}{t(hitLabels[item.hit.field])} · </span>}
                   <Highlight value={item.excerpt||item.summary} query={state.filter.query}/></p>
-                <small>{group==='find'&&(books.find(book=>book.notebookId===item.notebookId)?.current.title??t('notesDefaultBook'))+' · '}
+                <small>{group==='find'&&(bookTitle(item.notebookId)??t('notesDefaultBook'))+' · '}
                   {noteDateTime(item.savedAt)}{group==='linked'&&item.sessionRelation==='source'&&' · '+t('sessionSource')}</small>
               </NoteSelectionRow>
               {!selecting&&<div className="conversation-relation">
-                <button className="conversation-quote" title={referenceTooltip} aria-label={`引用《${item.title}》`} disabled={!reference.enabled} onClick={()=>reference.open([item])}><MessageSquarePlus size={16}/></button>
-                {item.sessionRelation==='source'?<span className="conversation-association" data-linked tabIndex={0} title="从本会话转存，已自动关联" aria-label="从本会话转存，已自动关联"><BookPlus size={16}/></span>:<button className="conversation-association" data-linked={!!item.sessionRelation} disabled={linking.has(item.noteId)||!!removed} title={linking.has(item.noteId)?'正在处理':item.sessionRelation?'已关联，点击解除关联':'关联到本会话'} aria-label={t(item.sessionRelation?'sessionDissociate':'sessionAssociate')} aria-pressed={!!item.sessionRelation} onClick={()=>void associate(item,!item.sessionRelation)}>{linking.has(item.noteId)?<LoaderCircle className="conversation-link-spinner" size={16}/>:item.sessionRelation?<Check size={17}/>:<><Link2 size={16}/><span className="conversation-link-plus">+</span></>}</button>}
+                <button className="conversation-quote" title={t('referenceTooltip')} aria-label={t('sidebarReferenceNamedNote',{title:item.title})} disabled={!reference.enabled} onClick={()=>reference.open([item])}><MessageSquarePlus size={16}/></button>
+                {item.sessionRelation==='source'?<span className="conversation-association" data-linked tabIndex={0} title={t('sidebarAutoLinked')} aria-label={t('sidebarAutoLinked')}><BookPlus size={16}/></span>:<button className="conversation-association" data-linked={!!item.sessionRelation} disabled={linking.has(item.noteId)||!!removed} title={linking.has(item.noteId)?t('sidebarLinkWorking'):item.sessionRelation?t('sidebarUnlink'):t('sessionAssociate')} aria-label={t(item.sessionRelation?'sessionDissociate':'sessionAssociate')} aria-pressed={!!item.sessionRelation} onClick={()=>void associate(item,!item.sessionRelation)}>{linking.has(item.noteId)?<LoaderCircle className="conversation-link-spinner" size={16}/>:item.sessionRelation?<Check size={17}/>:<><Link2 size={16}/><span className="conversation-link-plus">+</span></>}</button>}
               </div>}
             </article>
           })}

@@ -1,7 +1,16 @@
 import type { NotebookView } from '../contracts/notes.js'
+import {translator,type T} from '../domain/localization.js'
 
 // The same seed on every device keeps a newly connected library from gaining duplicates.
 export const DEFAULT_NOTEBOOK_ID = '00000000000000000000000000'
+export const DEFAULT_NOTEBOOK_TITLE = '默认笔记本'
+export function notebookTitle(book:NotebookView,t:T):string {
+  return book.notebookId===DEFAULT_NOTEBOOK_ID&&book.current.title===DEFAULT_NOTEBOOK_TITLE?t('notesDefaultBook'):book.current.title
+}
+export function editedNotebookTitle(book:NotebookView|undefined,value:string,t:T):string {
+  const title=value.trim()
+  return book&&title===notebookTitle(book,t)?book.current.title:title
+}
 export const DEFAULT_NOTEBOOK_TIME = '1970-01-01T00:00:00.000Z'
 export const activeNotebook = (book: NotebookView): boolean => [book.current, ...book.conflicts].every(row => row.status === 'active')
 
@@ -13,11 +22,11 @@ export function sameNamedNotebook(books: NotebookView[], title: string, exceptId
 }
 
 /** Folder imports create separate books rather than silently merging existing collections. */
-export function importedNotebookName(books: NotebookView[], title: string): string {
-  const base = title.trim() || '未命名笔记本'
+export function importedNotebookName(books: NotebookView[], title: string, t:T=translator('zh')): string {
+  const base = title.trim() || t('transferUntitledBook')
   if (!sameNamedNotebook(books, base)) return base
-  let name = `${base}（导入）`, suffix = 2
-  while (sameNamedNotebook(books, name)) name = `${base}（导入 ${suffix++}）`
+  let name = t('transferImportedBookName',{name:base}), suffix = 2
+  while (sameNamedNotebook(books, name)) name = t('transferImportedBookNumber',{name:base,number:suffix++})
   return name
 }
 

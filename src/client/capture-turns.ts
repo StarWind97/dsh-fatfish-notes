@@ -1,4 +1,9 @@
 import type { CaptureMessage, CaptureSelection } from '../contracts/notes.js'
+import type {T} from './locale.js'
+
+export function captureRangeLabel(t:T,turns:number,messages:number):string {
+  return t('capturePicked',{turns:t('captureTurnCount',{count:turns}),messages:t('captureMessageCount',{count:messages})})
+}
 
 /** Map the host's finalized-answer sequence to the same exchange shown in fine selection. */
 export function indexCaptureTurns(selection: CaptureSelection) {

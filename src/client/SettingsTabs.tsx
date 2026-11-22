@@ -1,11 +1,12 @@
 import * as React from 'react'
 import {useEffect,useId,useLayoutEffect,useRef,useState} from 'react'
+import type {T} from './locale.js'
 
 export type SettingsCategory='appearance'|'reading'|'workspace'|'sync'|'help'
 export interface SettingsTab {id:SettingsCategory;label:string;content:React.ReactNode}
 
 /** Keep visited forms mounted; changing category never cancels an in-flight action. */
-export function SettingsTabs({items,value,onChange,heading,actions}:{items:SettingsTab[];value:SettingsCategory;onChange:(value:SettingsCategory)=>void;heading?:string;actions?:React.ReactNode}){
+export function SettingsTabs({items,value,onChange,heading,actions,t}:{items:SettingsTab[];value:SettingsCategory;onChange:(value:SettingsCategory)=>void;heading?:string;actions?:React.ReactNode;t:T}){
   const id=useId(),scroll=useRef<HTMLDivElement>(null),[visited,setVisited]=useState<SettingsCategory[]>([value])
   useEffect(()=>{setVisited(current=>current.includes(value)?current:[...current,value])},[value])
   useLayoutEffect(()=>{if(scroll.current)scroll.current.scrollTop=0},[value])
@@ -14,11 +15,11 @@ export function SettingsTabs({items,value,onChange,heading,actions}:{items:Setti
     if(next===null)return
     event.preventDefault();onChange(items[next]!.id);document.getElementById(`${id}-tab-${items[next]!.id}`)?.focus()
   }
-  return <section className="settings-workspace" aria-label={heading??'外观与阅读'}>
+  return <section className="settings-workspace" aria-label={heading??t('settingsAppearanceReading')}>
     <style>{settingsCss}</style>
     <div className="settings-chrome"><header className="settings-heading">{heading&&<h2>{heading}</h2>}<div className="settings-heading-actions">{actions}</div></header>
-      <div className="settings-tablist" role="tablist" aria-label="设置分类">{items.map((item,index)=><button key={item.id} id={`${id}-tab-${item.id}`} role="tab" aria-selected={value===item.id} aria-controls={`${id}-panel-${item.id}`} tabIndex={value===item.id?0:-1} onClick={()=>onChange(item.id)} onKeyDown={e=>key(e,index)}>{item.label}</button>)}</div>
-      <label className="settings-category-select">设置分类<select value={value} onChange={e=>onChange(e.target.value as SettingsCategory)}>{items.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+      <div className="settings-tablist" role="tablist" aria-label={t('settingsCategory')}>{items.map((item,index)=><button key={item.id} id={`${id}-tab-${item.id}`} role="tab" aria-selected={value===item.id} aria-controls={`${id}-panel-${item.id}`} tabIndex={value===item.id?0:-1} onClick={()=>onChange(item.id)} onKeyDown={e=>key(e,index)}>{item.label}</button>)}</div>
+      <label className="settings-category-select">{t('settingsCategory')}<select value={value} onChange={e=>onChange(e.target.value as SettingsCategory)}>{items.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
     </div>
     <div className="settings-scroll" ref={scroll}><div className="settings-content">{items.map(item=><div key={item.id} id={`${id}-panel-${item.id}`} role="tabpanel" aria-labelledby={`${id}-tab-${item.id}`} tabIndex={0} hidden={value!==item.id} data-category={item.id}>{(value===item.id||visited.includes(item.id))&&item.content}</div>)}</div></div>
   </section>
@@ -26,6 +27,7 @@ export function SettingsTabs({items,value,onChange,heading,actions}:{items:Setti
 
 const settingsCss=`
 .settings-brand{display:flex;justify-content:center;margin-top:48px;padding-bottom:24px}.settings-brand .fatfish-signature{display:block;width:min(480px,100%,clamp(256px,calc(100dvh - 620px),480px));height:auto;flex:none}
+.settings-brand .fatfish-signature-text{display:grid;justify-items:center;gap:8px;padding:24px 12px;color:var(--fatfish-brand-text,#492340);font-size:clamp(24px,5cqi,36px);font-weight:650;text-align:center}
 @container settings (max-width:620px){.settings-brand .fatfish-signature{width:min(320px,100%,clamp(256px,calc(100dvh - 620px),480px))}}
 .settings-workspace{container:settings / inline-size;display:flex;flex-direction:column;min-height:0;min-width:0;flex:1;width:100%;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif}
 .settings-chrome{flex:none;padding:16px 24px 0;border-bottom:1px solid var(--rule)}.settings-heading,.settings-tablist,.settings-category-select{max-width:1040px;margin-inline:auto}.settings-heading{display:flex;align-items:center;gap:12px;min-height:36px;margin-bottom:10px}.settings-heading h2{font-family:inherit;font-weight:650;font-size:22px;line-height:1.4;margin:0;flex:none}.settings-heading-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:1;min-width:0}.settings-workspace .settings-heading-actions button{white-space:nowrap;padding:5px 9px;border:1px solid var(--rule);border-radius:6px;background:var(--shelf);color:var(--ink);font:inherit;cursor:pointer}.settings-heading-actions .appearance-sync-status{font-size:12px;color:var(--muted);margin:0;line-height:1.5}

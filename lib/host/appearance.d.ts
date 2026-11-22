@@ -18,6 +18,7 @@ export declare class SharedAppearance {
     private load;
     private persist;
     private changed;
+    get language(): "en" | "zh" | undefined;
     private snapshot;
     connect(surface: WindowSurface, input: unknown): Promise<AppearanceState>;
     update(input: unknown): Promise<AppearanceState>;

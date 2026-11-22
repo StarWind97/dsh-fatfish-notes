@@ -2,7 +2,7 @@ import * as React from 'react'
 import { ListChecks, LoaderCircle } from 'lucide-react'
 import type { T } from './locale.js'
 import type { NoteCaptureBridge, NoteCaptureState } from './note-capture-bridge.js'
-import type { IndexedSelection } from './capture-turns.js'
+import {captureRangeLabel,type IndexedSelection} from './capture-turns.js'
 
 export function NoteTurnCheckbox({bridge, sessionId, seq, t}: {bridge:NoteCaptureBridge; sessionId:string; seq:number; t:T}) {
   const state = React.useSyncExternalStore(bridge.subscribe,bridge.getSnapshot,bridge.getSnapshot)
@@ -51,7 +51,7 @@ function CaptureBar({state,selection,bridge,t}: {state:NoteCaptureState; selecti
   const count = whole ? selection.messages.length : selected.size
   return <div className="capture-bar" role="region" aria-label={t(state.exporting?'chatExportTitle':'noteCaptureReply')}>
     <div className="capture-bar-row">
-      <button type="button" className="capture-picked" onClick={()=>bridge.showDetail(true)} aria-live="polite"><ListChecks size={16} aria-hidden="true"/>{t('capturePicked',{turns,messages:count})}</button>
+      <button type="button" className="capture-picked" onClick={()=>bridge.showDetail(true)} aria-live="polite"><ListChecks size={16} aria-hidden="true"/>{captureRangeLabel(t,turns,count)}</button>
       <button type="button" aria-pressed={whole} onClick={()=>bridge.setScope(whole?'selection':'session')}>{t('captureWhole')}</button>
       <button type="button" title={t(state.exporting?'captureFine':'captureFineHint')} onClick={()=>bridge.showDetail(true)}>{t(state.exporting?'captureFine':'captureOptions')}{!!selection.materials?.length&&` · ${selection.materials.length}`}</button>
       <button type="button" className="capture-bar-space" aria-label={t('captureOptions')} onClick={()=>bridge.showDetail(true)}/>

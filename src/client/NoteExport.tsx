@@ -32,7 +32,7 @@ export function NoteExport({ controller, state, t, onClose, onDownloaded, freeze
       const appearance=readingAppearance(readingElement,allTags),contentWidth=exportWidth||readingElement?.getBoundingClientRect().width||740
       const frozen = await (freeze?freeze():controller.freezeExport()); job.signal.throwIfAborted()
       if (!frozen) { setStatus('notesExportSaveFirst'); return }
-      const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format:format.startsWith('markdown')?(selected.length||includeSource?'markdown-zip':'markdown'):format,assetIds:materials.filter(m=>m.image&&selected.includes(m.id)).map(m=>m.id.slice(6)),attachmentIds:materials.filter(m=>!m.image&&selected.includes(m.id)).map(m=>m.id.slice(5)), includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width:contentWidth, pixelRatio, background,appearance, ...(assetId ? { assetId } : {}) }, job.signal)
+      const file = await createNoteDownload({ noteId: frozen.note.noteId, revision: frozen.note.current.revision }, { format:format.startsWith('markdown')?(selected.length||includeSource?'markdown-zip':'markdown'):format,assetIds:materials.filter(m=>m.image&&selected.includes(m.id)).map(m=>m.id.slice(6)),attachmentIds:materials.filter(m=>!m.image&&selected.includes(m.id)).map(m=>m.id.slice(5)), includeSource, includeTags:hasTags&&includeTags, includeSummary:hasSummary&&includeSummary, width:contentWidth, pixelRatio, background,appearance, ...(assetId ? { assetId } : {}) }, job.signal,t)
       job.signal.throwIfAborted()
       if (!frozen.isCurrent()) { setStatus('notesExportChanged'); return }
       startNoteDownload(file); active.current = null; onDownloaded()

@@ -19,7 +19,9 @@ import { renderPdfFile, renderImageBudget, type ExportFile } from './service.js'
 
 // An image typed into a chat message is a reference. Only DSH attachment blocks
 // supply local image bytes. Keep ordinary web image links readable offline.
-function messageText(body:string, prefix:string,knownImages:string[]=[]) {
+import {translator,type T} from '../../domain/localization.js'
+
+function messageText(body:string, prefix:string,knownImages:string[],t:T) {
   const tree=exportTree(body), definitions=new Map<string,string>()
   const refs:Array<{start:number;end:number;url?:string;identifier?:string;alt:string}>=[]
   const edits:Array<{start:number;end:number;value:string}>=[]
@@ -54,25 +56,25 @@ function messageText(body:string, prefix:string,knownImages:string[]=[]) {
     }
     linked++
     const url=exportLink(destination)
-    const alt=(ref.alt||'图片链接').replace(/[\\[\]<>*_@]/g,'\\$&')
+    const alt=(ref.alt||t('artifactImageLink')).replace(/[\\[\]<>*_@]/g,'\\$&')
     edits.push({start:ref.start,end:ref.end,value:url?'['+alt+'](<'+url.replace(/>/g,'%3E')+'>)':alt})
   }
   for(const edit of edits.sort((a,b)=>b.start-a.start))body=body.slice(0,edit.start)+edit.value+body.slice(edit.end)
   return {text:rewriteMarkdown(body,true),linked}
 }
 
-export async function createConversationExport(conversation:Pick<NoteConversation,'read'|'attachment'> & Partial<Pick<NoteConversation,'material'>>, input:unknown, signal:AbortSignal,streaming=false):Promise<ExportFile & {warnings:string}> {
+export async function createConversationExport(conversation:Pick<NoteConversation,'read'|'attachment'> & Partial<Pick<NoteConversation,'material'>>, input:unknown, signal:AbortSignal,streaming=false,t:T=translator('zh')):Promise<ExportFile & {warnings:string}> {
   const v=object(input), sessionId=text(v.sessionId,512), format=v.format
   if(!sessionId || Object.keys(v).some(k=>!['sessionId','throughSeq','messageIds','format','snapshotHash','convertedImages','materialIds','allowLarge'].includes(k)) ||
     typeof v.throughSeq!=='number' || !Number.isSafeInteger(v.throughSeq) || v.throughSeq<0 ||
     !['markdown','snapshot','pdf'].includes(String(format)))throw new ExportError('export_request')
   const ids=sortedStrings(v.messageIds,NOTE_LIMITS.messages,x=>text(x,512))
   if(!ids.length)throw new ExportError('export_request')
-  const transcript=await conversation.read(sessionId,{throughSeq:v.throughSeq},signal)
+  const transcript=await conversation.read(sessionId,{throughSeq:v.throughSeq},signal,t)
   const messages=selectMessages(transcript.messages,{scope:'selection',messageIds:ids})
   const titleText=messages.flatMap(m=>m.blocks).find(b=>b.type==='text' && b.text.trim())
-  const title=Array.from(titleText?.type==='text'?titleText.text.trim().split(/\r?\n/)[0]!:'会话记录').slice(0,56).join('')
-  const filename=exportFilename(title), sections:string[]=[], model=exportModel('会话记录','',[])
+  const title=Array.from(titleText?.type==='text'?titleText.text.trim().split(/\r?\n/)[0]!:t('artifactConversation')).slice(0,56).join('')
+  const filename=exportFilename(title,t), sections:string[]=[], model=exportModel(t('artifactConversation'),'',[],false,t)
   const attachments=new Map<string,{type:string;id:string|null}>(), images:Record<string,Buffer>={}
   const files:Array<{material:CaptureMaterial;id:string;name:string;bytes:number;read:()=>Promise<Buffer>}>=[],imageReaders=new Map<string,()=>Promise<Buffer>>()
   const renderBudget=renderImageBudget()
@@ -103,16 +105,16 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
   }
   let missing=0,linked=0,total=0
   for(const message of messages){
-    const role=message.role==='user'?'用户':'AI'
+    const role=t(message.role==='user'?'artifactRoleUser':'artifactRoleAssistant')
     const paragraphs=['## '+role]
     for(const [index,block] of message.blocks.entries()){
       signal.throwIfAborted()
       if(block.type==='text'){
-        const part=messageText(capturedText(block.text,archived,false),'chat-'+message.seq+'-'+index,[...imageReaders.keys()])
+        const part=messageText(capturedText(block.text,archived,false),'chat-'+message.seq+'-'+index,[...imageReaders.keys()],t)
         paragraphs.push(part.text);linked+=part.linked
         continue
       }
-      if(picked&&!attachments.has(block.attachmentId)){paragraphs.push('[图片未包含在正文中；已选择的大图作为附件保存]');continue}
+      if(picked&&!attachments.has(block.attachmentId)){paragraphs.push(`[${t('artifactImageBundled')}]`);continue}
       let entry=attachments.get(block.attachmentId)
       if(!entry){
         if(attachments.size>=NOTE_LIMITS.images)fail('note_limit')
@@ -127,44 +129,44 @@ export async function createConversationExport(conversation:Pick<NoteConversatio
         attachments.set(block.attachmentId,entry)
       }
       if(entry.type!==block.mediaType)throw new ExportError('export_request')
-      paragraphs.push(entry.id?'![会话图片](../assets/'+entry.id+')':'[图片未能读取]')
+      paragraphs.push(entry.id?`![${t('artifactConversationImage')}](../assets/${entry.id})`:`[${t('artifactImageReadFailed')}]`)
     }
     const section=paragraphs.join('\n\n')
     sections.push(section)
   }
   const used=bodyMaterials(sections.join('\n\n')),bodyImages=new Set(used.assetIds.map(id=>id.slice(0,64)))
   for(let i=files.length-1;i>=0;i--)if(bodyImages.has(files[i]!.id)&&!used.attachmentIds.includes(files[i]!.id))files.splice(i,1)
-  const attachmentNames=new Map(files.map(f=>[f.id,f.id.slice(0,16)+'-'+exportFilename(f.name)])),extras=files.filter(f=>!used.attachmentIds.includes(f.id))
+  const attachmentNames=new Map(files.map(f=>[f.id,f.id.slice(0,16)+'-'+exportFilename(f.name,t)])),extras=files.filter(f=>!used.attachmentIds.includes(f.id))
   for(let i=0;i<sections.length;i++)sections[i]=changeReferences(sections[i]!,ref=>{const match=/^\.\.\/attachments\/([a-f0-9]{64})\.bin$/.exec(ref.url);return match&&attachmentNames.has(match[1]!)?'attachments/'+encodeURIComponent(attachmentNames.get(match[1]!)!):undefined})
-  if(extras.length)sections.push('## 补充附件\n\n'+extras.map(f=>`[${f.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(f.id)!)}>)`).join('\n\n'))
-  if(picked){const omitted=materialsFor(messages,transcript.materials??[]).filter(m=>!picked.has(m.id));if(omitted.length)sections.push('未包含：'+omitted.map(m=>m.name).join('、'))}
+  if(extras.length)sections.push(`## ${t('supplementTitle')}\n\n`+extras.map(f=>`[${f.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(f.id)!)}>)`).join('\n\n'))
+  if(picked){const omitted=materialsFor(messages,transcript.materials??[]).filter(m=>!picked.has(m.id));if(omitted.length)sections.push(t('artifactOmittedList',{names:new Intl.ListFormat(t.language).format(omitted.map(m=>m.name))}))}
   model.assetIds=[...imageReaders.keys()]
   const warnings=JSON.stringify({partial:!transcript.complete,missing,linked})
   const entries:ZipEntry[]=[...new Map(files.map(f=>[f.id,{path:'attachments/'+attachmentNames.get(f.id)!,read:f.read}])).values()]
   if(format==='markdown'){
-    const markdown='# 会话记录\n\n'+sections.map(s=>rewriteMarkdown(s,true)).join('\n\n---\n\n')+'\n'
+    const markdown=`# ${t('artifactConversation')}\n\n`+sections.map(s=>rewriteMarkdown(s,true)).join('\n\n---\n\n')+'\n'
     if(model.assetIds.length||files.length){entries.unshift({path:filename+'.md',read:async()=>Buffer.from(markdown)});for(const [id,read]of imageReaders)entries.push({path:'assets/'+id,read});return {...await zippedFile(filename,entries,signal,streaming),warnings}}
     return {bytes:Buffer.from(markdown),filename:filename+'.md',mediaType:'text/markdown; charset=utf-8',warnings}
   }
   if(!picked){const budget=renderImageBudget();for(const data of Object.values(images))budget(data)}
-  const rendered=exportModel('会话记录',sections.join('\n\n---\n\n'),model.assetIds);model.blocks=rendered.blocks
-  if(files.length)model.blocks.push({type:'text',kind:'meta',runs:[{text:'普通附件原件与生成文件一同打包。'}]})
+  const rendered=exportModel(t('artifactConversation'),sections.join('\n\n---\n\n'),model.assetIds,false,t);model.blocks=rendered.blocks
+  if(files.length)model.blocks.push({type:'text',kind:'meta',runs:[{text:t('artifactBundledFiles')}]})
   const snapshotHash=digest(JSON.stringify([model,warnings,files.map(f=>({id:f.id,name:f.name,bytes:f.bytes}))]))
   if(format==='pdf'){
     if(snapshotHash!==v.snapshotHash)throw new ExportError('source_mismatch')
-    const pdf=await renderPdfFile(filename,model,images,v.convertedImages,signal);if(!files.length)return {...pdf,warnings};entries.unshift({path:pdf.filename,read:async()=>pdf.bytes});return {...await zippedFile(filename,entries,signal,streaming),warnings}
+    const pdf=await renderPdfFile(filename,model,images,v.convertedImages,signal,t);if(!files.length)return {...pdf,warnings};entries.unshift({path:pdf.filename,read:async()=>pdf.bytes});return {...await zippedFile(filename,entries,signal,streaming),warnings}
   }
   const assets=Object.fromEntries(Object.entries(images).map(([id,bytes])=>[id,'data:'+mediaTypeFor(id)+';base64,'+bytes.toString('base64')]))
   return {bytes:Buffer.from(JSON.stringify({filename,model,assets,snapshotHash,attachments:files.map(f=>({id:f.id,name:f.name,bytes:f.bytes,materialId:f.material.id}))})),mediaType:'application/json; charset=utf-8',filename:filename+'.json',warnings}
 }
 
-export async function conversationFile(conversation:Pick<NoteConversation,'read'|'material'>,input:unknown,signal:AbortSignal):Promise<ExportFile>{
+export async function conversationFile(conversation:Pick<NoteConversation,'read'|'material'>,input:unknown,signal:AbortSignal,t:T=translator('zh')):Promise<ExportFile>{
   const v=object(input),sessionId=text(v.sessionId,512),throughSeq=Number(v.throughSeq)
   if(!Number.isSafeInteger(throughSeq)||throughSeq<0)throw new ExportError('export_request')
-  const transcript=await conversation.read(sessionId,{throughSeq},signal),messages=selectMessages(transcript.messages,{scope:'selection',messageIds:sortedStrings(v.messageIds,NOTE_LIMITS.messages,x=>text(x,512))})
+  const transcript=await conversation.read(sessionId,{throughSeq},signal,t),messages=selectMessages(transcript.messages,{scope:'selection',messageIds:sortedStrings(v.messageIds,NOTE_LIMITS.messages,x=>text(x,512))})
   const material=materialsFor(messages,transcript.materials??[]).find(m=>m.id===v.materialId),ref=material&&transcript.materialReferences?.get(material.id)
   if(!material||!ref)throw new ExportError('source_mismatch')
   const bytes=await conversation.material(sessionId,material,ref,signal)
   if(digest(bytes)!==text(v.hash,64))throw new ExportError('source_mismatch')
-  return {bytes,filename:exportFilename(material.name),mediaType:'application/octet-stream'}
+  return {bytes,filename:exportFilename(material.name,t),mediaType:'application/octet-stream'}
 }

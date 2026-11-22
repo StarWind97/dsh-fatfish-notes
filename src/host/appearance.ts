@@ -46,6 +46,7 @@ export class SharedAppearance {
     this.data=next
   }
   private changed(){this.sequence++;for(const wake of [...this.waiters.values()])wake()}
+  get language(){return this.theme?.language}
   private snapshot():AppearanceState{return {ok:true,epoch:this.epoch,sequence:this.sequence,storeId:this.data.storeId,value:this.data.value?{...this.data.value}:null,theme:this.theme?{...this.theme}:null}}
   async connect(surface:WindowSurface,input:unknown){return this.serial(async()=>{
     await this.load();const v=object(input)

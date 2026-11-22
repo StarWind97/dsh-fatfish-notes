@@ -1,6 +1,7 @@
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import type { CaptureSource, NoteJob, NoteStage, NoteStageResult } from '../contracts/notes.js'
 import { canonical, digest, fail, object, text, sortedStrings } from './validation.js'
+import {translator,type T} from '../domain/localization.js'
 
 export const AI_LIMITS = { characters: 32_000, chunks: 32, resultBytes: 128_000, summaryBytes: 800, attempts: 8 } as const
 export const attemptId = (jobId: string, index: number, attempt: number): string => `notes:${jobId}:${index}:${attempt}`
@@ -44,10 +45,10 @@ export function planStages(source: CaptureSource, jobId: string): NoteStage[] {
   const values = chunks.length === 1 ? chunks : [...chunks, { input: '', assetIds: [] }]
   return values.map((part, index) => ({ ...part, kind: index === values.length - 1 ? 'final' : 'chunk', attempt: 1, requestId: attemptId(jobId, index, 1), status: 'ready', result: null, error: null }))
 }
-export function stageResult(input: unknown, stage: NoteStage, concise = false): NoteStageResult {
+export function stageResult(input: unknown, stage: NoteStage, concise = false,t:T=translator('zh')): NoteStageResult {
   const v = object(input)
   if (Object.keys(v).some(k => !['title','summary','tags'].includes(k))) fail('note_schema')
-  const result: NoteStageResult = { title: text(v.title, 1200).trim() || '无标题', summary: text(v.summary, stage.kind === 'chunk' ? AI_LIMITS.summaryBytes : 12_000).trim(), tags: sortedStrings(v.tags, 50, tag => { const s = text(tag, 200).trim(); if (!s) fail(); return s }) }
+  const result: NoteStageResult = { title: text(v.title, 1200).trim() || t('notesUntitled'), summary: text(v.summary, stage.kind === 'chunk' ? AI_LIMITS.summaryBytes : 12_000).trim(), tags: sortedStrings(v.tags, 50, tag => { const s = text(tag, 200).trim(); if (!s) fail(); return s }) }
   if(concise && ([...result.title].length>60 || [...result.summary].length>200 || /[\r\n]/.test(result.summary) || result.tags.length>5)) fail('ai_no_candidate')
   return result
 }

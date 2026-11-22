@@ -1,4 +1,5 @@
 import {readFile} from 'node:fs/promises'
+import {resolveLanguage} from '../domain/localization.js'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { isIP } from 'node:net'
 import { NotebookError } from '../domain/errors.js'
@@ -42,6 +43,7 @@ function readJson(req:IncomingMessage,signal:AbortSignal,limit=2*1024*1024):Prom
 }
 export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOrigin:()=>string}):(req:IncomingMessage,res:ServerResponse)=>Promise<void>{
   return async(req,res)=>{
+    const language=resolveLanguage(req.headers['accept-language']?.split(/[;,]/,1)[0]?.trim())
     const actor=req.headers['x-notebook-window']===undefined?undefined:{windowId:String(req.headers['x-notebook-window']),serviceEpoch:String(req.headers['x-notebook-epoch']??''),...(req.headers['x-notebook-lease']?{leaseId:String(req.headers['x-notebook-lease'])}:{})}
     return windowRequest.run(actor,async()=>{
     const controller=new AbortController(),abort=()=>controller.abort(),responseClosed=()=>{if(!res.writableEnded)abort()}
@@ -67,11 +69,11 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         res.writeHead(200,{'content-type':'font/otf','content-length':bytes.length,'cache-control':'no-store','x-content-type-options':'nosniff'});res.end(bytes);return
       }
       if(path==='/notes/library-export'){
-        await app.notes.exportLibrary(body,signal,{start:filename=>res.writeHead(200,{'content-type':'application/zip','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename*=UTF-8''${encodeURIComponent(filename)}`}),write:data=>new Promise<void>((resolve,reject)=>{if(signal.aborted){reject(new Error('Cancelled'));return}res.write(data,error=>error?reject(error):resolve())})})
+        await app.notes.exportLibrary(body,signal,{start:filename=>res.writeHead(200,{'content-type':'application/zip','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename*=UTF-8''${encodeURIComponent(filename)}`}),write:data=>new Promise<void>((resolve,reject)=>{if(signal.aborted){reject(new Error('Cancelled'));return}res.write(data,error=>error?reject(error):resolve())})},language)
         res.end();return
       }
       if(path==='/notes/conversation-file'||path==='/notes/export' || path==='/notes/conversation-export' || path==='/notes/download') {
-        const file:import('../notes/export/service.js').ExportFile & {warnings?:string}=path==='/notes/conversation-file'?await app.notes.conversationFile(body,signal):path==='/notes/download'?await app.notes.download(body,signal):path==='/notes/export'?await app.notes.export(body,signal):await app.notes.exportConversation(body,signal)
+        const file:import('../notes/export/service.js').ExportFile & {warnings?:string}=path==='/notes/conversation-file'?await app.notes.conversationFile(body,signal,language):path==='/notes/download'?await app.notes.download(body,signal):path==='/notes/export'?await app.notes.export(body,signal,language):await app.notes.exportConversation(body,signal,language)
         if('warnings' in file)res.setHeader('x-export-warnings',String(file.warnings))
         res.writeHead(200,{'content-type':file.mediaType,...(!file.stream?{'content-length':file.bytes.length}:{}),'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'",'content-disposition':`attachment; filename*=UTF-8''${encodeURIComponent(file.filename).replace(/['()*]/g,c=>`%${c.charCodeAt(0).toString(16)}`)}`});if(file.stream){for await(const chunk of file.stream())await new Promise<void>((resolve,reject)=>res.write(chunk,error=>error?reject(error):resolve()));res.end()}else res.end(file.bytes);return
       }
@@ -90,7 +92,7 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
           value=await app.openWindow(noteId);break
         }
         case '/personal/folder/pick':value=await app.pickFolder(signal);break
-        case '/notes/handbook':value=await app.notes.handbook(body,signal);break
+        case '/notes/handbook':value=await app.notes.handbook(body,signal,language);break
         case '/notes/usage':value=await app.notes.usage(signal);break
         case '/notes/capture-progress':value=app.notes.progress(body);break
         case '/notes/import-task':value=await app.notes.repository.coordinate(()=>app.notes.localOperation(async()=>app.notes.transfers.task(body),signal));break
@@ -119,9 +121,9 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         case '/notes/job/retry':value=await app.notes.retryJob(body,signal);break
         case '/notes/job/cancel':value=await app.notes.cancelJob(body,signal);break
         case '/notes/candidate':value=await app.notes.adoptCandidate(body,signal);break
-        case '/notes/capture':value=await app.notes.capture(body,signal);break
-        case '/notes/selection':value=await app.notes.selection(body,signal);break
-        case '/notes/suggest':value=await app.notes.suggest(body,signal);break
+        case '/notes/capture':value=await app.notes.capture(body,signal,language);break
+        case '/notes/selection':value=await app.notes.selection(body,signal,language);break
+        case '/notes/suggest':value=await app.notes.suggest(body,signal,language);break
         case '/notes/get':value=await app.notes.get(body,signal);break
         case '/notes/tags':value=await app.notes.tags(body,signal);break
         case '/notes/manage':value=await app.notes.manage(body);break
@@ -132,10 +134,10 @@ export function createHttpHandler({app,getOrigin}:{app:NotebookApplication;getOr
         case '/notes/source':value=await app.notes.source(body,signal);break
         case '/personal':value=app.personalState();break
         case '/personal/sync/preview':value=await app.backup.preview(body,signal);break
-        case '/personal/sync/connect':await app.backup.connect(body,signal);value=app.personalState();break
+        case '/personal/sync/connect':await app.backup.connect(body,signal,language);value=app.personalState();break
         case '/personal/sync/move':{const cleanupPending=await app.changeLocation(()=>app.backup.move(body,signal));value={...app.personalState(),cleanupPending};break}
         case '/personal/sync/reset-preview':value=await app.backup.resetPreview(body,signal);break
-        case '/personal/sync/reset':await app.changeLocation(()=>app.backup.reset(body,signal));value=app.personalState();break
+        case '/personal/sync/reset':await app.changeLocation(()=>app.backup.reset(body,signal,language));value=app.personalState();break
         case '/personal/sync/start':if(app.backup.ready&&app.backup.state().status!=='paused')void app.backup.sync().catch(()=>{});value=app.personalState();break
         case '/personal/sync':await app.backup.sync(signal);value=app.personalState();break
         case '/personal/sync/tools':value=await app.backup.tools(signal);break

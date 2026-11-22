@@ -41,4 +41,4 @@ export class ConversationFiles {
     return bytes
   }
 }
-export const materialName=(path:string)=>basename(path.replace(/\\/g,'/'))||'附件'
+export const materialName=(path:string,fallback:string)=>basename(path.replace(/\\/g,'/'))||fallback

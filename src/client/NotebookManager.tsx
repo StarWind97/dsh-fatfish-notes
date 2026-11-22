@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Pencil, Plus, Inbox, Trash2 } from 'lucide-react'
 import type { NotebookView, NotebookRemoval } from '../contracts/notes.js'
-import { activeNotebook, sameNamedNotebook, NOTEBOOK_NAME_TAKEN } from '../notes/notebooks.js'
+import {activeNotebook,editedNotebookTitle,notebookTitle,sameNamedNotebook} from '../notes/notebooks.js'
 import type { NotesController, NotesState } from './notes-controller.js'
 import { PaperDialog } from './paper/PaperDialog.js'
 import type { T } from './locale.js'
@@ -15,7 +15,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
   const [removal, setRemoval] = useState<NotebookRemoval>('move'), [busy, setBusy] = useState(false), [error, setError] = useState('')
   const actions=useItemActions(controller,state,t,id=>controller.open(id))
   const [order,setOrder]=useState('manual'),dragged=useRef<string|null>(null)
-  const natural=state.notebooks.filter(activeNotebook),books=order==='manual'?natural:[...natural].sort((a,b)=>order.startsWith('created-')?(order==='created-desc'?-1:1)*(a.createdAt??'').localeCompare(b.createdAt??''):(order==='name-desc'?-1:1)*a.current.title.localeCompare(b.current.title,'zh-CN',{numeric:true})),selected=books.find(b=>b.isDefault)
+  const natural=state.notebooks.filter(activeNotebook),books=order==='manual'?natural:[...natural].sort((a,b)=>order.startsWith('created-')?(order==='created-desc'?-1:1)*(a.createdAt??'').localeCompare(b.createdAt??''):(order==='name-desc'?-1:1)*notebookTitle(a,t).localeCompare(notebookTitle(b,t),t.language,{numeric:true})),selected=books.find(b=>b.isDefault)
   const duplicate=!!sameNamedNotebook(books,title,editing?.notebookId)
   useEffect(() => { if (formOpen) { input.current?.focus(); input.current?.select() } }, [formOpen, editing])
   const closeForm = () => { setFormOpen(false); setTitle(''); setEditing(undefined); setError('') }
@@ -27,7 +27,7 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
       if (await work()) done()
       else {
         const code = controller.getSnapshot().error
-        setError(code==='notebook_name_taken'?NOTEBOOK_NAME_TAKEN:code==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
+        setError(code==='notebook_name_taken'?t('notesBookNameTaken'):code==='note_edit_busy'?t('windowBatchBusy',{count:controller.occupiedCount||1}):code === 'notebook_default' ? t('notesDefaultProtected') : code === 'notebook_contents_changed' || code === 'note_conflict' ? t('notesBookChanged') : t('notesBookFailed'))
         await controller.refresh()
       }
     } finally { setBusy(false) }
@@ -37,18 +37,18 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
       <header className="paper-books-heading"><div><h2 id="paper-books-title">{t('notesNotebooks')}</h2><p>{t('notesBooksHint')}</p></div>
         <button className="paper-primary" disabled={busy} onClick={() => { setEditing(undefined); setTitle(''); setError(''); setFormOpen(true); input.current?.focus() }}><Plus size={16}/>{t('notesNewBook')}</button>
       </header>
-      {formOpen && <form className="paper-book-form" onSubmit={event => { event.preventDefault(); if(!duplicate&&title.trim())void run(() => controller.notebook(title, editing), closeForm) }} onKeyDown={event => { if(event.key === 'Escape' && !busy) { event.preventDefault(); closeForm() } }}>
+      {formOpen && <form className="paper-book-form" onSubmit={event => { event.preventDefault(); if(!duplicate&&title.trim())void run(() => controller.notebook(editedNotebookTitle(editing,title,t), editing), closeForm) }} onKeyDown={event => { if(event.key === 'Escape' && !busy) { event.preventDefault(); closeForm() } }}>
         <label htmlFor="notebook-name">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</label>
         <div><input ref={input} id="notebook-name" aria-invalid={duplicate||undefined} aria-describedby={duplicate?'notebook-name-error':undefined} autoComplete="off" value={title} disabled={busy} maxLength={240} placeholder={t('notesBookName')} onChange={event => {setTitle(event.target.value);setError('')}}/><button className="paper-primary" disabled={busy || duplicate || !title.trim()} type="submit">{t(editing ? 'notesRenameBook' : 'notesNewBook')}</button><button type="button" disabled={busy} onClick={closeForm}>{t('cancel')}</button></div>
-        {duplicate&&<p id="notebook-name-error" role="alert">{NOTEBOOK_NAME_TAKEN}</p>}
+        {duplicate&&<p id="notebook-name-error" role="alert">{t('notesBookNameTaken')}</p>}
       </form>}
       {state.listError && <p role="alert">{t('notesListFailed')} <button disabled={busy || state.loadingList} onClick={() => void controller.refresh()}>{t('refresh')}</button></p>}
-      <label>笔记本排序 <select aria-label="笔记本排序" value={order} onChange={e=>setOrder(e.target.value)}><option value="manual">自定义 / 添加顺序</option><option value="created-asc">添加时间：从旧到新</option><option value="created-desc">添加时间：从新到旧</option><option value="name-asc">名称：升序</option><option value="name-desc">名称：降序</option></select></label><div className="paper-book-list">{books.map(book => <div className="paper-book-entry" key={book.notebookId} draggable={!busy&&order==='manual'} onDragStart={e=>{dragged.current=book.notebookId;e.dataTransfer.setData('application/x-fatfish-book',book.notebookId);e.dataTransfer.effectAllowed='move'}} onDragEnd={()=>dragged.current=null} onDragOver={e=>{if(dragged.current&&order==='manual')e.preventDefault()}} onDrop={e=>{e.preventDefault();const from=dragged.current;dragged.current=null;if(!from||from===book.notebookId||order!=='manual')return;const ids=natural.map(b=>b.notebookId),at=ids.indexOf(book.notebookId);ids.splice(ids.indexOf(from),1);ids.splice(at,0,from);void run(()=>controller.reorderNotebooks(ids),()=>{})}}><RowMenu label={book.current.title+' · 操作'} actions={actions.bookActions(book)}>
-        <button className="paper-book-open" disabled={busy} title={book.current.title} onClick={() => void onOpen(book.notebookId)}><BookOpen size={21}/><span className="paper-book-name"><strong>{book.current.title}</strong><span className="paper-book-details">{t('notesBookCount', { count: book.noteCount ?? 0 })}{book.isDefault && <span className="paper-book-badge">{t('notesDefaultBadge')}</span>}</span></span></button>
+      <label>{t('bookSort')}<select aria-label={t('bookSort')} value={order} onChange={e=>setOrder(e.target.value)}><option value="manual">{t('bookManualOrder')}</option><option value="created-asc">{t('bookCreatedAsc')}</option><option value="created-desc">{t('bookCreatedDesc')}</option><option value="name-asc">{t('bookNameAsc')}</option><option value="name-desc">{t('bookNameDesc')}</option></select></label><div className="paper-book-list">{books.map(book => <div className="paper-book-entry" key={book.notebookId} draggable={!busy&&order==='manual'} onDragStart={e=>{dragged.current=book.notebookId;e.dataTransfer.setData('application/x-fatfish-book',book.notebookId);e.dataTransfer.effectAllowed='move'}} onDragEnd={()=>dragged.current=null} onDragOver={e=>{if(dragged.current&&order==='manual')e.preventDefault()}} onDrop={e=>{e.preventDefault();const from=dragged.current;dragged.current=null;if(!from||from===book.notebookId||order!=='manual')return;const ids=natural.map(b=>b.notebookId),at=ids.indexOf(book.notebookId);ids.splice(ids.indexOf(from),1);ids.splice(at,0,from);void run(()=>controller.reorderNotebooks(ids),()=>{})}}><RowMenu label={t('rowActionsLabel',{title:notebookTitle(book,t)})} actions={actions.bookActions(book)}>
+        <button className="paper-book-open" disabled={busy} title={notebookTitle(book,t)} onClick={() => void onOpen(book.notebookId)}><BookOpen size={21}/><span className="paper-book-name"><strong>{notebookTitle(book,t)}</strong><span className="paper-book-details">{t('notesBookCount', { count: book.noteCount ?? 0 })}{book.isDefault && <span className="paper-book-badge">{t('notesDefaultBadge')}</span>}</span></span></button>
         <div className="paper-book-actions">
-          <button disabled={busy} title={t('notesRenameBook')} aria-label={t('notesRenameBookNamed', { title: book.current.title })} onClick={() => { setEditing(book); setTitle(book.current.title); setError(''); setFormOpen(true) }}><Pencil size={16}/></button>
-          <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultBadge' : 'notesMakeDefault')} aria-label={t('notesMakeDefaultNamed', { title: book.current.title })} onClick={() => void run(() => controller.notebook(book.current.title, book, false, { makeDefault: true }), () => {})}><Inbox size={16}/></button>
-          <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultProtected' : 'notesRemoveBook')} aria-label={t('notesRemoveBookNamed', { title: book.current.title })} onClick={() => { setRemoving(book); setRemoval('move'); setError('') }}><Trash2 size={16}/></button>
+          <button disabled={busy} title={t('notesRenameBook')} aria-label={t('notesRenameBookNamed', { title: notebookTitle(book,t) })} onClick={() => { setEditing(book); setTitle(notebookTitle(book,t)); setError(''); setFormOpen(true) }}><Pencil size={16}/></button>
+          <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultBadge' : 'notesMakeDefault')} aria-label={t('notesMakeDefaultNamed', { title: notebookTitle(book,t) })} onClick={() => void run(() => controller.notebook(book.current.title, book, false, { makeDefault: true }), () => {})}><Inbox size={16}/></button>
+          <button disabled={busy || book.isDefault} title={t(book.isDefault ? 'notesDefaultProtected' : 'notesRemoveBook')} aria-label={t('notesRemoveBookNamed', { title: notebookTitle(book,t) })} onClick={() => { setRemoving(book); setRemoval('move'); setError('') }}><Trash2 size={16}/></button>
         </div></RowMenu>
       </div>)}</div>
       <p className="paper-book-help">{t('notesDefaultBookHint')}</p>
@@ -56,10 +56,10 @@ export function NotebookManager({ controller, state, t, onOpen }: { controller: 
     </div>
     {removing && <PaperDialog title={t('notesRemoveBook')} closeLabel={t('paperClose')} locked={busy} onClose={closeRemoval} className="paper-books-dialog">
       <div className="paper-dialog-content">
-        <p className="paper-book-removal-name" title={removing.current.title}>{removing.current.title}</p>
+        <p className="paper-book-removal-name" title={notebookTitle(removing,t)}>{notebookTitle(removing,t)}</p>
         <p>{t('notesRemoveBookCount', { count: removing.noteCount ?? 0 })}</p>
         <fieldset className="paper-book-choices" disabled={busy}><legend>{t('notesRemoveBookChoice')}</legend>
-          <label data-selected={removal === 'move'}><input type="radio" name="book-removal" value="move" checked={removal === 'move'} onChange={() => setRemoval('move')}/><span><strong>{t('notesKeepBookNotes')}</strong><small>{t('notesMoveBookNotesHint', { title: selected?.current.title ?? t('notesDefaultBook') })}</small></span></label>
+          <label data-selected={removal === 'move'}><input type="radio" name="book-removal" value="move" checked={removal === 'move'} onChange={() => setRemoval('move')}/><span><strong>{t('notesKeepBookNotes')}</strong><small>{t('notesMoveBookNotesHint', { title: selected?notebookTitle(selected,t):t('notesDefaultBook') })}</small></span></label>
           <label data-selected={removal === 'trash'}><input type="radio" name="book-removal" value="trash" checked={removal === 'trash'} onChange={() => setRemoval('trash')}/><span><strong>{t('notesTrashBookNotes')}</strong><small>{t('notesTrashBookNotesHint')}</small></span></label>
         </fieldset>
         {removal === 'trash' && <p className="paper-book-danger-hint">{t('notesTrashBookWarning', { count: removing.noteCount ?? 0 })}</p>}

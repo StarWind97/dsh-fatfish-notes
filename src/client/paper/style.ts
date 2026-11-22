@@ -81,6 +81,7 @@ export const paperCss = `
 .paper-overview-brand{display:flex;justify-content:center;align-items:center;gap:clamp(8px,2.2cqi,22px);max-width:100%}
 .paper-overview-brand .fatfish-mark{width:clamp(55px,16.5cqi,144px);height:auto;aspect-ratio:10/7}
 .paper-overview-brand .fatfish-wordmark{display:block;width:clamp(108px,36.4cqi,270px);height:auto;min-width:0;max-width:100%}
+.paper-overview-brand .fatfish-wordmark-text{width:auto;font-size:clamp(23px,5cqi,45px);font-weight:650;line-height:1.15}
 .paper-overview-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:11px;margin-top:clamp(19px,3.2cqi,27px)}
 .paper-app .paper-overview-actions :is(button,a){
   display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:45px;padding:8px 15px;

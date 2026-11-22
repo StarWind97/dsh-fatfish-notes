@@ -1,4 +1,5 @@
 import {materialsFor} from '../notes/capture-materials.js'
+import {currentTranslator} from './locale.js'
 import {ATTACHMENT_LIMIT,ATTACHMENT_WARNING} from '../contracts/notes.js'
 import { api, currentRepository, type Api } from './api.js'
 import type { CaptureProgress, CaptureRequest, CaptureResult, ConversationExportFormat, NoteView, NoteJob,NoteStageResult } from '../contracts/notes.js'
@@ -44,7 +45,7 @@ export class NoteCaptureBridge {
     const selected = new Set(state.selected)
     const first=state.selection?.messages.find(m=>m.role==='user'&&(state.scope==='session'||selected.has(m.id)))
     const text=first?.blocks.flatMap(b=>b.type==='text'&&!b.materialId?[b.text]:[]).join(' ').split(/[\r\n]/)[0]?.replace(/^[#>*\s-]+/,'').trim()??''
-    return {title:[...text].slice(0,40).join('')||'会话笔记',summary:'',tags:[]}
+    return {title:[...text].slice(0,40).join('')||currentTranslator()('sessionNotes'),summary:'',tags:[]}
   }
   async suggest(){
     const state=this.state;if(!state?.selection||state.status!=='selecting'||state.suggesting)return

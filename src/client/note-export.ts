@@ -7,15 +7,16 @@ import { ExportError, type ExportSnapshot, type ExportImage } from '../notes/exp
 import { checkPixels, layoutExport, EXPORT_LIMITS, type ExportPage } from '../notes/export/layout.js'
 import { imageDimensions } from '../notes/export/image.js'
 import type { NoteExportRequest, NoteExportFormat } from '../contracts/notes.js'
+import {clientLanguage,currentTranslator,type T,type Language} from './locale.js'
 
 export type ExportFormat = Exclude<NoteExportFormat, 'snapshot'>
 export interface ExportOptions { format: ExportFormat; includeSource: boolean; assetIds?:string[];attachmentIds?:string[];includeTags?:boolean; includeSummary?:boolean; width: number; pixelRatio: number; background: 'current' | 'light' | 'dark' | 'transparent'; appearance?:ReadingAppearance; assetId?: string }
 export interface DownloadFile { blob: Blob; filename: string }
 interface Frozen { noteId: string; revision: string }
-export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch,repository=currentRepository()): Promise<Response> {
+export async function exportRequest(identity: Frozen, body: Omit<NoteExportRequest, keyof Frozen>, signal: AbortSignal, fetcher: typeof fetch = fetch,repository=currentRepository(),language:Language=clientLanguage()): Promise<Response> {
   signal.throwIfAborted()
   if(currentRepository()!==repository)throw new ApiError('notebook_changed')
-  const response = await fetcher('/dsh-fatfish-notes/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json',...(repository===undefined?{}:{'x-notebook-repository':String(repository)}) }, body: JSON.stringify({ ...identity, ...body }), signal })
+  const response = await fetcher('/dsh-fatfish-notes/notes/export', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json','Accept-Language':language,...(repository===undefined?{}:{'x-notebook-repository':String(repository)}) }, body: JSON.stringify({ ...identity, ...body }), signal })
   signal.throwIfAborted()
   if(currentRepository()!==repository)throw new ApiError('notebook_changed')
   if (!response.ok) {
@@ -24,13 +25,13 @@ export async function exportRequest(identity: Frozen, body: Omit<NoteExportReque
   }
   return response
 }
-export function downloadFilename(response: Response): string {
+export function downloadFilename(response: Response,t:T=currentTranslator()): string {
   const match = /filename\*=UTF-8''([^;]+)/i.exec(response.headers.get('content-disposition') ?? '')
-  try { const name = decodeURIComponent(match?.[1] ?? '笔记'); return /[\\/\x00-\x1f]/.test(name) ? '笔记' : name } catch { return '笔记' }
+  try { const name = decodeURIComponent(match?.[1] ?? t('artifactNote')); return /[\\/\x00-\x1f]/.test(name) ? t('artifactNote') : name } catch { return t('artifactNote') }
 }
 type ExportFields = Pick<NoteExportRequest, 'includeSource'|'includeTags'|'includeSummary'|'assetIds'|'attachmentIds'>
-async function snapshot(identity: Frozen, fields: ExportFields, signal: AbortSignal, repository:number|undefined): Promise<ExportSnapshot> {
-  const value = await (await exportRequest(identity, { format: 'snapshot', ...fields }, signal,fetch,repository)).json() as ExportSnapshot
+async function snapshot(identity: Frozen, fields: ExportFields, signal: AbortSignal, repository:number|undefined,language:Language): Promise<ExportSnapshot> {
+  const value = await (await exportRequest(identity, { format: 'snapshot', ...fields }, signal,fetch,repository,language)).json() as ExportSnapshot
   signal.throwIfAborted()
   if (value?.noteId !== identity.noteId || value?.revision !== identity.revision || typeof value.filename !== 'string' || !Array.isArray(value.model?.blocks) || !Array.isArray(value.model?.assetIds) || !value.assets || Object.keys(value.assets).some(id => !value.model.assetIds.includes(id))) throw new ApiError('invalid_response')
   return value
@@ -104,7 +105,7 @@ function pageElement(page: ExportPage, images: Record<string, ExportImage>, back
   }
   return root
 }
-export async function renderImage(value: Pick<ExportSnapshot,'model'|'filename'>, images: Record<string, ExportImage>, options: Pick<ExportOptions,'width'|'pixelRatio'|'background'>, signal: AbortSignal): Promise<DownloadFile> {
+export async function renderImage(value: Pick<ExportSnapshot,'model'|'filename'>, images: Record<string, ExportImage>, options: Pick<ExportOptions,'width'|'pixelRatio'|'background'>, signal: AbortSignal,t:T=currentTranslator()): Promise<DownloadFile> {
   const font = await loadFont(signal), canvas = document.createElement('canvas'), context = canvas.getContext('2d')
   if (!context) throw new ExportError('export_failed')
   context.fontKerning = 'none'
@@ -123,31 +124,31 @@ export async function renderImage(value: Pick<ExportSnapshot,'model'|'filename'>
     if (blob.size > 128 * 1024 * 1024) throw new ExportError('export_output_limit')
     const bitmap = await createImageBitmap(blob)
     try { if (bitmap.width !== Math.floor(page.width * options.pixelRatio) || bitmap.height !== Math.floor(page.height * options.pixelRatio)) throw new ExportError('export_dimensions') } finally { bitmap.close() }
-    signal.throwIfAborted(); return { blob, filename: `${value.filename}-长图.png` }
+    signal.throwIfAborted(); return { blob, filename: `${value.filename}-${t('artifactPngSuffix')}.png` }
   } finally { holder.remove(); canvas.width = 0 }
 }
-export async function createNoteDownload(identity: Frozen, options: ExportOptions, signal: AbortSignal): Promise<DownloadFile> {
+export async function createNoteDownload(identity: Frozen, options: ExportOptions, signal: AbortSignal,t:T=currentTranslator()): Promise<DownloadFile> {
   const repository=currentRepository()
   const current=()=>{signal.throwIfAborted();if(currentRepository()!==repository)throw new ApiError('notebook_changed')}
   const {includeSource,includeTags,includeSummary}=options
   const fields:ExportFields={includeSource,...(options.assetIds?{assetIds:options.assetIds}:{}),...(options.attachmentIds?{attachmentIds:options.attachmentIds}:{}),...(includeTags!==undefined&&{includeTags}),...(includeSummary!==undefined&&{includeSummary})}
   if(options.format==='png-long'){
-    const value=await (await exportRequest(identity,{format:options.format,...fields},signal,fetch,repository)).json() as ReadingSnapshot
+    const value=await (await exportRequest(identity,{format:options.format,...fields},signal,fetch,repository,t.language)).json() as ReadingSnapshot
     current()
     if(value?.kind!=='reading'||typeof value.filename!=='string'||!validNotesResponse('/notes/get',{ok:true,note:value.note})||value.note.noteId!==identity.noteId||value.note.current.revision!==identity.revision||value.source!==null&&!validCaptureSource(value.source)||!value.assets||Array.isArray(value.assets)||Object.keys(value.assets).some(id=>!value.note.current.assetIds.includes(id)))throw new ApiError('invalid_response')
     const prepared=await prepareImages({model:{title:'',blocks:[],assetIds:Object.keys(value.assets)},assets:value.assets},signal)
     current();value.assets=Object.fromEntries(Object.entries(prepared.images).map(([id,image])=>[id,image.dataUrl]))
-    const result=await readingImage(value,options,signal);current();return result
+    const result=await readingImage(value,options,signal,t);current();return result
   }
   if(options.format==='pdf'){
-    const value=await snapshot(identity,fields,signal,repository),prepared=await prepareImages(value,signal)
+    const value=await snapshot(identity,fields,signal,repository,t.language),prepared=await prepareImages(value,signal)
     current()
     if(prepared.convertedImages.reduce((n,image)=>n+Math.ceil(image.png.length*3/4),0)>1024*1024)throw new ExportError('export_conversion_budget')
-    const response=await exportRequest(identity,{format:'pdf',...fields,convertedImages:prepared.convertedImages},signal,fetch,repository)
-    const blob=await response.blob();current();return {blob,filename:downloadFilename(response)}
+    const response=await exportRequest(identity,{format:'pdf',...fields,convertedImages:prepared.convertedImages},signal,fetch,repository,t.language)
+    const blob=await response.blob();current();return {blob,filename:downloadFilename(response,t)}
   }
-  const response=await exportRequest(identity,{format:options.format,...fields,...(options.assetId?{assetId:options.assetId}:{})},signal,fetch,repository)
-  const blob=await response.blob();current();return {blob,filename:downloadFilename(response)}
+  const response=await exportRequest(identity,{format:options.format,...fields,...(options.assetId?{assetId:options.assetId}:{})},signal,fetch,repository,t.language)
+  const blob=await response.blob();current();return {blob,filename:downloadFilename(response,t)}
 }
 
 /** Browser/Electron own the final save; a click means download started, never disk-save verified. */

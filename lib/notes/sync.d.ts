@@ -5,6 +5,7 @@ import type { PrivateFiles } from '../private-workspace/types.js';
 import { NoteRepository } from './repository.js';
 import { type NoteObjects } from './types.js';
 import type { InitialNotesProvider } from './handbook.js';
+import type { Language } from '../domain/localization.js';
 interface LazyFile {
     length: number;
     load: () => Promise<Buffer>;
@@ -31,7 +32,7 @@ export declare class NotesSyncModule {
     readSnapshot(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal): Promise<Snapshot>;
     private readValidatedSnapshot;
     install(remote: Snapshot, objects: NoteObjects, signal?: AbortSignal): Promise<void>;
-    prepare(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal, verified?: Snapshot, initialContent?: InitialNotesProvider): Promise<{
+    prepare(backend: GitBackend, snapshot: GitSnapshot, signal?: AbortSignal, verified?: Snapshot, initialContent?: InitialNotesProvider, language?: Language): Promise<{
         files: PrivateFiles;
         acknowledged: string;
         install: () => Promise<void>;

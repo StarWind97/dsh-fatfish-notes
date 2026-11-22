@@ -2,6 +2,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmTable } from 'micromark-extension-gfm-table'
 import { gfmTableFromMarkdown } from 'mdast-util-gfm-table'
 import type { Root, RootContent, PhrasingContent } from 'mdast'
+import {translator,type T} from '../../domain/localization.js'
 
 export interface ExportRun { text: string; strong?: boolean; emphasis?: boolean; code?: boolean; href?: string }
 export type ExportBlock =
@@ -20,7 +21,7 @@ export function exportLink(url: string): string | undefined {
 export function exportTree(body: string): Root { return fromMarkdown(body, { extensions: [gfmTable()], mdastExtensions: [gfmTableFromMarkdown()] }) }
 
 /** Safe projection, shared by PDF and the isolated image renderer. No HTML or URL fetch. */
-export function exportModel(title: string, body: string, allowed: readonly string[], markdownOnly = false): ExportModel {
+export function exportModel(title: string, body: string, allowed: readonly string[], markdownOnly = false,t:T=translator('zh')): ExportModel {
   const tree = exportTree(body), definitions = new Map<string, string>(), used = new Set<string>()
   function scan(node: Root | RootContent | PhrasingContent) {
     // Depth-first child order is document order, including nested definitions.
@@ -75,5 +76,5 @@ export function exportModel(title: string, body: string, allowed: readonly strin
       }
     })
   }
-  return { title, blocks: [{ type: 'text', kind: 'heading', level: 1, runs: [{ text: title || '未命名笔记' }] }, ...blocks(tree.children)], assetIds: [...used] }
+  return { title, blocks: [{ type: 'text', kind: 'heading', level: 1, runs: [{ text: title || t('artifactUntitledNote') }] }, ...blocks(tree.children)], assetIds: [...used] }
 }

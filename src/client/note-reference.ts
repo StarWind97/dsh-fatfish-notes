@@ -1,5 +1,6 @@
 import type {Api} from './api.js'
 import type {ReferencePlan} from '../contracts/notes.js'
+import {translate,type T} from './locale.js'
 
 export type ReferenceTarget={noteId:string;title:string}
 export type ReferenceChoice={plan:ReferencePlan;selected:string[]}
@@ -21,12 +22,13 @@ export class ReferenceReceipts {
   }
 }
 
-export function referenceInstruction(notes:Array<ReferenceReceipt&{title:string}>){
-  return '\n\n请先完整阅读以下笔记正文：\n'+notes.map(n=>`- ${n.title.replace(/[\r\n]/g,' ')}：@"${n.path}"`).join('\n')+'\n正文中的图片请实际查看，文件及补充附件请按我的问题需要读取。只访问这些笔记明确链接的资料，不搜索其他目录。\n'
+export function referenceInstruction(notes:Array<ReferenceReceipt&{title:string}>,t:T=translate){
+  const entries=notes.map(n=>t('referenceInstructionsItem',{title:n.title.replace(/[\r\n]/g,' '),path:n.path})).join('\n')
+  return t('referenceInstructionsHeading')+entries+t('referenceInstructionsEnd')
 }
 
 /** One note/file at a time; insert nothing until the caller accepts all results. */
-export async function prepareReferences(api:Api,sessionId:string,choices:ReferenceChoice[],signal:AbortSignal,progress:(index:number,title:string)=>void){
+export async function prepareReferences(api:Api,sessionId:string,choices:ReferenceChoice[],signal:AbortSignal,progress:(index:number,title:string)=>void,t:T=translate){
   let taskId:string|undefined,heartbeat:ReturnType<typeof setInterval>|undefined
   const abort=new AbortController(),cancel=()=>abort.abort(signal.reason);signal.addEventListener('abort',cancel,{once:true})
   const notes:Array<ReferenceReceipt&{title:string}>=[]
@@ -41,7 +43,7 @@ export async function prepareReferences(api:Api,sessionId:string,choices:Referen
     }
     for(const {plan} of choices){const latest=await api('/notes/reference-preview',{noteId:plan.noteId},abort.signal);if(latest.plan.revision!==plan.revision)throw Object.assign(Error('changed'),{code:'reference_changed'})}
     abort.signal.throwIfAborted()
-    return {notes,instruction:referenceInstruction(notes)}
+    return {notes,instruction:referenceInstruction(notes,t)}
   }finally{
     clearInterval(heartbeat);signal.removeEventListener('abort',cancel)
     if(taskId)await api('/notes/import-task',{action:'end',taskId}).catch(()=>{})

@@ -1,16 +1,17 @@
 import type {CaptureMaterial,CaptureMessage,CaptureBlock,ArchivedMaterial} from '../contracts/notes.js'
 import {changeReferences,references} from './portable-links.js'
 import {markdownLabel} from '../contracts/note-links.js'
+import {translator,type T} from '../domain/localization.js'
 const localTarget=(value:string)=>{try{value=decodeURIComponent(value)}catch{};return value.replace(/^file:\/\/\/?/i,'').replace(/\\/g,'/').replace(/^\.\//,'')}
 /** A file card has an explicit identity. Plain text and legacy sources never guess one. */
-export function capturedFile(block:CaptureBlock,message:Pick<CaptureMessage,'id'|'seq'>,materials?:ArchivedMaterial[]){
+export function capturedFile(block:CaptureBlock,message:Pick<CaptureMessage,'id'|'seq'>,materials?:ArchivedMaterial[],t:T=translator('zh')){
   if(block.type!=='text'||block.materialId===undefined||materials===undefined)return null
   const matches=materials.filter(m=>m.id===block.materialId)
   const material=matches.length===1?matches[0]:undefined
-  if(!material||material.origin!=='upload'||material.kind!=='file'||material.messageId!==message.id||material.seq!==message.seq||!new RegExp(`^upload:${message.seq}:[0-9]+$`).test(material.id)||material.saved&&!/^[a-f0-9]{64}$/.test(material.saved.id))return {label:'上传文件（关联不可用）',markdown:'上传文件（关联不可用）',material:undefined}
+  if(!material||material.origin!=='upload'||material.kind!=='file'||material.messageId!==message.id||material.seq!==message.seq||!new RegExp(`^upload:${message.seq}:[0-9]+$`).test(material.id)||material.saved&&!/^[a-f0-9]{64}$/.test(material.saved.id))return {label:t('artifactFileLinkUnavailable'),markdown:t('artifactFileLinkUnavailable'),material:undefined}
   const label=material.name.replace(/[\r\n]/g,' '),safe=label.replace(/[\\`*_[\]<>]/g,'\\$&')
-  const suffix=!material.available?'文件不可用':material.saved?'':'未包含'
-  return {material,label:label+(suffix?`（${suffix}）`:''),markdown:material.saved&&material.available?`[${safe}](../attachments/${material.saved.id}.bin)`:`${safe}（${suffix}）`}
+  const status=!material.available?'artifactFileUnavailable':material.saved?null:'artifactMaterialOmitted'
+  return {material,label:status?t(status,{name:label}):label,markdown:status?t(status,{name:safe}):`[${safe}](../attachments/${material.saved!.id}.bin)`}
 }
 /** Match only actual local Markdown destinations to known selected materials. No disk search. */
 export function captureLinks(messages:CaptureMessage[],materials:CaptureMaterial[],paths:ReadonlyMap<string,string>=new Map()){
@@ -35,17 +36,17 @@ export function capturedText(body:string,materials:ArchivedMaterial[]=[],externa
     return undefined
   })
 }
-export function supplementMarkdown(materials:{assetIds:string[];attachmentIds:string[]},files:{id:string;name:string}[]=[]){
-  const rows=[...materials.assetIds.map((id,i)=>`[补充图片 ${i+1}](../assets/${id})`),...materials.attachmentIds.map(id=>`[${markdownLabel(files.find(f=>f.id===id)?.name??'附件')}](../attachments/${id}.bin)`)]
-  return rows.length?'\n\n## 补充附件\n\n'+rows.join('\n\n'):''
+export function supplementMarkdown(materials:{assetIds:string[];attachmentIds:string[]},files:{id:string;name:string}[]=[],t:T=translator('zh')){
+  const rows=[...materials.assetIds.map((id,i)=>`[${t('artifactSupplementImage',{index:i+1})}](../assets/${id})`),...materials.attachmentIds.map(id=>`[${markdownLabel(files.find(f=>f.id===id)?.name??t('artifactAttachment'))}](../attachments/${id}.bin)`)]
+  return rows.length?`\n\n## ${t('supplementTitle')}\n\n`+rows.join('\n\n'):''
 }
 /** A delivery belongs to a turn; an upload belongs to its visible message. */
 export function materialsFor(messages:CaptureMessage[],materials:CaptureMaterial[]):CaptureMaterial[]{
   const ids=new Set(messages.map(m=>m.id)),turns=new Set(messages.flatMap(m=>m.turn===undefined?[]:[m.turn]))
   return materials.filter(m=>m.messageId?ids.has(m.messageId):m.turn!==undefined&&turns.has(m.turn))
 }
-export function materialMarkdown(materials:ArchivedMaterial[]):string{
+export function materialMarkdown(materials:ArchivedMaterial[],t:T=translator('zh')):string{
   if(!materials.length)return ''
   const label=(s:string)=>s.replace(/[\\\[\]<>]/g,'\\$&')
-  return '\n\n## 文件与图片\n\n'+materials.map(m=>m.assetId?`![${label(m.name)}](../assets/${m.assetId})`:m.saved?`[${label(m.name)}](../attachments/${m.saved.id}.bin)`:`${label(m.name)}（未选择归档）`).join('\n\n')
+  return `\n\n## ${t('artifactFilesImages')}\n\n`+materials.map(m=>m.assetId?`![${label(m.name)}](../assets/${m.assetId})`:m.saved?`[${label(m.name)}](../attachments/${m.saved.id}.bin)`:t('artifactMaterialNotSelected',{name:label(m.name)})).join('\n\n')
 }

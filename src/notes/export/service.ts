@@ -15,25 +15,26 @@ import { zippedFile,type ZipEntry } from './zip.js'
 import { exportPdf } from './pdf.js'
 import { EXPORT_LIMITS } from './layout.js'
 import { imageDimensions } from './image.js'
+import {translator,type T} from '../../domain/localization.js'
 
 /** Rendering needs decoded images in memory; this never limits Markdown or stored originals. */
 export function renderImageBudget(){let bytes=0,pixels=0;return (value:Buffer)=>{const size=imageDimensions(value);bytes+=value.length;pixels+=size.width*size.height;if(bytes>128*1024*1024||pixels>128_000_000)throw new ExportError('export_image_budget')}}
 export interface ExportFile { bytes: Buffer; mediaType: string; filename: string;stream?:()=>AsyncIterable<Uint8Array> }
-export async function createExport(repository: NoteRepository, input: unknown, signal?: AbortSignal,streaming=false): Promise<ExportFile> {
+export async function createExport(repository: NoteRepository, input: unknown, signal?: AbortSignal,streaming=false,t:T=translator('zh')): Promise<ExportFile> {
   const v = object(input), format = text(v.format, 30)
   if (Object.keys(v).some(key => !['noteId','revision','format','includeSource','includeTags','includeSummary','convertedImages','assetId','assetIds','attachmentIds'].includes(key))) throw new ExportError('export_request')
   if (!['markdown','markdown-zip','pdf','png-long','snapshot','original'].includes(format)) throw new ExportError('export_request')
   for (const flag of [v.includeSource,v.includeTags,v.includeSummary]) {
     if (flag !== undefined && typeof flag !== 'boolean') throw new ExportError('export_request')
   }
-  const note = await repository.getRevision(id(v.noteId), hash(v.revision), signal), filename = exportFilename(note.title)
+  const note = await repository.getRevision(id(v.noteId), hash(v.revision), signal), filename = exportFilename(note.title,t)
   if (format === 'original') {
     const asset = text(v.assetId, 80)
     if (!note.assetIds.includes(asset)) throw new ExportError('export_image_missing')
     return { bytes: await repository.getAsset(asset, signal), mediaType: mediaTypeFor(asset), filename: `${filename}-${asset.slice(0, 10)}.${asset.split('.')[1]}` }
   }
   const original=v.includeSource===true&&note.sourceId?await repository.getSource(note.sourceId,signal):null
-  const rawSource=original?sourceMarkdown(original):null
+  const rawSource=original?sourceMarkdown(original,t):null
   const active=currentMaterials(note),supplement=supplementMaterials(note)
   const allAssets=[...new Set([...active.assetIds,...(rawSource?.assets??[])])]
   const allFiles=[...new Map([...(note.attachments??[]).filter(f=>active.attachmentIds.includes(f.id)),...(original?sourceAttachments(original):[])].map(a=>[a.id,a])).values()]
@@ -48,12 +49,12 @@ export async function createExport(repository: NoteRepository, input: unknown, s
     return {bytes:Buffer.from(JSON.stringify(snapshot)),mediaType:'application/json; charset=utf-8',filename:filename+'.json'}
   }
 
-  const extra=supplementMarkdown({assetIds:supplement.assetIds.filter(id=>selectedAssets.includes(id)),attachmentIds:supplement.attachmentIds.filter(id=>selectedFiles.includes(id))},note.attachments)
-  const body = omitMaterials(note.body,new Set(selectedAssets),new Set(selectedFiles))+extra, markdownOnly = format === 'markdown' || format === 'markdown-zip'
-  const model = exportModel(note.title, body, selectedAssets, markdownOnly)
+  const extra=supplementMarkdown({assetIds:supplement.assetIds.filter(id=>selectedAssets.includes(id)),attachmentIds:supplement.attachmentIds.filter(id=>selectedFiles.includes(id))},note.attachments,t)
+  const body = omitMaterials(note.body,new Set(selectedAssets),new Set(selectedFiles),t)+extra, markdownOnly = format === 'markdown' || format === 'markdown-zip'
+  const model = exportModel(note.title, body, selectedAssets, markdownOnly,t)
   let appendix: string | undefined
   if (rawSource) {
-    const sourceBody=omitMaterials(rawSource.body,new Set(selectedAssets),new Set(selectedFiles)), sourceModel=exportModel('',sourceBody,selectedAssets,markdownOnly)
+    const sourceBody=omitMaterials(rawSource.body,new Set(selectedAssets),new Set(selectedFiles),t), sourceModel=exportModel('',sourceBody,selectedAssets,markdownOnly,t)
     appendix = sourceBody
     model.blocks.push(...sourceModel.blocks.slice(1)) // The appendix supplies its own heading.
     model.assetIds = [...new Set([...model.assetIds, ...sourceModel.assetIds])]
@@ -71,17 +72,17 @@ export async function createExport(repository: NoteRepository, input: unknown, s
     const snapshot: ExportSnapshot = { noteId: note.noteId, revision: note.revision, filename, model, attachments:chosenFiles, assets: Object.fromEntries(Object.entries(images).map(([asset, bytes]) => [asset, `data:${mediaTypeFor(asset)};base64,${bytes.toString('base64')}`])) }
     return { bytes: Buffer.from(JSON.stringify(snapshot)), mediaType: 'application/json; charset=utf-8', filename: `${filename}.json` }
   }
-  const attachmentNames=new Map(chosenFiles.map(a=>[a.id,a.id.slice(0,16)+'-'+exportFilename(a.name)]))
+  const attachmentNames=new Map(chosenFiles.map(a=>[a.id,a.id.slice(0,16)+'-'+exportFilename(a.name,t)]))
   if(appendix)appendix=changeReferences(appendix,ref=>{const file=attachmentLinkId(ref.url);return file&&attachmentNames.has(file)?'attachments/'+encodeURIComponent(attachmentNames.get(file)!):!ref.image&&ref.url.startsWith('../assets/')?'assets/'+ref.url.slice(10):undefined})
-  const portableBody=changeReferences(body,ref=>{const file=attachmentLinkId(ref.url);return file&&attachmentNames.has(file)?'attachments/'+encodeURIComponent(attachmentNames.get(file)!):!ref.image&&ref.url.startsWith('../assets/')?'assets/'+ref.url.slice(10):undefined})+(missingFiles.length?'\n\n## 补充附件\n\n'+missingFiles.map(a=>`[${a.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(a.id)!)}>)`).join('\n\n'):'')
+  const portableBody=changeReferences(body,ref=>{const file=attachmentLinkId(ref.url);return file&&attachmentNames.has(file)?'attachments/'+encodeURIComponent(attachmentNames.get(file)!):!ref.image&&ref.url.startsWith('../assets/')?'assets/'+ref.url.slice(10):undefined})+(missingFiles.length?`\n\n## ${t('supplementTitle')}\n\n`+missingFiles.map(a=>`[${a.name.replace(/[\\[\]]/g,'\\$&')}](<attachments/${encodeURIComponent(attachmentNames.get(a.id)!)}>)`).join('\n\n'):'')
   const entries:ZipEntry[]=chosenFiles.map(a=>({path:'attachments/'+attachmentNames.get(a.id)!,read:()=>repository.getAttachment(a.id,signal)}))
-  if (format === 'markdown') return { bytes: Buffer.from(exportMarkdown(header, portableBody, appendix)), mediaType: 'text/markdown; charset=utf-8', filename: `${filename}.md` }
-  if (markdownOnly){for(const asset of selectedAssets)entries.push({path:'assets/'+asset,read:()=>repository.getAsset(asset,signal)});entries.unshift({path:filename+'.md',read:async()=>Buffer.from(exportMarkdown(header,portableBody,appendix))});return zippedFile(filename,entries,signal,streaming)}
-  return renderPdfFile(filename, model, images, v.convertedImages, signal)
+  if (format === 'markdown') return { bytes: Buffer.from(exportMarkdown(header, portableBody, appendix,t)), mediaType: 'text/markdown; charset=utf-8', filename: `${filename}.md` }
+  if (markdownOnly){for(const asset of selectedAssets)entries.push({path:'assets/'+asset,read:()=>repository.getAsset(asset,signal)});entries.unshift({path:filename+'.md',read:async()=>Buffer.from(exportMarkdown(header,portableBody,appendix,t))});return zippedFile(filename,entries,signal,streaming)}
+  return renderPdfFile(filename, model, images, v.convertedImages, signal,t)
 
 }
 
-export async function renderPdfFile(filename:string, model:ExportModel, images:Record<string,Buffer>, convertedImages:unknown, signal?:AbortSignal):Promise<ExportFile> {
+export async function renderPdfFile(filename:string, model:ExportModel, images:Record<string,Buffer>, convertedImages:unknown, signal?:AbortSignal,t:T=translator('zh')):Promise<ExportFile> {
   const conversions = convertedImages === undefined ? [] : convertedImages
   if (!Array.isArray(conversions)) throw new ExportError('export_conversion')
   const seen = new Set<string>(); let bytesTotal = 0
@@ -100,5 +101,5 @@ export async function renderPdfFile(filename:string, model:ExportModel, images:R
     images[asset] = bytes
   }
   if (model.assetIds.some(asset => /\.(gif|webp)$/.test(asset) && !seen.has(asset))) throw new ExportError('export_conversion_required')
-  return { bytes: await exportPdf(model, images, signal), mediaType: 'application/pdf', filename: `${filename}.pdf` }
+  return { bytes: await exportPdf(model, images, signal,t), mediaType: 'application/pdf', filename: `${filename}.pdf` }
 }

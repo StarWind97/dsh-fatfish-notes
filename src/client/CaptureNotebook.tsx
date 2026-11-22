@@ -1,4 +1,5 @@
 import * as React from 'react'
+import {notebookTitle} from '../notes/notebooks.js'
 import {useEffect,useState} from 'react'
 import {api,type Api} from './api.js'
 import {activeNotebook} from '../notes/notebooks.js'
@@ -11,7 +12,7 @@ export function CaptureNotebook({value,choose,t,call=api,onValid}:{value:string|
   useEffect(()=>{const c=new AbortController();void call('/notes/notebooks',undefined,c.signal).then(r=>{setBooks(r.notebooks.filter(activeNotebook));setLoaded(true)}).catch(()=>{if(!c.signal.aborted){setError(true);onValid?.(false)}});return()=>c.abort()},[call])
   const selected=value??books.find(b=>b.isDefault)?.notebookId??'',valid=books.some(b=>b.notebookId===selected)
   useEffect(()=>{onValid?.(loaded&&valid)},[loaded,valid,onValid])
-  return <div className="conversation-book-picker"><style>{captureNotebookCss}</style><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={valid?selected:''} onChange={e=>choose(e.target.value)}><option value="" disabled>{t(loaded?'sessionChooseBook':'loading')}</option>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>{loaded&&!valid&&<p role="alert">原来的笔记本不可用，请重新选择。</p>}{error&&<p role="alert">{t('notesBooksFailed')}</p>}</div>
+  return <div className="conversation-book-picker"><style>{captureNotebookCss}</style><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={valid?selected:''} onChange={e=>choose(e.target.value)}><option value="" disabled>{t(loaded?'sessionChooseBook':'loading')}</option>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{notebookTitle(b,t)}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>{loaded&&!valid&&<p role="alert">{t('captureBookUnavailable')}</p>}{error&&<p role="alert">{t('notesBooksFailed')}</p>}</div>
 }
 
 export const captureNotebookCss=`

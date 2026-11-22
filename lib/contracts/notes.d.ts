@@ -1,3 +1,4 @@
+export declare const DEFAULT_UNTITLED_NOTE_TITLE = "\u65E0\u6807\u9898";
 export type NoteMode = 'raw';
 export type NoteStatus = 'active' | 'trashed';
 /** Binary export endpoint is handled separately from the JSON NotesApiContract. */

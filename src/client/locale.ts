@@ -1,8 +1,7 @@
-import zh from '../../locale/zh.json' with { type: 'json' }
-import en from '../../locale/en.json' with { type: 'json' }
+import {resolveLanguage,translator,type LocaleKey} from '../domain/localization.js'
+export {dictionaries,translator,type Language,type LocaleKey,type T} from '../domain/localization.js'
 export const NS = 'dsh-fatfish-notes'
-export type LocaleKey = keyof typeof zh
-export type T = (key: LocaleKey, params?: Record<string, unknown>) => string
-export const dictionaries = {zh,en} satisfies Record<'zh'|'en', Record<LocaleKey,string>>
-export const translate: T = (key,params) => zh[key].replace(/\{([^}]+)\}/g, (_,name: string) => String(params?.[name] ?? `{${name}}`))
+export const clientLanguage = () => resolveLanguage(globalThis.document?.documentElement.lang)
+export const currentTranslator = () => translator(clientLanguage())
+export const translate = translator('zh')
 declare module '@deepseek-ai/dsh-client-ui-slots' { interface LocaleNamespaceMap { 'dsh-fatfish-notes': LocaleKey } }

@@ -1,4 +1,5 @@
 import type { CaptureSource, NoteJob, NoteStage, NoteStageResult } from '../contracts/notes.js';
+import { type T } from '../domain/localization.js';
 export declare const AI_LIMITS: {
     readonly characters: 32000;
     readonly chunks: 32;
@@ -10,5 +11,5 @@ export declare const attemptId: (jobId: string, index: number, attempt: number) 
 /** Whole messages first, then whole Markdown blocks. An oversized indivisible
  * block fails visibly rather than silently clipping code or early messages. */
 export declare function planStages(source: CaptureSource, jobId: string): NoteStage[];
-export declare function stageResult(input: unknown, stage: NoteStage, concise?: boolean): NoteStageResult;
+export declare function stageResult(input: unknown, stage: NoteStage, concise?: boolean, t?: T): NoteStageResult;
 export declare function stagePrompt(job: Pick<NoteJob, 'sessionId'>, stage: NoteStage): string;

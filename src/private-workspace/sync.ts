@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { NotebookError } from '../domain/errors.js';
+import {translator,type Language} from '../domain/localization.js';
 import { isRecord } from '../domain/record.js';
 import { cancelled } from '../git/common.js';
 import { createGitBackend, runGit, type GitBackend, type GitRunner } from '../git/backend.js';
@@ -25,6 +26,7 @@ interface Config {
     lastSuccessAt: string | null;
     lastFailure?: { at: string; code: string };
     initializing: boolean;
+    handbookLanguage?: Language;
     paused: {
         code: string;
         message: string;
@@ -74,6 +76,8 @@ function validateConfig(input: unknown, home: string): Config {
     if (!isRecord(input) || input.version !== 1 || typeof input.enabled !== 'boolean' || typeof input.initializing !== 'boolean' || (input.binding !== null && !binding(input.binding)) || (input.lastSuccessAt !== null && (typeof input.lastSuccessAt !== 'string' || !Number.isFinite(Date.parse(input.lastSuccessAt)))) || !Object.hasOwn(input, 'preview'))
         fail('personal_config_invalid', '笔记同步设置损坏；原文件已保留', 500);
     if (input.lastFailure !== undefined && (!isRecord(input.lastFailure) || typeof input.lastFailure.at!=='string' || !Number.isFinite(Date.parse(input.lastFailure.at)) || typeof input.lastFailure.code!=='string' || !/^[a-z_]{1,60}$/.test(input.lastFailure.code))) fail('personal_config_invalid','本机同步诊断无效',500);
+    if (input.handbookLanguage !== undefined && input.handbookLanguage !== 'zh' && input.handbookLanguage !== 'en')
+        fail('personal_config_invalid', '手册语言记录无效', 500);
     if (input.preview !== null) {
         const p = input.preview;
         if(isRecord(p) && p.folderPrepared!==undefined && typeof p.folderPrepared!=='boolean')fail('personal_config_invalid','本机初始化记录无效',500);
@@ -378,7 +382,7 @@ export class PrivateWorkspaceSync {
         if(reuse && !relative(home,folder) && relative(source,folder))return;
         distinctFolder(home,source,folder);
     }
-    reset(input:unknown,signal?:AbortSignal):Promise<void>{
+    reset(input:unknown,signal?:AbortSignal,language:Language='zh'):Promise<void>{
         return this.control(async()=>{
             const v=record(input,['repositoryId','previewId','confirmPrivate']),old=this.activeBinding(v.repositoryId);
             const target=this.candidate, preview=target?.config.preview;
@@ -390,7 +394,7 @@ export class PrivateWorkspaceSync {
                 await this.notes.initialize();
                 if(this.isPending())fail('notebook_unsynced','请先同步原笔记库的本机修改');
                 await this.freshResetFolder(target,preview.folder);
-                await target.connect({previewId:preview.id,confirmPrivate:true},active);
+                await target.connect({previewId:preview.id,confirmPrivate:true},active,language);
                 cancelled(active);
                 // The source may have advanced on another device while the target
                 // was being prepared. Reconcile it while its local writes are gated.
@@ -450,7 +454,7 @@ export class PrivateWorkspaceSync {
             return { ok: true, preview: structuredClone(wire) };
         });
     }
-    connect(input: unknown, signal?: AbortSignal): Promise<void> {
+    connect(input: unknown, signal?: AbortSignal, language:Language='zh'): Promise<void> {
         return this.control(async () => {
             const value = record(input, ['previewId', 'confirmPrivate']), preview = this.config.preview;
             if (this.config.binding && this.config.enabled && !this.stagingFile) fail('notebook_already_bound','笔记库已经绑定');
@@ -507,6 +511,7 @@ export class PrivateWorkspaceSync {
                 this.options.notes.useDirectory(preview.folder);
                 this.config.binding = bound;
                 this.config.initializing = true;
+                this.config.handbookLanguage = language;
             }
             cancelled(active);
             this.config.notesConsent = true;
@@ -618,13 +623,14 @@ export class PrivateWorkspaceSync {
                 const folder=this.config.folder??this.options.dir;
                 if(this.returning)await verifyRememberedFolder(this.options.dir,this.returning);
                 else if(this.config.initializing || this.stagingFile)await markFolder(locationOf(bound,folder));
-                const notes = await this.notes.prepare(backend, snapshot, signal, verified?.revision === snapshot.revision ? verified?.data : undefined,this.config.initializing?this.options.initialNotes:undefined).catch(error => { cancelled(signal); throw noteSyncError(error) });
+                const language=this.config.handbookLanguage??'zh';
+                const notes = await this.notes.prepare(backend, snapshot, signal, verified?.revision === snapshot.revision ? verified?.data : undefined,this.config.initializing?this.options.initialNotes:undefined,language).catch(error => { cancelled(signal); throw noteSyncError(error) });
                 const files: PrivateFiles = new Map(notes.files);
                 if (!snapshot.entries.has(MANIFEST) || manifest.modules.notes !== this.notes.version) {
                     manifest.modules.notes = this.notes.version;
                     files.set(MANIFEST, JSON.stringify(manifest));
                 }
-                if (!snapshot.entries.has('README.md')) files.set('README.md', '# 私有笔记\n\n由 肥鱼笔记同步。请保持仓库私有。\n');
+                if (!snapshot.entries.has('README.md')) files.set('README.md', translator(language)('repositoryReadme'));
                 let synchronizedRevision=snapshot.revision;
                 if (files.size) {
                     const commit = await backend.commit(snapshot, { files }, randomUUID(), signal);
@@ -650,6 +656,7 @@ export class PrivateWorkspaceSync {
     }
     private async success(notesAck?: string): Promise<void> {
         const next:Config={...this.config,notesAcknowledged:notesAck??this.config.notesAcknowledged,lastSuccessAt:new Date(this.now()).toISOString(),initializing:false};
+        delete next.handbookLanguage;
         if(!this.stagingFile)next.locations=remember(this.config.locations,locationOf(this.config.binding!,this.config.folder??this.options.dir));
         await this.persist(next);
         this.config=next;

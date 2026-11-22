@@ -9,6 +9,7 @@ import {TagDirectory} from './TagDirectory.js'
 import {similarCandidates} from './tag-similarity.js'
 import {ReadingBody,ReadingSummary} from './NoteReading.js'
 import {noteDateTime} from '../notes/date.js'
+import {notebookTitle} from '../notes/notebooks.js'
 import {Highlight} from './SearchText.js'
 
 function useRead<V>(read:(signal:AbortSignal)=>Promise<V>,retain?:unknown){
@@ -90,7 +91,7 @@ export function TagManager({controller,state,initialTag,t,setBusy}:{controller:N
     ?controller.api('/notes/tags',{action:'preview',mode,source,target:mode==='remove'?null:dest},signal):Promise.resolve(null),[controller,mode,source,dest,epoch,retry]),JSON.stringify([mode,source,dest]))
   const impact=preview?.value?.preview
   const previewReady=impact&&(! (mode==='rename')||name.trim()===newName)
-  const bookName=(id:string|null)=>state.notebooks.find(b=>id===null?b.isDefault:b.notebookId===id)?.current.title??t('notesDefaultBook')
+  const bookName=(id:string|null)=>{const book=state.notebooks.find(b=>id===null?b.isDefault:b.notebookId===id);return book?notebookTitle(book,t):t('notesDefaultBook')}
   const rowAt=rows.findIndex(row=>row.noteId===id)
   const near=useMemo(()=>similarCandidates(tags,source,t),[tags,source,t])
   const effectiveMode=mode==='rename'&&dest===name.trim()?(previewReady?impact.mode:keepEntry?'merge':'rename'):mode
@@ -212,7 +213,7 @@ export function TagManager({controller,state,initialTag,t,setBusy}:{controller:N
       </section>}
     </div><div className="class-search"><input type="search" aria-label={t('notesSearch')} placeholder={t('notesSearch')} value={query} onChange={e=>{const val=e.target.value;if(!query.trim()&&val.trim())setOrder('relevance');if(!val.trim()&&order==='relevance')setOrder('recent');setQuery(val);first()}}/>
       <div className="class-options list-tools"><button aria-expanded={filters} onClick={()=>setFilters(!filters)}>{t('findFilters')} ▾</button><select aria-label={t('paperSort')} value={order} onChange={e=>{setOrder(e.target.value as NoteOrder);first()}}>{(Object.keys(orderLabels) as NoteOrder[]).filter(o=>o!=='relevance'||query.trim()).map(o=><option key={o} value={o}>{t(orderLabels[o])}</option>)}</select></div>
-      {filters&&<div className="class-options extra-filters"><select aria-label={t('notesNotebook')} value={book} onChange={e=>{setBook(e.target.value);first()}}><option value="">{t('classAllBooks')}</option>{(entry?.books?.some(b=>b.id===null))&&<option value="default">{t('notesDefaultBook')}</option>}{state.notebooks.filter(b=>b.current.status==='active').map(b=><option key={b.notebookId} value={b.notebookId}>{b.current.title}</option>)}</select>
+      {filters&&<div className="class-options extra-filters"><select aria-label={t('notesNotebook')} value={book} onChange={e=>{setBook(e.target.value);first()}}><option value="">{t('classAllBooks')}</option>{(entry?.books?.some(b=>b.id===null))&&<option value="default">{t('notesDefaultBook')}</option>}{state.notebooks.filter(b=>b.current.status==='active').map(b=><option key={b.notebookId} value={b.notebookId}>{notebookTitle(b,t)}</option>)}</select>
         <select aria-label={t('findModified')} value={period} onChange={e=>{setPeriod(e.target.value);first()}}><option value="">{t('findTimeAny')}</option><option value="month">{t('findThisMonth')}</option><option value="before-month">{t('findBeforeMonth')}</option></select>
         <label><input type="checkbox" checked={files} onChange={e=>{setFiles(e.target.checked);first()}}/>{t('findFilesOnly')}</label><label><input type="checkbox" checked={favorite} onChange={e=>{setFavorite(e.target.checked);first()}}/>{t('findFavorites')}</label></div>}
     </div>{mode&&<div className="linked-scope">

@@ -1,4 +1,5 @@
 import { api, currentRepository, type Api } from './api.js'
+import {DEFAULT_UNTITLED_NOTE_TITLE} from '../contracts/notes.js'
 import { NoteRecovery, browserStorage, type RecoveryStorage, type RecoveryRecord } from './note-recovery.js'
 import type { NoteContent, NoteView, NoteListOptions, NoteListItem, NotebookView, NoteJobOverview, NoteRevision, NoteManageRequest } from '../contracts/notes.js'
 import { NOTE_OVERVIEW_LIMIT, type NoteOverview } from '../contracts/notes.js'
@@ -6,7 +7,7 @@ import {supplementMaterials,remainingSupplements} from '../notes/note-materials.
 import { RecentNotes } from './recent-notes.js'
 
 export const noteContent = (note: NoteView): NoteContent => ({ title: note.current.title, body: note.current.body, summary: note.current.summary, tags: [...note.current.tags], notebookId: note.effectiveNotebookId, status: note.current.status, sourceId: note.current.sourceId, assetIds: [...note.current.assetIds], supplements:supplementMaterials(note.current), ...(note.current.attachments ? { attachments: structuredClone(note.current.attachments) } : {}), ...(note.current.originPath !== undefined ? { originPath: note.current.originPath } : {}), ...(note.current.favorite!==undefined?{favorite:note.current.favorite}:{}), ...(note.current.sessionLinks!==undefined?{sessionLinks:[...note.current.sessionLinks]}:{}), ...(note.current.isTemplate!==undefined?{isTemplate:note.current.isTemplate}:{}) })
-const comparable=(c:NoteContent)=>Object.fromEntries(Object.entries({...c,title:c.title.trim()||'无标题',summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()}).sort(([a],[b])=>a.localeCompare(b)))
+const comparable=(c:NoteContent)=>Object.fromEntries(Object.entries({...c,title:c.title.trim()||DEFAULT_UNTITLED_NOTE_TITLE,summary:c.summary.trim(),tags:[...new Set(c.tags.map(t=>t.trim()))].sort(),assetIds:[...new Set(c.assetIds)].sort()}).sort(([a],[b])=>a.localeCompare(b)))
 const sameContent=(a:NoteContent,b:NoteContent)=>JSON.stringify(comparable(a))===JSON.stringify(comparable(b))
 const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 const errorCode = (e: unknown) => e instanceof Error && 'code' in e ? String(e.code) : 'request_failed'

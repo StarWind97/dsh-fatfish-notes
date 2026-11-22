@@ -1,11 +1,12 @@
 import * as React from 'react'
 import {RowMenu,type RowAction} from './RowMenu.js'
+import type {T} from './locale.js'
 
 /** In selection mode one label owns the complete hit area, including its native checkbox. */
-export function NoteSelectionRow({selecting,selected,label,rowClass,children,toggle,open,actions,current=false,disabled=false}:{
- selecting:boolean;selected:boolean;label:string;rowClass:string;children:React.ReactNode;toggle:()=>void;open:()=>void;actions:RowAction[];current?:boolean;disabled?:boolean
+export function NoteSelectionRow({t,selecting,selected,label,rowClass,children,toggle,open,actions,current=false,disabled=false}:{
+ t:T;selecting:boolean;selected:boolean;label:string;rowClass:string;children:React.ReactNode;toggle:()=>void;open:()=>void;actions:RowAction[];current?:boolean;disabled?:boolean
 }){
- if(!selecting)return <RowMenu label={label+' · 操作'} actions={actions} reveal="interaction"><button title={label} className={rowClass} aria-current={current?'true':undefined} onClick={open}>{children}</button></RowMenu>
+ if(!selecting)return <RowMenu label={t('rowActionsLabel',{title:label})} actions={actions} reveal="interaction"><button title={label} className={rowClass} aria-current={current?'true':undefined} onClick={open}>{children}</button></RowMenu>
  return <label title={label} className="paper-selection-hit" data-selected={selected} onContextMenu={e=>e.preventDefault()} onClick={e=>{if(e.detail>1)e.preventDefault()}}>
   <input type="checkbox" checked={selected} disabled={disabled} aria-label={label} onChange={()=>toggle()} onKeyDown={e=>{if(e.key==='Enter'&&!e.repeat){e.preventDefault();toggle()}}}/>
   <span className={rowClass}>{children}</span>

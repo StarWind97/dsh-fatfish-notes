@@ -25,14 +25,16 @@ import { exportFont } from '../notes/export/pdf.js'
 import { ExportError } from '../notes/export/model.js'
 import { ATTACHMENT_LIMIT, ATTACHMENT_WARNING, type NoteSelection } from '../contracts/notes.js'
 
+import {translator,type Language} from '../domain/localization.js'
+
 /** Composed facade owns every note operation through cancellation and drain. */
 export class NotesApplication {
   readonly repository: NoteRepository
-  handbook(input:unknown,signal?:AbortSignal){return this.run(async active=>{
+  handbook(input:unknown,signal?:AbortSignal,language:Language='zh'){return this.run(async active=>{
     const value=object(input)
     if(!['open','add'].includes(String(value.action))||Object.keys(value).some(key=>key!=='action'))throw new NotebookError('invalid_request','手册操作无效')
     const claim=await this.repository.coordinate(()=>{if(this.ready()!==true)throw new NotebookError('notebook_busy','笔记库正在切换');return this.transfers.task({action:'begin'})})
-    try{return {ok:true as const,...await openHandbook(this.repository,value.action==='add',active)}}
+    try{return {ok:true as const,...await openHandbook(this.repository,value.action==='add',active,language)}}
     finally{this.transfers.task({action:'end',taskId:claim.taskId})}
   },signal)}
   draftRecovery={ok:true as const,recovered:[] as string[],failed:[] as string[]}
@@ -80,14 +82,15 @@ export class NotesApplication {
     this.pending.add(result); void result.finally(() => this.pending.delete(result)).catch(() => {})
     return result
   }
-  capture(input: unknown, signal?: AbortSignal) { return this.run(async active => {
+  capture(input: unknown, signal?: AbortSignal,language:Language='zh') { return this.run(async active => {
     const request=validateCaptureRequest(input),owner=windowRequest.getStore()?.windowId??'local'
     const claim=await this.repository.coordinate(()=>{if(this.ready()!==true)throw new NotebookError('notebook_busy','笔记库正在切换');return this.transfers.task({action:'begin'})})
     const heartbeat=setInterval(()=>{this.transfers.task({action:'heartbeat',taskId:claim.taskId})},20000);heartbeat.unref()
     const report=(value:CaptureProgress)=>{if(this.captureProgress.size>30)this.captureProgress.delete(this.captureProgress.keys().next().value!);this.captureProgress.set(request.requestId,{owner,value})}
-    report({file:'读取会话',bytes:0,total:0,done:0,count:0,stage:'reading'})
+    const t=translator(language)
+    report({file:t('captureReadConversation'),bytes:0,total:0,done:0,count:0,stage:'reading'})
     try{
-      const result=await this.captureService.capture(request,active,report)
+      const result=await this.captureService.capture(request,active,report,t)
       const job=await this.enrichment.ensure(request,result,active)
       const current=this.captureProgress.get(request.requestId)!.value;report({...current,stage:'complete'})
       return {ok:true as const,...result,...(job?{enrichmentJobId:job.jobId,enrichmentStatus:'queued' as const}:{})}
@@ -98,15 +101,15 @@ export class NotesApplication {
   cancelJob(input: unknown, signal?: AbortSignal) { return this.run(async () => ({ ok: true as const, job: await this.enrichment.cancel(text(object(input).jobId, 64)) }), signal) }
   adoptCandidate(input: unknown, signal?: AbortSignal) { return this.run(async active => { const v = object(input); return { ok: true as const, job: await this.enrichment.adopt(text(v.jobId, 64), v.expectedHeads, active) } }, signal) }
   submitCandidate(input: unknown, sessionId: string | undefined, signal?: AbortSignal) { return this.run(active => this.enrichment.submit(input, sessionId, active), signal) }
-  selection(input: unknown, signal?: AbortSignal) {
+  selection(input: unknown, signal?: AbortSignal,language:Language='zh') {
     const v = object(input), request: CaptureSelectionRequest = { sessionId: text(v.sessionId, 512), ...(v.anchorMessageId === undefined ? {} : { anchorMessageId: text(v.anchorMessageId, 512) }) }
-    return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active) }), signal)
+    return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active,translator(language)) }), signal)
   }
-  suggest(input: unknown, signal?: AbortSignal) {
+  suggest(input: unknown, signal?: AbortSignal,language:Language='zh') {
     return this.run(async active => {
       const timeout = AbortSignal.timeout(180_000)
       try {
-        const metadata = await suggestMetadata(validateCaptureRequest(input), this.conversation, this.model, AbortSignal.any([active, timeout]))
+        const metadata = await suggestMetadata(validateCaptureRequest(input), this.conversation, this.model, AbortSignal.any([active, timeout]),translator(language))
         return { ok: true as const, metadata }
       } catch (error) {
         if (timeout.aborted && !active.aborted) throw new NotebookError('ai_timeout', '生成建议超时', 408)
@@ -237,19 +240,19 @@ export class NotesApplication {
     return { bytes: await this.repository.getAsset(assetId, active), mediaType: mediaTypeFor(assetId) }
   }, signal) }
   source(input: unknown, signal?: AbortSignal) { return this.run(async active => ({ ok: true as const, source: await this.repository.getSource(text(object(input).sourceId, 64), active) }), signal) }
-  conversationFile(input:unknown,signal?:AbortSignal){return this.run(active=>conversationFile(this.conversation,input,active),signal)}
-  export(input: unknown, signal?: AbortSignal) { return this.run(async active => {
-    try { return await createExport(this.repository, input, active,true) }
+  conversationFile(input:unknown,signal?:AbortSignal,language:Language='zh'){return this.run(active=>conversationFile(this.conversation,input,active,translator(language)),signal)}
+  export(input: unknown, signal?: AbortSignal, language:Language='zh') { return this.run(async active => {
+    try { return await createExport(this.repository, input, active,true,translator(language)) }
     catch (error) {
       if (error instanceof ExportError) throw new NotebookError(error.code, '导出未完成，请检查图片、内容和导出限制')
       if (error instanceof NotebookError) throw error
       throw new NotebookError('export_failed', '导出未完成，请检查图片或稍后重试')
     }
   }, signal) }
-  exportLibrary(input:unknown,signal?:AbortSignal,sink?:Parameters<typeof exportLibrary>[3]){return this.run(active=>exportLibrary(this.repository,input,active,sink),signal)}
+  exportLibrary(input:unknown,signal?:AbortSignal,sink?:Parameters<typeof exportLibrary>[3],language:Language='zh'){return this.run(active=>exportLibrary(this.repository,input,active,sink,translator(language)),signal)}
   exportFont(signal?: AbortSignal) { return this.run(async active => { const bytes = await exportFont(); active.throwIfAborted(); return bytes }, signal) }
-  exportConversation(input:unknown,signal?:AbortSignal) { return this.run(async active=>{
-    try { return await createConversationExport(this.conversation,input,active,true) }
+  exportConversation(input:unknown,signal?:AbortSignal,language:Language='zh') { return this.run(async active=>{
+    try { return await createConversationExport(this.conversation,input,active,true,translator(language)) }
     catch(error){if(error instanceof ExportError)throw new NotebookError(error.code,'会话导出未完成');throw error}
   },signal) }
   async drain():Promise<void>{await Promise.allSettled([...this.pending,this.enrichment.drain()])}

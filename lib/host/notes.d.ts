@@ -6,12 +6,13 @@ import { NoteRepository } from '../notes/repository.js';
 import { type NoteModelController } from './note-model.js';
 import { NoteEnrichment } from '../notes/enrichment.js';
 import { exportLibrary } from '../notes/export/library.js';
+import { type Language } from '../domain/localization.js';
 /** Composed facade owns every note operation through cancellation and drain. */
 export declare class NotesApplication {
     private readonly ready;
     private readonly services;
     readonly repository: NoteRepository;
-    handbook(input: unknown, signal?: AbortSignal): Promise<{
+    handbook(input: unknown, signal?: AbortSignal, language?: Language): Promise<{
         noteId: string | null;
         created: boolean;
         ok: true;
@@ -77,7 +78,7 @@ export declare class NotesApplication {
     }>;
     localOperation<T>(work: () => Promise<T>, signal?: AbortSignal): Promise<T>;
     private run;
-    capture(input: unknown, signal?: AbortSignal): Promise<{
+    capture(input: unknown, signal?: AbortSignal, language?: Language): Promise<{
         enrichmentJobId: string | null;
         enrichmentStatus: "not-requested" | "unavailable" | "queued";
         note: import("../contracts/notes.js").NoteView;
@@ -109,7 +110,7 @@ export declare class NotesApplication {
         jobId: string;
         status: import("../contracts/notes.js").NoteJob["status"];
     }>;
-    selection(input: unknown, signal?: AbortSignal): Promise<{
+    selection(input: unknown, signal?: AbortSignal, language?: Language): Promise<{
         cut: import("../contracts/notes.js").CaptureCut;
         defaultMessageIds: string[];
         sessionTitle?: string;
@@ -119,7 +120,7 @@ export declare class NotesApplication {
         materials?: import("../contracts/notes.js").CaptureMaterial[];
         ok: true;
     }>;
-    suggest(input: unknown, signal?: AbortSignal): Promise<{
+    suggest(input: unknown, signal?: AbortSignal, language?: Language): Promise<{
         ok: true;
         metadata: import("../contracts/notes.js").NoteStageResult;
     }>;
@@ -231,11 +232,11 @@ export declare class NotesApplication {
         ok: true;
         source: Record<string, unknown>;
     }>;
-    conversationFile(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
-    export(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile>;
-    exportLibrary(input: unknown, signal?: AbortSignal, sink?: Parameters<typeof exportLibrary>[3]): Promise<import("../notes/export/service.js").ExportFile>;
+    conversationFile(input: unknown, signal?: AbortSignal, language?: Language): Promise<import("../notes/export/service.js").ExportFile>;
+    export(input: unknown, signal?: AbortSignal, language?: Language): Promise<import("../notes/export/service.js").ExportFile>;
+    exportLibrary(input: unknown, signal?: AbortSignal, sink?: Parameters<typeof exportLibrary>[3], language?: Language): Promise<import("../notes/export/service.js").ExportFile>;
     exportFont(signal?: AbortSignal): Promise<Buffer<ArrayBufferLike>>;
-    exportConversation(input: unknown, signal?: AbortSignal): Promise<import("../notes/export/service.js").ExportFile & {
+    exportConversation(input: unknown, signal?: AbortSignal, language?: Language): Promise<import("../notes/export/service.js").ExportFile & {
         warnings: string;
     }>;
     drain(): Promise<void>;

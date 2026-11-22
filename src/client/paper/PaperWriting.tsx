@@ -39,6 +39,12 @@ function writingEdge(pane:HTMLElement){
   return pane.getBoundingClientRect().top+parseFloat(getComputedStyle(pane).paddingTop)
     +(pane.querySelector('.paper-formatbar')?.getBoundingClientRect().height??0)+16
 }
+function editorLanguage(t:T){
+  return [
+    EditorState.phrases.of({Find:t('editorFind'),Replace:t('editorReplace'),next:t('editorFindNext'),previous:t('editorFindPrevious'),all:t('editorSelectMatches'),replace:t('editorReplace'),'replace all':t('editorReplaceAll'),'match case':t('editorCaseSensitive'),regexp:t('editorRegexp'),'by word':t('editorWholeWord'),close:t('paperClose')}),
+    EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),
+  ]
+}
 export function PaperWriting(props:Props){
   const {controller,state,t}=props, mount=useRef<HTMLDivElement>(null),editor=useRef<EditorView|null>(null),picker=useRef<HTMLInputElement>(null)
   const latest=useRef(props);latest.current=props
@@ -48,6 +54,7 @@ export function PaperWriting(props:Props){
   const pending=useRef(new Set<{from:number;to:number}>())
   const raw=useRef(state.draft!.body)
   const editability=useRef(new Compartment())
+  const editorLocale=useRef(new Compartment())
   const linkRange=useRef<{from:number;to:number;original:string}|null>(null)
   const attachmentPicker=useRef<HTMLInputElement>(null)
   const fileDestination=useRef<FileDestination>('file')
@@ -241,8 +248,8 @@ export function PaperWriting(props:Props){
     const doc=editorText(body),start=editorOffset(body,Math.min(props.start,body.length))
     const view=new EditorView({parent:el,state:EditorState.create({doc,selection:{anchor:start},extensions:[
       markdown({base:markdownLanguage,codeLanguages}),codeHighlight,history(),supplementHistory,supplementField.init(()=>supplementMaterials(state.draft!)),...(props.undo.current?.body===body?[historyField.init(()=>props.undo.current!.history)]:[]),editability.current.of([]),search({top:true}),keymap.of([...shortcuts,{key:'Mod-Shift-z',run:redo},...searchKeymap,...markdownKeymap,...defaultKeymap,...historyKeymap]),drawSelection(),EditorView.lineWrapping,
-      EditorState.phrases.of(t('paperDone')==='完成'?{Find:'查找',Replace:'替换',next:'下一个',previous:'上一个',all:'全选匹配',replace:'替换','replace all':'全部替换','match case':'区分大小写',regexp:'正则表达式','by word':'全词',close:'关闭'}:{}),
-      EditorView.contentAttributes.of({'aria-label':t('notesBody'),'aria-multiline':'true',spellcheck:'false'}),livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')],{label:t('imagePresentation'),open:(position,x,y,trigger)=>openImageMenu(position,{x,y},trigger)}),
+      editorLocale.current.of(editorLanguage(t)),
+      livePreview(image,t('paperTask'),[t('documentCopyCode'),t('documentCopied'),t('documentCopyFailed')],{label:t('imagePresentation'),open:(position,x,y,trigger)=>openImageMenu(position,{x,y},trigger)}),
       EditorView.domEventHandlers({contextmenu(event,v){const pos=v.posAtCoords({x:event.clientX,y:event.clientY});if(pos!==null&&openImageMenu(pos,{x:event.clientX,y:event.clientY},(event.target as HTMLElement).closest('.paper-presented-media')?.querySelector<HTMLButtonElement>('.paper-media-more')??null)){event.preventDefault();return true}return false},paste(event,v){
         const data=event.clipboardData;if(!data)return false
         const files=transferFiles(data);if(files.length){event.preventDefault();chooseAttachments(files);return true}
@@ -280,6 +287,7 @@ export function PaperWriting(props:Props){
     const frame=requestAnimationFrame(()=>{if(pane&&y!==undefined){const coords=view.coordsAtPos(start);if(coords)pane.scrollTop+=coords.top-y}})
     return ()=>{controller.imagePickerOpen=false;cancelAnimationFrame(frame);abort.abort();props.undo.current={body:raw.current,history:undoHistory(view.state)};view.destroy();editor.current=null;if(controller.getSnapshot().composing)controller.composition(false)}
   },[controller,noteId])
+  useLayoutEffect(()=>{editor.current?.dispatch({effects:editorLocale.current.reconfigure(editorLanguage(t))})},[t])
   useLayoutEffect(()=>{const disabled=state.loadingNote||state.operation||!controller.writable;editor.current?.dispatch({effects:editability.current.reconfigure([EditorState.readOnly.of(disabled),EditorView.editable.of(!disabled)])})},[state.loadingNote,state.operation,controller.writable])
   useLayoutEffect(()=>{
     const v=editor.current;if(!v)return

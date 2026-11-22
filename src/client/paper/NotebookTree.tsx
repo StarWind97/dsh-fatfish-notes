@@ -3,12 +3,14 @@ import {useEffect,useLayoutEffect,useRef,useState} from 'react'
 import {ChevronDown,ChevronRight,Notebook,Pin,Star} from 'lucide-react'
 import type {NotesController,NotesState} from '../notes-controller.js'
 import type {NotebookView,NoteListItem} from '../../contracts/notes.js'
+import {notebookTitle} from '../../notes/notebooks.js'
 import {NotebookPages} from './notebook-pages.js'
 import {NoteSelectionRow} from '../NoteSelectionRow.js'
 import type {RowAction} from '../RowMenu.js'
 import {RowMenu} from '../RowMenu.js'
+import type {T} from '../locale.js'
 const stores=new WeakMap<NotesController,{epoch:number;catalog:number;order:NotesState['filter']['order'];pages:NotebookPages;expanded:Set<string>}>()
-export function NotebookTree({controller,state,books,actions,bookActions}:{controller:NotesController;state:NotesState;books:NotebookView[];actions:(item:NoteListItem)=>RowAction[];bookActions:(book:NotebookView)=>RowAction[]}){
+export function NotebookTree({t,controller,state,books,actions,bookActions}:{t:T;controller:NotesController;state:NotesState;books:NotebookView[];actions:(item:NoteListItem)=>RowAction[];bookActions:(book:NotebookView)=>RowAction[]}){
   let stored=stores.get(controller);if(!stored||stored.epoch!==controller.libraryEpoch){stored={epoch:controller.libraryEpoch,catalog:controller.catalogEpoch,order:state.filter.order,pages:new NotebookPages(),expanded:new Set()};stores.set(controller,stored)}
   const model=stored,[,render]=useState(0),[busy,setBusy]=useState<string[]>([]),[errors,setErrors]=useState<string[]>([]),requests=useRef(new Map<string,AbortController>())
   const actual=state.note?.effectiveNotebookId??state.draft?.notebookId
@@ -24,8 +26,8 @@ export function NotebookTree({controller,state,books,actions,bookActions}:{contr
   }
   function toggle(id:string){if(model.expanded.has(id))model.expanded.delete(id);else{model.expanded.add(id);if(!model.pages.get(id))void load(id)}render(n=>n+1)}
   async function open(id:string){if(await controller.open(id))await controller.revealCurrent(id)}
-  return <div className="paper-notebook-tree" aria-label="笔记本与笔记">{books.map(book=>{
+  return <div className="paper-notebook-tree" aria-label={t('bookTree')}>{books.map(book=>{
     const expanded=model.expanded.has(book.notebookId),page=model.pages.get(book.notebookId),pending=busy.includes(book.notebookId)
-    return <section className="paper-tree-group" key={book.notebookId}><header><RowMenu label={book.current.title+' · 操作'} actions={bookActions(book)} reveal="interaction"><button aria-expanded={expanded} title={book.current.title} aria-current={actual===book.notebookId?'page':undefined} onClick={()=>toggle(book.notebookId)}>{expanded?<ChevronDown size={14}/>:<ChevronRight size={14}/>}<Notebook size={14}/><span>{book.current.title}</span><small className="paper-notebook-count">{book.noteCount??''}</small></button></RowMenu></header>{expanded&&<div className="paper-tree-items">{page?.items.map(item=><div className="paper-tree-row" key={item.noteId}><NoteSelectionRow selecting={false} selected={false} label={item.title||'无标题'} actions={actions(item)} rowClass="paper-row" current={item.noteId===state.noteId} toggle={()=>{}} open={()=>void open(item.noteId)}><strong>{item.pinned&&<Pin size={12} aria-label="已置顶"/>}{item.favorite&&<Star size={12} aria-label="已收藏"/>}{item.title||'无标题'}</strong></NoteSelectionRow></div>)}{pending&&<p role="status">加载中…</p>}{errors.includes(book.notebookId)?<button onClick={()=>void load(book.notebookId)}>加载失败，重试</button>:!pending&&(!page?.complete||page.cursor)?<button className="paper-tree-more" onClick={()=>void load(book.notebookId,true)}>加载更多笔记</button>:!pending&&!page?.items.length?<p className="paper-hint">暂无笔记</p>:null}</div>}</section>
+    return <section className="paper-tree-group" key={book.notebookId}><header><RowMenu label={t('rowActionsLabel',{title:notebookTitle(book,t)})} actions={bookActions(book)} reveal="interaction"><button aria-expanded={expanded} title={notebookTitle(book,t)} aria-current={actual===book.notebookId?'page':undefined} onClick={()=>toggle(book.notebookId)}>{expanded?<ChevronDown size={14}/>:<ChevronRight size={14}/>}<Notebook size={14}/><span>{notebookTitle(book,t)}</span><small className="paper-notebook-count">{book.noteCount??''}</small></button></RowMenu></header>{expanded&&<div className="paper-tree-items">{page?.items.map(item=><div className="paper-tree-row" key={item.noteId}><NoteSelectionRow t={t} selecting={false} selected={false} label={item.title||t('notesUntitled')} actions={actions(item)} rowClass="paper-row" current={item.noteId===state.noteId} toggle={()=>{}} open={()=>void open(item.noteId)}><strong>{item.pinned&&<Pin size={12} aria-label={t('paperPinned')}/>}{item.favorite&&<Star size={12} aria-label={t('paperFavorited')}/>}{item.title||t('notesUntitled')}</strong></NoteSelectionRow></div>)}{pending&&<p role="status">{t('loading')}</p>}{errors.includes(book.notebookId)?<button onClick={()=>void load(book.notebookId)}>{t('bookTreeLoadFailed')}</button>:!pending&&(!page?.complete||page.cursor)?<button className="paper-tree-more" onClick={()=>void load(book.notebookId,true)}>{t('bookTreeLoadMore')}</button>:!pending&&!page?.items.length?<p className="paper-hint">{t('bookTreeEmpty')}</p>:null}</div>}</section>
   })}</div>
 }

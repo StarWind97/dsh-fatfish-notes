@@ -1,6 +1,6 @@
 # 肥鱼笔记详细操作参考
 
-[返回图解使用说明](user-guide.zh.md)
+[返回图解使用说明](user-guide.zh.md) · [English](user-guide-reference.en.md)
 
 本文对应 **0.11.0**。见[新版说明](releases/0.11.0/release-notes.md)与[实测宿主](releases/0.11.0/review.zh.md)。
 
@@ -11,6 +11,8 @@ DSH 入口、会话笔记入口和笔记顶栏使用小鱼，原入口名称与�
 实际体验双击 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，使用原独立测试资料；日常 DSH 不会因此自动更新；实际发布与市场状态见[发布记录](releases/0.9.0/review.zh.md)。详情见[品牌接入交付](plans/2026-11-16-brand-logo-results.zh.md)。
 
 ## 用户手册
+
+在 DSH「设置 → 通用设置 → 语言」选择简体中文或英文，主界面、会话侧栏和独立窗口会跟随所选语言。「设置 → 帮助」打开当前语种的手册，也可按需添加另一语种的手册副本。
 
 新建的专用私有笔记库完成首次同步后，会提供“用户手册”：三篇可直接阅读、复制和修改的笔记，集中介绍使用、资料交付和保存注意事项，包含配图、表格、笔记链接与下载文件。原来的默认笔记本继续用于日常收集。
 
