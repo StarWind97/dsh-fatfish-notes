@@ -11,9 +11,9 @@
 
 Keep useful conversations as Markdown notes. Read, edit and reference them beside your chats, with local storage and sync through your own private GitHub repository.
 
-> Fatfish Notes **0.11.1** declares support for DSH `>=0.2.2-rc.3 <0.2.3-0`. See the [release notes](docs/releases/0.11.1/release-notes.md) and [verification record](docs/releases/0.11.1/review.zh.md).
+> Fatfish Notes **0.12.0** declares support for DSH `>=0.2.2-rc.3 <0.2.3-0`. See the [release notes](docs/releases/0.12.0/release-notes.md) and [verification record](docs/releases/0.12.0/review.zh.md).
 
-![An image journal and a file-size check open in reading tabs, with notes filtered by tag](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/en/01-image.png)
+![An image journal and a file-size check open in reading tabs, with notes filtered by tag](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/en/01-image.png)
 
 ## From conversations to notes
 
@@ -26,15 +26,15 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 - Export a single PNG using the reading layout, a PDF for reading or printing, or a Markdown bundle with original images and files.
 - Save locally while offline after initial setup; sync resumes when connected. Import Markdown files, folders or ZIPs, and export a notebook or the full library.
 
-![A DSH conversation about reviewing image edits on the left and its saved note on the right](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/en/02-conversation.png)
+![A DSH conversation about reviewing image edits on the left and its saved note on the right](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/en/02-conversation.png)
 
 Keep code snippets, results, files and related notes together for the next time you need them.
 
-![Code highlighting, a results table and file links in dark mode](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/en/03-code.png)
+![Code highlighting, a results table and file links in dark mode](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/en/03-code.png)
 
 ## Installation and upgrade
 
-Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.11.1 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.1).
+Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.12.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0).
 
 Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 Web users should replace `desktop` with their profile name. If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` inside the DSH installation directory. Restart DSH and open Fatfish Notes.
 
-Users on 0.10.0 or 0.11.0 can install 0.11.1 into the same DSH profile and reopen DSH with their existing notes and private repository. Finish syncing, close DSH and the separate note window, and back up the local notebook folder and `DSH_HOME/fatfish-notes`. **When upgrading from 0.8.0, upgrade all instances sharing one repository together.** A downgrade needs a matching host and pre-upgrade backup. Existing templates and edited handbooks remain available as notes.
+Users on 0.10.0 or 0.11.0 can install 0.12.0 into the same DSH profile and reopen DSH with their existing notes and private repository. Finish syncing, close DSH and the separate note window, and back up the local notebook folder and `DSH_HOME/fatfish-notes`. **When upgrading from 0.8.0, upgrade all instances sharing one repository together.** A downgrade needs a matching host and pre-upgrade backup. Existing templates and edited handbooks remain available as notes.
 
 ## Getting started
 
@@ -58,11 +58,11 @@ Editing saves automatically. Work in the main page, sidebar or a separate window
 
 Use list import/export for Markdown migration. Open exported copies in other editors instead of sharing the internal data directory. **Settings → Sync and storage** shows sync status, authorization and local storage options. See the [illustrated guide](docs/user-guide.en.md) and [detailed reference](docs/user-guide-reference.en.md).
 
-![Appearance settings show layouts, palettes and a hint for changing the DSH theme from the toolbar](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/en/04-settings.png)
+![Appearance settings show layouts, palettes and a hint for changing the DSH theme from the toolbar](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/en/04-settings.png)
 
 ## Scope and limitations
 
-- See the [0.11.1 verification record](docs/releases/0.11.1/review.zh.md) for the tested desktop and Web setups.
+- See the [0.12.0 verification record](docs/releases/0.12.0/review.zh.md) for the tested desktop and Web setups.
 - The separate window uses installed Chrome or Edge and depends on DSH staying open.
 - Appearance preferences are shared within one DSH instance. The main toolbar changes and saves the DSH theme. The separate window can temporarily change its own theme. Favorites, pins and notebook order sync through the private repository.
 - Referencing does not send a message automatically or register a native composer attachment. Optional AI suggestions cover title, summary and tags during capture; note bodies are edited manually.
@@ -71,4 +71,4 @@ Use list import/export for Markdown migration. Open exported copies in other edi
 
 Report problems through [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues), including OS, host/plugin versions and reproduction steps. Do not include credentials or private notes.
 
-Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md) and the [development index](docs/README.md). Screenshots show the actual interface with sample notes and a staged conversation. [Screenshot details](assets/screenshots/0.11.1/README.md)
+Code is [MIT licensed](LICENSE). See [third-party and font notices](THIRD_PARTY_NOTICES.md) and the [development index](docs/README.md). Screenshots show the actual interface with sample notes and a staged conversation. [Screenshot details](assets/screenshots/0.12.0/README.md)

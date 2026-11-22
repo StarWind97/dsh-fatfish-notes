@@ -92,4 +92,4 @@
 
 [图片与附件](user-guide-reference.zh.md#图片正文文件与补充附件) · [导入与整库导出](user-guide-reference.zh.md#导入整库导出与附件) · [笔记本管理](user-guide-reference.zh.md#笔记本管理) · [标签管理](user-guide-reference.zh.md#标签管理) · [回收站](user-guide-reference.zh.md#多选和清空回收站) · [会话侧栏设置](user-guide-reference.zh.md#工作区笔记本设置与取消操作)
 
-适用 **0.11.1**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.11.1/release-notes.md)。使用 0.10.0 时，可查看 [0.10.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.10.0/docs/user-guide.zh.md)。
+适用 **0.12.0**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.12.0/release-notes.md)。使用 0.10.0 时，可查看 [0.10.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.10.0/docs/user-guide.zh.md)。

@@ -4,7 +4,7 @@
 
 Fatfish Notes follows the language selected in DSH. Use **Settings → General → Language** in DSH to switch between English and Simplified Chinese. Your own notes and saved conversation text keep their original language.
 
-![A conversation on the left and the saved note in the sidebar on the right](../assets/screenshots/0.11.1/en/02-conversation.png)
+![A conversation on the left and the saved note in the sidebar on the right](../assets/screenshots/0.12.0/en/02-conversation.png)
 
 [Save a conversation](#save-a-conversation) · [Use notes beside a conversation](#use-notes-beside-a-conversation) · [Write and find notes](#write-and-find-notes) · [Organize your library](#organize-your-library) · [Set up your library](#set-up-your-library) · [Save and sync](#save-and-sync) · [Export and move notes](#export-and-move-notes)
 
@@ -30,7 +30,7 @@ Click **New note**, or open a note and click **Edit**. Write or paste Markdown d
 
 Search your whole library or a single notebook. Enter remembered words or an attachment name, then narrow the results by tag, date or attachments. Select a matching text passage to jump to it. Reading tabs let you move between several notes and **+** opens the overview.
 
-![Reading an illustrated note with a tag filter and two reading tabs](../assets/screenshots/0.11.1/en/01-image.png)
+![Reading an illustrated note with a tag filter and two reading tabs](../assets/screenshots/0.12.0/en/01-image.png)
 
 ## Organize your library
 
@@ -50,7 +50,7 @@ See the [installation instructions](../README.en.md#installation-and-upgrade) an
 
 Use **Settings → Appearance** to choose a layout and palette for the main view and separate window.
 
-![Appearance settings with layout, palette and density controls](../assets/screenshots/0.11.1/en/04-settings.png)
+![Appearance settings with layout, palette and density controls](../assets/screenshots/0.12.0/en/04-settings.png)
 
 ## Save and sync
 
@@ -68,4 +68,4 @@ Click **Export** in a note. Choose Markdown for editable text, PDF for paginated
 
 For other operations including separate windows, keyboard navigation, data recovery and file handling, see the [detailed reference](user-guide-reference.en.md).
 
-Applies to **0.11.1**. [Release notes](releases/0.11.1/release-notes.md).
+Applies to **0.12.0**. [Release notes](releases/0.12.0/release-notes.md).

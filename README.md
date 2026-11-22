@@ -11,9 +11,9 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 肥鱼笔记 **0.11.1** 声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.11.1/release-notes.md)和[验证记录](docs/releases/0.11.1/review.zh.md)。
+> 肥鱼笔记 **0.12.0** 声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.12.0/release-notes.md)和[验证记录](docs/releases/0.12.0/review.zh.md)。
 
-![在阅读标签中保留生图记录与尺寸检查；左侧列表按标签筛选演示笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/zh/01-image.png)
+![在阅读标签中保留生图记录与尺寸检查；左侧列表按标签筛选演示笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/zh/01-image.png)
 
 ## 从会话到笔记
 
@@ -26,15 +26,15 @@
 - **按用途交付**：单张 PNG 沿用阅读版式与选定宽度；PDF 适合阅读和打印；Markdown 资源包保留图片及附件原件。
 - **本机保存与私库同步**：首次设置完成后，断网仍可编辑保存，联网自动续传。可导入 Markdown 文件、文件夹或 ZIP，也可导出整本或整个笔记库。
 
-![左侧是核对改图的会话，右侧是转存后可继续阅读和引用的笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/zh/02-conversation.png)
+![左侧是核对改图的会话，右侧是转存后可继续阅读和引用的笔记](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/zh/02-conversation.png)
 
 代码片段、检查结果、文件与关联笔记也可以一起保存，便于下次查找和复用。
 
-![深色阅读中的代码高亮、结果表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/zh/03-code.png)
+![深色阅读中的代码高亮、结果表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/zh/03-code.png)
 
 ## 安装与升级
 
-下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.11.1 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.1)。新版资料需由相应版本的插件读写。
+下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.12.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0)。新版资料需由相应版本的插件读写。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-0.10.0 和 0.11.0 用户可以在现有 DSH 资料中直接安装 0.11.1，重启后沿用原私库和笔记。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
+0.10.0 和 0.11.0 用户可以在现有 DSH 资料中直接安装 0.12.0，重启后沿用原私库和笔记。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
 
 ## 开始使用
 
@@ -58,11 +58,11 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 从笔记列表「导入 / 导出」迁入或导出 Markdown。将导出的副本用于 Obsidian 等软件，不要让其他软件直接写入内部资料目录。「设置 → 同步与存储」可以查看状态、恢复账号授权和更换本机位置。详见[使用说明](docs/user-guide.zh.md)。
 
-![外观设置显示布局与配色选项，并提示从顶栏切换 DSH 明暗](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.11.1/zh/04-settings.png)
+![外观设置显示布局与配色选项，并提示从顶栏切换 DSH 明暗](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.12.0/zh/04-settings.png)
 
 ## 使用边界
 
-- 桌面和 Web 的实测范围见 [0.11.1 验证记录](docs/releases/0.11.1/review.zh.md)。
+- 桌面和 Web 的实测范围见 [0.12.0 验证记录](docs/releases/0.12.0/review.zh.md)。
 - 独立窗口使用 Windows 上已安装的 Chrome 或 Edge，依赖 DSH 保持运行。
 - 外观偏好在同一 DSH 内共享。笔记主界面顶栏切换并保存 DSH 明暗，独立窗口的明暗切换只影响本次视图。收藏、置顶和笔记本顺序随私库同步。
 - 引用不会自动发送，也尚未登记到宿主原生附件栏。AI 只在转存时可选生成标题、摘要和标签，正文由用户编辑。
@@ -71,4 +71,4 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 问题与建议可通过 [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues) 提交，请附系统、DSH/插件版本及复现步骤，不要提供凭据或私人笔记。
 
-开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。截图来自实际界面，使用演示笔记与编排会话。[取景记录](assets/screenshots/0.11.1/README.md)
+开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。截图来自实际界面，使用演示笔记与编排会话。[取景记录](assets/screenshots/0.12.0/README.md)

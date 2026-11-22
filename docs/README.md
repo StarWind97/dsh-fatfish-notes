@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-22 **0.11.1 双语候选已验收，待确认发布。** 同一候选在官方 DSH 0.2.2-rc.5 的隔离 Windows 桌面和 Web 通过简体中文与英文验收。两语界面、随包手册、图解和四组实拍已补齐，语言一致性已纳入开发和发布检查。[验收记录](releases/0.11.1/review.zh.md) · [实施规划](plans/2026-11-22-bilingual-localization.zh.md)
+- 2026-11-23 **0.12.0 双语候选已验收，待确认发布。** 同一候选通过官方 DSH 0.2.2-rc.5 隔离桌面和 Web 的中英文复验。最终配图、双语引用及候选摘要已核对。[验收记录](releases/0.12.0/review.zh.md) · [实施规划](plans/2026-11-22-bilingual-localization.zh.md#改号与新候选复验)
 
 - 2026-11-22 正式发布 [0.11.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)。公开安装包与已通过 428 项全量及双端验收的候选逐字节一致。市场安装与升级入口已指向 0.11.0，详情页的说明等待市场站点重建。[发布与市场验证](releases/0.11.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
