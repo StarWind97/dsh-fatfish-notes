@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-22 用户已确认正式发布 [0.11.0](releases/0.11.0/review.zh.md)。统一弹窗尺寸的候选已通过 428 项全量、rc.5 隔离桌面与 Web 实装和指定私库双向同步。正在发布同一安装包并核对市场。[发布安排](plans/2026-11-22-release-0110.zh.md#正式发布) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
+- 2026-11-22 正式发布 [0.11.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)。公开安装包与已通过 428 项全量及双端验收的候选逐字节一致。市场安装与升级入口已指向 0.11.0，详情页的说明等待市场站点重建。[发布与市场验证](releases/0.11.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
 - 2026-11-21 [会话转存布局与纯文字 AI 建议](plans/2026-11-21-capture-layout-and-text-suggestions.zh.md)完成隔离桌面和 Web 验证，待体验。宽窗并排三栏，窄窗默认紧凑，手动展开后从上到下排成一列。极小窗口也保留收起和关闭按钮。已有会话标题预填。桌面多图会话的真实模型建议和按所选范围归档读回通过。
 
@@ -33,7 +33,6 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
-| [正式发布 0.11.0](plans/2026-11-22-release-0110.zh.md#正式发布) | `main`，主目录。发布提交、GitHub Release 与市场条目 | 已核对候选摘要、宿主发布通道和市场固定入口，继续发布和公开复核。 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 

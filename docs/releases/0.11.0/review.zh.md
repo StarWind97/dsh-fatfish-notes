@@ -69,6 +69,13 @@
 
 ## 体验与回退
 
-[启动装有修正候选的隔离桌面](../../../scripts/Open-Fatfish-Notes.cmd)。修正候选的本机证据位于 `.dsh-home/pure-001/release0110/dialog-sizing/`，初次验收证据保存在同级 `final/`。隔离回装可使用初次候选或 [0.10.0 公开安装包](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)。
+[启动装有同版安装包的隔离桌面](../../../scripts/Open-Fatfish-Notes.cmd)。修正候选的本机证据位于 `.dsh-home/pure-001/release0110/dialog-sizing/`，初次验收证据保存在同级 `final/`。隔离回装可使用上一版的公开安装包。[0.10.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.10.0)
 
-本地候选验收已完成，用户已确认正式发布。[发布安排](../../plans/2026-11-22-release-0110.zh.md#正式发布)
+## 发布与市场
+
+- 2026-11-22 21:29（北京时间）公开 `v0.11.0`，设为最新版。标签对应发布提交 `1d56ef04187cf4a633372cd763111e8f9adf8126`。发布前以 GitHub 记录的附件摘要核对安装包与校验文件。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)
+- 从市场固定入口匿名下载了完整安装包，并从版本页匿名下载校验文件。安装包内声明 0.11.0，共 262 个文件，SHA-256 为 `40899ca72d09d8d53493c0aad5a2eb3856d78f3a028606340b482ec84bc8484e`，与已验收候选逐字节一致。[固定下载入口](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz) · [校验文件](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.11.0/dsh-fatfish-notes.tgz.sha256)
+- 市场上游条目使用最新版固定地址。按市场升级流程核对，最新版跳转到 `v0.11.0`，该标签的包清单匹配插件名称与版本，固定地址也跳转到同一个带标签安装包。[市场上游条目](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml) · [市场升级流程](https://github.com/dsh-market/dsh-market/blob/main/src/release-updates.ts)
+- 公开详情页嵌入的 README 在复核时仍显示 0.10.0。市场站点通过上游构建工作流更新该快照，发布账户在上游拥有读取权限。[市场详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [市场站点构建](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/.github/workflows/build-site.yml)
+
+本机发布证据位于 `.dsh-home/pure-001/release0110/publication/`。
