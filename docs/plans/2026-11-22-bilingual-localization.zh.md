@@ -52,4 +52,4 @@
 
 从公开的版本页和固定最新版链接下载核对。市场已有固定安装入口，公开仓库中的两份 README 和截图清单供市场构建读取。查看市场实际中英文详情的正文、配图和安装入口，记录构建及公开状态。上一正式版的带版本下载入口供回退使用。[市场条目](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml) · [上一版发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)
 
-GitHub 已公开 0.12.0，公开下载的版本、包摘要及校验文件核对通过。已验证市场固定安装命令取得同一份包，以及 GitHub 主分支上的双语配图与正文来源。市场页面本身仍待刷新双语正文及配图。[发布与市场记录](../releases/0.12.0/review.zh.md#发布与市场)
+GitHub 已公开 0.12.0，公开下载的版本、包摘要及校验文件核对通过。市场于 2026-11-23 14:14（北京时间）完成部署，随后实际切换中英文，确认详情正文、每页四张对应语种的截图和图解链接。两页共用的安装入口重新下载校验通过。市场验收完成。[发布与市场记录](../releases/0.12.0/review.zh.md#发布与市场)
