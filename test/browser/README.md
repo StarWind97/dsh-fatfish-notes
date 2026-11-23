@@ -1,12 +1,14 @@
 # 浏览器回归
 
+在项目根目录运行 `npm ci`，安装锁定版本的 Playwright。两项检查都使用本机 Chrome，可用 `FATFISH_CHROME` 指定可执行文件路径。需要对照其他 Playwright 版本时，可用 `FATFISH_PLAYWRIGHT` 指定该 npm 包目录。
+
 ## 共享弹窗尺寸
 
-改动共享弹窗、外观或转存尺寸后，运行 `node --import tsx test/browser/check-dialog-sizes.mjs`。检查后挂载的外观样式、嵌套弹窗的独立尺寸、宽窗三栏和极小窗口单列。使用本机 Chrome 和 Playwright，可通过 `FATFISH_CHROME`、`FATFISH_PLAYWRIGHT` 指定路径。此检查直接加载项目 CSS，实际入口和操作另在隔离宿主验收。
+改动共享弹窗、外观或转存尺寸后，运行 `node --import tsx test/browser/check-dialog-sizes.mjs`。检查后挂载的外观样式、嵌套弹窗的独立尺寸、宽窗三栏和极小窗口单列。此检查直接加载项目 CSS，实际入口和操作另在隔离宿主验收。
 
 ## 会话侧栏查找
 
-侧栏笔记本选择、查找工具行或共用布局受影响时，可在当前构建安装到项目隔离 Web 后运行 `npm run test:sidebar`。入口使用现有 Playwright 和 Chrome，启动 `.dsh-home/pure-001/release12-web`，校对指定测试库以及安装中的客户端和中文文案。通过「肥鱼笔记 · 会话转存体验」测试会话和「开发手册」笔记本走以下操作。
+侧栏笔记本选择、查找工具行或共用布局受影响时，可在当前构建安装到项目隔离 Web 后运行 `npm run test:sidebar`。入口启动 `.dsh-home/pure-001/release12-web`，校对指定测试库以及安装中的客户端和中文文案。可用 `FATFISH_DSH_EXE` 指定 DSH 可执行文件路径。通过「肥鱼笔记 · 会话转存体验」测试会话和「开发手册」笔记本走以下操作。
 
 - 宽栏首次进「查找笔记」时，左侧笔记本直接可用。
 - 窄栏可通过范围菜单选择笔记本，结果确实切到选中的范围。Esc 可以关闭菜单并回到范围按钮。
@@ -14,7 +16,7 @@
 
 实拍输出到命令所示的 `output/playwright/search-sidebar/` 运行目录。看留白、层次和遮挡时，选择与改动有关的尺寸和状态，对照实际页面。定下新的交互后，在同一轮按需更新、删减或补充检查。可沿用本轮其他验收证据。
 
-本机默认使用隔离验证已有的 DSH、Chrome 与 Codex Playwright 运行路径。其他 Windows 工作站可用 `FATFISH_DSH_EXE`、`FATFISH_CHROME`、`FATFISH_PLAYWRIGHT` 指向现有安装。日常业务回归用 `npm test`。
+日常业务回归用 `npm test`。
 
 ## 已打开的隔离宿主
 

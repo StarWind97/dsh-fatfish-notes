@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { appearanceCss } from '../../src/client/paper/appearance-style.ts'
 import { dialogCss } from '../../src/client/paper/dialog-style.ts'
 import { captureOptionsCss } from '../../src/client/capture-options-style.ts'
@@ -9,8 +7,7 @@ import { captureCss } from '../../src/client/capture-style.ts'
 import { organizationCss } from '../../src/client/organization-style.ts'
 
 const require = createRequire(import.meta.url)
-const { chromium } = require(process.env.FATFISH_PLAYWRIGHT ||
-  join(homedir(), '.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'))
+const { chromium } = require(process.env.FATFISH_PLAYWRIGHT || 'playwright')
 const browser = await chromium.launch({
   executablePath: process.env.FATFISH_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: true,

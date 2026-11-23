@@ -2,7 +2,6 @@ const assert = require('node:assert/strict')
 const { spawn } = require('node:child_process')
 const { once } = require('node:events')
 const { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } = require('node:fs')
-const { homedir } = require('node:os')
 const { dirname, join, relative, sep } = require('node:path')
 const { setTimeout: delay } = require('node:timers/promises')
 const { checkFindNotebookFlow } = require('./sidebar-interactions.cjs')
@@ -55,12 +54,10 @@ function waitForLocalEntry(host) {
 
 async function run() {
   const home = isolatedProfile()
-  const playwright = process.env.FATFISH_PLAYWRIGHT ||
-    join(homedir(), '.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')
   const dsh = process.env.FATFISH_DSH_EXE || 'D:/ProgramFiles/DeepSeek Harness/DeepSeek Harness.exe'
   const chrome = process.env.FATFISH_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
   assert.ok(existsSync(dsh) && existsSync(chrome), '需要已安装的 DSH 和 Chrome')
-  const { chromium } = require(playwright)
+  const { chromium } = require(process.env.FATFISH_PLAYWRIGHT || 'playwright')
 
   const logRoot = join(root, 'output/playwright/search-sidebar')
   mkdirSync(logRoot, { recursive: true })
