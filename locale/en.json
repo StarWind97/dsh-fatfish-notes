@@ -1105,5 +1105,20 @@
   "artifactPngSuffix": "image",
   "artifactExportDetails": "Export notes.txt",
   "artifactMissingLink": "{path}: Linked note was not included ({id})",
-  "captureReadConversation": "Reading conversation"
+  "captureReadConversation": "Reading conversation",
+  "quickSwitchOpen": "Quick switcher and commands (Ctrl+K)",
+  "quickSwitchTrigger": "Quick jump…",
+  "quickSwitchShortcut": "Ctrl K",
+  "quickSwitchTitle": "Quick switcher and command palette",
+  "quickSwitchPlaceholder": "Search notes, notebooks, tags, or commands…",
+  "quickSwitchGroupNotes": "Notes",
+  "quickSwitchGroupBooks": "Notebooks",
+  "quickSwitchGroupTags": "Tags",
+  "quickSwitchGroupCommands": "Commands",
+  "quickSwitchEmpty": "No matching notes or commands",
+  "quickSwitchCmdNew": "Create new note",
+  "quickSwitchCmdTheme": "Toggle light / dark mode",
+  "quickSwitchCmdSync": "Sync with GitHub now",
+  "quickSwitchCmdClass": "Open notebooks and tags",
+  "quickSwitchCmdSettings": "Open settings"
 }

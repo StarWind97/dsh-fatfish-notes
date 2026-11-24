@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { CheckCircle2, Folder, GitBranch } from 'lucide-react'
 import { BrandMark } from './Brand.js'
 import {useBrandStyle} from './paper/appearance.js'
+import {useStyleSheet} from './styles/inject.js'
 import { api, ApiError } from './api.js'
 import { notebookSync } from './notebook-sync.js'
 import { SyncDetails, syncCss } from './SyncDetails.js'
@@ -125,10 +126,13 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
     }catch(e){if(!job.signal.aborted)failed(e);void api('/personal',undefined).then(setData).catch(()=>{})}
     finally{request.current=null;setBusy(false)}
   }
+  useStyleSheet('setup-page', setupCss, 'components')
+  useStyleSheet('feedback', feedbackCss, 'components')
+  useStyleSheet('sync-details', syncCss, 'components')
   if(sync?.ready && children)return <>{notice==='setupFirstSyncDone'&&<div role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:80,padding:'10px 18px',borderRadius:8,background:'var(--dsw-alias-bg-layer-2)',color:'var(--dsw-alias-label-primary)'}}>{t(notice)}</div>}{children}</>
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
-  return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><style>{setupCss+feedbackCss}</style><div className="notes-setup-inner">
+  return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><div className="notes-setup-inner">
     <header><span className="setup-icon" style={brandStyle}><BrandMark size={28} color/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
     {sync?.ready&&!wizard&&!grouped&&<HandbookHelp t={t}/>}
@@ -197,7 +201,7 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
       <div className={grouped?'setup-connected-grid':undefined}><section className="setup-section"><strong><GitBranch size={16}/>{repoLabel}</strong><small>{t('personalPrivate')}</small></section>
       <BoundGitHubLogin key={sync.binding.repositoryId} sync={sync} t={t}/>
       <section className="setup-section"><strong><Folder size={16}/>{t('setupFolder')}</strong><code>{sync.folder}</code>{sync.ready&&<button disabled={busy} onClick={()=>{setManage('move');setCustom('');setNotice(null);setError(null)}}>{t('moveTitle')}</button>}</section>
-      <div className={grouped?'setup-section':undefined}><style>{syncCss}</style><SyncDetails sync={sync} t={t}/>
+      <div className={grouped?'setup-section':undefined}><SyncDetails sync={sync} t={t}/>
       {sync.error&&<p role="alert">{t((sync.errorCode&&setupErrors[sync.errorCode])||'personalFailed')}</p>}
       <button disabled={busy||sync.status==='syncing'} onClick={()=>void run(sync.enabled?'sync':'resume')}>{t(sync.status==='syncing'?'notesBackupSyncing':sync.enabled?'personalSyncNow':'resumeBound')}</button></div>
       <NoteUsage t={t} details/></div>{!grouped&&<CaptureAppearance t={t}/>}

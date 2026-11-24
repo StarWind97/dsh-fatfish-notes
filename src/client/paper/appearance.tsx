@@ -19,6 +19,7 @@ import { CaptureAppearance } from '../CaptureAppearance.js'
 import type { SettingsTab } from '../SettingsTabs.js'
 import { appearancePreferences } from '../appearance-sync.js'
 import { brandStyle } from '../brand-palette.js'
+import { useStyleSheet } from '../styles/inject.js'
 
 export const setAppearance = (patch: Partial<Appearance>) => appearancePreferences.set(patch)
 export function useAppearance() {
@@ -218,7 +219,9 @@ function FontPreview({ t }: { t: T }) {
 }
 
 export function AppearanceStyle() {
-  return <style>{codeFontCss + appearanceCss}</style>
+  useStyleSheet('code-font', codeFontCss, 'base')
+  useStyleSheet('appearance', appearanceCss, 'themes')
+  return null
 }
 
 export function AppearanceStatus({ t }: { t: T }) {

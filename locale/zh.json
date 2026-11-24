@@ -1105,5 +1105,20 @@
   "artifactPngSuffix": "长图",
   "artifactExportDetails": "导出说明.txt",
   "artifactMissingLink": "{path}: 链接目标未包含在此次导出中 ({id})",
-  "captureReadConversation": "读取会话"
+  "captureReadConversation": "读取会话",
+  "quickSwitchOpen": "快速切换或执行命令（Ctrl+K）",
+  "quickSwitchTrigger": "快速跳转…",
+  "quickSwitchShortcut": "Ctrl K",
+  "quickSwitchTitle": "快速切换与命令面板",
+  "quickSwitchPlaceholder": "搜索笔记、笔记本、标签或快捷命令…",
+  "quickSwitchGroupNotes": "笔记",
+  "quickSwitchGroupBooks": "笔记本",
+  "quickSwitchGroupTags": "标签",
+  "quickSwitchGroupCommands": "快捷命令",
+  "quickSwitchEmpty": "没有找到匹配的笔记或命令",
+  "quickSwitchCmdNew": "新建笔记",
+  "quickSwitchCmdTheme": "切换浅色 / 深色模式",
+  "quickSwitchCmdSync": "立即双向同步",
+  "quickSwitchCmdClass": "打开分类管理（笔记本与标签）",
+  "quickSwitchCmdSettings": "打开外观与同步设置"
 }

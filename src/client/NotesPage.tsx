@@ -18,7 +18,10 @@ import type {SettingsCategory} from './SettingsTabs.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
-import { ChevronDown, SquarePen, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin , Moon, Sun } from 'lucide-react'
+import { ChevronDown, SquarePen, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin , Moon, Sun, Search } from 'lucide-react'
+import {QuickSwitcher} from './QuickSwitcher.js'
+import {notebookSync} from './notebook-sync.js'
+import {useStyleSheet} from './styles/inject.js'
 import {SearchControls,SearchOrderPicker,SearchResultStatus,SearchViewPicker,hitLabels,readSearchFacets,replaceSearchFacets,type SearchFacets,type SearchView} from './SearchFilterPanel.js'
 import {classificationCss} from './classification-style.js'
 import {ClassificationViews} from './ClassificationViews.js'
@@ -77,6 +80,7 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
     if(filter.query&&item.hit)setJump({noteId:item.noteId,query:filter.query,hit:item.hit})
   }
   const [transfer,setTransfer]=useState(false)
+  const [quickOpen,setQuickOpen]=useState(false)
   const [settingsCategory,setSettingsCategory]=useState<SettingsCategory>('appearance')
   const [filtersOpen,setFiltersOpen]=useState(false)
   const [tagLibrary,setTagLibrary]=useState<{epoch:number;tag:string}|null>(null)
@@ -230,10 +234,38 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
         <strong>{item.pinned&&<Pin size={12} aria-label={t('paperPinned')}/>}{item.favorite&&<Star size={12} fill="currentColor" aria-label={t('findFavorites')}/>} <Highlight value={item.title||t('notesUntitled')} query={state.filter.query}/></strong><span>{(item.conflicted||state.filter.notebookId===undefined)&&<small className="paper-row-meta">{item.conflicted?t('notesConflict'):bookName(item.notebookId)} · </small>}{item.hit&&<small className="paper-hit-source">{item.hit.alternate&&t('findOtherVersion')+' · '}{t(hitLabels[item.hit.field])} · </small>}<Highlight value={item.excerpt||item.summary} query={state.filter.query}/></span>
       </NoteSelectionRow></div></React.Fragment>
     })}</div>{state.cursor&&<button disabled={state.loadingList} onClick={()=>void controller.refresh(false)}>{t('notesMore')}</button>}</>}</div><footer className="paper-list-foot">{(!columns.expanded||inTrash||appearanceValue.layout==='tree')&&<button onClick={toggleTrash}>{inTrash?<ArrowLeft size={16}/>:<Trash2 size={16}/>} {t(inTrash?'paperBackLibrary':'notesTrash')}</button>}<button onClick={()=>setTransfer(true)}>{t('libraryTransfer')}</button></footer></>
-  return <div ref={app} className="paper-app" data-full={full} {...appearance}><style>{notesCss+paperCss+feedbackCss+notebookManagerCss+transferCss+organizationCss+classificationCss}</style><AppearanceStyle/>
+  useStyleSheet('notes-base', notesCss, 'base')
+  useStyleSheet('paper-base', paperCss, 'layout')
+  useStyleSheet('feedback', feedbackCss, 'components')
+  useStyleSheet('notebook-manager', notebookManagerCss, 'components')
+  useStyleSheet('transfer', transferCss, 'components')
+  useStyleSheet('organization', organizationCss, 'components')
+  useStyleSheet('classification', classificationCss, 'components')
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.isComposing||!(event.ctrlKey||event.metaKey)||event.altKey||event.shiftKey||event.key.toLowerCase()!=='k')return
+      if(document.querySelector('dialog[open]'))return
+      event.preventDefault()
+      setQuickOpen(open=>!open)
+    }
+    window.addEventListener('keydown',onKey)
+    return()=>window.removeEventListener('keydown',onKey)
+  },[])
+  return <div ref={app} className="paper-app" data-full={full} {...appearance}><AppearanceStyle/>
+    <QuickSwitcher open={quickOpen} onClose={()=>setQuickOpen(false)} controller={controller} state={state} books={activeBooks} t={t}
+      onOpenNote={id=>{void navigate('notes').then(ok=>{if(ok)void controller.open(id,true)})}}
+      onOpenBook={id=>{void openNotebook(id)}}
+      onFilterTag={tag=>{void navigate('notes').then(ok=>{if(ok)filterTag(tag)})}}
+      onCreate={()=>{void navigate('notes').then(ok=>{if(ok)void create()})}}
+      onToggleTheme={onToggleDshTheme ?? (() => theme.setMode(dark ? 'light' : 'dark'))}
+      onSync={()=>{void notebookSync.request(true)}}
+      onNavigate={section=>{void navigate(section)}}/>
     {previewLink&&<LinkPreview id={previewLink} t={t} close={()=>setPreviewLink(null)} open={()=>{const id=previewLink;setPreviewLink(null);void follow(id)}}/>}
     {transfer&&<LibraryTransfer controller={controller} state={state} t={t} close={()=>setTransfer(false)}/>}{selection.dialog}{itemActions.dialogs}<header className="paper-top"><strong><BrandMark size={20} color/>{t('nav')}</strong><nav aria-label={t('notesNavigation')}>{(['notes','notebooks','settings'] as const).map(section=><button key={section} disabled={state.operation||classBusy} aria-pressed={state.section===section} onClick={()=>void navigate(section)}>{t(section==='notes'?'notesBrowsePage':section==='notebooks'?'classTitle':'notesSettings')}</button>)}</nav>
     <div className="paper-top-actions">
+    <button type="button" className="paper-cmd-trigger" aria-label={t('quickSwitchOpen')} title={t('quickSwitchOpen')} onClick={()=>setQuickOpen(true)}>
+      <Search size={14} aria-hidden="true"/><span className="paper-cmd-trigger-label">{t('quickSwitchTrigger')}</span><kbd className="paper-cmd-kbd">{t('quickSwitchShortcut')}</kbd>
+    </button>
     {state.section==='notes'&&<><div className="paper-width" role="group" aria-label={t('paperWidth')}>{[false,true].map(value=><button key={String(value)} aria-pressed={full===value} onClick={()=>{setFull(value);writePreference('width',value?'full':'standard')}}>{t(value?'paperFull':'paperStandard')}</button>)}</div><div className="paper-backup">{(!workspace||windowState?.connected)&&<NoteBackupStatus onSettings={()=>void navigate('settings').then(opened=>{if(opened)setSettingsCategory('sync')})} t={t} onPulled={pulled} revision={state.note?.current.revision}/>}</div></>}
     <button type="button" className="paper-mode-toggle" aria-label={modeToggleLabel} title={modeToggleLabel}
       onClick={onToggleDshTheme ?? (() => theme.setMode(dark ? 'light' : 'dark'))}>

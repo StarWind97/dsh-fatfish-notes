@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {useEffect,useId,useLayoutEffect,useRef,useState} from 'react'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
 
 export type SettingsCategory='appearance'|'reading'|'workspace'|'sync'|'help'
 export interface SettingsTab {id:SettingsCategory;label:string;content:React.ReactNode}
@@ -15,8 +16,8 @@ export function SettingsTabs({items,value,onChange,heading,actions,t}:{items:Set
     if(next===null)return
     event.preventDefault();onChange(items[next]!.id);document.getElementById(`${id}-tab-${items[next]!.id}`)?.focus()
   }
+  useStyleSheet('settings-tabs', settingsCss, 'components')
   return <section className="settings-workspace" aria-label={heading??t('settingsAppearanceReading')}>
-    <style>{settingsCss}</style>
     <div className="settings-chrome"><header className="settings-heading">{heading&&<h2>{heading}</h2>}<div className="settings-heading-actions">{actions}</div></header>
       <div className="settings-tablist" role="tablist" aria-label={t('settingsCategory')}>{items.map((item,index)=><button key={item.id} id={`${id}-tab-${item.id}`} role="tab" aria-selected={value===item.id} aria-controls={`${id}-panel-${item.id}`} tabIndex={value===item.id?0:-1} onClick={()=>onChange(item.id)} onKeyDown={e=>key(e,index)}>{item.label}</button>)}</div>
       <label className="settings-category-select">{t('settingsCategory')}<select value={value} onChange={e=>onChange(e.target.value as SettingsCategory)}>{items.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>

@@ -5,6 +5,7 @@ import { materialsFor } from '../notes/capture-materials.js'
 import type { NoteCaptureBridge, NoteCaptureState } from './note-capture-bridge.js'
 import { fileSize } from './NoteAttachments.js'
 import type { T } from './locale.js'
+import { useStyleSheet } from './styles/inject.js'
 
 export function captureMaterialAvailable(material: CaptureMaterial): boolean {
   return material.available && material.bytes !== null && material.bytes <= ATTACHMENT_LIMIT
@@ -14,6 +15,7 @@ export function CaptureMaterialList({ materials, selected, allowLarge, onSelect,
   materials: CaptureMaterial[]; selected: ReadonlySet<string>; allowLarge: boolean
   onSelect: (ids: string[]) => void; onLarge: (value: boolean) => void; t: T
 }) {
+  useStyleSheet('capture-materials-list', listCss, 'components')
   const available = materials.filter(captureMaterialAvailable), kept = available.filter(material => selected.has(material.id))
   if (!materials.length) return <p className="capture-no-materials">{t('captureNoMaterials')}</p>
   return <>
@@ -37,11 +39,11 @@ export function CaptureMaterialList({ materials, selected, allowLarge, onSelect,
     {kept.some(material=>Number(material.bytes)>ATTACHMENT_WARNING)&&<label className="capture-large-approval">
       <input type="checkbox" checked={allowLarge} onChange={event=>onLarge(event.target.checked)}/>{t('attachmentLarge')}
     </label>}
-    <style>{listCss}</style>
   </>
 }
 
 export function CaptureMaterials({state,bridge,t,messageIds,disabled=false}:{state:NoteCaptureState;bridge:NoteCaptureBridge;t:T;messageIds:string[];disabled?:boolean}){
+  useStyleSheet('capture-materials-box', captureMaterialsBoxCss, 'components')
   const ids = new Set(messageIds)
   const materials=materialsFor(state.selection?.messages.filter(message=>ids.has(message.id))??[],state.selection?.materials??[])
   if(!materials.length)return null
@@ -50,9 +52,10 @@ export function CaptureMaterials({state,bridge,t,messageIds,disabled=false}:{sta
     <p>{t('captureMaterialsHint')}</p>
     <p>{fileSize(materials.filter(material=>selected.has(material.id)).reduce((total,material)=>total+(material.bytes??0),0))}</p>
     <CaptureMaterialList materials={materials} selected={selected} allowLarge={state.allowLarge??false} onSelect={ids=>bridge.materials(ids)} onLarge={value=>bridge.large(value)} t={t}/>
-    <style>{`.capture-materials{border:1px solid var(--border,var(--rule));border-radius:8px;padding:12px;margin:14px 0;font-size:13px;min-width:0}.capture-materials p{font-size:12px;opacity:.7;margin:5px 0 10px}.capture-materials .capture-file-list{max-height:240px;overflow:auto}`}</style>
   </fieldset>
 }
+
+const captureMaterialsBoxCss=`.capture-materials{border:1px solid var(--border,var(--rule));border-radius:8px;padding:12px;margin:14px 0;font-size:13px;min-width:0}.capture-materials p{font-size:12px;opacity:.7;margin:5px 0 10px}.capture-materials .capture-file-list{max-height:240px;overflow:auto}`
 
 const listCss=`
 .capture-file-actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.capture-file-actions button{white-space:nowrap}

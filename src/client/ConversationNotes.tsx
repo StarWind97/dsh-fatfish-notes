@@ -17,6 +17,7 @@ import {WorkspaceNotice,WindowButton} from './WorkspaceNotice.js'
 import {bindLibraryLifecycle} from './library-lifecycle.js'
 import {notesCss} from './notes-style.js'
 import {paperCss} from './paper/style.js'
+import {useStyleSheet} from './styles/inject.js'
 import {AppearanceStyle,useAppearanceProps,AppearanceScope} from './paper/appearance.js'
 import {NoteTabBar,useNoteTabs} from './paper/NoteTabs.js'
 import {conversationListTabId} from './paper/note-tabs.js'
@@ -262,8 +263,12 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     </div>
     <footer><button type="button" onClick={()=>{setBooksOpen(false);setSetup('new')}}><Plus size={15}/>{t('notesNewNotebook')}</button></footer>
   </nav>
+  useStyleSheet('notes-base', notesCss, 'base')
+  useStyleSheet('paper-base', paperCss, 'layout')
+  useStyleSheet('organization', organizationCss, 'components')
+  useStyleSheet('transfer', transferCss, 'components')
+  useStyleSheet('conversation-notes', conversationNotesCss + conversationBrowseCss + referenceListCss, 'components')
   return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(bookPickerOpen){e.preventDefault();e.stopPropagation();setBooksOpen(false);scopeButton.current?.focus({preventScroll:true})}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
-    <style>{notesCss+paperCss+organizationCss+transferCss+conversationNotesCss+conversationBrowseCss+referenceListCss}</style>
     <AppearanceStyle/>
     {actions.dialogs}{reference.dialogs}
     {showChosen&&<PaperDialog title={t('sidebarSelectedCount',{count:chosen.length})} closeLabel={t('paperClose')} onClose={()=>setShowChosen(false)} className="reference-selection-dialog"><div className="paper-dialog-content">{chosen.length?chosen.map(row=><div className="conversation-selected-row" key={row.noteId}><span title={row.title}>{row.title}</span><button aria-label={t('sidebarRemoveNamedSelection',{title:row.title})} title={t('sidebarRemoveSelection')} onClick={()=>toggleChosen(row)}><X size={15}/></button></div>):<p>{t('sidebarNoneSelected')}</p>}</div><footer><button onClick={()=>setShowChosen(false)}>{t('sidebarKeepSelecting')}</button><button className="paper-primary" disabled={!chosen.length||!reference.enabled} onClick={()=>{setShowChosen(false);reference.open(chosen)}}>{t('sidebarReferenceSelected')}</button></footer></PaperDialog>}
