@@ -52,10 +52,14 @@ try {
     assert.equal(original.width, width, className)
     assert.deepEqual(await measure(className, desktop, true), original, className)
   }
-  assert.deepEqual(await measure(expanded, desktop, true), { width: 1280, height: 780, columns: 3 })
-  assert.deepEqual(await measure(expanded, { width: 104, height: 120 }, true), {
-    width: 92, height: 108, columns: 1,
-  })
+  const expandedShort = await measure(expanded, desktop, true)
+  assert.equal(expandedShort.width, 1280)
+  assert.equal(expandedShort.columns, 3)
+  assert.ok(expandedShort.height > 0 && expandedShort.height <= 780, `adaptive expanded height: ${expandedShort.height}`)
+  const expandedTiny = await measure(expanded, { width: 104, height: 120 }, true)
+  assert.equal(expandedTiny.width, 92)
+  assert.equal(expandedTiny.columns, 1)
+  assert.ok(expandedTiny.height > 0 && expandedTiny.height <= 108, `tiny viewport height: ${expandedTiny.height}`)
 
   await page.setViewportSize(desktop)
   await page.setContent(`<!doctype html>

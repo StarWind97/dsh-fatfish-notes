@@ -155,14 +155,14 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
   return <div className="paper-document" data-loading={state.loadingNote} aria-busy={state.loadingNote} data-material-position={appearance.materials} data-material-open={materialsOpen&&!sourceOpen} data-material-pinned={appearance.pinned} data-right-style={appearance.rightStyle} data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'}
     onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
-    <header className="paper-doc-head"><div className="paper-command-row"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/>{book}</span>
-      <>{onReturn&&<button title={t('linkReturn')} aria-label={t('linkReturn')} onClick={onReturn}><ArrowLeft size={16}/></button>}</><NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
+    <header className="paper-doc-head"><div className="paper-command-row"><div className="paper-command-lead"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/><span>{book}</span></span>
+      {note?.current.sourceId&&<nav className="paper-views paper-segmented paper-segmented-sm" aria-label={t('paperViews')}>
+        <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
+        <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}
+      {onReturn&&<button title={t('linkReturn')} aria-label={t('linkReturn')} onClick={onReturn}><ArrowLeft size={16}/></button>}</div><NoteActions actions={actions} t={t}>{note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<TrashAction t={t} disabled={state.loadingNote||state.operation||state.saving||!!state.conflict} confirm={()=>move(true)}/>}
         {note&&!sourceOpen&&!state.editing&&draft.status==='trashed'&&<button title={t('batchPurge')} aria-label={t('batchPurge')} onClick={onPurge}><Trash2 size={16}/></button>}{!sourceOpen&&<>{appearance.materials==='right'&&<MaterialsToggle t={t} open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>}<button ref={outline.trigger} type="button" className="paper-outline-toggle" aria-label={t('paperOutline')} title={t('paperOutline')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={toggleOutline}><ListTree size={17}/></button></>}
         {note&&!sourceOpen&&!state.editing&&draft.status==='active'&&<button title={t(draft.favorite?'findUnfavorite':'findFavorite')} aria-label={t(draft.favorite?'findUnfavorite':'findFavorite')} aria-pressed={!!draft.favorite} disabled={state.operation} className="paper-favorite" onClick={()=>void controller.manage({notes:[{noteId:note.noteId,expectedHeads:note.heads}],action:draft.favorite?'unfavorite':'favorite'})}><Star size={16} fill={draft.favorite?'currentColor':'none'}/></button>}
       </NoteActions></div>
-      {note?.current.sourceId&&<nav className="paper-views" aria-label={t('paperViews')}>
-        <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
-        <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}
     </header>
     <div className="paper-document-body">
     <div className="paper-pane" tabIndex={mode==='read'?0:undefined} aria-label={t('notesDetail')} onKeyDown={e=>readingKey(e,state.editing)} onPointerDown={e=>{if(!state.editing&&!(e.target as HTMLElement).closest('a,button,input,textarea,select,[contenteditable=true],dialog'))e.currentTarget.focus({preventScroll:true})}}>
@@ -200,7 +200,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   </MaterialsPanel>
   {outline.open&&!sourceOpen&&<ChapterOutline headings={outline.headings} active={outline.active} onJump={outline.jump} panel={outline.panel} busy={outline.busy} t={t}/>}
   {!sourceOpen&&<button ref={outline.edge} type="button" className="paper-outline-edge" aria-label={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} title={t(outline.open?'paperOutlineClose':'paperOutlineOpen')} aria-expanded={outline.open} aria-controls="paper-chapter-outline" onClick={outline.open?outline.close:toggleOutline}>
-    <svg width="16" height="44" viewBox="0 0 16 44" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M1 1 7 22 1 43 M9 1 15 22 9 43"/></svg>
+    <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M3 2.5 7.5 8 3 13.5"/></svg>
   </button>}
   </div>
   {!sourceOpen&&<DocumentTools body={draft.body} t={t} materials={appearance.materials==='bottom'?<MaterialsToggle t={t} open={materialsOpen} onClick={toggleMaterials} files={materialCount} references={referenceCount} controls={materialsId}/>:null}/>}

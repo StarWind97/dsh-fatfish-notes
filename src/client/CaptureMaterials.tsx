@@ -29,7 +29,7 @@ export function CaptureMaterialList({ materials, selected, allowLarge, onSelect,
         return <label key={material.id}>
           <input type="checkbox" checked={!refused&&selected.has(material.id)} disabled={refused}
             onChange={event=>onSelect(event.target.checked?[...selected,material.id]:[...selected].filter(id=>id!==material.id))}/>
-          {material.kind==='image'?<Image size={16} aria-hidden="true"/>:<Paperclip size={16} aria-hidden="true"/>}
+          <span className="capture-material-badge" data-kind={material.kind} aria-hidden="true">{material.kind==='image'?<Image size={16}/>:<Paperclip size={16}/>}</span>
           <span>{material.name}<small>{t(material.origin==='upload'?'captureUpload':'captureDelivery')} · {material.bytes===null?'—':fileSize(material.bytes)} {refused&&t(material.available?'attachmentTooLarge':'captureMaterialMissing')}</small></span>
         </label>
       })}</section>
@@ -55,8 +55,9 @@ export function CaptureMaterials({state,bridge,t,messageIds,disabled=false}:{sta
 }
 
 const listCss=`
-.capture-file-actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
-.capture-file-list label,.capture-large-approval{display:flex;align-items:center;gap:8px;padding:6px 0;overflow-wrap:anywhere}
-.capture-file-list label span{min-width:0}.capture-file-list label svg{flex:none}
-.capture-file-list h4{font-size:12px;margin:8px 0 4px;font-weight:600}.capture-file-list small{display:block;opacity:.7;font-size:11px}
+.capture-file-actions{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.capture-file-actions button{white-space:nowrap}
+.capture-file-list label,.capture-large-approval{display:flex;align-items:center;gap:9px;padding:7px 9px;margin:4px 0;border:1px solid var(--rule);border-radius:8px;background:var(--shelf,var(--base));overflow-wrap:anywhere}
+.capture-material-badge{display:inline-grid;place-items:center;width:32px;height:26px;flex:none;border-radius:6px;background:var(--selected);color:var(--accent)}
+.capture-file-list label span:last-child{min-width:0;flex:1}.capture-file-list label svg{flex:none}
+.capture-file-list h4{font-size:12px;margin:8px 0 4px;font-weight:600;color:var(--muted)}.capture-file-list small{display:block;color:var(--muted);font-size:11px}
 `

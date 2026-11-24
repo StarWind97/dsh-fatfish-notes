@@ -9,6 +9,7 @@ function readingEdge(pane:HTMLElement){
 
 export function useOutline({root,body,editing,composing,sourceOpen,writing,session}:{root:RefObject<HTMLElement>;body:string;editing:boolean;composing:boolean;sourceOpen:boolean;writing:RefObject<WritingNavigation>;session:MutableRefObject<OutlineSession>}) {
   const [open,setOpen]=useState(session.current.open)
+  const [manualEmpty,setManualEmpty]=useState(false)
   const [wide,setWide]=useState(session.current.wide??false)
   const [parsedBody,setParsedBody]=useState(body),[active,setActive]=useState<number|null>(null)
   const trigger=useRef<HTMLButtonElement>(null),edge=useRef<HTMLButtonElement>(null),panel=useRef<HTMLElement>(null)
@@ -20,6 +21,8 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing,sessi
     return ()=>clearTimeout(timer)
   },[body,editing,composing])
   const headings=useMemo(()=>outlineHeadings(parsedBody),[parsedBody])
+  useEffect(()=>{if(headings.length>0&&manualEmpty)setManualEmpty(false)},[headings.length,manualEmpty])
+  const visibleOpen=open&&(headings.length>0||manualEmpty)
   useLayoutEffect(()=>{
     // Measure the whole detail area, which does not shrink when the outline opens.
     const detail=root.current?.closest<HTMLElement>('.paper-detail');if(!detail)return
@@ -69,9 +72,17 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing,sessi
     const observer=new ResizeObserver(schedule);observer.observe(leaf);observer.observe(pane)
     return ()=>{cancelAnimationFrame(frame);observer.disconnect();pane.removeEventListener('scroll',schedule);leaf.removeEventListener('load',schedule,true)}
   },[root,writing,headings,open,editing,sourceOpen,wide])
-  function toggle(){change(!open)}
-  function close(){change(false);trigger.current?.focus({preventScroll:true})}
-  function hide(){change(false)}
+  function toggle(){
+    if(headings.length===0){
+      const next=!visibleOpen
+      setManualEmpty(next)
+      if(next)change(true)
+      return
+    }
+    change(!open)
+  }
+  function close(){setManualEmpty(false);change(false);trigger.current?.focus({preventScroll:true})}
+  function hide(){setManualEmpty(false);change(false)}
   function jump(position:number){
     if(editing){
       if(parsedBody!==body||composing)return
@@ -84,5 +95,5 @@ export function useOutline({root,body,editing,composing,sourceOpen,writing,sessi
     }
     setActive(position)
   }
-  return {open,wide,headings,active,trigger,edge,panel,toggle,close,hide,jump,busy:editing&&(parsedBody!==body||composing)}
+  return {open:visibleOpen,wide,headings,active,trigger,edge,panel,toggle,close,hide,jump,busy:editing&&(parsedBody!==body||composing)}
 }

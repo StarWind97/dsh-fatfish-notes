@@ -1,6 +1,6 @@
 export const captureOptionsCss = `
 .paper-dialog.capture-save-compact{--paper-dialog-width:556px}
-.paper-dialog.capture-save-expanded{--paper-dialog-width:1280px;--paper-dialog-height:780px}
+.paper-dialog.capture-save-expanded{--paper-dialog-width:1280px;--paper-dialog-height:fit-content;max-height:min(780px,calc(100dvh - var(--paper-dialog-block-inset)))}
 .paper-dialog.capture-save-review{--paper-dialog-width:680px}
 .capture-save:modal{overscroll-behavior:contain}
 .capture-save::backdrop{overflow:hidden;overscroll-behavior:contain}
