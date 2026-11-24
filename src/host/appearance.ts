@@ -1,7 +1,7 @@
 import {readFile,writeFile,rename,mkdir,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {randomUUID} from 'node:crypto'
-import {appearanceValue,parseAppearance,type Appearance} from '../domain/appearance.js'
+import {appearanceValue,migrateLayout,parseAppearance,type Appearance} from '../domain/appearance.js'
 import type {AppearanceState} from '../contracts/appearance.js'
 import type {WindowSurface,WindowTheme} from '../contracts/workspace.js'
 import {NotebookError} from '../domain/errors.js'
@@ -34,8 +34,15 @@ export class SharedAppearance {
       if(v.version!==1||typeof v.storeId!=='string'||!Array.isArray(v.receipts)||!v.receipts.every(x=>typeof x==='string')||v.receipts.length>128)throw invalid()
       const legacy=object(v.legacy)
       for(const [key,value] of Object.entries(legacy))if(!['embedded','standalone','conversation'].includes(key)||(value!==null&&(typeof value!=='string'||value.length>8192)))throw invalid()
-      if(v.value!==null&&JSON.stringify(appearanceValue(v.value))!==JSON.stringify(v.value))throw invalid()
-      this.data={version:1,storeId:v.storeId,value:v.value as Appearance|null,legacy,receipts:v.receipts as string[]}
+      let storedValue = v.value as Record<string, unknown> | null
+      if (storedValue !== null) {
+        if (typeof storedValue !== 'object' || Array.isArray(storedValue)) throw invalid()
+        const migrated = { ...storedValue, ...(typeof storedValue.layout === 'string' ? { layout: migrateLayout(storedValue.layout) } : {}) }
+        const normalized = appearanceValue(migrated)
+        if (JSON.stringify(normalized) !== JSON.stringify(migrated)) throw invalid()
+        storedValue = normalized as unknown as Record<string, unknown>
+      }
+      this.data={version:1,storeId:v.storeId,value:storedValue as Appearance|null,legacy,receipts:v.receipts as string[]}
     }catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e}
     this.loaded=true
   }

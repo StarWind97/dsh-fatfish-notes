@@ -10,11 +10,12 @@ import {ApiError} from '../src/client/api.js'
 import type {NoteView,NoteListItem,NoteListOptions} from '../src/contracts/notes.js'
 import {createNoteRevision,materializeNote} from '../src/notes/revisions.js'
 
-test('appearance accepts independent valid choices and rejects corrupted or future preferences',()=>{
-  for(const raw of [null,'oops','[]','42','{"version":2,"layout":"island"}'])assert.deepEqual(parseAppearance(raw),defaultAppearance)
-  const value=appearanceValue({layout:'island',palette:'native',size:999,codeWeight:400,mode:'dark',tabs:'false',arbitrary:'ignored'})
-  assert.equal(value.layout,'island');assert.equal(value.size,17);assert.equal(value.tabs,true);assert.equal(value.mode,'host');assert.equal('arbitrary' in value,false)
-  assert.equal(appearanceValue({...value,palette:'rose'}).layout,'island')
+test('appearance accepts independent valid choices, migrates retired layouts, and rejects corrupted or future preferences',()=>{
+  for(const raw of [null,'oops','[]','42','{"version":2,"layout":"soft"}'])assert.deepEqual(parseAppearance(raw),defaultAppearance)
+  const value=appearanceValue({layout:'island',palette:'berry',size:999,codeWeight:400,mode:'dark',tabs:'false',arbitrary:'ignored'})
+  assert.equal(value.layout,'soft');assert.equal(value.palette,'berry');assert.equal(value.size,17);assert.equal(value.tabs,true);assert.equal(value.mode,'host');assert.equal('arbitrary' in value,false)
+  for(const retired of ['ribbon','dock','ink','archive'])assert.equal(appearanceValue({layout:retired}).layout,'outline')
+  assert.equal(appearanceValue({...value,palette:'rose'}).layout,'soft')
 })
 test('native standard palette consumes host semantic roles; explicit contrasts remain distinct',()=>{
   const host={paper:'#123456',shelf:'#234567',ink:'#fefefe',accent:'#abcdef'}
@@ -26,7 +27,7 @@ test('native standard palette consumes host semantic roles; explicit contrasts r
   assert.notEqual(appearanceColors(defaultAppearance,false).selected,appearanceColors({...defaultAppearance,contrast:'strong'},false).selected)
 })
 test('legacy fixed light/dark preferences reopen following DSH without losing layout, fonts or materials',()=>{
-  const chosen=appearanceValue({...defaultAppearance,layout:'island',palette:'clearblue',fontCjk:'kai',fontLatin:'georgia',materials:'right',codeWeight:300})
+  const chosen=appearanceValue({...defaultAppearance,layout:'soft',palette:'clearblue',fontCjk:'kai',fontLatin:'georgia',materials:'right',codeWeight:300})
   for(const mode of ['light','dark','host'])assert.deepEqual(parseAppearance(JSON.stringify({...chosen,mode})),chosen)
   assert.deepEqual(appearanceValue({...chosen,mode:'dark'}),chosen)
 })

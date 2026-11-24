@@ -214,9 +214,13 @@ export function SearchOrderPicker({value,query,onChange,t}: {value:NoteOrder;que
 }
 
 export function SearchViewPicker({view,onChange,t}: {view:SearchView;onChange:(view:SearchView)=>void;t:T}) {
-  return <label className="paper-quick-view"><select aria-label={t('findView')} value={view} onChange={event=>onChange(event.target.value as SearchView)}>
-    <option value="all">{t('findAllView')}</option><option value="favorites">{t('findFavorites')}</option><option value="visits">{t('findRecent')}</option>
-  </select>{view==='visits'&&<small>{t('findLocal')}</small>}</label>
+  const choices: [SearchView, LocaleKey][] = [['all','findAllView'],['favorites','findFavorites'],['visits','findRecent']]
+  return <div className="paper-quick-view">
+    <div className="paper-segmented paper-segmented-sm" role="group" aria-label={t('findView')}>
+      {choices.map(([id,key])=><button key={id} type="button" aria-pressed={view===id} onClick={()=>onChange(id)}>{t(key)}</button>)}
+    </div>
+    {view==='visits'&&<small>{t('findLocal')}</small>}
+  </div>
 }
 
 export function SearchResultStatus({count,more,loading,scope,t,onAll}: {count:number;more:boolean;loading:boolean;scope:string;t:T;onAll?:()=>void}) {

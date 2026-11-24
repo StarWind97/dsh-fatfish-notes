@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { T } from '../locale.js'
-import {useAppearance} from './appearance.js'
 import { clamp, columnPreference, columnSizes, defaultColumns, wideColumns, type ColumnPreference, type PaperSurface } from './layout-state.js'
 
 const prefix='dsh-fatfish-notes.private.paper.'
@@ -57,12 +56,12 @@ export function ResizeDivider({className,hidden=false,controls,label,title,width
     onKeyDown={e=>{const target=({ArrowLeft:width-8,ArrowRight:width+8,Home:min,End:max} as Record<string,number>)[e.key];if(target!==undefined){e.preventDefault();move(target)}}}/>
 }
 
-export function PaperColumns({list,notebooks,layout,tabs,children,selected,t,hidden=false,section='notes',other,rail}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;tabs:React.ReactNode;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode;rail?:React.ReactNode}){
-  const appearance=useAppearance(),browsing=section==='notes',compactRail=browsing&&appearance.layout==='dock'&&!layout.expanded,showBooks=browsing&&(layout.expanded||compactRail||appearance.layout==='ribbon'||appearance.layout==='archive')
+export function PaperColumns({list,notebooks,layout,tabs,children,selected,t,hidden=false,section='notes',other}:{list:React.ReactNode;notebooks:React.ReactNode;layout:Layout;tabs:React.ReactNode;children:React.ReactNode;selected:boolean;t:T;hidden?:boolean;section?:string;other?:React.ReactNode}){
+  const browsing=section==='notes',showBooks=browsing&&layout.expanded
   const tabsAboveList=browsing&&layout.compact&&!selected
   // Keep all five positions mounted: collapsing navigation must not recreate CodeMirror.
-  return <div className="paper-split" hidden={hidden} data-section={section} data-selected={selected} data-notebooks={layout.expanded} data-rail={compactRail} style={{'--book-width':`${showBooks?layout.book:0}px`,'--list-width':`${layout.list}px`} as React.CSSProperties}>
-    <aside id="paper-notebook-list" className="paper-notebook-nav" hidden={!showBooks} aria-label={t('notesNotebooks')}>{notebooks}<div className="paper-rail-content">{rail}</div></aside>
+  return <div className="paper-split" hidden={hidden} data-section={section} data-selected={selected} data-notebooks={layout.expanded} style={{'--book-width':`${showBooks?layout.book:0}px`,'--list-width':`${layout.list}px`} as React.CSSProperties}>
+    <aside id="paper-notebook-list" className="paper-notebook-nav" hidden={!showBooks} aria-label={t('notesNotebooks')}>{notebooks}</aside>
     <Divider column="book" layout={layout} t={t} hidden={!browsing||!layout.expanded}/>
     <aside id="paper-note-list" className="paper-list" aria-label={t('notesLibrary')}>{tabsAboveList&&tabs}{list}</aside>
     <Divider column="list" layout={layout} t={t}/>

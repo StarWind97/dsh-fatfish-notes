@@ -63,6 +63,10 @@ test('failed persistence leaves acknowledged settings intact and can retry; malf
     await rm(file,{recursive:true});await rename(file+'.backup',file);assert.equal((await f.store.update(update)).value?.palette,'pine')
     await writeFile(file,'{"version":999}');const invalid=new SharedAppearance(f.dir)
     await assert.rejects(invalid.connect('embedded',{legacy}));assert.equal(await readFile(file,'utf8'),'{"version":999}');await invalid.close()
+    // Retired layout values stored on disk migrate cleanly on load without throwing appearance_invalid.
+    const migratedStored={version:1,storeId:state.storeId,value:{...defaultAppearance,layout:'island',palette:'pine'},legacy:{embedded:legacy},receipts:[]}
+    await writeFile(file,JSON.stringify(migratedStored));const migrated=new SharedAppearance(f.dir)
+    assert.equal((await migrated.connect('embedded',{legacy})).value?.layout,'soft');await migrated.close()
   }finally{await f.close()}
 })
 
@@ -81,7 +85,7 @@ test('clients converge bidirectionally, retain pending failures, merge remote fi
     two.start('standalone',((path,body,signal)=>{if(fail&&path==='/appearance/update')return Promise.reject(Error('offline'));return api(path,body,signal)}) as Api,async()=>{})
     await until(()=>two.getStatus()==='waiting');one.start('embedded',transport(f.store,'embedded','one'),async()=>{})
     await until(()=>one.getStatus()==='saved'&&two.getSnapshot().palette==='lilac')
-    one.set({layout:'island'});await until(()=>two.getSnapshot().layout==='island')
+    one.set({layout:'soft'});await until(()=>two.getSnapshot().layout==='soft')
     two.set({size:20});await until(()=>one.getSnapshot().size===20)
     fail=true;two.set({palette:'pine'});await until(()=>two.getStatus()==='error');assert.equal(two.getSnapshot().palette,'pine')
     one.set({leading:2});await until(()=>two.getSnapshot().leading===2);assert.equal(two.getSnapshot().palette,'pine')
