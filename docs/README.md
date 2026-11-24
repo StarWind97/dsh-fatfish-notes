@@ -35,6 +35,7 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
+| [UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) | `codex/ui-arch-refresh`，主目录；`src/client/`、`src/domain/appearance.ts`、`src/host/appearance.ts`、`src/notes/`、`src/private-workspace/`、`locale/`、`lib/` | 已批准 P0+P1+P2 全量实施；正在执行批次 1（P0 缺陷快修），随后按序推进 P1a/P1b/P2a/P2b 与第三档全量验收 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 

@@ -14,7 +14,7 @@ export const appearanceCss=layoutThemesCss+`
 .paper-app[data-layout] .paper-reading :is(h2,h3){margin-top:1.6em;margin-bottom:.65em}
 .paper-app[data-layout] .paper-reading p{margin:.8em 0}.paper-app[data-layout] .paper-reading li+li{margin-top:.25em}
 .paper-app[data-layout] .paper-reading a{color:var(--accent);text-underline-offset:3px}
-.paper-app[data-layout] .paper-summary{border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:var(--shelf)}
+.paper-app[data-layout] .paper-summary{background:var(--summary-bg,var(--shelf))}
 .paper-app[data-layout] .paper-code pre,.paper-app[data-layout] .paper-code code{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);line-height:1.65;tab-size:4;font-variant-ligatures:none}
 .paper-app[data-layout] .paper-code{border:1px solid var(--rule);border-radius:8px;background:var(--shelf);margin:1em 0;padding:0;overflow:hidden}
 .paper-app[data-layout] .paper-code>pre{background:transparent;margin:0!important;padding:36px 16px 14px!important;white-space:pre;overflow:auto;overflow-wrap:normal;border-radius:0}

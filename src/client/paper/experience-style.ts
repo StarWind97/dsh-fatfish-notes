@@ -15,6 +15,6 @@ export const experienceCss=`
 .paper-app .paper-backlinks p{margin:10px 0 0;font:inherit;color:var(--muted)}
 .paper-app .paper-reading a,.paper-app .paper-source a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
 .paper-app .paper-meta{gap:8px 16px}.paper-app .paper-stamp{flex-wrap:wrap;white-space:normal}
-.paper-app .paper-summary{background:var(--shelf);border-left-color:var(--accent);border-radius:0 8px 8px 0}
+.paper-app .paper-summary{background:var(--summary-bg,var(--shelf))}
 @container paper (width < 560px){.paper-app .paper-supplements,.paper-app .paper-backlinks{padding:13px 12px;border-radius:9px}.paper-app .paper-supplement-row{padding:10px 8px}}
 `

@@ -6,7 +6,7 @@ import type { T } from '../locale.js'
 import { BrandMark, BrandWordmark } from '../Brand.js'
 import { ArrowUpRight, Plus } from 'lucide-react'
 
-const guide = 'https://github.com/StarWind97/dsh-fatfish-notes/blob/main/docs/user-guide.zh.md'
+const guideUrl = (language: T['language']) => `https://github.com/StarWind97/dsh-fatfish-notes/blob/main/docs/user-guide.${language === 'en' ? 'en' : 'zh'}.md`
 
 export function NoteOverview({overview, books, t, compact=false, disabled, open, create}: {
   overview: NoteOverviewData | undefined
@@ -44,7 +44,7 @@ export function NoteOverview({overview, books, t, compact=false, disabled, open,
         </h2>
         <div className="paper-overview-actions">
           <button type="button" className="paper-overview-new" disabled={disabled} onClick={create}><Plus size={16} aria-hidden="true"/>{t('notesNew')}</button>
-          <a href={guide} target="_blank" rel="noopener noreferrer">{t('notesOnlineGuide')}<ArrowUpRight size={14} aria-hidden="true"/></a>
+          <a href={guideUrl(t.language)} target="_blank" rel="noopener noreferrer">{t('notesOnlineGuide')}<ArrowUpRight size={14} aria-hidden="true"/></a>
         </div>
       </header>
       <div className="paper-overview-groups">

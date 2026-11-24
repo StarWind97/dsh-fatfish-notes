@@ -15,7 +15,6 @@ a.notebook-feedback{display:inline-flex;align-items:center;justify-content:cente
 a.notebook-feedback:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);text-decoration:none}
 a.notebook-feedback:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .notebook-feedback svg{flex:none}.notebook-feedback-short{display:none}
-.paper-top>.notebook-feedback{margin-inline-start:auto}.paper-backup+.notebook-feedback{margin-inline-start:0}
 .notes-setup header>.notebook-feedback{margin-inline-start:auto}
 @container paper (width < 750px){.notebook-feedback-full{display:none}.notebook-feedback-short{display:inline}}
 @container notebook-setup (width < 480px){.notebook-feedback-full{display:none}.notebook-feedback-short{display:inline}}
