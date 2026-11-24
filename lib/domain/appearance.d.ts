@@ -1,24 +1,26 @@
 /** Local presentation only. Never serialize this into a note or repository. */
 export declare const layouts: {
-    readonly outline: "appearanceLayoutOutline";
     readonly soft: "appearanceLayoutSoft";
-    readonly ribbon: "appearanceLayoutRibbon";
-    readonly dock: "appearanceLayoutDock";
-    readonly ink: "appearanceLayoutInk";
+    readonly outline: "appearanceLayoutOutline";
     readonly tree: "appearanceLayoutTree";
-    readonly island: "appearanceLayoutIsland";
-    readonly archive: "appearanceLayoutArchive";
 };
+export declare const layoutDescriptions: {
+    readonly soft: "appearanceLayoutSoftDesc";
+    readonly outline: "appearanceLayoutOutlineDesc";
+    readonly tree: "appearanceLayoutTreeDesc";
+};
+export declare const legacyLayoutMap: Record<string, keyof typeof layouts>;
 export declare const palettes: {
+    readonly berry: "appearancePaletteBerry";
     readonly native: "appearancePaletteNative";
+    readonly pine: "appearancePalettePine";
+    readonly clearblue: "appearancePaletteClearblue";
+    readonly amber: "appearancePaletteAmber";
     readonly lilac: "appearancePaletteLilac";
     readonly mint: "appearancePaletteMint";
     readonly blue: "appearancePaletteBlue";
-    readonly amber: "appearancePaletteAmber";
     readonly rose: "appearancePaletteRose";
     readonly graphite: "appearancePaletteGraphite";
-    readonly clearblue: "appearancePaletteClearblue";
-    readonly pine: "appearancePalettePine";
     readonly inkwhite: "appearancePaletteInkwhite";
 };
 export declare const cjkFonts: {
@@ -58,6 +60,7 @@ export interface Appearance {
     density: 'compact' | 'balanced' | 'spacious';
 }
 export declare const defaultAppearance: Appearance;
+export declare function migrateLayout(raw: unknown): unknown;
 export declare function appearanceValue(raw: unknown): Appearance;
 export declare function parseAppearance(raw: string | null): Appearance;
 export declare const appearanceKey = "dsh-fatfish-notes.private.paper.appearance.v1";

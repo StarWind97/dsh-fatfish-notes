@@ -27,6 +27,7 @@ import { ATTACHMENT_LIMIT, SINGLE_TRANSFER_LIMIT, type NoteAttachment, type Note
 import { DraftFiles, type LocalDraft } from './drafts.js'
 import type { NoteDraftRequest, NoteDraftResult } from '../contracts/notes.js'
 import {syncResource,resourceBatches,missingSyncResources,type SyncResource} from './sync-resources.js'
+import { buildTagCatalog, countActiveNotesByNotebook, parseManageRequest } from './repository-catalog.js'
 
 interface State extends NoteObjects {
   issues: RecoveryIssue[]; blocked: Set<string>
@@ -483,25 +484,7 @@ export class NoteRepository {
   async catalog(signal?:AbortSignal, detailed=false):Promise<NoteCatalog> {
     return this.run(async()=>{
       const state=await this.load()
-      const entries=new Map<string,{count:number;latest:string;books:Map<string|null,number>}>()
-      for(const id of new Set(state.revisions.map(r=>r.noteId))){
-        const note=this.view(state,id)
-        if(note.current.status!=='active')continue
-        for(const tag of note.current.tags){
-          const entry=entries.get(tag)??{count:0,latest:'',books:new Map<string|null,number>()}
-          entry.count++
-          if(detailed){
-            if(note.savedAt>entry.latest)entry.latest=note.savedAt
-            const book=note.effectiveNotebookId
-            entry.books.set(book,(entry.books.get(book)??0)+1)
-          }
-          entries.set(tag,entry)
-        }
-      }
-      const tags=[...entries].map(([tag,entry])=>({tag,count:entry.count,...(detailed&&{
-        latest:entry.latest,books:[...entry.books].map(([id,count])=>({id,count}))
-      })})).sort((a,b)=>b.count-a.count||a.tag.localeCompare(b.tag))
-      return {tags}
+      return buildTagCatalog([...new Set(state.revisions.map(r=>r.noteId))].map(noteId=>this.view(state,noteId)), detailed)
     },signal)
   }
   async backlinks(noteId:string,signal?:AbortSignal):Promise<NoteListResult['items']> {
@@ -522,18 +505,7 @@ export class NoteRepository {
   }
   /** All selected heads/leases and resulting content are checked before the first write. */
   async manage(request:NoteManageRequest,signal?:AbortSignal):Promise<{completed:string[];note?:NoteView}> {
-    const v=object(request),actions=['rename','favorite','unfavorite','pin','unpin','move','add-tags','remove-tags','duplicate','revision','revision-copy']
-    if(!actions.includes(String(v.action))||!Array.isArray(v.notes)||!v.notes.length||v.notes.length>NOTE_LIMITS.notes)fail('note_schema')
-    const selected=v.notes.map(raw=>{const n=object(raw);keys(n,['noteId','expectedHeads']);return {noteId:id(n.noteId),expectedHeads:sortedStrings(n.expectedHeads,NOTE_LIMITS.revisions,hash)}})
-    if(new Set(selected.map(n=>n.noteId)).size!==selected.length)fail('note_schema')
-    const action=request.action,copy=['duplicate','revision-copy'].includes(action),single=copy||action==='revision'||action==='rename'
-    if(single&&selected.length!==1)fail('note_schema')
-    const target=copy?id(v.targetId):undefined
-    const notebookId=action==='move'||v.notebookId!==undefined?id(v.notebookId):undefined
-    const tags=['add-tags','remove-tags'].includes(action)?sortedStrings(v.tags,50,t=>{const value=text(t,200).trim();if(!value)fail();return value}):[]
-    const revision=action.startsWith('revision')?hash(v.revision):undefined
-    const title=v.title===undefined?undefined:text(v.title,1200).trim()
-    if(action==='rename'&&!title)fail('note_schema')
+    const { action, selected, copy, single, target, notebookId, tags, revision, title } = parseManageRequest(request)
     return this.run(async()=>{
       this.editGuard([...selected.map(n=>n.noteId),...(target?[target]:[])])
       const state=await this.load([...selected.map(n=>n.noteId),...(target?[target]:[])]);this.complete(state)
@@ -960,11 +932,8 @@ export class NoteRepository {
   }
   async listNotebooks(signal?: AbortSignal): Promise<NotebookView[]> {
     return this.run(async () => {
-      const s = await this.load(), selected = this.defaultBook(s)?.notebookId, counts = new Map<string, number>()
-      for (const noteId of new Set(s.revisions.map(r => r.noteId))) {
-        const note = this.view(s, noteId)
-        if (note.current.status === 'active' && note.effectiveNotebookId) counts.set(note.effectiveNotebookId, (counts.get(note.effectiveNotebookId) ?? 0) + 1)
-      }
+      const s = await this.load(), selected = this.defaultBook(s)?.notebookId
+      const counts = countActiveNotesByNotebook([...new Set(s.revisions.map(r => r.noteId))].map(noteId => this.view(s, noteId)))
       return this.books(s).map(book => ({ ...book, isDefault: book.notebookId === selected, noteCount: counts.get(book.notebookId) ?? 0 }))
     }, signal)
   }
