@@ -2,7 +2,7 @@
 
 - **日期**：2026-11-25
 - **分支与目录**：`codex/ui-arch-refresh`（主目录 `D:\DSH-Workspace\dsh-github-notebook`）
-- **状态**：已获用户明确批准（2026-11-25，三批全选并采用既定取舍，按 P0 → P1 → P2 连续实施并统一验证交付）
+- **状态**：已完成全部五批实施并经第三档全量回归验收，合回 `main` 待隔离体验（未发版）
 - **基线版本**：`0.12.0`（`main` 提交 `eba78b2`）
 
 ## 一、目标、非目标与已拍板取舍
@@ -36,11 +36,11 @@
 
 | 批次 | 范围 | 状态 | 验证与备注 |
 | --- | --- | --- | --- |
-| 批次 1（P0） | 5 处客观视觉与双语 Bug 修复 | 进行中 | 待完成 |
-| 批次 2（P1a） | 3 套布局迁移、莓紫春芽色板、深色炭黑重构、现代设置页与分段控件 | 待开始 | 待完成 |
-| 批次 3（P1b） | 空目录自动隐藏、会话侧栏 2 层瘦身、转存弹窗自适应高度 | 待开始 | 待完成 |
-| 批次 4（P2a） | `Ctrl+K` 全局快速切换 + CSS `@layer` 单例注入重构 | 待开始 | 待完成 |
-| 批次 5（P2b） | 4 个核心巨型模块拆分 + 第三档全量回归与视觉实拍验收 | 待开始 | 待完成 |
+| 批次 1（P0） | 5 处客观视觉与双语 Bug 修复 | 已完成 | 提交 `2d3e607`：修复 `.paper-summary` 双竖线与 17px 灰尾、阅读态语义标签、顶栏右侧工具容器 `.paper-top-actions`、概览指南中英文链接、`--paper-muted` 语义警示色与死选择器清理 |
+| 批次 2（P1a） | 3 套布局迁移、莓紫春芽色板、深色炭黑重构、现代设置页与分段控件 | 已完成 | 提交 `c287696`：精简为 `soft`/`outline`/`tree` 并透明迁移旧配置；新增 `berry` 推荐色板（默认仍为 `native`）；炭黑深色层级与语义 Token 统一；概览跟随激活色板；圆角分区卡片、三色圆点色板卡、布局线框卡与列表分段控件 |
+| 批次 3（P1b） | 空目录自动隐藏、会话侧栏 2 层瘦身、转存弹窗自适应高度 | 已完成 | 提交 `84e9bfb`：正文无标题自动收起空目录列+贴边药丸手柄、`正文/原始素材` 内联到命令条、侧栏阅读态 2 层紧凑头、宽窗转存弹窗 `fit-content` 高度与素材卡片优化 |
+| 批次 4（P2a） | `Ctrl+K` 全局快速切换 + CSS `@layer` 单例注入重构 | 已完成 | 提交 `b513fe1`：新增 `QuickSwitcher.tsx` 与中英文词表、120ms 防抖远端搜索与快捷键触发；引入 `src/client/styles/inject.ts` 的 `@layer` 单例注入，清理重复 `<style>` 与旧 `.notes-shell`/`.notes-columns` 死样式 |
+| 批次 5（P2b） | 4 个核心巨型模块拆分 + 构建产物同步 + 第三档全量回归验收 | 已完成 | 提交 `f4c45d0`：拆分 `conversation-style.ts`、`ConversationSidebarHeader.tsx`、`notes-controller-helpers.ts`、`private-workspace/config.ts`、`notes/repository-catalog.ts` 并同步 `lib/`；`typecheck`、`build`、439/439 全量回归与浏览器弹窗回归全部通过 |
 
 ## 三、影响面与兼容保护
 
@@ -57,4 +57,32 @@
 
 ## 五、实测结果与交付记录
 
-> 随各批次完成持续补充实际命令结果、测试数、性能样本与视觉截图证据。
+### 1. 第三档全量验证结果（Node v24.21.0 + Windows Chrome）
+- `npm run typecheck`：通过（0 错误）
+- `npm run build`：通过（`Built Fatfish Notes host and client`，`lib/` 产物已同步提交）
+- `npm test`：**439 / 439 项全部通过（0 失败）**，其中重点覆盖：
+  - [test/appearance-workspace.test.ts](../../test/appearance-workspace.test.ts)：3 套布局枚举、5 套旧布局映射、`berry` 色板校验与概览联动
+  - [test/shared-appearance.test.ts](../../test/shared-appearance.test.ts)：旧版 `appearance.json` 已退役布局透明迁移与持久化兼容
+  - [test/quick-switcher.test.ts](../../test/quick-switcher.test.ts)：`Ctrl+K` 1,200 项排序响应、中英文 SSR 渲染、`@layer` 单例样式引用计数挂载与清理
+  - [test/localization.test.ts](../../test/localization.test.ts)：`src/client/` 全部组件无硬编码可见文案及中英文词表完整性静态检查
+  - 其余仓库存储、同步配置、冲突处理、会话转存、导出与宿主 HTTP 安全栅栏全量回归
+- 共享弹窗真实浏览器回归（`npx tsx test/browser/check-dialog-sizes.mjs`）：通过（`Dialog sizes pass with late appearance styles, nested dialogs, and at 104 × 120 CSS px.`），验证了自适应转存宽窗高度、延迟挂载外观样式、嵌套弹窗独立尺寸与极小窗口单列可用性。
+
+### 2. 性能实测（`Ctrl+K` 本机缓存过滤）
+- 资料规模与方法：1,201 条模拟缓存项（1,200 篇笔记元数据 + 命令项），覆盖空查询、中文双词、中英混查、标签、笔记本+编号、命令 6 组查询，连续 10 轮共 60 次样本：
+  - 首次冷过滤（1 样本）：`0.245 ms`
+  - 中位数：`0.384 ms`
+  - P95：`0.962 ms`
+  - 最大值：`2.851 ms`（远低于 `< 50 ms` 目标，且无阻塞网络请求）
+
+### 3. 核心模块拆分与前端样式架构成果
+- `src/notes/repository.ts` → 拆出 [repository-catalog.ts](../../src/notes/repository-catalog.ts)（93 行：批量整理请求解析、标签目录构建、笔记本计数）
+- `src/private-workspace/sync.ts` → 拆出 [config.ts](../../src/private-workspace/config.ts)（163 行：本机目录校验、控制配置读写与迁移）
+- `src/client/notes-controller.ts` → 拆出 [notes-controller-helpers.ts](../../src/client/notes-controller-helpers.ts)（138 行：状态切换辅助与纯函数）
+- `src/client/ConversationNotes.tsx` → 拆出 [ConversationSidebarHeader.tsx](../../src/client/ConversationSidebarHeader.tsx)（73 行：两层紧凑阅读头）与 [conversation-style.ts](../../src/client/conversation-style.ts)（88 行）
+- `src/client/styles/inject.ts`（67 行）：统一 `@layer base, layout, components, themes, overrides;` 引用计数单例注入，消除主界面/侧栏/设置页重复 `<style>` JSX 节点，并清理旧 `.notes-shell`/`.notes-columns` 死样式。
+
+### 4. 未覆盖边界、后续发版前提与体验/回退入口
+- **未覆盖边界**：本轮已完成全量自动化回归（439/439）、双语静态/SSR 校验、1,201 项检索基准与真实浏览器共享弹窗回归；**尚未**打包安装到 `.dsh-home/pure-001/` 隔离 DSH Desktop/Web 执行实机浅深双语目视实拍、`npm run test:sidebar` 侧栏实机脚本或真实 GitHub 私有测试库双向同步抽查；**未**执行发版（`npm publish` / GitHub Release）或插件市场更新。
+- **对外发版前提**：如后续决定基于本轮改动发布新版，须在用户单独确认后执行 `npm pack`、隔离 DSH Desktop 与 Web 双端安装验收（含双语浅深实拍、`npm run test:sidebar` 与真实私库同步），并按[图文核对清单](../demo-content.zh.md#用户文档与公开展示同步)更新中英文公开截图与用户手册。
+- **体验与回退入口**：将当前 `main` 构建安装到项目隔离资料后可通过 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd) 体验；五批改动按原子提交保留完整历史，可随时按需单批或整段 `git revert`，无不可逆数据结构变更。

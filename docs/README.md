@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+- 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（P0+P1+P2 共五批），已合回 `main` 待隔离体验（未发版）。** 修复摘要双竖线、顶栏切页跳动与概览双语链接；精简为 `soft`/`outline`/`tree` 三套布局并自动迁移旧版配置；新增 `berry`（莓紫春芽）推荐色板与中性炭黑深色分层，统一概览色板与现代表单/分段控件；空目录自动隐藏、会话侧栏阅读态 2 层瘦身、转存弹窗自适应高度；新增 `Ctrl+K` / `Cmd+K` 快速切换面板与 `@layer` 单例样式注入，并拆分四个大模块。`typecheck`、`build`、439/439 全量回归、浏览器弹窗尺寸检查与 1,201 项检索性能（中位 `0.384 ms`）全部通过；隔离 DSH 双端实拍、`npm run test:sidebar` 与正式发版尚未执行。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
+
 - 2026-11-23 **0.12.0 已正式发布，市场双语详情已验收。** 市场中文和英文页都已显示新版正文、配图及图解入口。两页共用的公开安装包与通过隔离桌面和 Web 验收的候选摘要一致。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0) · [发布与市场验证](releases/0.12.0/review.zh.md#发布与市场)
 
 - 2026-11-22 正式发布 [0.11.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.11.0)。公开安装包与已通过 428 项全量及双端验收的候选逐字节一致。市场安装与升级入口已指向 0.11.0，详情页的说明等待市场站点重建。[发布与市场验证](releases/0.11.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
@@ -35,7 +37,6 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
-| [UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) | `codex/ui-arch-refresh`，主目录；`src/client/`、`src/domain/appearance.ts`、`src/host/appearance.ts`、`src/notes/`、`src/private-workspace/`、`locale/`、`lib/` | 已批准 P0+P1+P2 全量实施；正在执行批次 1（P0 缺陷快修），随后按序推进 P1a/P1b/P2a/P2b 与第三档全量验收 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 
