@@ -269,7 +269,9 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
   useStyleSheet('paper-base', paperCss, 'layout')
   useStyleSheet('organization', organizationCss, 'components')
   useStyleSheet('transfer', transferCss, 'components')
-  useStyleSheet('conversation-notes', conversationNotesCss + conversationBrowseCss + referenceListCss, 'components')
+  useStyleSheet('conversation-notes', conversationNotesCss, 'components')
+  useStyleSheet('conversation-browse', conversationBrowseCss, 'components')
+  useStyleSheet('reference-list', referenceListCss, 'components')
   return <section ref={root} onKeyDown={e=>{if(e.key==='Escape'&&!(e.target as HTMLElement).closest('dialog')){if(bookPickerOpen){e.preventDefault();e.stopPropagation();setBooksOpen(false);scopeButton.current?.focus({preventScroll:true})}else if(selecting){e.stopPropagation();exitSelection()}}}} className="paper-app conversation-notes" data-narrow={narrow} data-conversation-notes={sessionId} {...appearance}>
     <AppearanceStyle/>
     {actions.dialogs}{reference.dialogs}

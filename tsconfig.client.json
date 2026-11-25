@@ -8,5 +8,5 @@
     "jsx": "react-jsx",
     "noEmit": true
   },
-  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "test/fixtures/build-client.tsx"]
+  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "test/fixtures/build-client.tsx", "test/browser/fixtures/**/*.tsx"]
 }

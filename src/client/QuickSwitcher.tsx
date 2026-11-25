@@ -15,18 +15,21 @@ export interface QuickItem {
   title: string
   meta?: string
   keywords?: string
+  /** The notes API can also match body text and attachment names. */
+  matchedQuery?: string
   run: () => void
 }
 
 /** Pure, local-first fuzzy ranker suitable for 1,000+ cached notes in < 5ms. */
 export function filterQuickItems(items: readonly QuickItem[], rawQuery: string, limit = 24): QuickItem[] {
-  const terms = rawQuery.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
+  const query = rawQuery.trim()
+  const terms = query.toLocaleLowerCase().split(/\s+/).filter(Boolean)
   if (!terms.length) return items.slice(0, limit)
   const scored: { item: QuickItem; score: number }[] = []
   for (const item of items) {
     const title = item.title.toLocaleLowerCase()
     const hay = `${title} ${(item.meta ?? '').toLocaleLowerCase()} ${(item.keywords ?? '').toLocaleLowerCase()}`
-    if (!terms.every(term => hay.includes(term))) continue
+    if (item.matchedQuery !== query && !terms.every(term => hay.includes(term))) continue
     let score = 0
     for (const term of terms) {
       if (title === term) score += 100
@@ -73,7 +76,7 @@ export function QuickSwitcher({
   useStyleSheet('quick-switcher', quickSwitcherCss, 'components')
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
-  const [remoteNotes, setRemoteNotes] = useState<NoteListItem[]>([])
+  const [searchResponse, setSearchResponse] = useState<{ query: string; items: NoteListItem[] } | null>(null)
   const [tags, setTags] = useState<TagEntry[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -83,7 +86,7 @@ export function QuickSwitcher({
     openerRef.current = document.activeElement as HTMLElement | null
     setQuery('')
     setActiveIndex(0)
-    setRemoteNotes([])
+    setSearchResponse(null)
     const frame = requestAnimationFrame(() => inputRef.current?.focus())
     const abort = new AbortController()
     void controller
@@ -103,7 +106,7 @@ export function QuickSwitcher({
     if (!open) return
     const trimmed = query.trim()
     if (!trimmed) {
-      setRemoteNotes([])
+      setSearchResponse(null)
       return
     }
     const abort = new AbortController()
@@ -111,7 +114,7 @@ export function QuickSwitcher({
       void controller
         .api('/notes', { query: trimmed, order: 'relevance', limit: 15 }, abort.signal)
         .then(res => {
-          if (!abort.signal.aborted) setRemoteNotes(res.items)
+          if (!abort.signal.aborted) setSearchResponse({ query: trimmed, items: res.items })
         })
         .catch(() => {})
     }, 120)
@@ -122,11 +125,12 @@ export function QuickSwitcher({
   }, [open, query, controller])
 
   const bookMap = useMemo(() => new Map(books.map(book => [book.notebookId, notebookTitle(book, t)])), [books, t])
+  const currentResponse = searchResponse?.query === query.trim() ? searchResponse : null
 
   const allItems = useMemo<QuickItem[]>(() => {
     const result: QuickItem[] = []
     const seenNotes = new Set<string>()
-    const addNote = (noteId: string, title: string, notebookId: string | null, keywords = '') => {
+    const addNote = (noteId: string, title: string, notebookId: string | null, keywords = '', matchedQuery?: string) => {
       if (seenNotes.has(noteId)) return
       seenNotes.add(noteId)
       result.push({
@@ -135,13 +139,16 @@ export function QuickSwitcher({
         title: title || t('notesUntitled'),
         meta: notebookId ? bookMap.get(notebookId) ?? t('notesDefaultBook') : t('notesDefaultBook'),
         keywords,
+        ...(matchedQuery && { matchedQuery }),
         run: () => {
           onClose()
           onOpenNote(noteId)
         },
       })
     }
-    for (const item of remoteNotes) addNote(item.noteId, item.title, item.notebookId, `${item.summary} ${item.tags.join(' ')}`)
+    if (currentResponse) {
+      for (const item of currentResponse.items) addNote(item.noteId, item.title, item.notebookId, `${item.summary} ${item.tags.join(' ')}`, currentResponse.query)
+    }
     for (const item of state.overview?.opened ?? []) addNote(item.noteId, item.title, item.notebookId)
     for (const item of state.overview?.modified ?? []) addNote(item.noteId, item.title, item.notebookId)
     for (const item of state.items) addNote(item.noteId, item.title, item.notebookId, `${item.summary} ${item.tags.join(' ')}`)
@@ -160,7 +167,7 @@ export function QuickSwitcher({
       })
     }
 
-    for (const entry of tags.slice(0, 60)) {
+    for (const entry of tags) {
       result.push({
         id: 'tag:' + entry.tag,
         group: 'tags',
@@ -193,7 +200,7 @@ export function QuickSwitcher({
       })
     }
     return result
-  }, [remoteNotes, state.overview, state.items, books, tags, bookMap, t, onClose, onOpenNote, onOpenBook, onFilterTag, onCreate, onToggleTheme, onSync, onNavigate])
+  }, [currentResponse, state.overview, state.items, books, tags, bookMap, t, onClose, onOpenNote, onOpenBook, onFilterTag, onCreate, onToggleTheme, onSync, onNavigate])
 
   const filtered = useMemo(() => filterQuickItems(allItems, query, 24), [allItems, query])
   useEffect(() => setActiveIndex(0), [query, filtered.length])
@@ -238,15 +245,11 @@ export function QuickSwitcher({
           if (e.key === 'Escape') {
             e.preventDefault()
             onClose()
-          } else if (e.key === 'ArrowDown') {
-            e.preventDefault()
-            setActiveIndex(i => (filtered.length ? (i + 1) % filtered.length : 0))
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault()
-            setActiveIndex(i => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0))
-          } else if (e.key === 'Enter' && filtered[activeIndex]) {
-            e.preventDefault()
-            filtered[activeIndex]!.run()
+          } else if (e.key === 'Tab') {
+            const controls = e.currentTarget.querySelectorAll<HTMLElement>('input,button:not(:disabled)')
+            const first = controls[0], last = controls[controls.length - 1]
+            if (e.shiftKey && e.target === first) { e.preventDefault(); last?.focus() }
+            if (!e.shiftKey && e.target === last) { e.preventDefault(); first?.focus() }
           }
         }}
       >
@@ -259,6 +262,19 @@ export function QuickSwitcher({
             placeholder={t('quickSwitchPlaceholder')}
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.nativeEvent.isComposing) return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setActiveIndex(i => (filtered.length ? (i + 1) % filtered.length : 0))
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setActiveIndex(i => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0))
+              } else if (e.key === 'Enter' && filtered[activeIndex]) {
+                e.preventDefault()
+                filtered[activeIndex]!.run()
+              }
+            }}
           />
           <button type="button" className="paper-cmd-close" onClick={onClose}>
             {t('paperClose')}
