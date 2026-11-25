@@ -2,7 +2,7 @@
 
 - **日期**：2026-11-25
 - **分支与目录**：`codex/ui-arch-refresh`（主目录 `D:\DSH-Workspace\dsh-github-notebook`）
-- **状态**：已完成全部五批实施并经第三档全量回归验收，合回 `main` 待隔离体验（未发版）
+- **状态**：已完成全部五批实施、隔离 DSH Web 与 Windows 桌面浅深双语实机验收、指定私有测试库在线读写同步实测及问题修复与全量回归，已合回 `main`（未发版）
 - **基线版本**：`0.12.0`（`main` 提交 `eba78b2`）
 
 ## 一、目标、非目标与已拍板取舍
@@ -82,7 +82,24 @@
 - `src/client/ConversationNotes.tsx` → 拆出 [ConversationSidebarHeader.tsx](../../src/client/ConversationSidebarHeader.tsx)（73 行：两层紧凑阅读头）与 [conversation-style.ts](../../src/client/conversation-style.ts)（88 行）
 - `src/client/styles/inject.ts`（67 行）：统一 `@layer base, layout, components, themes, overrides;` 引用计数单例注入，消除主界面/侧栏/设置页重复 `<style>` JSX 节点，并清理旧 `.notes-shell`/`.notes-columns` 死样式。
 
-### 4. 未覆盖边界、后续发版前提与体验/回退入口
-- **未覆盖边界**：本轮已完成全量自动化回归（439/439）、双语静态/SSR 校验、1,201 项检索基准与真实浏览器共享弹窗回归；**尚未**打包安装到 `.dsh-home/pure-001/` 隔离 DSH Desktop/Web 执行实机浅深双语目视实拍、`npm run test:sidebar` 侧栏实机脚本或真实 GitHub 私有测试库双向同步抽查；**未**执行发版（`npm publish` / GitHub Release）或插件市场更新。
-- **对外发版前提**：如后续决定基于本轮改动发布新版，须在用户单独确认后执行 `npm pack`、隔离 DSH Desktop 与 Web 双端安装验收（含双语浅深实拍、`npm run test:sidebar` 与真实私库同步），并按[图文核对清单](../demo-content.zh.md#用户文档与公开展示同步)更新中英文公开截图与用户手册。
-- **体验与回退入口**：将当前 `main` 构建安装到项目隔离资料后可通过 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd) 体验；五批改动按原子提交保留完整历史，可随时按需单批或整段 `git revert`，无不可逆数据结构变更。
+### 4. 隔离 DSH 双端实机验收、实机拦下缺陷与指定私库在线同步（2026-11-25 补齐）
+
+使用 `npm pack` 生成统一测试包（`dist/ui-arch-refresh/dsh-fatfish-notes-0.12.0.tgz`，273 文件），通过官方 DSH CLI（`plugin --profile {web,desktop} add`）装入 `.dsh-home/pure-001/release12-{web,desktop}`，两端全部 **273 / 273 个安装文件逐字节 SHA-256 校验一致**（官方宿主版本 DSH `0.2.2-rc.5`）。
+
+#### 实机拦下并当场修复的 5 项问题
+1. **旧版 `appearance.json` 键顺序触发 `appearance_invalid`（严重升级兼容问题）**：此前调整 `defaultAppearance` 字段排布导致 `fontCjk`/`fontLatin` 位于 `reading` 之前，而服务端 `SharedAppearance.load()` 使用键序敏感的 `JSON.stringify` 比对，导致既有 0.12.0 真实用户的 `appearance.json` 报 400。已恢复原键序，并将 `SharedAppearance.load()` 改为键序无关的键值比对，补进 [test/shared-appearance.test.ts](../../test/shared-appearance.test.ts) 回归。
+2. **列表每条笔记重复挂载 `<style>` 标签**：实机 DOM 巡检发现 [RowMenu.tsx](../../src/client/RowMenu.tsx) 在每行列表项内联 `<style>`，单页挂载 53 个 `<style>` 节点；已迁入 `@layer` 单例注入，页内内联 `<style>` 降至 2 个。
+3. **侧栏「全部 / 收藏 / 最近访问」分段控件左对齐且等宽拉伸**：查看 `npm run test:sidebar` 实拍后，将 `.paper-segmented-sm` 改为 `inline-flex` 居中自适应并对齐右侧下拉框 `28 px` 高度。
+4. **设置页三张布局卡片标题对齐不一致**：在 `.appearance-layouts button` 补齐 `align-items: stretch; justify-content: flex-start`，三张卡片在中英文下均统一左对齐。
+5. **列表工具栏紧凑间距**：微调 `.paper-list-tools` 与 `.paper-segmented-sm button` 内边距，改善中文窄栏排版。
+
+#### 隔离双端实机与在线同步实测结果
+- **会话侧栏浏览器回归（`npm run test:sidebar`）**：通过（实拍目录 `output/playwright/search-sidebar/run-xqtoeD`），宽栏 `611 × 882`、窄栏 `343 × 822`、矮窗 `343 × 582` 范围切换、Esc 聚焦恢复与打开/返回列表均通过（`scopedResults: 31`）。
+- **隔离 DSH Web（`release12-web`，11 张浅深双语实拍 `output/playwright/ui-arch-refresh/web/`）**：零页面错误（`errors: []`）；实测旧配置 `island → soft` 透明迁移通过、`@layer` 单例 13 份去重、`topbar` 切页主题按钮水平跳动 `0 px`、设置页 0 个 `<fieldset>` / 3 张布局卡 / 11 张三点色板卡 / 分段控件、英文设置零中文残留、概览中英文分别指向 `user-guide.zh.md` 与 `user-guide.en.md`、深色炭黑表面与代码底色 `#111216`、`Ctrl+K` 面板呼出 `50 ms`（24 项命中）、侧栏阅读态头部总高 `88 px`（`39 + 42`）、转存宽窗自适应高度 `1280 × 595`。
+- **隔离 Windows 桌面（DSH `0.2.2-rc.5` Electron CDP，`release12-desktop`，11 张浅深双语实拍 `output/playwright/ui-arch-refresh/desktop/`）**：零页面错误（`errors: []`）；上述全项检查与双端实拍核对一致，顶栏切页跳动 `0 px`，`Ctrl+K` 呼出 `78 ms`，侧栏阅读态头部 `88 px`，转存弹窗 `1280 × 595`。
+- **指定私有测试库在线读写与双向同步（`StarWind97/dsh-community-private-test`，`repositoryId: 1440762952`，`output/playwright/ui-arch-refresh/live-sync/`）**：在隔离 Web `1800 × 920` 视口完成端到端 UI 闭环——冷启动全量同步 `已同步`（`lastSuccessAt: 2026-11-25T06:57:13Z`）→ 真实界面新建含 H2 标题与 TypeScript 代码块的笔记并保存 → 验证宽窗章节目录自动展开与深色代码底色 `rgb(17, 18, 22)`（实拍 `dark-code-and-outline.png`）→ 推送同步至指定私库 `已同步`（32s，`2026-11-25T06:57:51Z`）→ 移入回收站清理临时笔记并再次同步 `已同步`（34s，`2026-11-25T06:58:26Z`）。
+
+### 5. 未覆盖边界、后续发版前提与体验/回退入口
+- **未覆盖边界**：本次**未**执行对外发版（`npm publish` / GitHub Release）或插件市场更新，**未**触碰日常 DSH 资料，**未**替换仓库公开宣传截图与中英文 README 配图；独立窗口（Chrome/Edge 外部应用窗）及 macOS/双机并发同步沿用既有回归覆盖，未在本轮重拍。
+- **对外发版前提**：如后续决定基于本轮改动发布新版，须在用户单独确认后按[图文核对清单](../demo-content.zh.md#用户文档与公开展示同步)更新中英文公开截图、执行双语发布检查并走正式发版与市场更新流程。
+- **体验与回退入口**：当前隔离资料 `.dsh-home/pure-001/release12-desktop` 已安装最新构建，可直接通过 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd) 打开体验；全部提交均保留完整线性历史，可按需 `git revert`，无不可逆数据结构变更。

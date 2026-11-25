@@ -63,8 +63,9 @@ test('failed persistence leaves acknowledged settings intact and can retry; malf
     await rm(file,{recursive:true});await rename(file+'.backup',file);assert.equal((await f.store.update(update)).value?.palette,'pine')
     await writeFile(file,'{"version":999}');const invalid=new SharedAppearance(f.dir)
     await assert.rejects(invalid.connect('embedded',{legacy}));assert.equal(await readFile(file,'utf8'),'{"version":999}');await invalid.close()
-    // Retired layout values stored on disk migrate cleanly on load without throwing appearance_invalid.
-    const migratedStored={version:1,storeId:state.storeId,value:{...defaultAppearance,layout:'island',palette:'pine'},legacy:{embedded:legacy},receipts:[]}
+    // Retired layout values and reordered JSON keys stored on disk migrate cleanly on load without throwing appearance_invalid.
+    const { reading, fontCjk, fontLatin, ...rest } = defaultAppearance
+    const migratedStored={version:1,storeId:state.storeId,value:{...rest,fontLatin,fontCjk,reading,layout:'island',palette:'pine'},legacy:{embedded:legacy},receipts:[]}
     await writeFile(file,JSON.stringify(migratedStored));const migrated=new SharedAppearance(f.dir)
     assert.equal((await migrated.connect('embedded',{legacy})).value?.layout,'soft');await migrated.close()
   }finally{await f.close()}

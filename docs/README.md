@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（P0+P1+P2 共五批），已合回 `main` 待隔离体验（未发版）。** 修复摘要双竖线、顶栏切页跳动与概览双语链接；精简为 `soft`/`outline`/`tree` 三套布局并自动迁移旧版配置；新增 `berry`（莓紫春芽）推荐色板与中性炭黑深色分层，统一概览色板与现代表单/分段控件；空目录自动隐藏、会话侧栏阅读态 2 层瘦身、转存弹窗自适应高度；新增 `Ctrl+K` / `Cmd+K` 快速切换面板与 `@layer` 单例样式注入，并拆分四个大模块。`typecheck`、`build`、439/439 全量回归、浏览器弹窗尺寸检查与 1,201 项检索性能（中位 `0.384 ms`）全部通过；隔离 DSH 双端实拍、`npm run test:sidebar` 与正式发版尚未执行。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
+- 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（P0+P1+P2 共五批）及隔离 DSH 双端实机验收，已合回 `main` 待体验（未发版）。** 修复摘要双竖线、顶栏切页跳动与概览双语链接；精简为 `soft`/`outline`/`tree` 三套布局并自动迁移旧版配置；新增 `berry`（莓紫春芽）推荐色板与中性炭黑深色分层，统一概览色板与现代表单/分段控件；空目录自动隐藏、会话侧栏阅读态 2 层瘦身、转存弹窗自适应高度；新增 `Ctrl+K` / `Cmd+K` 快速切换面板与 `@layer` 单例样式注入，并拆分四个大模块。实机拦下并修复旧版 `appearance.json` 键序校验、`RowMenu` 重复样式节点、分段控件与布局卡片对齐等 5 处问题；439/439 全量回归、弹窗尺寸检查、`npm run test:sidebar`、官方 DSH `0.2.2-rc.5` 隔离 Web 与 Windows 桌面 273 文件实装及 22 张浅深双语实拍、指定私库 `StarWind97/dsh-community-private-test` 真实新建/深色代码/宽窗目录/双向同步/回收站清理闭环均已通过。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
 - 2026-11-23 **0.12.0 已正式发布，市场双语详情已验收。** 市场中文和英文页都已显示新版正文、配图及图解入口。两页共用的公开安装包与通过隔离桌面和 Web 验收的候选摘要一致。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0) · [发布与市场验证](releases/0.12.0/review.zh.md#发布与市场)
 

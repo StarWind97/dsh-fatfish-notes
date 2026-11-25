@@ -37,9 +37,13 @@ export class SharedAppearance {
       let storedValue = v.value as Record<string, unknown> | null
       if (storedValue !== null) {
         if (typeof storedValue !== 'object' || Array.isArray(storedValue)) throw invalid()
-        const migrated = { ...storedValue, ...(typeof storedValue.layout === 'string' ? { layout: migrateLayout(storedValue.layout) } : {}) }
+        const migrated: Record<string, unknown> = { ...storedValue, ...(typeof storedValue.layout === 'string' ? { layout: migrateLayout(storedValue.layout) } : {}) }
         const normalized = appearanceValue(migrated)
-        if (JSON.stringify(normalized) !== JSON.stringify(migrated)) throw invalid()
+        const expectedKeys = Object.keys(normalized) as (keyof Appearance)[]
+        const same =
+          Object.keys(migrated).length === expectedKeys.length &&
+          expectedKeys.every(key => migrated[key] === normalized[key])
+        if (!same) throw invalid()
         storedValue = normalized as unknown as Record<string, unknown>
       }
       this.data={version:1,storeId:v.storeId,value:storedValue as Appearance|null,legacy,receipts:v.receipts as string[]}
