@@ -57,7 +57,8 @@ export const paperCss = `
 .paper-reading img,.paper-writing img.paper-image{display:block;max-width:100%;max-height:500px;object-fit:contain;border-radius:4px;margin:12px 0}
 .paper-table-wrap{max-width:100%;overflow:auto;border:1px solid var(--rule);border-radius:10px;margin:14px 0;background:var(--paper)}
 .paper-reading .paper-table-wrap table,.paper-table table{width:100%;border-collapse:separate;border-spacing:0;display:table;margin:0;font-size:.93em}
-.paper-reading .paper-table-wrap :is(th,td),.paper-table :is(th,td){border:0;border-bottom:1px solid var(--rule);padding:8px 13px;text-align:start}
+.paper-reading .paper-table-wrap :is(th,td),.paper-table :is(th,td){border:0;border-bottom:1px solid var(--rule);border-inline-end:1px solid color-mix(in srgb,var(--rule) 72%,transparent);padding:8px 13px;text-align:start}
+.paper-reading .paper-table-wrap :is(th,td):last-child,.paper-table :is(th,td):last-child{border-inline-end:0}
 .paper-reading .paper-table-wrap th,.paper-table th{background:var(--shelf);font-weight:650;color:var(--ink)}
 .paper-reading .paper-table-wrap tbody tr:last-child td,.paper-table tbody tr:last-child td{border-bottom:0}
 .paper-reading .note-markdown>table,.paper-table{max-width:100%;display:block;overflow:auto;border-collapse:separate;border-spacing:0;border:1px solid var(--rule);border-radius:10px}

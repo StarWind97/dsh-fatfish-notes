@@ -139,7 +139,7 @@
 - **状态**：已完成全部 12 项实施、第三档全量回归、双端官方重装、原子 DOM/CSS 断言与逐图人工复查（未发版）
 - **核定实施范围与原子断言矩阵（12/12 全部通过）**：
   - **A0 列表状态行去掉冗余笔记本名**：主列表已展示当前笔记本标题时，`.paper-search-status` 仅显示篇数（如 `31 篇笔记`）与「改搜全部笔记」，不再重复拼接 `· 当前笔记本名`；
-  - **A1 正文表格柔和圆角外框**：`NoteMarkdown` 表格外层提供 `.paper-table-wrap`（`border-radius: 10px; border: 1px solid var(--rule); overflow: auto`），内部 `table` 使用 `border-collapse: separate; border-spacing: 0`、表头浅底（`var(--shelf)`）、仅保留柔和水平分隔线并去掉生硬内部竖线与末行底边，兼容宽表横向滚动及长图/PDF 导出；
+  - **A1 正文表格柔和圆角外框**：`NoteMarkdown` 表格外层提供 `.paper-table-wrap`（`border-radius: 10px; border: 1px solid var(--rule); overflow: auto`），内部 `table` 使用 `border-collapse: separate; border-spacing: 0`、表头浅底（`var(--shelf)`）、柔和横竖分隔线（`border-bottom` + 略淡 `border-inline-end`，末行末列不重叠外框），兼容宽表横向滚动及长图/PDF 导出；
   - **A2 恢复列表选中行左侧 3px 主题竖条**：移除 `appearance-style.ts` 对 `.paper-row[aria-current=true]` `box-shadow` 的意外覆盖，保留 `inset 3px 0 0 var(--accent)` 竖条；
   - **A3 统一顶栏「标准宽度 / 全宽」分段控件**：`.paper-width` 改为与设置页、列表页完全一致的「灰槽 + 白滑块 + 微阴影」；
   - **A4 正文标签改为圆角胶囊 + 细描边**：`.paper-tags button` 改为 `border-radius: 999px`、细描边，激活筛选态带主题色底与描边；
