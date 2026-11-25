@@ -97,6 +97,38 @@ test('clients converge bidirectionally, retain pending failures, merge remote fi
   }finally{one.stop();two.stop();await f.close()}
 })
 
+test('upgrade replays legacy appearance patches in order and other windows see later settings',async()=>{
+  const f=await fixture(), local=disk(legacy)
+  const other=new AppearancePreferences(disk(legacy))
+  try{
+    const {storeId}=await f.store.connect('embedded',{legacy})
+    const received=randomUUID(), retired=randomUUID(), font=randomUUID()
+    await f.store.update(patch(storeId,{contrast:'strong'},received))
+    const queue=[
+      {operationId:received,patch:{contrast:'soft'}},
+      {operationId:retired,patch:{layout:'island',palette:'lilac'}},
+      {operationId:font,patch:{size:20}},
+    ]
+    local.setItem(appearanceKey+'.pending',JSON.stringify({storeId,queue}))
+    const reloaded=new AppearancePreferences(local)
+    const calls:string[]=[]
+    const base=transport(f.store,'embedded','upgraded')
+    try{
+      other.start('standalone',transport(f.store,'standalone','other'),async()=>{})
+      reloaded.start('embedded',((path,body,signal)=>{
+        if(path==='/appearance/update')calls.push((body as {operationId:string}).operationId)
+        return base(path,body,signal)
+      }) as Api,async()=>{})
+      await until(()=>reloaded.getStatus()==='saved'&&other.getSnapshot().size===20)
+      assert.deepEqual(calls,[received,retired,font])
+      assert.equal(other.getSnapshot().layout,'soft')
+      assert.equal(other.getSnapshot().palette,'native')
+      assert.equal(other.getSnapshot().contrast,'strong')
+      assert.equal(local.getItem(appearanceKey+'.pending'),null)
+    }finally{reloaded.stop()}
+  }finally{other.stop();await f.close()}
+})
+
 test('HTTP appearance endpoints require valid windows, preserve origin fences and limit request bodies',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'appearance-http-')),app=new NotebookApplication({dir});let origin=''
   const server=createServer(createHttpHandler({app,getOrigin:()=>origin}));await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));origin=`http://127.0.0.1:${(server.address() as {port:number}).port}`

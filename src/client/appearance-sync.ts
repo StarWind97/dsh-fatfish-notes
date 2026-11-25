@@ -1,4 +1,4 @@
-import {appearanceKey,appearanceValue,parseAppearance,type Appearance} from '../domain/appearance.js'
+import {appearanceKey,appearanceValue,migrateLayout,migratePalette,parseAppearance,type Appearance} from '../domain/appearance.js'
 import type {Api} from './api.js'
 import type {AppearancePatch,AppearanceState} from '../contracts/appearance.js'
 import type {WindowSurface} from '../contracts/workspace.js'
@@ -32,7 +32,20 @@ export class AppearancePreferences {
   constructor(private disk:Pick<Storage,'getItem'|'setItem'|'removeItem'>|undefined=storage()){
     try{this.legacy=this.disk?.getItem(appearanceKey)??null}catch{this.legacy=null}
     this.value=parseAppearance(this.legacy)
-    try{const p=JSON.parse(this.disk?.getItem(pendingKey)??'null');if(p&&typeof p.storeId==='string'&&Array.isArray(p.queue)){this.queueStore=p.storeId;this.queue=p.queue.filter((x:Pending)=>typeof x.operationId==='string'&&x.patch&&typeof x.patch==='object').slice(0,128)}}catch{/* A damaged local queue cannot replace server settings. */}
+    try {
+      const pending = JSON.parse(this.disk?.getItem(pendingKey) ?? 'null')
+      if (pending && typeof pending.storeId === 'string' && Array.isArray(pending.queue)) {
+        this.queueStore = pending.storeId
+        for (const entry of pending.queue) {
+          if (!entry || typeof entry.operationId !== 'string' || !entry.patch || typeof entry.patch !== 'object' || Array.isArray(entry.patch)) continue
+          const patch = { ...entry.patch }
+          if (Object.hasOwn(patch, 'layout')) patch.layout = migrateLayout(patch.layout)
+          if (Object.hasOwn(patch, 'palette')) patch.palette = migratePalette(patch.palette)
+          this.queue.push({ operationId: entry.operationId, patch })
+          if (this.queue.length === 128) break
+        }
+      }
+    } catch { /* A damaged local queue cannot replace server settings. */ }
   }
   getSnapshot=()=>this.value
   getStatus=()=>this.status

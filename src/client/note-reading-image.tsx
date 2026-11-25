@@ -60,7 +60,10 @@ export async function readingImage(value:ReadingSnapshot,options:ReadingImageOpt
     await ready(new Promise<void>(resolve=>{const check=()=>{if(!holder.querySelector('[data-highlight=pending]'))resolve();else setTimeout(check,30)};check()}),signal)
     signal.throwIfAborted()
     // A horizontally scrolled table must never silently lose columns in an export.
-    if([...holder.querySelectorAll('table')].some(table=>table.scrollWidth>table.clientWidth+1))throw new ExportError('export_reading_width')
+    const tableContainers = holder.querySelectorAll<HTMLElement>('.paper-table-wrap, table')
+    if ([...tableContainers].some(element => element.scrollWidth > element.clientWidth + 1)) {
+      throw new ExportError('export_reading_width')
+    }
     const viewport=holder.querySelector<HTMLElement>('[data-export-viewport]')!,content=holder.querySelector<HTMLElement>('[data-export-content]')!
     const height=Math.ceil(content.getBoundingClientRect().height),outputWidth=Math.ceil(width+48)
     checkPixels(outputWidth,height,pixelRatio)

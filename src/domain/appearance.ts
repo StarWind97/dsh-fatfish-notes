@@ -97,7 +97,7 @@ const options: Partial<Record<keyof Appearance, readonly unknown[]>> = {
   density: ['compact', 'balanced', 'spacious'],
 }
 export function migrateLayout(raw: unknown): unknown {
-  return typeof raw === 'string' && raw in legacyLayoutMap ? legacyLayoutMap[raw] : raw
+  return typeof raw === 'string' && Object.hasOwn(legacyLayoutMap, raw) ? legacyLayoutMap[raw] : raw
 }
 export function migratePalette(raw: unknown): unknown {
   return typeof raw === 'string' && legacyRetiredPalettes.has(raw) ? 'native' : raw
