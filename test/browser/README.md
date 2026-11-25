@@ -1,14 +1,19 @@
 # 浏览器回归
 
-在项目根目录运行 `npm ci`，安装锁定版本的 Playwright。两项检查都使用本机 Chrome，可用 `FATFISH_CHROME` 指定可执行文件路径。需要对照其他 Playwright 版本时，可用 `FATFISH_PLAYWRIGHT` 指定该 npm 包目录。
+在项目根目录运行 `npm ci`，安装锁定版本的 Playwright。以下检查使用本机 Chrome，可用 `FATFISH_CHROME` 指定可执行文件路径。需要对照其他 Playwright 版本时，可用 `FATFISH_PLAYWRIGHT` 指定该 npm 包目录。
 
 ## 共享弹窗尺寸
 
-改动共享弹窗、外观或转存尺寸后，运行 `node --import tsx test/browser/check-dialog-sizes.mjs`。检查后挂载的外观样式、嵌套弹窗的独立尺寸、宽窗三栏和极小窗口单列。此检查直接加载项目 CSS，实际入口和操作另在隔离宿主验收。
+改动共享弹窗、外观或转存尺寸后，运行 `node --import tsx test/browser/check-dialog-sizes.mjs`。检查使用生产样式注册函数和层级，覆盖外观样式先后挂载、嵌套弹窗、宽窗三栏、1 行及 80 行内容的高度差、长列表滚动后保存按钮可直接点击，以及极小窗口切为单列后可滚动到保存按钮。
+
+## 导出与快速切换
+
+- `node test/browser/check-reading-tables.mjs` 使用阅读导出的实际入口。验证普通表和有足够宽度的 15 列表能生成 PNG，宽度不足时返回加宽提示。
+- `node test/browser/check-switcher-sidebar.mjs` 挂载生产快速切换、会话侧栏及转存组件，在无头浏览器检查仅正文或文件名命中、迟到查询、标签、键盘激活、样式分层及卸载。查询响应使用固定样本。
 
 ## 会话侧栏查找
 
-侧栏笔记本选择、查找工具行或共用布局受影响时，可在当前构建安装到项目隔离 Web 后运行 `npm run test:sidebar`。入口启动 `.dsh-home/pure-001/release12-web`，校对指定测试库以及安装中的客户端和中文文案。若在独立 worktree 中运行，脚本会自动通过 `git rev-parse --git-common-dir` 回退定位主目录的 `.dsh-home/pure-001`，也可用 `FATFISH_QA_ROOT` 显式指向该隔离目录；隔离资料为共享互斥资源，真实宿主验收按顺序串行执行。可用 `FATFISH_DSH_EXE` 指定 DSH 可执行文件路径。通过「肥鱼笔记 · 会话转存体验」测试会话和「开发手册」笔记本走以下操作。
+侧栏笔记本选择、查找工具行或共用布局受影响时，在当前构建安装到项目隔离 Web 后运行 `npm run test:sidebar`。入口启动 `.dsh-home/pure-001/release12-web`，校对指定测试库以及安装中的客户端和中文文案。独立 worktree 通过 Git 公共目录定位主目录。显式设置的 `FATFISH_QA_ROOT` 也必须解析为主目录的同一隔离目录。Git 不可用时，仅有实体 `.git` 目录的主检出可使用本地指定目录，关联 worktree 会在启动前停止。隔离资料为共享互斥资源，真实宿主验收串行执行。可用 `FATFISH_DSH_EXE` 指定 DSH 可执行文件路径。通过「肥鱼笔记 · 会话转存体验」测试会话和「开发手册」笔记本走以下操作。
 
 - 宽栏首次进「查找笔记」时，左侧笔记本直接可用。
 - 窄栏可通过范围菜单选择笔记本，结果确实切到选中的范围。Esc 可以关闭菜单并回到范围按钮。

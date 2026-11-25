@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict')
 const { execFileSync, spawn } = require('node:child_process')
 const { once } = require('node:events')
-const { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } = require('node:fs')
+const { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } = require('node:fs')
 const { basename, dirname, join, relative, resolve, sep } = require('node:path')
 const { setTimeout: delay } = require('node:timers/promises')
 const { checkFindNotebookFlow } = require('./sidebar-interactions.cjs')
@@ -34,43 +34,14 @@ function resolveMainRepoRoot(repoRoot) {
 function resolveIsolatedRoot(repoRoot = root, env = process.env) {
   const realRepoRoot = realpathSync.native(repoRoot)
   const { mainRoot, gitError } = resolveMainRepoRoot(realRepoRoot)
-  const allowedRoots = mainRoot && normalizePath(mainRoot) !== normalizePath(realRepoRoot) ? [mainRoot, realRepoRoot] : [mainRoot || realRepoRoot]
+  // A primary checkout has a .git directory; a linked worktree has a gitfile.
+  const primary = mainRoot || (lstatSync(join(realRepoRoot, '.git'), { throwIfNoEntry: false })?.isDirectory() ? realRepoRoot : null)
+  if (!primary) throw new Error(`无法确认主仓隔离资料的归属，请检查 Git 或从主目录运行（${gitError}）。`)
 
-  if (env.FATFISH_QA_ROOT) {
-    const explicit = realpathSync.native(env.FATFISH_QA_ROOT)
-    assert.ok(
-      basename(explicit) === 'pure-001' && basename(dirname(explicit)) === '.dsh-home',
-      'FATFISH_QA_ROOT 必须指向项目隔离目录 .dsh-home/pure-001',
-    )
-    if (mainRoot) {
-      assert.ok(
-        allowedRoots.some(base => isWithin(explicit, base)),
-        'FATFISH_QA_ROOT 必须属于当前项目主目录内的 .dsh-home/pure-001',
-      )
-    }
-    return explicit
-  }
-
-  if (mainRoot) {
-    const mainQaPath = join(mainRoot, '.dsh-home/pure-001')
-    if (existsSync(mainQaPath)) {
-      const isolated = realpathSync.native(mainQaPath)
-      assert.ok(isWithin(isolated, mainRoot), '需要项目主目录内的隔离 Web 资料')
-      return isolated
-    }
-  }
-
-  const localPath = join(realRepoRoot, '.dsh-home/pure-001')
-  if (existsSync(localPath)) {
-    const isolated = realpathSync.native(localPath)
-    assert.ok(isWithin(isolated, realRepoRoot), '需要项目内的隔离 Web 资料')
-    return isolated
-  }
-
-  if (gitError) {
-    throw new Error(`无法通过 git 定位主仓隔离资料（${gitError}），且当前目录缺少 .dsh-home/pure-001。请检查 Git/沙箱权限或通过 FATFISH_QA_ROOT 显式指定。`)
-  }
-  throw new Error('找不到项目主目录内的隔离资料 .dsh-home/pure-001。请确认主目录存在该资料或通过 FATFISH_QA_ROOT 指定。')
+  const expected = join(primary, '.dsh-home', 'pure-001')
+  const isolated = realpathSync.native(env.FATFISH_QA_ROOT || expected)
+  assert.equal(normalizePath(isolated), normalizePath(expected), '需要项目主目录的 .dsh-home/pure-001，不能使用其他资料副本')
+  return isolated
 }
 
 function isolatedProfile(repoRoot = root, env = process.env) {

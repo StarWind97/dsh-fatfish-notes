@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+- **开发候选与公开版**　当前 `main` 已完成改版审查的九项修复及说明更新。442 项全量回归通过，同一候选包通过 DSH 0.2.2-rc.5 隔离 Web 和 Windows 桌面验收。候选提供三套布局、六套配色，反馈入口在「设置 → 帮助」。公开 0.12.0 的双语手册、README 与市场配图对应八套布局、十套配色及顶栏反馈入口，下次正式发布时同步更新。[九项发现、实施规划与独立复核入口](plans/2026-11-25-post-refresh-fixes.zh.md)
+
 - 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（首轮 P0+P1+P2、[二轮原型逐项对齐](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md#六二轮原型逐项对齐整改2026-11-25)与[三轮原型收尾与交互精修](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md#七三轮原型收尾与交互精修2026-11-25)）及隔离 DSH 双端实机验收，已合回 `main` 待体验（未发版）。** 三轮累计完成三套布局精简、6 套高区分度双行色板与炭黑深色分层、现代设置页与分段控件（含绿点已同步状态）、圆角外框 Markdown 表格、选中行 `3 px` 左竖条、胶囊标签、`Alt+K` 全局快速切换、代码块独立顶栏与高对比度 `✓ 已复制` 胶囊、主色 `+ 新建` 与 `28 px` 零像素对齐列表工具栏（去除重复笔记本后缀、轻边框无箭头排序选择器）、编辑态属性单行摘要 + 按需展开抽屉（`B4-B`）、首次接入/重置三步 Stepper 向导、反馈入口收回帮助页、会话侧栏 `0 px` 零跳动切换、转存弹窗 `GET /notes/capture-preview` 真实缩略图 + 底部「取消」+ 选中轮次高亮、以及全量 `useStyleSheet` `@layer` 单例注入（主应用与弹窗内 `0` 行内 `<style>`）。440/440 全量回归、弹窗尺寸检查、`npm run test:sidebar`、官方 DSH `0.2.2-rc.5` 隔离 Web 与 Windows 桌面双端实装（每端 16 张浅深双语实拍 + 全部原子 DOM/CSS 断言）及指定私库同步闭环均已通过。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
 - 2026-11-23 **0.12.0 已正式发布，市场双语详情已验收。** 市场中文和英文页都已显示新版正文、配图及图解入口。两页共用的公开安装包与通过隔离桌面和 Web 验收的候选摘要一致。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0) · [发布与市场验证](releases/0.12.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)
@@ -19,7 +21,7 @@
 
 | 任务 | 负责智能体 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- | --- |
-| [改版审查与三批修复](plans/2026-11-25-post-refresh-fixes.zh.md) | Codex | `main`，主目录；PNG、外观、快捷面板、侧栏、回归及开发文档 | 前两批专项通过，第三批完成后统一安装候选包验收。 |
+| （当前无进行中任务） | — | — | — |
 
 按[多智能体与多会话协作约定](../AGENTS.md#多智能体与多会话协作)维护本表。根据工作区差异、`git worktree list` 和专项记录核对实际进度。
 

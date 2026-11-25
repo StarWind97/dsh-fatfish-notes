@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
+import { build } from 'esbuild'
+import { notesCss } from '../../src/client/notes-style.ts'
 import { appearanceCss } from '../../src/client/paper/appearance-style.ts'
 import { dialogCss } from '../../src/client/paper/dialog-style.ts'
 import { captureOptionsCss } from '../../src/client/capture-options-style.ts'
@@ -8,6 +10,10 @@ import { organizationCss } from '../../src/client/organization-style.ts'
 
 const require = createRequire(import.meta.url)
 const { chromium } = require(process.env.FATFISH_PLAYWRIGHT || 'playwright')
+const bundle = await build({
+  entryPoints: ['src/client/styles/inject.ts'], bundle: true, write: false,
+  format: 'iife', globalName: 'styles', define: { 'process.env.NODE_ENV': '"production"' },
+})
 const browser = await chromium.launch({
   executablePath: process.env.FATFISH_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
   headless: true,
@@ -27,19 +33,36 @@ const modes = [
 
 try {
   const page = await browser.newPage({ offline: true, viewport: desktop })
-  const measure = async (className, viewport, lateAppearance) => {
+  const render = async (markup, viewport, lateAppearance) => {
     await page.setViewportSize(viewport)
-    await page.setContent(`<!doctype html>
-      <style>${dialogCss + appearanceCss}</style>
-      <style>${captureOptionsCss + captureCss + organizationCss}</style>
-      <dialog class="paper-dialog ${className}" data-layout="soft">
-        <header>保存选项</header>
-        <section class="capture-save-body"><div>轮次</div><div>素材</div><div>信息</div></section>
-        <footer>保存</footer>
-      </dialog>
-      ${lateAppearance ? `<aside><style>${appearanceCss}</style></aside>` : ''}`)
+    await page.setContent('<!doctype html>' + markup)
+    await page.addScriptTag({ content: bundle.outputFiles[0].text })
+    const sheets = [
+      ['notes-base', notesCss, 'base'], ['paper-dialog', dialogCss, 'components'],
+      ['capture-base', captureCss, 'components'], ['capture-options', captureOptionsCss, 'components'],
+      ['organization', organizationCss, 'components'],
+    ]
+    const appearance = ['appearance', appearanceCss, 'themes']
+    if (lateAppearance) sheets.push(appearance)
+    else sheets.unshift(appearance)
+    await page.evaluate(entries => {
+      for (const args of entries) styles.acquireStyleSheet(...args)
+      for (const dialog of document.querySelectorAll('dialog')) dialog.showModal()
+    }, sheets)
+  }
+  const measure = async (className, viewport, lateAppearance, rows = 1) => {
+    const turns = Array.from({ length: rows }, (_, i) => `<p>轮次 ${i + 1}</p>`).join('')
+    await render(`<dialog class="paper-dialog ${className}" data-layout="soft">
+      <header><h2>保存选项</h2></header>
+      <div class="notes-surface capture-panel capture-save-panel">
+        <div class="capture-save-body">
+          <section class="capture-save-range"><div class="capture-column-scroll">${turns}</div></section>
+          <section class="capture-save-files">素材</section>
+          <section class="capture-save-details">信息</section>
+        </div>
+        <footer class="capture-foot capture-save-foot"><button>保存</button></footer>
+      </div></dialog>`, viewport, lateAppearance)
     return page.locator('dialog').evaluate(dialog => {
-      dialog.showModal()
       const { width, height } = dialog.getBoundingClientRect()
       const body = dialog.querySelector('.capture-save-body')
       const columns = getComputedStyle(body).gridTemplateColumns
@@ -55,25 +78,31 @@ try {
   const expandedShort = await measure(expanded, desktop, true)
   assert.equal(expandedShort.width, 1280)
   assert.equal(expandedShort.columns, 3)
-  assert.ok(expandedShort.height > 0 && expandedShort.height <= 780, `adaptive expanded height: ${expandedShort.height}`)
-  const expandedTiny = await measure(expanded, { width: 104, height: 120 }, true)
+  const expandedLong = await measure(expanded, desktop, true, 80)
+  assert.ok(expandedShort.height > 0 && expandedShort.height + 100 < expandedLong.height,
+    `expected the dialog to grow with its content, got ${expandedShort.height} and ${expandedLong.height}`)
+  assert.ok(expandedLong.height <= 780)
+  const column = page.locator('.capture-column-scroll')
+  assert.ok(await column.evaluate(el => { el.scrollTop = el.scrollHeight; return el.scrollTop > 0 }))
+  const save = page.getByRole('button', { name: '保存' })
+  const hitTest = el => {
+    const r = el.getBoundingClientRect()
+    return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el
+  }
+  assert.ok(await save.evaluate(hitTest), 'save stays reachable while the long column scrolls')
+  const expandedTiny = await measure(expanded, { width: 104, height: 120 }, true, 80)
   assert.equal(expandedTiny.width, 92)
   assert.equal(expandedTiny.columns, 1)
   assert.ok(expandedTiny.height > 0 && expandedTiny.height <= 108, `tiny viewport height: ${expandedTiny.height}`)
 
-  await page.setViewportSize(desktop)
-  await page.setContent(`<!doctype html>
-    <style>${dialogCss + captureOptionsCss}</style>
-    <dialog class="paper-dialog ${expanded}" data-layout="soft">
+  await save.scrollIntoViewIfNeeded()
+  assert.ok(await save.evaluate(hitTest), 'save can be reached in the tiny viewport')
+  await render(`<dialog class="paper-dialog ${expanded}" data-layout="soft">
       <dialog class="paper-dialog" data-layout="soft">普通弹窗</dialog>
-    </dialog>
-    <style>${appearanceCss}</style>`)
-  const nestedWidths = await page.locator('dialog').evaluateAll(dialogs => dialogs.map(dialog => {
-    dialog.showModal()
-    return dialog.getBoundingClientRect().width
-  }))
+    </dialog>`, desktop, true)
+  const nestedWidths = await page.locator('dialog').evaluateAll(dialogs => dialogs.map(dialog => dialog.getBoundingClientRect().width))
   assert.deepEqual(nestedWidths, [1280, 680])
-  console.log('Dialog sizes pass with late appearance styles, nested dialogs, and at 104 × 120 CSS px.')
+  console.log(`Dialog sizes pass: short ${expandedShort.height}px, long ${expandedLong.height}px, nested ${nestedWidths.join('/')}, tiny ${expandedTiny.width}×${expandedTiny.height}. Save is reachable.`)
 } finally {
   await browser.close()
 }

@@ -29,4 +29,52 @@
 | --- | --- | --- |
 | 一 | 已实现、专项通过 | 构建成功。外观与阅读导出 12/12；真实 Chrome 通过 2 列/320 px、15 列/320 px 拒绝和 15 列/1440 px 成图。第二个外观客户端读回 20，已确认的旧操作没有重放，三条回执按序处理，队列清空。原始素材文字通过 SourceContent 的 pre 原样呈现；导出宽度保护仍扫描整份投影。 |
 | 二 | 已实现、专项通过 | 组件使用带查询标识的响应，保留去重、120 ms 防抖和 24 项窗口。Chrome 实际操作通过正文/附件命中、局部重复、迟到查询、末位标签、关闭与非高亮按钮的 Enter、箭头和 Esc 返回焦点。真实侧栏与浮层组件按两种顺序挂载与分别卸载通过；单例、双语和 1,200 项排名测试 3/3。 |
-| 三 | 实施中 | 核对隔离路径、弹窗生产分层和两版说明，随后统一装包验收。 |
+| 三 | 已实现、专项与双端验收通过 | 精确匹配主目录隔离路径，更新开发入口与产品设计。生产样式下桌面 1 行和 80 行分别为 196.375 和 780 px；长列滚动后仍可点击保存。104×120 视口可滚动到保存，嵌套宽度 1280/680 px。仅在临时副本恢复旧固定高度后，实测 780/780 px，新断言按预期报错。两端实装结果见下表。 |
+
+### 独立复核入口
+
+从 `2514e4c` 开始查看三批提交。前两批分别为 `73c6375` 与 `ca42ab5`。构建产物由 `npm run build` 生成，源代码在 `src/`。使用同版 Node 并安装锁定依赖后，可按下表重跑。
+
+| 问题 | 实现或依据 | 复核入口 |
+| --- | --- | --- |
+| 1 | [PNG 渲染及溢出检查](../../src/client/note-reading-image.tsx) | `node test/browser/check-reading-tables.mjs` 在真实浏览器生成两种成功图片并核对窄幅错误码。 |
+| 2 | [队列加载](../../src/client/appearance-sync.ts)、[旧值映射](../../src/domain/appearance.ts) | `node --import tsx --test test/shared-appearance.test.ts` 使用历史队列、两个客户端和宿主实现，核对操作回执与最终值。 |
+| 3–5 | [快速切换](../../src/client/QuickSwitcher.tsx) | `node test/browser/check-switcher-sidebar.mjs`，固定响应样本见[浏览器夹具](../../test/browser/fixtures/switcher-sidebar.tsx)。真实笔记的补验证见下文。 |
+| 6 | [会话侧栏](../../src/client/ConversationNotes.tsx)、[转存浮层](../../src/client/NoteCapture.tsx) | 同一浏览器回归验证挂载和卸载顺序；`npm run test:sidebar` 从隔离宿主真实入口切换范围、打开结果并返回。 |
+| 7 | [测试资料定位](../../test/browser/run-search-sidebar.cjs) | `node --import tsx --test test/sidebar-profile.test.ts` 创建临时 Git 仓库和关联 worktree。检查显式和默认路径、错误副本、目录联接以及 Git 不可用时的行为。 |
+| 8 | [共享弹窗回归](../../test/browser/check-dialog-sizes.mjs) | `node --import tsx test/browser/check-dialog-sizes.mjs`。局部恢复展开态 `--paper-dialog-height:780px` 应触发短长高度差断言。 |
+| 9 | [开发入口](../README.md#当前状态)、[产品设计](../notes-design.zh.md#外观与工作区) | 对照候选「设置 → 外观 / 帮助」，并按[公开版记录](../releases/0.12.0/review.zh.md)核查旧版手册的适用范围。 |
+
+### 同一候选的隔离验收
+
+通过 DSH 官方 CLI 将同一 tarball 分别安装到项目指定的 `release12-web` 与 `release12-desktop`，两端各 273 个包内文件逐一通过 SHA-256 核对。包保留开发候选的 0.12.0 版本号，确切身份以以下摘要为准。真实宿主检查串行执行，仅使用项目内测试资料。
+
+| 项目 | 观测与结论 |
+| --- | --- |
+| 工程回归 | Node 24.21.0。类型检查和构建通过，重建的 194 个构建与词表文件和候选包逐字节相同。`npm test` 442/442 通过，失败、跳过、取消均为 0，用时 19 分 55 秒。目录联接与 Git 不可用的最终扩展用例另外独立重跑通过。 |
+| 本机候选 | `dist/post-refresh-fixes-20261125/dsh-fatfish-notes-0.12.0.tgz`，SHA-256 `af09df6a47cf39f74727a8c035d69b1c150ad31b0c3a27458ee0a3d881692026`。 |
+| DSH Web 中文浅色 | 三套布局、六套配色，帮助页有反馈入口。用真实测试笔记构造仅正文和仅附件名两次查询，各命中 1 篇。两次都从快捷面板点击结果打开，并与目标笔记的阅读标题核对。 |
+| DSH Web 英文深色 | 外观面板 3/6 项，未检出中文残留；帮助链接为 “Issues & suggestions”，快捷面板为 “Quick switcher and command palette”。退出前恢复原中文与主题。两次 Web 操作未记录页面异常。 |
+| DSH Web 会话侧栏 | 611×882、343×822、343×582 三组可视尺寸的真实入口回归通过，范围切换返回 31 篇。实拍位于 `output/playwright/search-sidebar/run-CGGOFo/`。 |
+| DSH Windows 桌面 | 三套布局、六套配色，帮助中的反馈链接指向本项目 issues。快捷面板搜索「打开分类管理」，Tab 聚焦「关闭」后按 Enter，仍停在帮助页。编辑属性从折叠切到展开，取消后返回阅读。转存弹窗载入 1280×730 源图缩略图，底部「取消」关闭弹窗。未记录页面异常。 |
+| GitHub 同步 | 指定测试私库在无待上传变更时完成联网同步。Web 从 syncing 返回 idle，pending 为 false，无错误，成功时间更新为北京时间 2026-11-25 23:00:06。新增、冲突和离线重试由全量回归的本地 Git 环境覆盖。 |
+
+本机验证日志与截图在 `output/playwright/post-refresh-fixes-20261125/`，包括 `installed-web.json`、`installed-desktop.json`、`web.json`、`english.json`、`desktop.json`、`dialog-control.log` 与 `full.log`。上述表格保留可跨检出查阅的关键结果。
+
+### 快捷面板耗时与结论
+
+在同一 DSH 隔离桌面、1440×950 窗口，从按下 Alt+K 计时到输入框实际获焦。每组新启动一次宿主，进入设置帮助页，连续呼出五次，每次按 Esc 关闭。当前资料共 161 篇活动笔记。此指标包含自动化、宿主与渲染开销，计时在输入查询前结束。
+
+| 观测 | 五次耗时（ms，按先后） | 中位 / 最大（ms） |
+| --- | --- | --- |
+| 最初审查的基线 | 49、26、25、25、25 | 25 / 49 |
+| 修复包，全量回归同时运行 | 71、41、35、35、33 | 35 / 71 |
+| 修复包，全量回归结束后单独运行 | 56、35、34、34、36 | 35 / 56 |
+| 相邻对照，重新安装基线 | 56、32、31、34、30 | 32 / 56 |
+| 相邻对照，重新安装修复包 | 52、33、30、38、37 | 37 / 52 |
+
+相邻对照中，修复包的中位数增加 5 ms，最大值减少 4 ms。五次样本包含首次呼出，无法据此确定持续的性能退化或提升。基线渲染包与 `2514e4c:lib/client.js` 核对一致；测试结束时桌面已恢复修复包，并再次核验 273 个文件。复核记录为 `desktop-timing-baseline.json` 和 `desktop-timing-final.json`。
+
+### 交付边界与后续
+
+本轮交付针对当前开发候选，兼容性实测为 Windows 上的 DSH 0.2.2-rc.5。真实 GitHub 覆盖指定私库的一次无待上传变更同步，双端新增数据和冲突的验证使用本地真实 Git 克隆。下次准备正式发布时，按图文核对清单更新公开双语说明、截图及市场展示。可从本文的基线复现和复核入口逐项审查三批提交，并单独记录新发现。
