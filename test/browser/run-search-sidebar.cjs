@@ -6,53 +6,81 @@ const { basename, dirname, join, relative, resolve, sep } = require('node:path')
 const { setTimeout: delay } = require('node:timers/promises')
 const { checkFindNotebookFlow } = require('./sidebar-interactions.cjs')
 
-const root = realpathSync(join(__dirname, '../..'))
+const root = realpathSync.native(join(__dirname, '../..'))
 const button = (root, name) => root.getByRole('button', { name, exact: true })
+const normalizePath = (value) => process.platform === 'win32' ? value.toLowerCase() : value
+const isWithin = (child, parent) => normalizePath(child).startsWith(normalizePath(parent + sep))
+
+function resolveMainRepoRoot(repoRoot) {
+  try {
+    const commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim()
+    if (!commonDir) return { mainRoot: null, gitError: 'git rev-parse --git-common-dir 返回空值' }
+    const resolvedCommon = resolve(repoRoot, commonDir)
+    if (basename(resolvedCommon) !== '.git') {
+      return { mainRoot: null, gitError: `非标准 .git 公共目录：${resolvedCommon}` }
+    }
+    return { mainRoot: realpathSync.native(dirname(resolvedCommon)), gitError: null }
+  } catch (error) {
+    const detail = (error && typeof error === 'object' && 'stderr' in error && error.stderr ? String(error.stderr).trim() : '')
+      || (error instanceof Error ? error.message : String(error))
+    return { mainRoot: null, gitError: detail }
+  }
+}
 
 function resolveIsolatedRoot(repoRoot = root, env = process.env) {
+  const realRepoRoot = realpathSync.native(repoRoot)
+  const { mainRoot, gitError } = resolveMainRepoRoot(realRepoRoot)
+  const allowedRoots = mainRoot && normalizePath(mainRoot) !== normalizePath(realRepoRoot) ? [mainRoot, realRepoRoot] : [mainRoot || realRepoRoot]
+
   if (env.FATFISH_QA_ROOT) {
-    const explicit = realpathSync(env.FATFISH_QA_ROOT)
+    const explicit = realpathSync.native(env.FATFISH_QA_ROOT)
     assert.ok(
       basename(explicit) === 'pure-001' && basename(dirname(explicit)) === '.dsh-home',
       'FATFISH_QA_ROOT 必须指向项目隔离目录 .dsh-home/pure-001',
     )
+    if (mainRoot) {
+      assert.ok(
+        allowedRoots.some(base => isWithin(explicit, base)),
+        'FATFISH_QA_ROOT 必须属于当前项目主目录内的 .dsh-home/pure-001',
+      )
+    }
     return explicit
   }
-  const localPath = join(repoRoot, '.dsh-home/pure-001')
-  if (existsSync(localPath)) {
-    const isolated = realpathSync(localPath)
-    assert.ok(isolated.startsWith(repoRoot + sep), '需要项目内的隔离 Web 资料')
-    return isolated
-  }
-  let commonDir = ''
-  try {
-    commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-  } catch {
-    commonDir = ''
-  }
-  if (commonDir) {
-    const resolvedCommon = resolve(repoRoot, commonDir)
-    if (basename(resolvedCommon) === '.git') {
-      const mainRoot = realpathSync(dirname(resolvedCommon))
-      const sharedPath = join(mainRoot, '.dsh-home/pure-001')
-      if (existsSync(sharedPath)) {
-        const isolated = realpathSync(sharedPath)
-        assert.ok(isolated.startsWith(mainRoot + sep), '需要项目主目录内的隔离 Web 资料')
-        return isolated
-      }
+
+  if (mainRoot) {
+    const mainQaPath = join(mainRoot, '.dsh-home/pure-001')
+    if (existsSync(mainQaPath)) {
+      const isolated = realpathSync.native(mainQaPath)
+      assert.ok(isWithin(isolated, mainRoot), '需要项目主目录内的隔离 Web 资料')
+      return isolated
     }
   }
-  throw new Error('找不到项目内的隔离资料 .dsh-home/pure-001。若在独立 worktree 中运行，请确认主目录存在该资料或通过 FATFISH_QA_ROOT 指定。')
+
+  const localPath = join(realRepoRoot, '.dsh-home/pure-001')
+  if (existsSync(localPath)) {
+    const isolated = realpathSync.native(localPath)
+    assert.ok(isWithin(isolated, realRepoRoot), '需要项目内的隔离 Web 资料')
+    return isolated
+  }
+
+  if (gitError) {
+    throw new Error(`无法通过 git 定位主仓隔离资料（${gitError}），且当前目录缺少 .dsh-home/pure-001。请检查 Git/沙箱权限或通过 FATFISH_QA_ROOT 显式指定。`)
+  }
+  throw new Error('找不到项目主目录内的隔离资料 .dsh-home/pure-001。请确认主目录存在该资料或通过 FATFISH_QA_ROOT 指定。')
 }
 
 function isolatedProfile(repoRoot = root, env = process.env) {
   const isolated = resolveIsolatedRoot(repoRoot, env)
-  const home = realpathSync(join(isolated, 'release12-web'))
-  assert.ok(home.startsWith(isolated + sep), '需要项目内的隔离 Web 资料')
+  const home = realpathSync.native(join(isolated, 'release12-web'))
+  assert.ok(isWithin(home, isolated), '需要项目内的隔离 Web 资料')
   const { binding, folder } = JSON.parse(readFileSync(join(home, 'fatfish-notes/backup/sync.json'), 'utf8').replace(/^\uFEFF/, ''))
   assert.equal(binding.repositoryId, 1440762952, '需要指定的私有测试库')
-  const notes = realpathSync(join(isolated, 'release12-notes'))
-  assert.ok(notes.startsWith(isolated + sep) && realpathSync(folder) === notes, '需要指定的隔离笔记目录')
+  const notes = realpathSync.native(join(isolated, 'release12-notes'))
+  assert.ok(isWithin(notes, isolated) && normalizePath(realpathSync.native(folder)) === normalizePath(notes), '需要指定的隔离笔记目录')
   const installed = join(home, 'profiles/web/node_modules/dsh-fatfish-notes')
   for (const file of ['lib/client.js', 'locale/zh.json']) {
     const current = readFileSync(join(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')
