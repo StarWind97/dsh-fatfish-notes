@@ -27,3 +27,7 @@ Thumbs.db
 
 # 任务实施与审查临时材料
 .superpowers/
+
+# 多智能体本地私有临时文件（不忽略可共享入库的 .agents/）
+*.local.md
+.agents/*.local.*

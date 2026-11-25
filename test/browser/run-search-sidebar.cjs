@@ -1,25 +1,61 @@
 const assert = require('node:assert/strict')
-const { spawn } = require('node:child_process')
+const { execFileSync, spawn } = require('node:child_process')
 const { once } = require('node:events')
 const { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync } = require('node:fs')
-const { dirname, join, relative, sep } = require('node:path')
+const { basename, dirname, join, relative, resolve, sep } = require('node:path')
 const { setTimeout: delay } = require('node:timers/promises')
 const { checkFindNotebookFlow } = require('./sidebar-interactions.cjs')
 
 const root = realpathSync(join(__dirname, '../..'))
 const button = (root, name) => root.getByRole('button', { name, exact: true })
 
-function isolatedProfile() {
-  const isolated = realpathSync(join(root, '.dsh-home/pure-001'))
+function resolveIsolatedRoot(repoRoot = root, env = process.env) {
+  if (env.FATFISH_QA_ROOT) {
+    const explicit = realpathSync(env.FATFISH_QA_ROOT)
+    assert.ok(
+      basename(explicit) === 'pure-001' && basename(dirname(explicit)) === '.dsh-home',
+      'FATFISH_QA_ROOT 必须指向项目隔离目录 .dsh-home/pure-001',
+    )
+    return explicit
+  }
+  const localPath = join(repoRoot, '.dsh-home/pure-001')
+  if (existsSync(localPath)) {
+    const isolated = realpathSync(localPath)
+    assert.ok(isolated.startsWith(repoRoot + sep), '需要项目内的隔离 Web 资料')
+    return isolated
+  }
+  let commonDir = ''
+  try {
+    commonDir = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  } catch {
+    commonDir = ''
+  }
+  if (commonDir) {
+    const resolvedCommon = resolve(repoRoot, commonDir)
+    if (basename(resolvedCommon) === '.git') {
+      const mainRoot = realpathSync(dirname(resolvedCommon))
+      const sharedPath = join(mainRoot, '.dsh-home/pure-001')
+      if (existsSync(sharedPath)) {
+        const isolated = realpathSync(sharedPath)
+        assert.ok(isolated.startsWith(mainRoot + sep), '需要项目主目录内的隔离 Web 资料')
+        return isolated
+      }
+    }
+  }
+  throw new Error('找不到项目内的隔离资料 .dsh-home/pure-001。若在独立 worktree 中运行，请确认主目录存在该资料或通过 FATFISH_QA_ROOT 指定。')
+}
+
+function isolatedProfile(repoRoot = root, env = process.env) {
+  const isolated = resolveIsolatedRoot(repoRoot, env)
   const home = realpathSync(join(isolated, 'release12-web'))
-  assert.ok(isolated.startsWith(root + sep) && home.startsWith(isolated + sep), '需要项目内的隔离 Web 资料')
+  assert.ok(home.startsWith(isolated + sep), '需要项目内的隔离 Web 资料')
   const { binding, folder } = JSON.parse(readFileSync(join(home, 'fatfish-notes/backup/sync.json'), 'utf8').replace(/^\uFEFF/, ''))
   assert.equal(binding.repositoryId, 1440762952, '需要指定的私有测试库')
   const notes = realpathSync(join(isolated, 'release12-notes'))
   assert.ok(notes.startsWith(isolated + sep) && realpathSync(folder) === notes, '需要指定的隔离笔记目录')
   const installed = join(home, 'profiles/web/node_modules/dsh-fatfish-notes')
   for (const file of ['lib/client.js', 'locale/zh.json']) {
-    const current = readFileSync(join(root, file), 'utf8').replace(/\r\n/g, '\n')
+    const current = readFileSync(join(repoRoot, file), 'utf8').replace(/\r\n/g, '\n')
     const source = readFileSync(join(installed, file), 'utf8').replace(/\r\n/g, '\n')
     assert.ok(current === source, `隔离安装的 ${file} 与当前构建不同。请先把待测包安装到隔离 Web。`)
   }
@@ -109,7 +145,11 @@ async function run() {
   }
 }
 
-run().catch(error => {
-  console.error(error.message.replace(/([?&]token=)[^\s"&]+/g, '$1[redacted]'))
-  process.exitCode = 1
-})
+if (require.main === module) {
+  run().catch(error => {
+    console.error(error.message.replace(/([?&]token=)[^\s"&]+/g, '$1[redacted]'))
+    process.exitCode = 1
+  })
+}
+
+module.exports = { resolveIsolatedRoot, isolatedProfile }
