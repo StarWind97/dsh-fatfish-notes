@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react'
 import { BookPlus, Download } from 'lucide-react'
 import type { T } from './locale.js'
 import { readPreference, writePreference } from './paper/layout.js'
+import { useStyleSheet } from './styles/inject.js'
 
 type Appearance = 'label' | 'icon'
 const changed = 'fatfish-notes-capture-appearance'
@@ -22,9 +23,9 @@ export function CaptureGlyph({ appearance, t, exporting=false }: { appearance: A
   return <><Glyph aria-hidden="true" strokeWidth={1.65}/>{appearance === 'label' && <span>{t(exporting?'chatExport':'noteCaptureReply')}</span>}</>
 }
 export function CaptureAppearance({t}: {t:T}) {
+  useStyleSheet('capture-base', captureCss, 'components')
   const current = useCaptureAppearance(), group = React.useId()
   return <section className="setup-section capture-preferences">
-    <style>{captureCss}</style>
     <strong>{t('captureAppearance')}</strong>
     <fieldset><legend>{t('captureButtonStyle')}</legend>
       <div className="capture-styles">{(['label','icon'] as const).map(value =>

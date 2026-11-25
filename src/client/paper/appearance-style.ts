@@ -3,7 +3,7 @@ export const appearanceCss=layoutThemesCss+`
 .paper-app[data-layout],.paper-dialog[data-layout]{accent-color:var(--accent);color:var(--ink);background:var(--paper)}
 .paper-app[data-layout] :is(input,select,textarea){color:var(--ink);background-color:var(--input)}
 .paper-app[data-layout] :is(.paper-top,.paper-doc-head,.paper-tools){background:var(--paper)}
-.paper-app[data-layout] .paper-row[aria-current=true],.paper-app[data-layout] .paper-row[aria-current=page],.conversation-notes[data-layout] .conversation-note-row[aria-current=true]{background:var(--selected);box-shadow:0 1px 3px #0000000a;border-color:transparent}
+.paper-app[data-layout] .paper-row[aria-current=true],.paper-app[data-layout] .paper-row[aria-current=page],.conversation-notes[data-layout] .conversation-note-row[aria-current=true]{background:var(--selected);box-shadow:inset 3px 0 0 var(--accent),0 1px 3px #0000000a;border-color:color-mix(in srgb,var(--accent) 22%,transparent)}
 .paper-app[data-layout] :is(.paper-list-title,.paper-picker select){font:600 17px/1.5 "Segoe UI","Microsoft YaHei",sans-serif}
 .paper-app[data-layout] .paper-list{padding:16px 12px 0}.paper-app[data-layout] .paper-list-head{margin-bottom:10px}
 .paper-app[data-layout] .paper-leaf{font-family:var(--reading-font);font-size:var(--reading-size);line-height:var(--reading-leading)}

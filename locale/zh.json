@@ -1132,5 +1132,19 @@
   "appearancePaletteAmberDesc": "温润琥珀 · 纸感暖调",
   "appearancePaletteRoseDesc": "柔和莓红 · 轻盈醒目",
   "appearancePaletteGraphiteDesc": "极简石墨 · 低饱和专注",
-  "captureFooterHint": "保存后立即写入本机并加入私库同步队列"
+  "captureFooterHint": "保存后立即写入本机并加入私库同步队列",
+  "editorMetaEdit": "编辑属性",
+  "editorMetaHide": "收起属性",
+  "editorMetaTagsCount": "{count} 个标签",
+  "editorMetaTagsCount.one": "{count} 个标签",
+  "editorMetaHasSummary": "有摘要",
+  "setupStepperLabel": "首次接入步骤",
+  "setupStepTools": "1. 同步工具",
+  "setupStepToolsSub": "Git 与 GitHub CLI",
+  "setupStepAccount": "2. 账号与云端库",
+  "setupStepAccountSub": "登录并命名私有仓库",
+  "setupStepSync": "3. 位置与首次同步",
+  "setupStepSyncSub": "核对路径后启用",
+  "setupStepPrev": "上一步",
+  "setupStepNext": "下一步"
 }

@@ -227,8 +227,8 @@ export function SearchViewPicker({view,onChange,t}: {view:SearchView;onChange:(v
   </div>
 }
 
-export function SearchResultStatus({count,more,loading,scope,t,onAll}: {count:number;more:boolean;loading:boolean;scope:string;t:T;onAll?:()=>void}) {
+export function SearchResultStatus({count,more,loading,scope,t,onAll}: {count:number;more:boolean;loading:boolean;scope?:string;t:T;onAll?:()=>void}) {
   return <div className="paper-search-status"><span role="status">
-    {t(loading?'loading':more?'findShown':'notesBookCount',{count})} · {scope}
+    {t(loading?'loading':more?'findShown':'notesBookCount',{count})}{scope?` · ${scope}`:''}
   </span>{onAll&&<button type="button" className="paper-filter-text paper-scope-all" onClick={onAll}>{t('findAcross')}</button>}</div>
 }

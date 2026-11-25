@@ -43,12 +43,14 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
   const [custom,setCustom]=useState<string|null>(null),[editingFolder,setEditingFolder]=useState(false)
   const [parent,setParent]=useState<string|null>(null)
   const [preview,setPreview]=useState<PersonalPreview|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<LocaleKey|null>(null)
+  const [step,setStep]=useState<1|2|3>(1),[stepManual,setStepManual]=useState(false)
   const [recovery,setRecovery]=useState<{folder:string;intent?:'locate'|'new'}|null>(null)
   const [notice,setNotice]=useState<LocaleKey|null>(null)
   const request=React.useRef<AbortController|null>(null)
   const errorMessage=React.useRef<HTMLParagraphElement|null>(null)
   const modeGroup=React.useId()
   const sync=liveSync&&liveSync.binding?.repositoryId===data?.sync.binding?.repositoryId?liveSync:data?.sync, resetting=manage==='reset', wizard=!!sync && (resetting || !sync.binding)
+  const toolsReady=!!(tools?.git&&tools.gh)
   const repoLabel=sync?.binding ? sync.binding.account.login+'/'+sync.binding.repo : ''
   const suggested=sync?.defaultFolder.replace(/[^/\\]+$/,()=>repo.trim()||DEFAULT_PRIVATE_REPO_NAME)??''
   const initialFolder=parent===null?suggested:setupFolder(parent,repo.trim()||DEFAULT_PRIVATE_REPO_NAME)
@@ -129,25 +131,53 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
   useStyleSheet('setup-page', setupCss, 'components')
   useStyleSheet('feedback', feedbackCss, 'components')
   useStyleSheet('sync-details', syncCss, 'components')
+  useEffect(()=>{
+    if(!wizard){setStep(1);setStepManual(false);return}
+    if(stepManual)return
+    if(toolsReady)setStep(2)
+  },[wizard,toolsReady,stepManual])
   if(sync?.ready && children)return <>{notice==='setupFirstSyncDone'&&<div role="status" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:80,padding:'10px 18px',borderRadius:8,background:'var(--dsw-alias-bg-layer-2)',color:'var(--dsw-alias-label-primary)'}}>{t(notice)}</div>}{children}</>
   const title=resetting?'resetTitle':manage==='move'?'moveTitle':sync?.ready?'setupConnected':'setupWelcome'
   const prerequisites=!!(tools?.git&&tools.gh&&tools.account)
+  const canStep2=toolsReady
+  const canStep3=prerequisites&&!!repo.trim()
+  const activeStep:1|2|3=preview?3:step
+  function goStep(target:1|2|3){
+    if(target===2&&!canStep2)return
+    if(target===3&&!canStep3)return
+    setPreview(null);setError(null);setStepManual(true);setStep(target)
+  }
+  const stepperItems:[1|2|3,LocaleKey,LocaleKey,boolean,boolean][]=[
+    [1,'setupStepTools','setupStepToolsSub',toolsReady,true],
+    [2,'setupStepAccount','setupStepAccountSub',canStep3,canStep2],
+    [3,'setupStepSync','setupStepSyncSub',false,canStep3],
+  ]
   return <main className="notes-setup" data-grouped={grouped||undefined} aria-busy={busy}><div className="notes-setup-inner">
     <header><span className="setup-icon" style={brandStyle}><BrandMark size={28} color/></span><div><small>{t('nav')}</small><h2>{t(title)}</h2></div>{showFeedback&&<FeedbackLink t={t}/>}</header>
     {!data&&!error&&<p role="status">{t('loading')}</p>}
     {sync?.ready&&!wizard&&!grouped&&<HandbookHelp t={t}/>}
     {wizard&&!resetting&&<div className="setup-intro"><p>{t('setupIntro')}</p><small>{t('setupOfflineHint')}</small></div>}
+    {wizard&&<nav className="setup-stepper" aria-label={t('setupStepperLabel')}>
+      {stepperItems.map(([num,labelKey,subKey,done,enabled])=>{
+        const isCurrent=activeStep===num, isDone=done&&!isCurrent
+        return <button key={num} type="button" className="setup-step-pill" data-state={isCurrent?'active':isDone?'done':'todo'}
+          aria-current={isCurrent?'step':undefined} disabled={busy||!enabled} onClick={()=>goStep(num)}>
+          <span className="setup-step-num" aria-hidden="true">{isDone?<CheckCircle2 size={14}/>:num}</span>
+          <span><strong>{t(labelKey)}</strong><small>{t(subKey)}</small></span>
+        </button>
+      })}
+    </nav>}
     {wizard && (preview?<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupReview')}</strong>
       {resetting&&<small>{t('resetFrom',{repo:repoLabel})}</small>}
       <div className="setup-complete"><CheckCircle2 size={16}/>{t('setupToolsChecked')} · {t('setupSignedIn',{account:preview.account.login})}</div>
       <small>{t('setupCloudFolder')}</small><strong><GitBranch size={16}/>{preview.account.login}/{preview.repo}</strong><small>{t(preview.exists?'personalExisting':'personalWillCreate')} · {t('personalPrivate')}</small>
       <strong><Folder size={16}/>{t(preview.reuseFolder?'resetFoundFolder':'setupFolder')}</strong><code>{preview.folder}</code><p>{t(preview.reuseFolder?'resetReuseHint':resetting?'resetHint':'notesBackupScope')}</p>
       {!resetting&&<p className="setup-note">{t('setupFirstSyncHint')}</p>}
-      <div className="setup-modes"><button disabled={busy} onClick={()=>{setPreview(null);setError(null)}}>{t('setupBack')}</button>
-      <button className="setup-primary" disabled={busy} onClick={()=>void run('connect')}>{t(preview.reuseFolder?'resetReuseConfirm':resetting?'resetConfirm':preview.exists?'setupConnect':'setupCreateConfirm')}</button>
-      {resetting&&<button onClick={leave}>{t('cancel')}</button>}</div></section>:<>
+      <div className="setup-stepper-foot"><button disabled={busy} onClick={()=>{setPreview(null);setError(null)}}>{t('setupBack')}</button>
+      <div className="setup-modes">{resetting&&<button onClick={leave}>{t('cancel')}</button>}
+      <button className="setup-primary" disabled={busy} onClick={()=>void run('connect')}>{t(preview.reuseFolder?'resetReuseConfirm':resetting?'resetConfirm':preview.exists?'setupConnect':'setupCreateConfirm')}</button></div></div></section>:<>
       {resetting&&<p>{t('resetHint')}</p>}
-      <section className="setup-section"><strong><span className="setup-step">1</span>{t('setupToolsTitle')}</strong>
+      {activeStep===1&&<section className="setup-section"><strong><span className="setup-step">1</span>{t('setupToolsTitle')}</strong>
         <small>{t('setupToolsHint')}</small>
         <div className="setup-tools">{([
           ['git','Git','setupGitHint','https://git-scm.com/downloads','setupInstallGit'],
@@ -159,9 +189,12 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
         </div>)}</div>
         {tools&&(!tools.git||!tools.gh)&&<p className="setup-note">{t('setupInstallHint')}</p>}
         <details><summary>{t('setupInstallHelp')}</summary><p>{t('setupInstallSteps')}</p></details>
-        <button disabled={busy} onClick={()=>void run('check')}>{t('setupRecheck')}</button>
-      </section>
-      <section className="setup-section"><strong><span className="setup-step">2</span>{t('setupAccount')}</strong>
+        <div className="setup-stepper-foot">
+          <div className="setup-modes"><button disabled={busy} onClick={()=>void run('check')}>{t('setupRecheck')}</button>{resetting&&<button onClick={leave}>{t('cancel')}</button>}</div>
+          <button type="button" className="setup-primary" disabled={busy||!canStep2} onClick={()=>goStep(2)}>{t('setupStepNext')}</button>
+        </div>
+      </section>}
+      {activeStep===2&&<section className="setup-section"><strong><span className="setup-step">2</span>{t('setupAccount')}</strong>
         <small>{t('setupCloudHint')}</small>
         {tools?.account?<div className="setup-complete"><CheckCircle2 size={16}/>{t('setupSignedIn',{account:tools.account.login})}</div>:<>
           <div className="setup-modes"><button disabled={busy||!tools?.gh||tools.login==='waiting'} onClick={()=>void run('login')}>{t('setupLogin')}</button><a href="https://github.com/signup" target="_blank" rel="noreferrer">{t('setupRegister')}</a></div>
@@ -169,30 +202,41 @@ export function SettingsPage({t,children,showFeedback=true,grouped=false}:{t:T;c
         </>}
         {tools?.login==='waiting'&&!tools.account&&<div className="setup-note" role="status">{t('setupLoginWaiting')} {tools.deviceCode&&<b>{tools.deviceCode}</b>} <a href="https://github.com/login/device" target="_blank" rel="noreferrer">{t('setupDevicePage')}</a></div>}
         {tools?.login==='failed'&&!tools.account&&<small role="alert">{t('setupLoginFailed')}</small>}
-        <fieldset className="setup-fields" disabled={busy||!prerequisites}><legend>{t('setupRepository')}</legend>
-          <div className="setup-modes">{(['create','existing'] as const).map(value=><label className="setup-choice" key={value}><input type="radio" name={modeGroup} checked={mode===value} onChange={()=>{setMode(value);changeTarget()}}/>{t(value==='existing'?'setupExisting':'setupCreate')}</label>)}</div>
+        <div className="setup-fields" aria-disabled={busy||!prerequisites||undefined}>
+          <span className="setup-field-title">{t('setupRepository')}</span>
+          <div className="setup-modes">{(['create','existing'] as const).map(value=><label className="setup-choice" key={value}><input type="radio" name={modeGroup} disabled={busy||!prerequisites} checked={mode===value} onChange={()=>{setMode(value);changeTarget()}}/>{t(value==='existing'?'setupExisting':'setupCreate')}</label>)}</div>
           <small>{t(mode==='create'?'setupCreateHint':'setupExistingHint')}</small>
-          <label>{t('personalRepoName')}<input value={repo} onChange={e=>{setRepo(e.target.value);changeTarget()}}/></label>
-        </fieldset>
-      </section>
-      <section className="setup-section"><strong><span className="setup-step">3</span>{t('setupLocationTitle')}</strong>
+          <label>{t('personalRepoName')}<input disabled={busy||!prerequisites} value={repo} onChange={e=>{setRepo(e.target.value);changeTarget()}}/></label>
+        </div>
+        {!prerequisites&&<small>{t('setupPrerequisites')}</small>}
+        <div className="setup-stepper-foot">
+          <div className="setup-modes"><button type="button" disabled={busy} onClick={()=>goStep(1)}>{t('setupStepPrev')}</button>{resetting&&<button onClick={leave}>{t('cancel')}</button>}</div>
+          <button type="button" className="setup-primary" disabled={busy||!canStep3} onClick={()=>goStep(3)}>{t('setupStepNext')}</button>
+        </div>
+      </section>}
+      {activeStep===3&&<section className="setup-section"><strong><span className="setup-step">3</span>{t('setupLocationTitle')}</strong>
         <small>{t('setupLocalHint')}</small>
-        <fieldset className="setup-fields" disabled={busy||!prerequisites}><legend>{t('setupFolder')}</legend>
-        {!resetting?<div className="setup-folder">
-          <small>{t('setupFinalLocation')}</small><code data-setup-location>{initialFolder}</code>
-          <small>{t('setupParentHint')}</small>
-          <div className="setup-modes"><button type="button" onClick={()=>void run('pick')}><Folder size={15}/>{t('setupChange')}</button>
-            {parent!==null&&<button type="button" onClick={()=>{setParent(null);setError(null)}}>{t('setupDefaultLocation')}</button>}</div>
-          {error==='setupFolderOccupied'&&<p className="setup-note">{t(mode==='create'?'setupOccupiedCreate':'setupOccupiedExisting')}</p>}
-        </div>:recovery?<div className="setup-folder"><strong>{t('resetLastFolder')}</strong><code>{recovery.folder}</code>
-          <p>{t('resetLostFolder')}</p><div className="setup-modes">{(['locate','new'] as const).map(intent=><button type="button" key={intent} aria-pressed={recovery.intent===intent} onClick={()=>chooseRecovery(intent)}>{t(intent==='locate'?'resetLocate':'resetNewFolder')}</button>)}</div>
-          {recovery.intent&&<label>{t(recovery.intent==='locate'?'resetLocatePath':'resetNewPath')}<input autoFocus value={custom??''} onChange={e=>setCustom(e.target.value)}/></label>}
-        </div>:<div className="setup-folder">
-          {resetting&&mode==='existing'&&!custom&&<small>{t('resetLookupHint')}</small>}
-          {editingFolder?<label>{t('setupPath')}<input autoFocus value={custom??''} placeholder={suggested} onChange={e=>setCustom(e.target.value)}/></label>:<><code>{custom||suggested}</code><button onClick={()=>setEditingFolder(true)}>{t('setupChange')}</button></>}
-        </div>}<button className="setup-primary" disabled={!repo.trim()||!!(recovery&&(!recovery.intent||!custom?.trim()))} onClick={()=>void run('preview')}>{t('personalCheck')}</button>
-        </fieldset>{!prerequisites&&<small>{t('setupPrerequisites')}</small>}
-      </section>{resetting&&<button onClick={leave}>{t('cancel')}</button>}</>)}
+        <div className="setup-fields" aria-disabled={busy||!prerequisites||undefined}>
+          <span className="setup-field-title">{t('setupFolder')}</span>
+          {!resetting?<div className="setup-folder">
+            <small>{t('setupFinalLocation')}</small><code data-setup-location>{initialFolder}</code>
+            <small>{t('setupParentHint')}</small>
+            <div className="setup-modes"><button type="button" disabled={busy||!prerequisites} onClick={()=>void run('pick')}><Folder size={15}/>{t('setupChange')}</button>
+              {parent!==null&&<button type="button" disabled={busy||!prerequisites} onClick={()=>{setParent(null);setError(null)}}>{t('setupDefaultLocation')}</button>}</div>
+            {error==='setupFolderOccupied'&&<p className="setup-note">{t(mode==='create'?'setupOccupiedCreate':'setupOccupiedExisting')}</p>}
+          </div>:recovery?<div className="setup-folder"><strong>{t('resetLastFolder')}</strong><code>{recovery.folder}</code>
+            <p>{t('resetLostFolder')}</p><div className="setup-modes">{(['locate','new'] as const).map(intent=><button type="button" key={intent} aria-pressed={recovery.intent===intent} onClick={()=>chooseRecovery(intent)}>{t(intent==='locate'?'resetLocate':'resetNewFolder')}</button>)}</div>
+            {recovery.intent&&<label>{t(recovery.intent==='locate'?'resetLocatePath':'resetNewPath')}<input autoFocus value={custom??''} onChange={e=>setCustom(e.target.value)}/></label>}
+          </div>:<div className="setup-folder">
+            {resetting&&mode==='existing'&&!custom&&<small>{t('resetLookupHint')}</small>}
+            {editingFolder?<label>{t('setupPath')}<input autoFocus value={custom??''} placeholder={suggested} onChange={e=>setCustom(e.target.value)}/></label>:<><code>{custom||suggested}</code><button disabled={busy||!prerequisites} onClick={()=>setEditingFolder(true)}>{t('setupChange')}</button></>}
+          </div>}
+        </div>
+        <div className="setup-stepper-foot">
+          <div className="setup-modes"><button type="button" disabled={busy} onClick={()=>goStep(2)}>{t('setupStepPrev')}</button>{resetting&&<button onClick={leave}>{t('cancel')}</button>}</div>
+          <button className="setup-primary" disabled={busy||!prerequisites||!repo.trim()||!!(recovery&&(!recovery.intent||!custom?.trim()))} onClick={()=>void run('preview')}>{t('personalCheck')}</button>
+        </div>
+      </section>}</>)}
     {sync?.binding && !wizard && (manage==='move'?<section className="setup-section">
       <p>{t('moveHint')}</p><small>{t('moveSource')}</small><code>{sync.folder}</code>
       <label>{t('moveTarget')}<input autoFocus value={custom??''} disabled={busy} onChange={e=>setCustom(e.target.value)}/></label>
@@ -224,5 +268,15 @@ const setupCss = `
 .notes-setup .setup-primary,.setup-choice:has(input:checked){background:var(--accent,var(--dsw-alias-label-primary));color:var(--on-accent,var(--dsw-alias-bg-layer-1));border-color:transparent}.setup-modes,.setup-tools{display:flex;gap:8px;flex-wrap:wrap}.setup-tools span{font-size:12px}.setup-folder{margin:6px 0}.notes-setup .setup-choice{display:flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:7px;cursor:pointer}.setup-choice input{width:auto;accent-color:currentColor}.setup-reset{display:grid;gap:7px;margin-top:32px;padding-top:18px;border-top:1px solid var(--dsw-alias-border-l2)}.notes-setup a{color:inherit;text-decoration:underline}
 .setup-step{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;font-size:12px;background:var(--dsw-alias-bg-layer-2)}.setup-intro{margin-bottom:22px}.notes-setup .setup-intro p{color:var(--dsw-alias-label-primary);margin-bottom:8px}
 .notes-setup .setup-tools{display:grid;gap:0}.setup-tool{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 0}.setup-tool+.setup-tool{border-top:1px solid var(--dsw-alias-border-l2)}.setup-tool>a{grid-column:1/-1;justify-self:start}.setup-badge{display:inline-flex;align-items:center;gap:5px;border-radius:5px;padding:3px 7px;background:var(--dsw-alias-bg-layer-2);white-space:nowrap}
-.setup-complete{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}.setup-complete svg,.setup-badge svg{flex:none}.notes-setup .setup-note{padding:10px 12px;margin:0;background:var(--dsw-alias-bg-layer-2);border-radius:7px;font-size:13px}.notes-setup details{font-size:13px}.notes-setup summary{cursor:pointer;color:var(--dsw-alias-label-secondary)}.notes-setup details p{white-space:pre-line}.notes-setup .setup-fields{border:0;border-radius:0;padding:4px 0 0;margin:4px 0 0}.notes-setup .setup-fields legend{padding:0;font-size:12px;color:var(--dsw-alias-label-secondary)}.notes-setup .setup-modes{align-items:center}.notes-setup .setup-modes>a{font-size:13px}
+.setup-complete{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}.setup-complete svg,.setup-badge svg{flex:none}.notes-setup .setup-note{padding:10px 12px;margin:0;background:var(--dsw-alias-bg-layer-2);border-radius:7px;font-size:13px}.notes-setup details{font-size:13px}.notes-setup summary{cursor:pointer;color:var(--dsw-alias-label-secondary)}.notes-setup details p{white-space:pre-line}.notes-setup .setup-fields{display:grid;gap:9px;padding:4px 0 0;margin:4px 0 0}.notes-setup .setup-fields[aria-disabled=true]{opacity:.58}.notes-setup .setup-field-title{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}.notes-setup .setup-modes{align-items:center}.notes-setup .setup-modes>a{font-size:13px}
+.setup-stepper{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}
+@container notebook-setup (max-width:520px){.setup-stepper{grid-template-columns:minmax(0,1fr)}}
+.notes-setup .setup-step-pill{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--rule,var(--dsw-alias-border-l2));background:var(--paper,var(--dsw-alias-bg-layer-1));text-align:left;justify-self:stretch;transition:border-color .15s,background .15s}
+.notes-setup .setup-step-pill>span:last-child{min-width:0}.notes-setup .setup-step-pill strong{display:block;font-size:13px;line-height:1.3;gap:0}.notes-setup .setup-step-pill small{font-size:11px;line-height:1.35}
+.setup-step-num{display:inline-grid;place-items:center;width:23px;height:23px;flex:none;border-radius:50%;font-size:12px;font-weight:700;background:var(--shelf,var(--dsw-alias-bg-layer-2));color:var(--muted,var(--dsw-alias-label-secondary))}
+.notes-setup .setup-step-pill[data-state=active]{border-color:var(--accent,var(--dsw-alias-label-primary));background:var(--selected,var(--dsw-alias-bg-layer-2))}
+.setup-step-pill[data-state=active] .setup-step-num{background:var(--accent,var(--dsw-alias-label-primary));color:var(--on-accent,var(--dsw-alias-bg-layer-1))}
+.notes-setup .setup-step-pill[data-state=done]{border-color:color-mix(in srgb,var(--success,light-dark(#1d8348,#5cd68d)) 35%,var(--rule,var(--dsw-alias-border-l2)));background:var(--success-soft,light-dark(#eaf6ef,rgba(92,214,141,.14)))}
+.setup-step-pill[data-state=done] .setup-step-num{background:var(--success,light-dark(#1d8348,#5cd68d));color:#fff}
+.setup-stepper-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:12px;border-top:1px solid var(--rule,var(--dsw-alias-border-l2))}
 `

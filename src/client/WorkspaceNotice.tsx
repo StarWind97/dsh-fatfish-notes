@@ -3,6 +3,9 @@ import {useSyncExternalStore} from 'react'
 import {ExternalLink,X} from 'lucide-react'
 import type {NotesWorkspace} from './workspace.js'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
+
+const workspaceNoticeCss=`.paper-window-notice{display:flex;flex:0 0 auto;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 24px;background:var(--shelf);border-bottom:1px solid var(--rule);font-size:13px}.paper-window-notice span{flex:1;min-width:180px}.paper-window-notice button{font:inherit;color:inherit;background:transparent;border:1px solid var(--rule);border-radius:5px;padding:4px 8px;cursor:pointer}`
 
 export function WindowButton({workspace,t}:{workspace:NotesWorkspace;t:T}){
   const s=useSyncExternalStore(workspace.subscribe,workspace.getSnapshot)
@@ -10,6 +13,7 @@ export function WindowButton({workspace,t}:{workspace:NotesWorkspace;t:T}){
   return <button disabled={s.message==='windowOpening'} title={t('windowOpen')} aria-label={t('windowOpen')} onClick={()=>void workspace.open()}><ExternalLink size={17}/></button>
 }
 export function WorkspaceNotice({workspace,t}:{workspace:NotesWorkspace;t:T}){
+  useStyleSheet('workspace-notice', workspaceNoticeCss, 'components')
   const s=useSyncExternalStore(workspace.subscribe,workspace.getSnapshot),server=s.server
   const h=server?.handoff,command=server?.command
   const owner=server?.owner
@@ -23,5 +27,5 @@ export function WorkspaceNotice({workspace,t}:{workspace:NotesWorkspace;t:T}){
     {s.message&&!disconnected&&!h&&!owner&&s.message!=='windowLeaseLost'&&<button aria-label={t('cancel')} onClick={()=>workspace.dismiss()}><X size={14}/></button>}
   </aside>}
   {command&&workspace.surface==='standalone'&&<aside className="paper-window-notice" role="status"><span>{t('windowSwitchRequested')}</span><button onClick={()=>void workspace.openCommand(true)}>{t('windowSaveSwitch')}</button><button onClick={()=>void workspace.openCommand(false)}>{t('windowKeepHere')}</button></aside>}
-  <style>{`.paper-window-notice{display:flex;flex:0 0 auto;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 24px;background:var(--shelf);border-bottom:1px solid var(--rule);font-size:13px}.paper-window-notice span{flex:1;min-width:180px}.paper-window-notice button{font:inherit;color:inherit;background:transparent;border:1px solid var(--rule);border-radius:5px;padding:4px 8px;cursor:pointer}`}</style></>
+  </>
 }

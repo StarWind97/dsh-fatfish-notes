@@ -15,6 +15,7 @@ import { noteDateTime } from '../notes/date.js'
 import type { NoteCaptureBridge } from './note-capture-bridge.js'
 import type { T } from './locale.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
+import { useStyleSheet } from './styles/inject.js'
 
 export function NoteCaptureAction({ bridge, sessionId, messageId, openSetup, t, exporting=false }: { bridge: NoteCaptureBridge; sessionId: string; messageId: string; openSetup: () => void; t: T; exporting?:boolean }) {
   const appearance=useCaptureAppearance()
@@ -38,6 +39,9 @@ export function NoteCaptureAction({ bridge, sessionId, messageId, openSetup, t, 
   </button><span className="capture-tip" aria-hidden="true">{t(exporting?'chatExportTitle':'captureHint')}</span></span>
 }
 export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptureBridge; sessionId: string; t: T }) {
+  useStyleSheet('notes-base', notesCss, 'base')
+  useStyleSheet('conversation-notes', conversationNotesCss, 'components')
+  useStyleSheet('capture-dialog', captureDialogCss, 'components')
   const state = useSyncExternalStore(bridge.subscribe, bridge.getSnapshot, bridge.getSnapshot), dialog = useRef<HTMLDivElement>(null)
   const inline=inChatSelection(state,sessionId)
   useEffect(() => {
@@ -63,7 +67,6 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
       else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first?.focus() }
     }
   }}>
-    <style>{notesCss+conversationNotesCss+captureDialogCss}</style>
     <div className={`capture-scroll${state.status==='selecting'?' capture-selecting':''}`}>
     {state.status==='selecting' && state.selection && <>
       <div className="capture-preview"><CaptureSelection state={state} selection={state.selection} bridge={bridge} t={t}/>{state.exporting&&<CaptureMaterials state={state} bridge={bridge} t={t} messageIds={state.scope==='session'?state.selection.messages.map(m=>m.id):state.selected}/>}</div>
@@ -92,7 +95,7 @@ export function NoteCaptureOverlay({ bridge, sessionId, t }: { bridge: NoteCaptu
 
 const captureDialogCss=`
 .paper-dialog.capture-dialog{--paper-dialog-width:1220px;--paper-dialog-inline-inset:48px;--paper-dialog-block-inset:48px}
-.capture-dialog .capture-panel{position:static;inset:auto;width:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;display:flex;flex:1;flex-direction:column;min-height:0;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222)}
+.paper-dialog.capture-dialog .capture-panel{position:static;inset:auto;width:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none;display:flex;flex:1;flex-direction:column;min-height:0;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222)}
 .capture-dialog .capture-scroll{padding:20px;overflow:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start;gap:20px}
 .capture-dialog .capture-preview{min-width:0}.capture-dialog .capture-options{margin:0;padding:0 0 0 20px;border:0;border-left:1px solid var(--dsw-alias-border-l2,#ddd);display:flex;flex-direction:column;gap:14px;position:sticky;top:0}.capture-dialog .capture-foot{flex:none;padding:14px 20px;background:var(--dsw-alias-bg-layer-1,#fff)}
 .capture-dialog .capture-scroll>:not(.capture-preview):not(.capture-options){grid-column:1/-1}

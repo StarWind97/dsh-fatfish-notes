@@ -28,6 +28,7 @@ import {ConversationNotes} from './ConversationNotes.js'
 import {BrandMark} from './Brand.js'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { captureCss } from './capture-style.js'
+import { acquireStyleSheet } from './styles/inject.js'
 
 export const name = NS
 export const inject = ['slots','locale','layout','sidebarRight','sidebarRightTabs','theme']
@@ -61,12 +62,7 @@ export function apply(ctx:Context): void {
   },'notebook changes')
   ctx.effect(()=>{const unbind=bindLibraryLifecycle(library);return()=>{unbind();library.dispose();workspace.dispose();notebookSync.dispose()}},'notes library')
   ctx.effect(()=>()=>notes.dispose(),'note capture bridge')
-  ctx.effect(()=>{
-    const sheet=document.createElement('style')
-    sheet.textContent=captureCss
-    document.head.append(sheet)
-    return ()=>sheet.remove()
-  },'capture controls')
+  ctx.effect(()=>acquireStyleSheet('capture-base', captureCss, 'components'),'capture controls')
   ctx.effect(()=>ctx.slots.inject('shell.overlay',()=>ctx.slots.register({name:'shell.overlay',id:NS+'-progress',order:60,locale:NS},()=><TransferProgress bridge={notes} t={getT()}/>)),'file operation progress')
   ctx.effect(()=>ctx.sidebarRightTabs.register({id:kind,kind,title:()=>getT()('sessionNotes'),guide:[{id:kind,title:()=>getT()('sessionNotes'),description:()=>getT()('sessionPrivacy'),order:50}]}),'conversation notes tab')
   ctx.effect(()=>ctx.slots.inject('sidebar.right.pane.tab.title',()=>ctx.slots.register({name:'sidebar.right.pane.tab.title',key:kind,locale:NS},()=>getT()('sessionNotes'))),'conversation notes tab title')

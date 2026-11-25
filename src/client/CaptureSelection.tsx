@@ -13,7 +13,7 @@ function TurnRow({messages, index, anchor, selected, toggle, initiallyOpen = fal
   const count = ids.filter(id=>selected.has(id)).length
   const summary = messages[0]!.blocks.find(b=>b.type==='text' && b.text.trim())
   const label = t('captureTurn',{n:index+1})
-  return <div className="capture-turn">
+  return <div className="capture-turn" data-checked={count>0||undefined}>
     <div className="capture-turn-line">
       <input type="checkbox" aria-label={label} checked={count===ids.length}
         ref={el=>{if(el)el.indeterminate=count>0 && count<ids.length}}

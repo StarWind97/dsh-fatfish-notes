@@ -7,9 +7,11 @@ import {notebookSync} from './notebook-sync.js'
 import {activeNotebook,editedNotebookTitle,notebookTitle,sameNamedNotebook} from '../notes/notebooks.js'
 import type {NotesController,NotesState} from './notes-controller.js'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
 
 type Choice='new'|'existing'|'rename'|null
 export function WorkspaceBookDialog({mode,workspace,mapped,initialSelected,controller,state,t,close,changed}:{mode:'new'|'workspace';workspace:{id:string;title:string}|null;mapped:string|null;initialSelected?:string|null;controller:NotesController;state:NotesState;t:T;close:()=>void;changed:(id:string|null)=>void}){
+  useStyleSheet('workspace-book-dialog', workspaceBookCss, 'components')
   const current=state.notebooks.find(b=>b.notebookId===mapped),fieldId=useId()
   const workspaceNameTaken=!!sameNamedNotebook(state.notebooks,workspace?.title??'')
   const [choice,setChoice]=useState<Choice>(mode==='new'?'new':initialSelected?'existing':null)
@@ -62,7 +64,7 @@ export function WorkspaceBookDialog({mode,workspace,mapped,initialSelected,contr
   const keys=(e:React.KeyboardEvent)=>{if(e.nativeEvent.isComposing&&(e.key==='Enter'||e.key==='Escape')){e.preventDefault();e.stopPropagation()}}
   const submit=(e:React.FormEvent)=>{e.preventDefault();void save()}
   return <PaperDialog title={mode==='new'?t('notesNewNotebook'):t('workspaceBookSettings')} closeLabel={t('paperClose')} onClose={close} onCancel={()=>choice?cancel():close()} locked={busy} className="workspace-book-dialog">
-    <style>{workspaceBookCss}</style><div className="paper-dialog-content workspace-book-fields">
+    <div className="paper-dialog-content workspace-book-fields">
       {mode==='workspace'&&<>
         {current&&<div className="workspace-book-current"><Notebook size={17} aria-hidden="true"/>
           {choice==='rename'?<form className="workspace-book-inline" onSubmit={submit} onKeyDown={keys}><input aria-label={t('workspaceBookEditName')} aria-invalid={duplicate||undefined} aria-describedby={duplicate?fieldId+'-error':undefined} autoFocus maxLength={240} disabled={busy} value={title} onChange={e=>{setTitle(e.target.value);setError('')}}/>{controls}</form>:<><strong title={notebookTitle(current,t)}>{notebookTitle(current,t)}</strong><button ref={renameButton} disabled={busy} title={t('workspaceBookRename')} aria-label={t('workspaceBookRename')} onClick={e=>choose('rename',e.currentTarget)}><Pencil size={16}/></button></>}

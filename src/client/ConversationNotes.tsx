@@ -309,7 +309,7 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
       <div className="conversation-selection-bar" data-find={group==='find'} data-selecting={selecting}>
         {group==='find'&&(!filterMatches||!state.listError)&&<SearchResultStatus count={state.items.length} more={!!state.cursor}
-          loading={!filterMatches||state.loadingList} scope={selectedBookTitle} t={t}
+          loading={!filterMatches||state.loadingList} t={t}
           {...(selectedBook&&{onAll:()=>selectBook(null)})}/>}
         {selecting?<><strong>{t('sidebarSelectedCount',{count:chosen.length})}</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>{t('sidebarReviewSelected')}</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>{t('sidebarReferenceSelected')}</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>{t('sidebarClearSelection')}</button><button onClick={exitSelection}>{t('sidebarExitSelection')}</button></>:<button aria-label={t('sidebarSelectNotes')} disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>{t('batchSelect')}</button>}
       </div>

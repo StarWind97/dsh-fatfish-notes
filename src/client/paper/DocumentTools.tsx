@@ -2,11 +2,15 @@ import * as React from 'react'
 import {Keyboard} from 'lucide-react'
 import {PaperDialog} from './PaperDialog.js'
 import type {T,LocaleKey} from '../locale.js'
+import {useStyleSheet} from '../styles/inject.js'
+
+const documentToolsCss=`.paper-document-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 18px;border-top:1px solid var(--rule);font-size:11px;color:var(--muted);background:var(--paper);flex:none}.paper-document-tools button{font-size:11px!important;padding:2px 4px!important}.paper-shortcuts{margin:18px 0}.paper-shortcuts>div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--rule)}.paper-shortcuts dd{margin:0}.paper-shortcuts kbd{font:12px ui-monospace,monospace}`
 
 export function shortcutLabel(value:string){return /Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'')?value.replace('Ctrl','⌘').replace('Alt','⌥'):value}
 const shortcuts:Array<[LocaleKey,string]>=[['paperBold','Ctrl+B'],['paperItalic','Ctrl+I'],['paperLink','Ctrl+K'],['paperUndo','Ctrl+Z'],['paperRedo','Ctrl+Shift+Z'],['paperFind','Ctrl+F'],['paperIndent','Tab'],['paperOutdent','Shift+Tab']]
 const readingShortcuts:Array<[LocaleKey,string]>=[['quickSwitchTitle','Alt+K'],['readingStart','Home / Ctrl+Home'],['readingEnd','End / Ctrl+End'],['readingPrevious','Page Up'],['readingNext','Page Down']]
 export function DocumentTools({body,t,materials}:{body:string;t:T;materials?:React.ReactNode}){
+  useStyleSheet('document-tools', documentToolsCss, 'components')
   const [count,setCount]=React.useState<number|null>(null),[failed,setFailed]=React.useState(false),[help,setHelp]=React.useState(false)
   const worker=React.useRef<Worker|null>(null),sequence=React.useRef(0)
   React.useEffect(()=>{
@@ -22,6 +26,5 @@ export function DocumentTools({body,t,materials}:{body:string;t:T;materials?:Rea
       <h3>{t('documentReadingKeys')}</h3><dl className="paper-shortcuts">{readingShortcuts.map(([label,key])=><div key={key}><dt>{t(label)}</dt><dd><kbd>{shortcutLabel(key)}</kbd></dd></div>)}</dl><p className="paper-dialog-sub">{t('documentReadingKeysHint')}</p>
       <h3>{t('documentEditingKeys')}</h3><dl className="paper-shortcuts">{shortcuts.map(([label,key])=><div key={key}><dt>{t(label)}</dt><dd><kbd>{shortcutLabel(key)}</kbd></dd></div>)}</dl><p>{t('documentShortcutsHint')}</p><p className="paper-dialog-sub">{t('documentNavigationKeys')}</p>
       </div><footer><button onClick={()=>setHelp(false)}>{t('paperClose')}</button></footer></PaperDialog>}
-    <style>{`.paper-document-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 18px;border-top:1px solid var(--rule);font-size:11px;color:var(--muted);background:var(--paper);flex:none}.paper-document-tools button{font-size:11px!important;padding:2px 4px!important}.paper-shortcuts{margin:18px 0}.paper-shortcuts>div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--rule)}.paper-shortcuts dd{margin:0}.paper-shortcuts kbd{font:12px ui-monospace,monospace}`}</style>
   </>
 }

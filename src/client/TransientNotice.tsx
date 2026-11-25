@@ -2,6 +2,9 @@ import * as React from 'react'
 import {useEffect,useRef,useState} from 'react'
 import {X} from 'lucide-react'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
+
+const transientNoticeCss=`.paper-transient{position:fixed;right:24px;bottom:24px;z-index:1500;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 48px);padding:12px 16px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,#ccc);box-shadow:0 5px 22px #0002;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222);font:13px/1.5 system-ui}.paper-transient button{border:0;background:transparent;color:inherit;cursor:pointer;white-space:nowrap}`
 
 /** A receipt expires, never the operation it describes. Hover/focus pauses its clock. */
 export function useNoticeExpiry(key:unknown, close:()=>void, milliseconds=8000){
@@ -15,6 +18,7 @@ export function useNoticeExpiry(key:unknown, close:()=>void, milliseconds=8000){
   return {onMouseEnter:()=>setHover(true),onMouseLeave:()=>setHover(false),onFocusCapture:()=>setFocus(true),onBlurCapture:(e:React.FocusEvent)=>{if(!e.currentTarget.contains(e.relatedTarget))setFocus(false)}}
 }
 export function TransientNotice({t,identity,message,close,action,actionLabel=t('undo'),busy=false,paused=false,milliseconds=8000}:{t:T;identity:string;message:string;close:()=>void;action?:()=>void;actionLabel?:string;busy?:boolean;paused?:boolean;milliseconds?:number}){
+  useStyleSheet('transient-notice', transientNoticeCss, 'components')
   const events=useNoticeExpiry(busy||paused?null:identity,close,milliseconds)
-  return <aside className="paper-transient" role="status" {...events}><style>{`.paper-transient{position:fixed;right:24px;bottom:24px;z-index:1500;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 48px);padding:12px 16px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2,#ccc);box-shadow:0 5px 22px #0002;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#222);font:13px/1.5 system-ui}.paper-transient button{border:0;background:transparent;color:inherit;cursor:pointer;white-space:nowrap}`}</style><span>{message}</span>{action&&<button disabled={busy} onClick={action}>{actionLabel}</button>}<button aria-label={t('dismissNotice')} disabled={busy} onClick={close}><X size={14}/></button></aside>
+  return <aside className="paper-transient" role="status" {...events}><span>{message}</span>{action&&<button disabled={busy} onClick={action}>{actionLabel}</button>}<button aria-label={t('dismissNotice')} disabled={busy} onClick={close}><X size={14}/></button></aside>
 }

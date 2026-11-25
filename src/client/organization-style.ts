@@ -2,7 +2,7 @@ export const organizationCss=`
 .paper-order[hidden]{display:none}
 .paper-document[data-loading=true] .paper-pane{opacity:.55;pointer-events:none}
 .paper-app mark{color:inherit;background:color-mix(in srgb,var(--accent) 24%,transparent);border-radius:2px;padding:0 1px}
-.paper-new-actions,.paper-quick-view{display:flex;align-items:center;gap:5px}.paper-quick-view{margin:10px 0 0;font-size:12px;color:var(--muted)}
+.paper-new-actions,.paper-quick-view{display:flex;align-items:center;gap:5px}.paper-quick-view{margin:0;font-size:12px;color:var(--muted)}
 .paper-quick-view select{background:transparent;color:var(--ink);border:0;padding:3px 0;max-width:100%}.paper-quick-view small{margin-left:auto}
 .paper-tag-suggestions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.paper-tag-suggestions button{display:inline-flex;gap:6px;align-items:center;font-size:12px;background:var(--shelf);border-radius:5px;padding:4px 7px}.paper-tag-suggestions small{color:var(--muted)}
 .paper-favorite[aria-pressed=true]{color:var(--accent)}.paper-actions .paper-overflow.always{display:block}.paper-actions .paper-popup{max-width:min(80vw,300px);z-index:20}

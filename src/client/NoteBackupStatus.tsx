@@ -4,8 +4,10 @@ import { notebookSync } from './notebook-sync.js'
 import { syncPresentation } from './sync-presentation.js'
 import { SyncDetails, SyncSymbol, syncCss } from './SyncDetails.js'
 import type { T } from './locale.js'
+import { useStyleSheet } from './styles/inject.js'
 
 export function NoteBackupStatus({t,onPulled,onSettings,revision}:{t:T;onPulled:()=>void;onSettings:()=>void;revision?:string|undefined}) {
+  useStyleSheet('sync-details', syncCss, 'components')
   const sync=useSyncExternalStore(notebookSync.subscribe,notebookSync.getSnapshot,notebookSync.getSnapshot)
   const [open,setOpen]=useState(false),root=useRef<HTMLDivElement>(null),id=React.useId()
   useEffect(()=>{
@@ -19,7 +21,7 @@ export function NoteBackupStatus({t,onPulled,onSettings,revision}:{t:T;onPulled:
   useEffect(()=>{if(!open)return;const outside=(e:PointerEvent)=>{if(!root.current?.contains(e.target as Node))setOpen(false)};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside)},[open])
   const view=syncPresentation(sync)
   return <div ref={root} className="notebook-sync-anchor" onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false)}} onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();setOpen(false)}}}>
-    <style>{syncCss}</style><button className="paper-sync-status" data-attention={view.state==='error'} data-state={view.state} onClick={()=>setOpen(true)} onFocus={()=>setOpen(true)} aria-expanded={open} aria-controls={id} aria-haspopup="dialog">
+    <button className="paper-sync-status" data-attention={view.state==='error'} data-state={view.state} onClick={()=>setOpen(true)} onFocus={()=>setOpen(true)} aria-expanded={open} aria-controls={id} aria-haspopup="dialog">
       <SyncSymbol {...view}/><span role="status">{t(view.label)}</span>
     </button>
     {open&&<div className="notebook-sync-popover" id={id} role="dialog" aria-label={t('syncDetails')}><div className="notebook-sync-card">

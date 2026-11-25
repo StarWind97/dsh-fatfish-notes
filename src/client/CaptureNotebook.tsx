@@ -5,14 +5,16 @@ import {api,type Api} from './api.js'
 import {activeNotebook} from '../notes/notebooks.js'
 import type {NotebookView} from '../contracts/notes.js'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
 
 /** Capture only chooses an existing destination; management belongs to the library/sidebar. */
 export function CaptureNotebook({value,choose,t,call=api,onValid}:{value:string|null;choose:(id:string)=>void;t:T;call?:Api;onValid?:(valid:boolean)=>void}){
+  useStyleSheet('capture-notebook', captureNotebookCss, 'components')
   const [books,setBooks]=useState<NotebookView[]>([]),[error,setError]=useState(false),[loaded,setLoaded]=useState(false)
   useEffect(()=>{const c=new AbortController();void call('/notes/notebooks',undefined,c.signal).then(r=>{setBooks(r.notebooks.filter(activeNotebook));setLoaded(true)}).catch(()=>{if(!c.signal.aborted){setError(true);onValid?.(false)}});return()=>c.abort()},[call])
   const selected=value??books.find(b=>b.isDefault)?.notebookId??'',valid=books.some(b=>b.notebookId===selected)
   useEffect(()=>{onValid?.(loaded&&valid)},[loaded,valid,onValid])
-  return <div className="conversation-book-picker"><style>{captureNotebookCss}</style><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={valid?selected:''} onChange={e=>choose(e.target.value)}><option value="" disabled>{t(loaded?'sessionChooseBook':'loading')}</option>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{notebookTitle(b,t)}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>{loaded&&!valid&&<p role="alert">{t('captureBookUnavailable')}</p>}{error&&<p role="alert">{t('notesBooksFailed')}</p>}</div>
+  return <div className="conversation-book-picker"><label>{t('notesNotebook')}<select aria-label={t('notesNotebook')} value={valid?selected:''} onChange={e=>choose(e.target.value)}><option value="" disabled>{t(loaded?'sessionChooseBook':'loading')}</option>{books.map(b=><option key={b.notebookId} value={b.notebookId}>{notebookTitle(b,t)}{b.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>{loaded&&!valid&&<p role="alert">{t('captureBookUnavailable')}</p>}{error&&<p role="alert">{t('notesBooksFailed')}</p>}</div>
 }
 
 export const captureNotebookCss=`

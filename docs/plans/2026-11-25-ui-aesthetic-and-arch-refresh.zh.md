@@ -130,3 +130,43 @@
   - 会话侧栏多标签切换实测 `deltaTop: 0 px`、`deltaWidth: 0 px`、`tabCount` 不变、阅读态顶区总高 `88 px`；
   - 转存弹窗切至「整个会话」实测 `地出.jpg` 缩略图加载成功（`complete: true`, `1280 × 730`），`缺失.jpg` 平稳降级为虚线占位徽标，底部 `取消` + `保存到笔记` 完整可见且点击「取消」干净退出转存。
 - **未覆盖边界与发版前提**：本次仍**未**执行对外发版、插件市场更新或公开 README 配图替换，**未**触碰日常 DSH 资料。隔离体验入口仍为 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd)。
+
+---
+
+## 七、三轮原型收尾与交互精修（2026-11-25）
+
+- **分支与目录**：`antigravity/ui-round3-polish`（主目录 `D:\DSH-Workspace\dsh-github-notebook`），已合回 `main`
+- **状态**：已完成全部 12 项实施、第三档全量回归、双端官方重装、原子 DOM/CSS 断言与逐图人工复查（未发版）
+- **核定实施范围与原子断言矩阵（12/12 全部通过）**：
+  - **A0 列表状态行去掉冗余笔记本名**：主列表已展示当前笔记本标题时，`.paper-search-status` 仅显示篇数（如 `31 篇笔记`）与「改搜全部笔记」，不再重复拼接 `· 当前笔记本名`；
+  - **A1 正文表格柔和圆角外框**：`NoteMarkdown` 表格外层提供 `.paper-table-wrap`（`border-radius: 10px; border: 1px solid var(--rule); overflow: auto`），内部 `table` 使用 `border-collapse: separate; border-spacing: 0`、表头浅底（`var(--shelf)`）、仅保留柔和水平分隔线并去掉生硬内部竖线与末行底边，兼容宽表横向滚动及长图/PDF 导出；
+  - **A2 恢复列表选中行左侧 3px 主题竖条**：移除 `appearance-style.ts` 对 `.paper-row[aria-current=true]` `box-shadow` 的意外覆盖，保留 `inset 3px 0 0 var(--accent)` 竖条；
+  - **A3 统一顶栏「标准宽度 / 全宽」分段控件**：`.paper-width` 改为与设置页、列表页完全一致的「灰槽 + 白滑块 + 微阴影」；
+  - **A4 正文标签改为圆角胶囊 + 细描边**：`.paper-tags button` 改为 `border-radius: 999px`、细描边，激活筛选态带主题色底与描边；
+  - **A5 转存弹窗 AI 建议胶囊 + 勾选轮次高亮 + 范围分段统一**：AI 建议按钮改为主题浅底胶囊、已勾选轮次行带 `data-checked=true` 柔和强调底与边框、`.capture-scope` 统一使用主题语义 Token；
+  - **A7 设置页「外观设置已同步」状态语义色**：同步完成态展示绿色状态点与 `--success` 语义色（`rgb(29, 131, 72)`）；
+  - **A8 全量清理运行期 JSX 行内 `<style>` 与非分层注入**：除原本计划的 4 处外，实机 A8 断言进一步查出并迁移了 `NoteBackupStatus`、`WorkspaceNotice`、`CaptureAppearance`、`CaptureNotebook`、`NoteMaterialChoices`、`NoteSelectionRow`、`TransferProgress`、`TransientNotice`、`use-note-reference`、`WorkspaceBookDialog`、`DocumentTools`、`PaperWriting` 共 12 处局部行内 `<style>`，以及 `src/client/index.tsx` 中最后 1 处无 `@layer` 直接挂载的 `captureCss`（改用 `acquireStyleSheet('capture-base', captureCss, 'components')`）；主界面与弹窗 DOM 内行内 `<style>` 全部降至 `0`（仅离线 PNG 导出专用脱离容器 `note-reading-image.tsx` 按需保留）；
+  - **B1 列表排序改为轻边框无箭头样式并同高对齐**：`SearchOrderPicker` 去除原生箭头（`appearance: none`）、固定 `height: 28px`，并消除 `@layer components` 中 `.paper-quick-view` 与 `.paper-batch` 残留的垂直外/内边距，实测 `[全部 / 收藏 / 最近]`、`[⇅ 排序]`、`[多选]` 三者高度均为 `28 px`、`top: 201 px`、`midY: 215 px`（`0 px` 对齐）；
+  - **B2 顶栏「问题与建议」收回设置页「帮助」**：移除主工作台顶栏中的 `FeedbackLink`（`topFeedbackCount: 0`），保留「设置 → 帮助」（`helpFeedbackCount: 1`）与首次接入页的反馈入口；
+  - **B3 首次接入页改为三步 Stepper**：`SettingsPage.tsx` 改造为「1. 同步工具 → 2. 账号与云端库 → 3. 位置与首次同步」三步向导，环境就绪时自动定位到未完成步骤，支持点回前序步骤修改，完整保留设备码登录、目录选择器及重置/恢复路径；
+  - **B4（选定 B4-B）编辑态顶部元信息全折叠抽屉**：进入编辑态时标题下方仅显示一行紧凑属性摘要 + `[编辑属性 ▾]` 开关，点击原地展开笔记本、标签与摘要表单，最大限度消除点击编辑时的正文下跳。
+- **明确不做**：A6（阅读与代码 3 项下拉保持 `<select>`）、B5（列表不显示底部 `#标签`）、B6（不引入全库代码格式化器）；不发版、不更新市场、不触碰日常 DSH 资料。
+
+### 三轮实测过程中实机拦截并即时修复的 4 个隐蔽缺陷
+
+1. **`SettingsPage.tsx` React Hook 顺序缺陷**：B3 新增的 `useEffect` 初版写在 `if (sync?.ready && children) return ...` 之后，已绑定账号切换就绪状态时触发 Hook 数量不一致；`npm run test:sidebar` 第一时间拦截，已将 `useEffect` 移至早返回前。
+2. **12 处残留行内 `<style>`**：实机 A8 断言在 `.paper-app` 内查出 2 处未清理的行内 `<style>`，顺藤摸瓜清查全量 `src/client/**/*.tsx`，将其余 12 处运行期局部样式一并迁入 `useStyleSheet`。
+3. **`index.tsx` 无 `@layer` 注入 `captureCss` 覆盖弹窗定位**：因 CSS Cascade Layers 规范中无层样式优先级高于任何 `@layer`，迁移后旧的 `document.head.append(sheet)` 覆盖了 `@layer components` 中的 `.capture-save-panel { position: static }`，把转存弹窗主体推到视口外；实机 Web 验收立即暴露，改用 `acquireStyleSheet('capture-base', captureCss, 'components')` 并提高 `.paper-dialog.capture-save .capture-save-panel` 优先级彻底根治。
+4. **列表工具栏 `5 px` 垂直错位**：人工复查实机截图时发现 `[全部 / 收藏 / 最近]` 比右侧排序框低 `5 px`，定位为 `organization-style.ts` 的 `.paper-quick-view { margin: 10px 0 0 }` 与 `NoteAttachments.tsx` 的 `.paper-batch { padding: 8px 0 }` 在 `@layer components` 中覆盖了 `paperCss` 归零规则；修复后补充 `<= 1 px` 逐像素垂直居中断言并通过双端实测。
+
+### 三轮最终验收结果（2026-11-25）
+
+- **类型检查、构建、弹窗尺寸与第三档全量回归**：`npm run typecheck`、`npm run build`、`npx tsx test/browser/check-dialog-sizes.mjs`（含 `104 × 120 CSS px`）与 `npm test` **440 / 440 全部通过**。
+- **会话侧栏浏览器回归（`npm run test:sidebar`）**：通过（宽 `611 × 882`、窄 `343 × 822`、矮 `343 × 582` 全绿，`scopedResults: 31`）。
+- **官方打包与双隔离宿主实装（DSH `0.2.2-rc.5`）**：打包 `dist/ui-round3/dsh-fatfish-notes-r3-20261125-1934*.tgz`（273 文件），通过官方 CLI 重装入 `.dsh-home/pure-001/release12-{web,desktop}` 并逐文件核对 `lib/client.js`、`lib/standalone.js`、`locale/zh.json`、`locale/en.json` SHA-256 一致。
+- **Web + Windows 桌面实机 12 项原子断言 + 各 16 张浅深双语实拍核对（`output/playwright/ui-arch-refresh/{web,desktop}/`）**：
+  - 零页面错误（`errors: []`）；`inlineAppStyles: 0`、`inlineDialogStyles: 0`、`singletonCount: 17`（唯一 ID 17 个）；
+  - A0 `statusText: "31 篇笔记"`（`statusRepeatsBook: false`）；A1 `tableRadius: "10px"`、`tdRightBorder: "0px"`、表头浅底与单元格清晰区分；A2 `currentRowShadow` 含 `rgb(145, 49, 142) 3px 0px 0px 0px inset`；A3 `.paper-width` 激活滑块与 `.paper-segmented` 一致；A4 `tagRadius: 999`、`tagBorderWidth: "1px"`；A5 转存弹窗 `aiBtnRadius: 999`、`checkedTurns: 4`、`地出.jpg` 真实缩略图（`1280 × 730`）+ `取消` 干净关闭；A7 `syncStatusState: "saved"`、`syncStatusColor: "rgb(29, 131, 72)"`；
+  - B1 三控件同为 `height: 28`、`midY` 偏差 `0 px`、`orderSelectAppearance: "none"`；B2 `topFeedbackCount: 0`、`helpFeedbackCount: 1`；B3 三步 Stepper 完整渲染（`1. 同步工具` / `2. 账号与云端库` / `3. 位置与首次同步`）；B4-B 编辑态初始折叠（`expanded: "false", hasDrawer: false`），点击后原地展开笔记本/标签/摘要抽屉（`expanded: "true", hasDrawer: true`）；
+  - 英文界面零中文泄漏（`enSettingsHanLeak: []`）、`Alt+K` 零冲突、会话侧栏 `0 px` 零跳动均保持全绿。
+- **未覆盖边界与体验入口**：本次**未**执行发版、插件市场更新或公开 README 配图替换，**未**触碰日常 DSH 资料。最新隔离桌面体验入口：[Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd)。

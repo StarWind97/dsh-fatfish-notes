@@ -1132,5 +1132,19 @@
   "appearancePaletteAmberDesc": "Warm amber paper tone",
   "appearancePaletteRoseDesc": "Soft rose accent",
   "appearancePaletteGraphiteDesc": "Minimal neutral graphite",
-  "captureFooterHint": "Saves locally right away and queues private sync"
+  "captureFooterHint": "Saves locally right away and queues private sync",
+  "editorMetaEdit": "Edit details",
+  "editorMetaHide": "Hide details",
+  "editorMetaTagsCount": "{count} tags",
+  "editorMetaTagsCount.one": "{count} tag",
+  "editorMetaHasSummary": "Has summary",
+  "setupStepperLabel": "Setup steps",
+  "setupStepTools": "1. Sync tools",
+  "setupStepToolsSub": "Git and GitHub CLI",
+  "setupStepAccount": "2. Account & repo",
+  "setupStepAccountSub": "Sign in and name repo",
+  "setupStepSync": "3. Folder & sync",
+  "setupStepSyncSub": "Review and connect",
+  "setupStepPrev": "Previous",
+  "setupStepNext": "Next"
 }

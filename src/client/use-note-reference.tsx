@@ -8,8 +8,10 @@ import {TransientNotice} from './TransientNotice.js'
 import {fileSize} from './NoteAttachments.js'
 import {ReferenceReceipts,prepareReferences,type ReferenceTarget,type ReferenceChoice} from './note-reference.js'
 import type {T} from './locale.js'
+import {useStyleSheet} from './styles/inject.js'
 
 export function useNoteReference({controller,inputActions,useInput,sessionId,visible,available=true,scope,t,inserted}:{controller:NotesController;visible:boolean;available?:boolean;scope:string;t:T;inserted:(ids:string[])=>void}&Pick<PropsRuntime<'sidebar.right.pane.tab'>,'inputActions'|'useInput'|'sessionId'>){
+  useStyleSheet('note-reference', referenceCss, 'components')
   const input=useInput((s:InputState)=>s),[targets,setTargets]=React.useState<ReferenceTarget[]|null>(null),[choices,setChoices]=React.useState<ReferenceChoice[]>([]),[loading,setLoading]=React.useState(false),[busy,setBusy]=React.useState(false),[error,setError]=React.useState(''),[progress,setProgress]=React.useState(''),[notice,setNotice]=React.useState('')
   const active=React.useRef<AbortController|null>(null),current=React.useRef({visible,sessionId,available,scope});current.current={visible,sessionId,available,scope}
   const receipts=React.useMemo(()=>{let storage:Storage|undefined;try{storage=sessionStorage}catch{}return new ReferenceReceipts(storage,scope+':'+sessionId)},[scope,sessionId])
@@ -51,7 +53,7 @@ export function useNoteReference({controller,inputActions,useInput,sessionId,vis
   const dialogs=<>
     {notice&&<TransientNotice t={t} identity={notice} message={notice} milliseconds={5000} close={()=>setNotice('')}/>}
     {targets&&<PaperDialog title={t('referenceTitle')} closeLabel={t('paperClose')} onClose={close} className="reference-dialog">
-      <style>{referenceCss}</style><div className="paper-dialog-content">
+      <div className="paper-dialog-content">
         <p className="reference-intro">{t('referenceReviewIntro')}</p>
         {(loading||busy)&&<p className="reference-progress" role="status"><LoaderCircle className="conversation-link-spinner" size={16}/><span>{progress}</span></p>}
         {!loading&&choices.map(({plan,selected})=><section key={plan.noteId} className="reference-note">

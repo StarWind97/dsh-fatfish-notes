@@ -228,7 +228,7 @@ export function AppearanceStyle() {
 export function AppearanceStatus({ t }: { t: T }) {
   const sync = useSyncExternalStore(appearancePreferences.subscribeStatus, appearancePreferences.getStatus, appearancePreferences.getStatus)
   return (
-    <p role={sync === 'error' ? 'status' : undefined} className="appearance-sync-status">
+    <p role={sync === 'error' ? 'status' : undefined} className="appearance-sync-status" data-state={sync}>
       {sync === 'error'
         ? t('appearanceStatusError')
         : sync === 'saving'

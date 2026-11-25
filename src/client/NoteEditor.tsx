@@ -11,7 +11,7 @@ import {readingKey} from './paper/reading-keys.js'
 import { activeNotebook } from '../notes/notebooks.js'
 import * as React from 'react'
 import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react'
-import { Notebook, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, Trash2, Star, History, Copy, Pin, PinOff, Search, Plus } from 'lucide-react'
+import { Notebook, Pencil, ArrowLeft, Download, RotateCcw, Check, ListTree, Trash2, Star, History, Copy, Pin, PinOff, Search, Plus, ChevronDown } from 'lucide-react'
 import {Backlinks,Highlight,HistoryDialog,TagSuggestions} from './NoteTools.js'
 import type { NoteView, SearchHit } from '../contracts/notes.js'
 import type { NotesController, NotesState } from './notes-controller.js'
@@ -41,6 +41,8 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   }
   const [panel,setPanel]=useState<'export'|'history'|null>(null),[tag,setTag]=useState('')
   const [allTags,setAllTags]=useState(false)
+  const [metaOpen,setMetaOpen]=useState(false)
+  useEffect(()=>{if(!state.editing)setMetaOpen(false)},[state.editing,state.noteId])
   const root=useRef<HTMLElement>(null),anchor=useRef<{pos:number;y:number}|null>(null)
   const [sourceOpen,setSourceOpen]=useState(false),[sourceVisited,setSourceVisited]=useState(false)
   const [cancelOpen,setCancelOpen]=useState(false)
@@ -172,17 +174,20 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     {panel==='history'&&note&&<HistoryDialog note={note} controller={controller} t={t} close={()=>setPanel(null)}/>}
     <div hidden={sourceOpen}>
     {mode==='edit'?<input disabled={!editable} className="paper-title-input" aria-label={t('notesTitle')} placeholder={t('notesUntitled')} value={draft.title} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({title:e.target.value})}/>:<ReadingTitle title={draft.title} t={t} query={state.filter.query}/>}
-    {state.editing?<div className="paper-meta"><span className="paper-stamp">{note&&<time dateTime={note.savedAt} title={t('noteModifiedAt')}>{noteDateTime(note.savedAt)}</time>}<span role="status">{t(status)}</span></span></div>:<ReadingMeta content={draft} savedAt={note?.savedAt} t={t} allTags={allTags} toggleTags={()=>setAllTags(!allTags)} onTagClick={onTagClick} tag={state.filter.tag??undefined}/>}
-    {state.editing&&<aside className="paper-metadata" onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}>
-      <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? state.notebooks.find(b=>b.isDefault)?.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}>{state.notebooks.filter(activeNotebook).map(book => <option key={book.notebookId} value={book.notebookId}>{notebookTitle(book,t)}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
-      <div className="paper-tag-editor"><span>{t('notesTag')}</span><div className="paper-tag-items">
-        {draft.tags.map(value=><button type="button" disabled={!editable} key={value} aria-label={t('notesRemoveTag',{tag:value})} onClick={()=>controller.update({tags:draft.tags.filter(tag=>tag!==value)})}>#{value} ×</button>)}
-        <form onSubmit={event=>{event.preventDefault();if(!state.composing)addTag()}}>
-          <input value={tag} aria-label={t('notesAddTag')} placeholder={t('notesAddTag')} disabled={!editable} onChange={event=>setTag(event.target.value)} onBlur={event=>{if(!state.composing && tag.trim()&&!(event.relatedTarget as HTMLElement)?.closest('.paper-tag-suggestions'))addTag()}}/>
-          <button type="submit" className="paper-tag-add" title={t('notesAddTag')} aria-label={t('notesAddTag')} disabled={!editable||!tag.trim()||state.composing}><Plus size={16}/></button>
-        </form></div>{editable&&<TagSuggestions value={tag} selected={draft.tags} choose={value=>{controller.update({tags:[...new Set([...draft.tags,value])]});setTag('')}} t={t}/>}</div>
-    </aside>}
-    {mode==='edit'?<section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/></label></section>:<ReadingSummary summary={draft.summary} t={t} query={state.filter.query}/>}
+    {state.editing?<div className="paper-meta paper-edit-meta"><span className="paper-stamp">{note&&<time dateTime={note.savedAt} title={t('noteModifiedAt')}>{noteDateTime(note.savedAt)}</time>}<span role="status">{t(status)}</span><span className="paper-edit-meta-brief">· {book}{draft.tags.length>0?` · ${t('editorMetaTagsCount',{count:draft.tags.length})}`:''}{draft.summary.trim()?` · ${t('editorMetaHasSummary')}`:''}</span></span><button type="button" className="paper-meta-toggle" aria-expanded={metaOpen} onClick={()=>setMetaOpen(open=>!open)}><span>{t(metaOpen?'editorMetaHide':'editorMetaEdit')}</span><ChevronDown size={13} aria-hidden="true"/></button></div>:<ReadingMeta content={draft} savedAt={note?.savedAt} t={t} allTags={allTags} toggleTags={()=>setAllTags(!allTags)} onTagClick={onTagClick} tag={state.filter.tag??undefined}/>}
+    {state.editing&&metaOpen&&<div className="paper-meta-drawer">
+      <aside className="paper-metadata" onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)}>
+        <label style={s.label}>{t('notesNotebook')}<select value={draft.notebookId ?? state.notebooks.find(b=>b.isDefault)?.notebookId ?? ''} disabled={!editable} onChange={e => controller.update({ notebookId: e.target.value || null })}>{state.notebooks.filter(activeNotebook).map(book => <option key={book.notebookId} value={book.notebookId}>{notebookTitle(book,t)}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}</select></label>
+        <div className="paper-tag-editor"><span>{t('notesTag')}</span><div className="paper-tag-items">
+          {draft.tags.map(value=><button type="button" disabled={!editable} key={value} aria-label={t('notesRemoveTag',{tag:value})} onClick={()=>controller.update({tags:draft.tags.filter(tag=>tag!==value)})}>#{value} ×</button>)}
+          <form onSubmit={event=>{event.preventDefault();if(!state.composing)addTag()}}>
+            <input value={tag} aria-label={t('notesAddTag')} placeholder={t('notesAddTag')} disabled={!editable} onChange={event=>setTag(event.target.value)} onBlur={event=>{if(!state.composing && tag.trim()&&!(event.relatedTarget as HTMLElement)?.closest('.paper-tag-suggestions'))addTag()}}/>
+            <button type="submit" className="paper-tag-add" title={t('notesAddTag')} aria-label={t('notesAddTag')} disabled={!editable||!tag.trim()||state.composing}><Plus size={16}/></button>
+          </form></div>{editable&&<TagSuggestions value={tag} selected={draft.tags} choose={value=>{controller.update({tags:[...new Set([...draft.tags,value])]});setTag('')}} t={t}/>}</div>
+      </aside>
+      <section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/></label></section>
+    </div>}
+    {!state.editing&&<ReadingSummary summary={draft.summary} t={t} query={state.filter.query}/>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
     {state.error&&<p role="alert" style={s.error}>{t(state.error==='note_recovery_failed'?'notesDraftRecoveryFailed':['note_edit_busy','note_edit_lost','window_expired','notebook_busy'].includes(state.error)?'windowEditBusy':['note_deleted','note_not_found'].includes(state.error)?'linkDeleted':state.error==='note_unsaved'?'paperLeaveDraft':state.error==='note_conflict'?'notesConflictHint':state.error==='note_asset'?'notesImageHint':state.error==='note_limit'?'notesLimit':'notesSaveFailureHint')}</p>}
     {state.conflict && <section style={s.card} aria-label={t('notesConflict')}><h3>{t('notesConflict')}</h3><p>{t('notesConflictHint')}</p>{[state.conflict.current, ...state.conflict.conflicts].map((revision, i) => <details key={revision.revision} data-revision={revision.revision}><summary>{t('notesVersion', { index: i + 1 })} · {revision.title} · {t(revision.status === 'trashed' ? 'notesTrash' : 'notesActive')}</summary><p>{revision.summary}</p><p>{revision.tags.join(' · ')}</p><pre style={s.markdown}>{revision.body}</pre><button type="button" style={s.button} disabled={state.operation || state.loadingNote} onClick={() => { controller.chooseRevision(revision); controller.beginEdit() }}>{t('notesUseVersion')}</button></details>)}<p>{t('notesResolveHint')}</p><button type="button" style={s.button} disabled={state.operation || state.loadingNote || state.composing} onClick={() => void controller.resolve()}>{t('notesResolve')}</button></section>}

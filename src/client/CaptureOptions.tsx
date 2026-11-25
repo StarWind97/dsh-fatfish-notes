@@ -15,6 +15,7 @@ import type { T } from './locale.js'
 import type { NoteCaptureBridge, NoteCaptureState } from './note-capture-bridge.js'
 import { notesCss, notesStyles } from './notes-style.js'
 import { PaperDialog } from './paper/PaperDialog.js'
+import { useStyleSheet } from './styles/inject.js'
 
 const expandedViewport = '(min-width: 1180px) and (min-height: 720px)'
 function subscribeViewport(notify: () => void) {
@@ -112,11 +113,14 @@ export function CaptureOptions({ state, selection, bridge, t }: {
     </button>
   </>
 
+  useStyleSheet('notes-base', notesCss, 'base')
+  useStyleSheet('capture-base', captureCss, 'components')
+  useStyleSheet('capture-options', captureOptionsCss, 'components')
+
   return <PaperDialog className={`capture-save ${review?'capture-save-review':expanded?'capture-save-expanded':'capture-save-compact'}`}
     title={t(review?.kind==='range'?'captureTurns':review?.kind==='files'?'captureMaterials':'captureOptions')}
     closeLabel={t(review?'cancel':'paperClose')} onClose={close} headerActions={headerActions}>
     <div className="notes-surface capture-panel capture-save-panel">
-      <style>{notesCss+captureCss+captureOptionsCss}</style>
       {!selection.complete && <p className="capture-save-warning" role="alert">{t('notePartialSource')}</p>}
       {!review && state.recoveries.length>0 && <p className="capture-save-warning" role="note">{t('noteNewSaveWarning')}</p>}
       <div className="capture-save-body" hidden={!!review}>

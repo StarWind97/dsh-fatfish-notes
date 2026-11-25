@@ -9,7 +9,7 @@ export const captureOptionsCss = `
 .capture-save>header .paper-dialog-actions{flex-wrap:nowrap;white-space:nowrap}
 .capture-save>header .capture-header-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--chrome,var(--shelf));color:var(--muted);font-size:12px;line-height:1.3;margin-right:4px}
 .capture-save>header .capture-layout-icon{display:none}
-.capture-save .capture-save-panel{position:static;inset:auto;width:100%;flex:1;min-height:0;max-height:none;border:0;border-radius:0;z-index:auto}
+.paper-dialog.capture-save .capture-save-panel{position:static;inset:auto;width:100%;flex:1;min-height:0;max-height:none;border:0;border-radius:0;z-index:auto}
 .capture-save [hidden]{display:none!important}
 .capture-save .capture-save-warning{flex:none;margin:0;padding:8px 16px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:12px}
 .capture-save-body,.capture-save-review-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}

@@ -15,7 +15,7 @@ import { useNoteSelection } from './NoteBatch.js'
 import { NoteEditor } from './NoteEditor.js'
 import {SettingsWorkspace} from './SettingsWorkspace.js'
 import type {SettingsCategory} from './SettingsTabs.js'
-import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
+import { feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
 import { ChevronDown, Plus, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin, Moon, Sun, Search } from 'lucide-react'
@@ -223,7 +223,7 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
       </div>
     </SearchControls>
     {!state.listError&&<SearchResultStatus count={state.items.length} more={!!state.cursor} loading={state.loadingList||query!==(state.filter.query??'')}
-      scope={inTrash?t('notesTrash'):(selectedBook?notebookTitle(selectedBook,t):t('paperAll'))} t={t}
+      t={t}
       {...(!inTrash&&state.filter.notebookId!==undefined&&{onAll:()=>chooseNotebook()})}/>}
     {state.listError&&<p role="alert">{t('notesListFailed')} <button type="button" onClick={()=>void controller.refresh(true,false,false)}>{t('noteRetry')}</button></p>}
     {!state.loadingList&&!state.items.length&&<p className="paper-hint">{t(state.filter.status==='trashed'?'notesEmptyTrash':'notesEmpty')}</p>}
@@ -272,7 +272,7 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
       onClick={onToggleDshTheme ?? (() => theme.setMode(dark ? 'light' : 'dark'))}>
       {dark ? <Sun size={16}/> : <Moon size={16}/>}
     </button>
-    <FeedbackLink t={t}/>{workspace&&<WindowButton workspace={workspace} t={t}/>}</div></header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
+    {workspace&&<WindowButton workspace={workspace} t={t}/>}</div></header><NoteUsage t={t}/>{workspace&&<WorkspaceNotice workspace={workspace} t={t}/>}
     <PaperColumns t={t} section={state.section} selected={!!state.draft} list={list} notebooks={notebooks} layout={columns}
       tabs={<NoteTabBar controller={controller} state={state} {...noteTabs} t={t} beforeSelect={()=>clearTimeout(timer.current)} onEmpty={focusOverview}/>}
       other={state.section==='settings'?<SettingsWorkspace t={t} category={settingsCategory} onCategory={setSettingsCategory}/>:state.section==='notebooks'?<ClassificationViews tags={tagLibrary?.epoch===controller.libraryEpoch} busy={classBusy} surface={surface} t={t} onSelect={tags=>{

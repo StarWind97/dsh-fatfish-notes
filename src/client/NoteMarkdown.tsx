@@ -13,6 +13,7 @@ import {highlightMarkdown} from './search-highlight.js'
 import {Highlight} from './SearchText.js'
 import {ImageActions,imageActionsCss} from './paper/ImageActions.js'
 import {imagePresentations,presentationAvailable,type ImagePresentation} from './paper/image-presentation.js'
+import {useStyleSheet} from './styles/inject.js'
 
 export function noteAssetUrl(note: NoteView, assetId: string, sourceId?: string): string {
   const query = new URLSearchParams({ noteId: note.noteId, revision: note.current.revision, assetId, ...(sourceId ? { sourceId } : {}) })
@@ -23,10 +24,12 @@ export function resolveNoteImage(url: string, note: NoteView): string | null {
   return match?.[1] && note.current.assetIds.includes(match[1]) ? noteAssetUrl(note, match[1]) : null
 }
 const components: Components = {
-  ...Object.fromEntries((['p','h1','h2','h3','h4','h5','h6','li','blockquote','table'] as const).map(tag=>[tag,({node,children}:{node?:{position?:{start:{offset?:number}}};children?:React.ReactNode})=>React.createElement(tag,{'data-md-pos':node?.position?.start.offset},children)])),
+  ...Object.fromEntries((['p','h1','h2','h3','h4','h5','h6','li','blockquote'] as const).map(tag=>[tag,({node,children}:{node?:{position?:{start:{offset?:number}}};children?:React.ReactNode})=>React.createElement(tag,{'data-md-pos':node?.position?.start.offset},children)])),
+  table:({node,children})=><div className="paper-table-wrap" data-md-pos={node?.position?.start.offset}><table>{children}</table></div>,
 }
 /** Never fetch an arbitrary Markdown image, even when it is host-relative. */
 export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNoteLink,onPresentation,query='',t=translate,staticView=false,assetUrl }: { body: string; note: NoteView;onNoteLink?:(id:string)=>void;onPresentation?:(item:ImagePresentation)=>void;query?:string|undefined;t?:T;staticView?:boolean|undefined;assetUrl?:(id:string)=>string }) {
+  useStyleSheet('image-actions', imageActionsCss, 'components')
   const imageUrl=(url:string)=>{const resolved=resolveNoteImage(url,note);return resolved&&assetUrl?assetUrl(url.slice(10)):resolved}
   const presentations=React.useMemo(()=>new Map(imagePresentations(body).map(item=>[item.from,item])),[body])
   const media=(offset:number|undefined,children:React.ReactNode,download:string)=>{
@@ -36,7 +39,7 @@ export const NoteMarkdown = React.memo(function NoteMarkdown({ body, note,onNote
     if(staticView)return <span className={'paper-presented-media'+(item.image?' is-image':'')}>{children}</span>
     return <ImageActions image={item.image} download={download} name={name} t={t} {...(onPresentation?{change:()=>onPresentation(item)}:{})}>{children}</ImageActions>
   }
-  return <div className="note-markdown" style={{ lineHeight: 'inherit', overflowWrap: 'anywhere' }}><style>{imageActionsCss}</style><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
+  return <div className="note-markdown" style={{ lineHeight: 'inherit', overflowWrap: 'anywhere' }}><Markdown skipHtml remarkPlugins={[remarkGfm,highlightMarkdown(query)]} components={{...components,img:({node,src,alt})=>{
     if(!src||/^https?:/.test(src))return src
       ? <a href={src} target="_blank" rel="noopener noreferrer">{t('markdownExternalImage',{alt:alt||t('markdownImage')})}</a>
       : <span role="img" aria-label={alt??t('markdownImage')}>[{alt||t('markdownImage')}]</span>

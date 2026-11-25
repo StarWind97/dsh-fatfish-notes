@@ -29,6 +29,7 @@ import {ImageMenu,imageActionsCss,type ImageMenuPosition} from './ImageActions.j
 import {attachmentLinkId} from '../../contracts/note-links.js'
 import { applyEditorChanges,editorOffset,editorText,sourceOffset } from './line-endings.js'
 import type { WritingNavigation } from './use-outline.js'
+import { useStyleSheet } from '../styles/inject.js'
 
 const undoHistory=(state:EditorState)=>state.field(historyField)
 export interface UndoSnapshot{body:string;history:ReturnType<typeof undoHistory>}
@@ -46,6 +47,7 @@ function editorLanguage(t:T){
   ]
 }
 export function PaperWriting(props:Props){
+  useStyleSheet('image-actions', imageActionsCss, 'components')
   const {controller,state,t}=props, mount=useRef<HTMLDivElement>(null),editor=useRef<EditorView|null>(null),picker=useRef<HTMLInputElement>(null)
   const latest=useRef(props);latest.current=props
   const [formatTick,refreshTools]=React.useReducer((n:number)=>n+1,0)
@@ -326,7 +328,7 @@ export function PaperWriting(props:Props){
   const fileStatus=<>{fileFeedback.message&&<p className="paper-hint" role="status">{fileFeedback.message}</p>}{fileProgress&&!fileBatch&&<div className="paper-file-progress" role="status"><span>{t('fileAdding')} · {fileProgress.path} · {fileSize(fileProgress.bytes)} / {fileSize(fileProgress.total)}</span><progress value={fileProgress.bytes} max={fileProgress.total||1}/><button type="button" onClick={()=>{for(const job of fileJobs.current)job.abort()}}>{t('cancel')}</button></div>}</>
   const selectedNode=editor.current&&ancestor(editor.current.state,['Image','Link']),selectedUrl=selectedNode?.getChild('URL'),selectedPath=selectedUrl&&editor.current?.state.sliceDoc(selectedUrl.from,selectedUrl.to).replace(/^<|>$/g,'')
   const selectedMedia=selectedPath&&(/^\.\.\/assets\//.test(selectedPath)||state.draft?.attachments?.some(f=>f.id===attachmentLinkId(selectedPath)&&!!inlineImageType({name:f.name,type:''})))
-  return <><style>{imageActionsCss}</style>{imageMenu&&<ImageMenu at={imageMenu.at} image={imageMenu.item.image} download={mediaDownload(imageMenu.item)} name={imageMenu.item.label} t={t} change={()=>void switchImage(imageMenu.item)} close={(restore=true)=>{setImageMenu(null);if(restore){if(imageMenu.trigger?.isConnected)imageMenu.trigger.focus({preventScroll:true});else editor.current?.focus()}}}/>}{fileBatch&&<AttachmentDialog files={fileBatch.files} t={t} close={closeAttachments} add={files=>{const batch={...fileBatch,files};setFileBatch(null);void attachFiles(batch)}}/>}<input ref={attachmentPicker} type="file" hidden multiple onChange={e=>{controller.imagePickerOpen=false;chooseAttachments(Array.from(e.target.files??[]),fileDestination.current);e.target.value=''}}/><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
+  return <>{imageMenu&&<ImageMenu at={imageMenu.at} image={imageMenu.item.image} download={mediaDownload(imageMenu.item)} name={imageMenu.item.label} t={t} change={()=>void switchImage(imageMenu.item)} close={(restore=true)=>{setImageMenu(null);if(restore){if(imageMenu.trigger?.isConnected)imageMenu.trigger.focus({preventScroll:true});else editor.current?.focus()}}}/>}{fileBatch&&<AttachmentDialog files={fileBatch.files} t={t} close={closeAttachments} add={files=>{const batch={...fileBatch,files};setFileBatch(null);void attachFiles(batch)}}/>}<input ref={attachmentPicker} type="file" hidden multiple onChange={e=>{controller.imagePickerOpen=false;chooseAttachments(Array.from(e.target.files??[]),fileDestination.current);e.target.value=''}}/><FormatBar t={t} run={run} active={ctx.active} heading={ctx.heading}/>
     {selectedMedia&&<div className="paper-media-selection"><button type="button" disabled={switchingImage||!controller.writable} onMouseDown={e=>e.preventDefault()} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();openImageMenu(selectedNode!.from,{x:r.left,y:r.bottom})}}>{t('imagePresentation')}</button></div>}
     <input hidden ref={picker} type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple onChange={e=>{controller.imagePickerOpen=false;const files=Array.from(e.target.files??[]);if(editor.current)void importPictures(files.map(file=>({file,label:file.name})),editor.current);e.target.value=''}}/>
     {info&&<p className="paper-hint" role="status">{info}</p>}
