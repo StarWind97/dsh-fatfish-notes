@@ -48,6 +48,9 @@ export function acquireStyleSheet(id: string, css: string, layer?: StyleLayer): 
     entry = { count: 0, css: text, el }
     registry.set(key, entry)
   } else if (entry.css !== text) {
+    if (entry.count > 0) {
+      throw new Error(`Conflicting stylesheet content for active key "${key}"`)
+    }
     entry.css = text
     entry.el.textContent = text
   }

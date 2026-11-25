@@ -1,5 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { filterQuickItems, QuickSwitcher, type QuickItem } from '../src/client/QuickSwitcher.js'
@@ -98,6 +100,8 @@ test('singleton stylesheet manager deduplicates mounts with @layer and cleans up
     const releaseB = acquireStyleSheet('demo', '.a{color:red}', 'components')
     assert.equal(mountedStyleSheetCount(), 1)
     assert.ok(appended.some(n => n.textContent.includes('@layer components')))
+    assert.throws(() => acquireStyleSheet('demo', '.b{color:blue}', 'components'), /Conflicting stylesheet content/)
+    assert.equal(mountedStyleSheetCount(), 1)
     releaseA()
     assert.equal(mountedStyleSheetCount(), 1)
     releaseB()
@@ -105,4 +109,30 @@ test('singleton stylesheet manager deduplicates mounts with @layer and cleans up
   } finally {
     ;(globalThis as unknown as { document: unknown }).document = previous
   }
+})
+
+test('every client stylesheet registration uses a unique css binding per layer and id', () => {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const full = join(dir, entry.name)
+      return entry.isDirectory() ? walk(full) : /\.(?:ts|tsx)$/.test(full) ? [full] : []
+    })
+  const seen = new Map<string, { cssExpr: string; file: string }>()
+  const pattern = /(?:useStyleSheet|acquireStyleSheet)\(\s*'([^']+)'\s*,\s*([^,)]+?)\s*(?:,\s*'([^']+)')?\s*\)/g
+  for (const file of walk('src/client')) {
+    const text = readFileSync(file, 'utf8')
+    for (const match of text.matchAll(pattern)) {
+      const id = match[1]!
+      const cssExpr = match[2]!.replace(/\s+/g, '')
+      const layer = match[3] ?? 'default'
+      const key = `${layer}:${id}`
+      const prev = seen.get(key)
+      if (prev) {
+        assert.equal(cssExpr, prev.cssExpr, `stylesheet key ${key} bound to ${cssExpr} in ${file} conflicts with ${prev.cssExpr} in ${prev.file}`)
+      } else {
+        seen.set(key, { cssExpr, file })
+      }
+    }
+  }
+  assert.ok(seen.size >= 25, `expected at least 25 unique stylesheet registrations, got ${seen.size}`)
 })

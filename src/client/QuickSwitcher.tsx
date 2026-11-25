@@ -1,6 +1,8 @@
 import * as React from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { FileText, Hash, Notebook, Search, Sparkles } from 'lucide-react'
+
+const useIsoLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : useEffect
 import type { NoteListItem, NotebookView, TagEntry } from '../contracts/notes.js'
 import { notebookTitle } from '../notes/notebooks.js'
 import type { NotesController, NotesState } from './notes-controller.js'
@@ -81,13 +83,23 @@ export function QuickSwitcher({
   const inputRef = useRef<HTMLInputElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     if (!open) return
     openerRef.current = document.activeElement as HTMLElement | null
     setQuery('')
     setActiveIndex(0)
     setSearchResponse(null)
-    const frame = requestAnimationFrame(() => inputRef.current?.focus())
+    inputRef.current?.focus()
+    return () => {
+      setQuery('')
+      setActiveIndex(0)
+      setSearchResponse(null)
+      openerRef.current?.focus?.({ preventScroll: true })
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
     const abort = new AbortController()
     void controller
       .api('/notes/catalog', undefined, abort.signal)
@@ -96,9 +108,7 @@ export function QuickSwitcher({
       })
       .catch(() => {})
     return () => {
-      cancelAnimationFrame(frame)
       abort.abort()
-      openerRef.current?.focus?.({ preventScroll: true })
     }
   }, [open, controller])
 
@@ -296,6 +306,7 @@ export function QuickSwitcher({
                     className="paper-cmd-item"
                     data-active={idx === activeIndex}
                     onMouseEnter={() => setActiveIndex(idx)}
+                    onFocus={() => setActiveIndex(idx)}
                     onClick={item.run}
                   >
                     <span className="paper-cmd-lead">

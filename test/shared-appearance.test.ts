@@ -107,24 +107,43 @@ test('upgrade replays legacy appearance patches in order and other windows see l
     const queue=[
       {operationId:received,patch:{contrast:'soft'}},
       {operationId:retired,patch:{layout:'island',palette:'lilac'}},
-      {operationId:font,patch:{size:20}},
     ]
     local.setItem(appearanceKey+'.pending',JSON.stringify({storeId,queue}))
     const reloaded=new AppearancePreferences(local)
     const calls:string[]=[]
+    let online=false
     const base=transport(f.store,'embedded','upgraded')
     try{
       other.start('standalone',transport(f.store,'standalone','other'),async()=>{})
       reloaded.start('embedded',((path,body,signal)=>{
+        if(!online)return Promise.reject(Error('offline'))
         if(path==='/appearance/update')calls.push((body as {operationId:string}).operationId)
         return base(path,body,signal)
       }) as Api,async()=>{})
+      await until(()=>reloaded.getStatus()==='error')
+      reloaded.set({size:20})
+      const queued=JSON.parse(local.getItem(appearanceKey+'.pending')!).queue as Array<{operationId:string}>
+      assert.equal(queued.length,3)
+      const addedFont=queued[2]!.operationId
+      assert.notEqual(addedFont,received);assert.notEqual(addedFont,retired)
+      online=true;reloaded.refresh()
       await until(()=>reloaded.getStatus()==='saved'&&other.getSnapshot().size===20)
-      assert.deepEqual(calls,[received,retired,font])
+      assert.deepEqual(calls,[received,retired,addedFont])
       assert.equal(other.getSnapshot().layout,'soft')
       assert.equal(other.getSnapshot().palette,'native')
       assert.equal(other.getSnapshot().contrast,'strong')
       assert.equal(local.getItem(appearanceKey+'.pending'),null)
+      for(const bad of [{layout:'bogus'},{layout:'toString'},{palette:'bogus'}]){
+        await assert.rejects(f.store.update(patch(storeId,bad)),{code:'appearance_invalid'})
+      }
+      const badDisk=disk(legacy)
+      badDisk.setItem(appearanceKey+'.pending',JSON.stringify({storeId,queue:[{operationId:font,patch:{layout:'toString',palette:'bogus'}}]}))
+      const badClient=new AppearancePreferences(badDisk);let badCode=''
+      const badBase=transport(f.store,'embedded','bad-client')
+      try{
+        badClient.start('embedded',(async(path,body,signal)=>{try{return await badBase(path,body,signal)}catch(e:unknown){badCode=(e as {code?:string}).code??'';throw e}}) as Api,async()=>{})
+        await until(()=>badClient.getStatus()==='error'&&badCode==='appearance_invalid')
+      }finally{badClient.stop()}
     }finally{reloaded.stop()}
   }finally{other.stop();await f.close()}
 })

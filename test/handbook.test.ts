@@ -28,9 +28,11 @@ test('bundled handbook is deterministic, contains three linked editable chapters
   assert.deepEqual(a,b);assert.equal(a.objects.revisions.length,3);assert.equal(a.files.size,3)
   const {noteId,created}=await openHandbook(repo,true);assert.equal(created,true);assert.equal(noteId,handbookId(0,'welcome'))
   const notes=(await repo.list({order:'recent'})).items;assert.equal(notes[0]!.noteId,noteId)
+  assert.match((await repo.get(noteId!)).current.body,/编辑属性[\s\S]*Alt\+K/)
   assert.match((await repo.get(noteId!)).current.body,/搜索笔记或附件名[\s\S]*点击即可跳到原句/)
   assert.match((await repo.get(noteId!)).current.body,/分类管理 → 标签[\s\S]*核对正文/)
-  assert.match((await repo.get(handbookId(0,'materials'))).current.body,/预填会话标题[\s\S]*根据所选消息的文字/)
+  assert.match((await repo.get(handbookId(0,'materials'))).current.body,/缩略图[\s\S]*预填会话标题[\s\S]*根据所选消息的文字/)
+  assert.match((await repo.get(handbookId(0,'deliver'))).current.body,/目录列会自动收起[\s\S]*设置 → 帮助/)
   for(const row of a.objects.revisions){
     const note=await repo.get(row.noteId);assert.equal(note.current.body,row.body);assert.doesNotMatch(row.body,/handbook-(?:note|asset|file):/)
     for(const match of row.body.matchAll(/fatfish-note:([0-9A-Z]{26})/g))await repo.get(match[1]!)
@@ -61,13 +63,15 @@ test('English and Chinese handbook editions coexist and open their own linked co
   assert.ok(english.objects.revisions.every(row=>!/\p{Script=Han}/u.test(row.title+row.summary+row.body)))
   assert.ok(english.objects.revisions.every(row=>chinese.objects.revisions.every(other=>other.noteId!==row.noteId)))
   const [en,zh,repeat]=await Promise.all([openHandbook(repo,true,undefined,'en'),openHandbook(repo,true),openHandbook(repo,true,undefined,'en')])
-  assert.equal(en.noteId,handbookId(0,'welcome',5,'en'))
+  assert.equal(en.noteId,handbookId(0,'welcome',6,'en'))
   assert.equal(zh.noteId,handbookId(0,'welcome'))
   assert.equal(en.noteId,repeat.noteId)
   assert.equal(repeat.created,false)
   assert.equal((await repo.list()).items.length,6)
-  const materials=await repo.get(handbookId(0,'materials',5,'en'))
-  assert.match(materials.current.body,/Save a conversation/)
+  assert.match((await repo.get(en.noteId!)).current.body,/Edit properties[\s\S]*Alt\+K/)
+  const materials=await repo.get(handbookId(0,'materials',6,'en'))
+  assert.match(materials.current.body,/Save a conversation[\s\S]*thumbnails/)
+  assert.match((await repo.get(handbookId(0,'deliver',6,'en'))).current.body,/collapses automatically[\s\S]*Settings → Help/)
   for(const file of materials.current.attachments??[])assert.equal((await repo.getAttachment(file.id)).length,file.bytes)
   assert.equal((await openHandbook(repo,false,undefined,'en')).noteId,en.noteId)
 })
@@ -162,7 +166,7 @@ test('the first successful sync uses the initial language across a restart',asyn
   await f.connect(b.sync,'zh')
   const objects=await b.notes.exportObjects()
   assert.equal(objects.revisions.length,3)
-  assert.equal(existingHandbook(objects,'en'),handbookId(0,'welcome',5,'en'))
+  assert.equal(existingHandbook(objects,'en'),handbookId(0,'welcome',6,'en'))
   assert.equal(existingHandbook(objects,'zh'),null)
 })
 test('application wires the real handbook provider and manual help requires completed setup',async t=>{
@@ -199,8 +203,13 @@ test('local empty state restores a populated or trashed remote without adding a 
 })
 
 
-for(const version of [1,2,3,4])test(`handbook v${version} identities remain discoverable and edited content is preserved`,async t=>{
+for(const version of [1,2,3,4,5])test(`handbook v${version} identities remain discoverable and edited content is preserved`,async t=>{
  const {repo}=await fixture(t),book=await repo.saveNotebook({notebookId:handbookId(0,'book',version),expectedHeads:[],title:'我的旧手册'})
  const note=await repo.save({noteId:handbookId(0,'welcome',version),expectedHeads:[],content:{title:'用户改过的开头',body:'我的补充',summary:'',tags:[],status:'active',notebookId:book.notebookId,sourceId:null,assetIds:[]}})
  assert.notEqual(note.noteId,handbookId(0,'welcome'));assert.equal((await openHandbook(repo,true)).noteId,note.noteId);assert.deepEqual((await repo.get(note.noteId)).heads,note.heads);assert.equal((await repo.list()).items.length,1)
+})
+test('English handbook v5 identities remain discoverable and edited content is preserved',async t=>{
+ const {repo}=await fixture(t),book=await repo.saveNotebook({notebookId:handbookId(0,'book',5,'en'),expectedHeads:[],title:'My older handbook'})
+ const note=await repo.save({noteId:handbookId(0,'welcome',5,'en'),expectedHeads:[],content:{title:'Edited intro',body:'My edits',summary:'',tags:[],status:'active',notebookId:book.notebookId,sourceId:null,assetIds:[]}})
+ assert.notEqual(note.noteId,handbookId(0,'welcome',6,'en'));assert.equal((await openHandbook(repo,true,undefined,'en')).noteId,note.noteId);assert.deepEqual((await repo.get(note.noteId)).heads,note.heads);assert.equal((await repo.list()).items.length,1)
 })
