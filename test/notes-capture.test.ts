@@ -191,3 +191,28 @@ test('capture rejects a body organization request',async()=>{
     assert.throws(()=>service.capture({...request,mode:'organize'}),{code:'capture_request'})
   } finally {await rm(dir,{recursive:true,force:true})}
 })
+
+test('capture preview serves authorized image thumbnails and cleanly 404s missing or non-image materials',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'capture-preview-'))
+  try {
+    const f=fixture(),repo=new NoteRepository(dir),service=new NoteCaptureService(repo,new NoteConversation(()=>f.controller))
+    f.events[0]={...f.events[0]!,data:{id:'m0',source:{kind:'user'},content:[
+      {type:'image',attachment:{attachmentId:'ok-img',mediaType:'image/png',bytes:png.length,width:1,height:1,name:'earth.png'}},
+      {type:'image',attachment:{attachmentId:'missing-img',mediaType:'image/png',bytes:png.length,width:1,height:1,name:'missing.png'}},
+      {type:'file',attachment:{attachmentId:'sha256:'+'1'.repeat(64),bytes:12,name:'report.pdf'}},
+    ]}}
+    f.controller.attachment=async input=>{
+      if(input.attachment.attachmentId==='ok-img')return{attachment:{attachmentId:'ok-img' as AttachmentId,mediaType:'image/png',bytes:png.length,width:1,height:1},data:png.toString('base64')}
+      throw new Error('ENOENT')
+    }
+    const sel=await service.selection({sessionId:request.sessionId})
+    const okMat=sel.materials!.find(m=>m.name==='earth.png')!
+    const missingMat=sel.materials!.find(m=>m.name==='missing.png')!
+    const fileMat=sel.materials!.find(m=>m.name==='report.pdf')!
+    const preview=await service.preview({sessionId:request.sessionId,throughSeq:sel.cut.throughSeq,materialId:okMat.id})
+    assert.equal(preview.mediaType,'image/png');assert.deepEqual(preview.bytes,png)
+    await assert.rejects(service.preview({sessionId:request.sessionId,throughSeq:sel.cut.throughSeq,materialId:missingMat.id}),{code:'capture_attachment',status:404})
+    await assert.rejects(service.preview({sessionId:request.sessionId,throughSeq:sel.cut.throughSeq,materialId:fileMat.id}),{code:'capture_attachment',status:404})
+    await assert.rejects(service.preview({sessionId:request.sessionId,throughSeq:sel.cut.throughSeq,materialId:'unknown'}),{code:'capture_attachment',status:404})
+  } finally {await rm(dir,{recursive:true,force:true})}
+})

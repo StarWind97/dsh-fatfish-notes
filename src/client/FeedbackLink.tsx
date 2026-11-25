@@ -16,6 +16,6 @@ a.notebook-feedback:hover{color:var(--dsw-alias-label-primary);background:var(--
 a.notebook-feedback:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .notebook-feedback svg{flex:none}.notebook-feedback-short{display:none}
 .notes-setup header>.notebook-feedback{margin-inline-start:auto}
-@container paper (width < 750px){.notebook-feedback-full{display:none}.notebook-feedback-short{display:inline}}
+@container paper (width < 1200px){.notebook-feedback-full{display:none}.notebook-feedback-short{display:inline}}
 @container notebook-setup (width < 480px){.notebook-feedback-full{display:none}.notebook-feedback-short{display:inline}}
 `

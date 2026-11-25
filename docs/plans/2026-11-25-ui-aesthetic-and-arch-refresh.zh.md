@@ -103,3 +103,30 @@
 - **未覆盖边界**：本次**未**执行对外发版（`npm publish` / GitHub Release）或插件市场更新，**未**触碰日常 DSH 资料，**未**替换仓库公开宣传截图与中英文 README 配图；独立窗口（Chrome/Edge 外部应用窗）及 macOS/双机并发同步沿用既有回归覆盖，未在本轮重拍。
 - **对外发版前提**：如后续决定基于本轮改动发布新版，须在用户单独确认后按[图文核对清单](../demo-content.zh.md#用户文档与公开展示同步)更新中英文公开截图、执行双语发布检查并走正式发版与市场更新流程。
 - **体验与回退入口**：当前隔离资料 `.dsh-home/pure-001/release12-desktop` 已安装最新构建，可直接通过 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd) 打开体验；全部提交均保留完整线性历史，可按需 `git revert`，无不可逆数据结构变更。
+
+## 六、二轮原型逐项对齐整改（2026-11-25）
+
+- **分支与目录**：`codex/ui-prototype-alignment`（主目录 `D:\DSH-Workspace\dsh-github-notebook`），已合回 `main`
+- **状态**：已完成实现、第三档全量回归、双端官方重装与逐像素实拍核对（未发版）
+- **核定 6 项改动清单（已全部落地）**：
+  1. **快捷键改为 `Alt+K`**：彻底避开 DSH 宿主左侧会话搜索（`Ctrl+K`）与编辑态插入链接（`Ctrl+K`），更新顶栏徽标与双语快捷键说明（macOS 展示为 `⌥K`）；
+  2. **代码块独立顶栏 + 清晰「✓ 已复制」**：新增 `paper-code-head` 顶栏；常态保留纯图标 + 悬停提示，点击后使用高对比度 `--success-soft`/`--success` 语义胶囊显示「✓ 已复制」（浅色 `rgb(29, 131, 72)`、深色 `rgb(93, 214, 141)`，`opacity: 1`）；
+  3. **6 套高差异色板 + 原型卡片 + 统一分段控件**：精简为 `berry`（莓紫春芽 / Berry sprout）、`native`（DSH 原生 / DSH default，默认）、`pine`（松青 / Pine green）、`amber`（暖琥珀 / Warm amber）、`rose`（莓红 / Warm rose）、`graphite`（石墨 / Graphite）6 套（3 列 × 2 行左对齐双行卡片，3 色圆点补细描边），旧版已移除色板（`clearblue`/`lilac`/`mint`/`blue`/`inkwhite`）在读写两端均透明重置为 `native`；设置页与列表页分段控件统一为「灰槽 + 白滑块」风格；
+  4. **列表主色 `+ 新建`、单行工具栏与主次层次**：列表头部改为主色胶囊 `+ 新建`，第三分段文案精简为「最近 / Recent」消除「多选」孤立换行，正文「编辑」按钮加柔和主色底，顶栏「已同步」加柔和绿底小胶囊；英文 1440px 窗口同步收紧反馈按钮短文案断点（`< 1200px`），消除顶栏右缘裁切；
+  5. **会话侧栏零跳动统一顶栏**：列表态与阅读态共享顶部同一条固定高度/宽度的 `.conversation-top-bar`（`NoteTabBar` + 右侧固定三图标），`返回列表` 内嵌至 `.paper-doc-head`，从「笔记列表」切到任意笔记标签实现 `0 px` 垂直位移与 `0 px` 宽度变化；
+  6. **转存弹窗真实图片缩略图 + 底部「取消」按钮**：新增插件服务端只读接口 `GET /notes/capture-preview`（加入 `routePaths` 与 `READ_ONLY`，自动受 `connection.requestRejection` + `fence()` loopback/Host/Origin/`sec-fetch-site` + `no-store`/`nosniff`/`CSP: default-src 'none'` 保护，底层复用 DSH 官方公开 `@deepseek-ai/dsh-attachment` `AttachmentStore` 与 `validateAsset`），为可用图片展示 `48 × 36` 圆角缩略图，缺失/不可用图平稳降级为虚线占位图标；弹窗右下角补齐 `取消`（退出转存）+ `保存到笔记`，标题栏增紧凑统计胶囊。
+
+### 二轮实测与逐像素实拍核对结果（2026-11-25）
+
+- **类型检查、构建、弹窗尺寸与第三档全量回归**：`npm run typecheck`、`npm run build`、`npx tsx test/browser/check-dialog-sizes.mjs`（含 `104 × 120 CSS px`）与 `npm test` **440 / 440 全部通过**（新增旧色板 `lilac → native` 迁移与 `capture-preview` 单测，英文双语微调后补跑 `localization` / `quick-switcher` / `appearance-workspace` 27/27 通过）。
+- **会话侧栏浏览器回归（`npm run test:sidebar`）**：通过（实拍 `output/playwright/search-sidebar/run-FlVp1S`），宽 `611 × 882`、窄 `343 × 822`、矮 `343 × 582` 全绿（`scopedResults: 31`）。
+- **官方打包与双隔离宿主实装（DSH `0.2.2-rc.5`）**：统一打包 `dist/ui-align-r2/dsh-fatfish-notes-align-*.tgz`（273 文件），通过官方 CLI 重装入 `.dsh-home/pure-001/release12-{web,desktop}` 并逐文件 SHA-256 核对一致。
+- **Web + Windows 桌面实机全项断言与实拍复查（各 13 张浅深双语截图 `output/playwright/ui-arch-refresh/{web,desktop}/`）**：
+  - 零页面错误（`errors: []`）；注入旧配置 `layout: "island", palette: "lilac"` 启动透明迁移为 `soft` + `native`；
+  - 设置页 6 张双行左对齐色板卡 + 3 张布局卡 + 统一分段控件，中英文均无裁切或中文泄漏（`enSettingsHanLeak: []`）；
+  - 列表页 `+ 新建` 主色胶囊 + `[全部 / 收藏 / 最近]` 排序与「多选」单行对齐（`toolsSingleRow: true`）；
+  - 代码块独立顶栏 `.paper-code-head` 常态纯图标、点击后浅/深色 `✓ 已复制` 清晰高亮（`opacity: 1`）；
+  - 按 `Alt+K` 呼出面板（Web `53 ms` / 桌面 `63 ms`），聚焦在面板输入框内且 DSH 左侧「搜索会话名称」保持关闭未触发（`focused: false`, `opacity: "0"`）；
+  - 会话侧栏多标签切换实测 `deltaTop: 0 px`、`deltaWidth: 0 px`、`tabCount` 不变、阅读态顶区总高 `88 px`；
+  - 转存弹窗切至「整个会话」实测 `地出.jpg` 缩略图加载成功（`complete: true`, `1280 × 730`），`缺失.jpg` 平稳降级为虚线占位徽标，底部 `取消` + `保存到笔记` 完整可见且点击「取消」干净退出转存。
+- **未覆盖边界与发版前提**：本次仍**未**执行对外发版、插件市场更新或公开 README 配图替换，**未**触碰日常 DSH 资料。隔离体验入口仍为 [Open-Fatfish-Notes.cmd](../../scripts/Open-Fatfish-Notes.cmd)。

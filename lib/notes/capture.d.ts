@@ -29,8 +29,14 @@ export declare class NoteCaptureService {
     readonly repository: NoteRepository;
     private readonly conversation;
     private tail;
+    private previewSnapshots;
     constructor(repository: NoteRepository, conversation: CaptureConversation);
+    private cachePreview;
     capture(input: unknown, signal?: AbortSignal, progress?: (value: CaptureProgress) => void, t?: T): Promise<CaptureResult>;
     selection(input: CaptureSelectionRequest, signal?: AbortSignal, t?: T): Promise<CaptureSelection>;
+    preview(input: unknown, signal?: AbortSignal): Promise<{
+        bytes: Buffer;
+        mediaType: ImageMediaType;
+    }>;
     private perform;
 }

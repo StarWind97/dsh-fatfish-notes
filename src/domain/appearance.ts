@@ -20,15 +20,19 @@ export const palettes = {
   berry: 'appearancePaletteBerry',
   native: 'appearancePaletteNative',
   pine: 'appearancePalettePine',
-  clearblue: 'appearancePaletteClearblue',
   amber: 'appearancePaletteAmber',
-  lilac: 'appearancePaletteLilac',
-  mint: 'appearancePaletteMint',
-  blue: 'appearancePaletteBlue',
   rose: 'appearancePaletteRose',
   graphite: 'appearancePaletteGraphite',
-  inkwhite: 'appearancePaletteInkwhite',
 } as const
+export const paletteDescriptions = {
+  berry: 'appearancePaletteBerryDesc',
+  native: 'appearancePaletteNativeDesc',
+  pine: 'appearancePalettePineDesc',
+  amber: 'appearancePaletteAmberDesc',
+  rose: 'appearancePaletteRoseDesc',
+  graphite: 'appearancePaletteGraphiteDesc',
+} as const
+export const legacyRetiredPalettes = new Set(['clearblue', 'lilac', 'mint', 'blue', 'inkwhite'])
 export const cjkFonts = { host: 'appearanceFollow', yahei: 'appearanceFontYahei', deng: 'appearanceFontDeng', song: 'appearanceFontSong', kai: 'appearanceFontKai' } as const
 export const latinFonts = { host: 'appearanceFollow', segoe: 'appearanceFontSegoe', arial: 'appearanceFontArial', georgia: 'appearanceFontGeorgia', times: 'appearanceFontTimes' } as const
 export interface Appearance {
@@ -95,6 +99,9 @@ const options: Partial<Record<keyof Appearance, readonly unknown[]>> = {
 export function migrateLayout(raw: unknown): unknown {
   return typeof raw === 'string' && raw in legacyLayoutMap ? legacyLayoutMap[raw] : raw
 }
+export function migratePalette(raw: unknown): unknown {
+  return typeof raw === 'string' && legacyRetiredPalettes.has(raw) ? 'native' : raw
+}
 export function appearanceValue(raw: unknown): Appearance {
   const result = { ...defaultAppearance }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return result
@@ -103,7 +110,7 @@ export function appearanceValue(raw: unknown): Appearance {
   for (const key of Object.keys(result) as (keyof Appearance)[]) {
     // Legacy fixed modes are retired; retain every other local preference.
     if (key === 'version' || key === 'mode') continue
-    const next = key === 'layout' ? migrateLayout(value[key]) : value[key]
+    const next = key === 'layout' ? migrateLayout(value[key]) : key === 'palette' ? migratePalette(value[key]) : value[key]
     const valid = options[key]?.includes(next) ?? (typeof next === 'boolean')
     if (valid) (result as unknown as Record<string, unknown>)[key] = next
   }

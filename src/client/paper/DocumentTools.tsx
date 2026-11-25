@@ -3,9 +3,9 @@ import {Keyboard} from 'lucide-react'
 import {PaperDialog} from './PaperDialog.js'
 import type {T,LocaleKey} from '../locale.js'
 
-export function shortcutLabel(value:string){return /Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'')?value.replace('Ctrl','⌘'):value}
+export function shortcutLabel(value:string){return /Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'')?value.replace('Ctrl','⌘').replace('Alt','⌥'):value}
 const shortcuts:Array<[LocaleKey,string]>=[['paperBold','Ctrl+B'],['paperItalic','Ctrl+I'],['paperLink','Ctrl+K'],['paperUndo','Ctrl+Z'],['paperRedo','Ctrl+Shift+Z'],['paperFind','Ctrl+F'],['paperIndent','Tab'],['paperOutdent','Shift+Tab']]
-const readingShortcuts:Array<[LocaleKey,string]>=[['readingStart','Home / Ctrl+Home'],['readingEnd','End / Ctrl+End'],['readingPrevious','Page Up'],['readingNext','Page Down']]
+const readingShortcuts:Array<[LocaleKey,string]>=[['quickSwitchTitle','Alt+K'],['readingStart','Home / Ctrl+Home'],['readingEnd','End / Ctrl+End'],['readingPrevious','Page Up'],['readingNext','Page Down']]
 export function DocumentTools({body,t,materials}:{body:string;t:T;materials?:React.ReactNode}){
   const [count,setCount]=React.useState<number|null>(null),[failed,setFailed]=React.useState(false),[help,setHelp]=React.useState(false)
   const worker=React.useRef<Worker|null>(null),sequence=React.useRef(0)

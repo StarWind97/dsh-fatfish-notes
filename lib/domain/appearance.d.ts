@@ -14,15 +14,19 @@ export declare const palettes: {
     readonly berry: "appearancePaletteBerry";
     readonly native: "appearancePaletteNative";
     readonly pine: "appearancePalettePine";
-    readonly clearblue: "appearancePaletteClearblue";
     readonly amber: "appearancePaletteAmber";
-    readonly lilac: "appearancePaletteLilac";
-    readonly mint: "appearancePaletteMint";
-    readonly blue: "appearancePaletteBlue";
     readonly rose: "appearancePaletteRose";
     readonly graphite: "appearancePaletteGraphite";
-    readonly inkwhite: "appearancePaletteInkwhite";
 };
+export declare const paletteDescriptions: {
+    readonly berry: "appearancePaletteBerryDesc";
+    readonly native: "appearancePaletteNativeDesc";
+    readonly pine: "appearancePalettePineDesc";
+    readonly amber: "appearancePaletteAmberDesc";
+    readonly rose: "appearancePaletteRoseDesc";
+    readonly graphite: "appearancePaletteGraphiteDesc";
+};
+export declare const legacyRetiredPalettes: Set<string>;
 export declare const cjkFonts: {
     readonly host: "appearanceFollow";
     readonly yahei: "appearanceFontYahei";
@@ -61,6 +65,7 @@ export interface Appearance {
 }
 export declare const defaultAppearance: Appearance;
 export declare function migrateLayout(raw: unknown): unknown;
+export declare function migratePalette(raw: unknown): unknown;
 export declare function appearanceValue(raw: unknown): Appearance;
 export declare function parseAppearance(raw: string | null): Appearance;
 export declare const appearanceKey = "dsh-fatfish-notes.private.paper.appearance.v1";

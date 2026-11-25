@@ -13,7 +13,7 @@ import {createHttpHandler} from '../src/host/routes.js'
 import type {Api} from '../src/client/api.js'
 import type {WindowTheme} from '../src/contracts/workspace.js'
 const theme:WindowTheme={dark:false,background:'#fff',foreground:'#111',muted:'#666',border:'#ddd',language:'zh'}
-const legacy=JSON.stringify({...defaultAppearance,layout:'soft',palette:'lilac',mode:'dark'})
+const legacy=JSON.stringify({...defaultAppearance,layout:'soft',palette:'berry',mode:'dark'})
 async function fixture(){const dir=await mkdtemp(join(tmpdir(),'appearance-'));return {dir,store:new SharedAppearance(dir,60),async close(){await this.store.close();await rm(dir,{recursive:true,force:true})}}}
 const patch=(storeId:string,value:object,operationId=randomUUID())=>({storeId,operationId,patch:value})
 async function until(check:()=>boolean){for(let i=0;i<200;i++){if(check())return;await new Promise(r=>setTimeout(r,5))}assert.ok(check(),'condition did not converge')}
@@ -25,7 +25,7 @@ test('shared appearance waits for embedded migration, retains both originals, su
     const state=await f.store.connect('embedded',{legacy,theme});assert.equal(state.value?.layout,'soft');assert.equal(state.value?.mode,'host')
     assert.equal((await f.store.connect('embedded',{legacy:original})).value?.layout,'soft')
     const disk=JSON.parse(await readFile(join(f.dir,'appearance.json'),'utf8'));assert.deepEqual(disk.legacy,{standalone:original,embedded:legacy})
-    const restarted=new SharedAppearance(f.dir);try{const r=await restarted.connect('standalone',{legacy:null});assert.equal(r.value?.palette,'lilac');assert.equal(r.storeId,state.storeId);assert.notEqual(r.epoch,state.epoch)}finally{await restarted.close()}
+    const restarted=new SharedAppearance(f.dir);try{const r=await restarted.connect('standalone',{legacy:null});assert.equal(r.value?.palette,'berry');assert.equal(r.storeId,state.storeId);assert.notEqual(r.epoch,state.epoch)}finally{await restarted.close()}
   }finally{await f.close()}
 })
 
@@ -59,15 +59,16 @@ test('failed persistence leaves acknowledged settings intact and can retry; malf
     const state=await f.store.connect('embedded',{legacy}),file=join(f.dir,'appearance.json')
     await rename(file,file+'.backup');await mkdir(file)
     const update=patch(state.storeId,{palette:'pine'});await assert.rejects(f.store.update(update))
-    assert.equal((await f.store.connect('embedded',{legacy})).value?.palette,'lilac')
+    assert.equal((await f.store.connect('embedded',{legacy})).value?.palette,'berry')
     await rm(file,{recursive:true});await rename(file+'.backup',file);assert.equal((await f.store.update(update)).value?.palette,'pine')
     await writeFile(file,'{"version":999}');const invalid=new SharedAppearance(f.dir)
     await assert.rejects(invalid.connect('embedded',{legacy}));assert.equal(await readFile(file,'utf8'),'{"version":999}');await invalid.close()
-    // Retired layout values and reordered JSON keys stored on disk migrate cleanly on load without throwing appearance_invalid.
+    // Retired layout/palette values and reordered JSON keys stored on disk migrate cleanly on load without throwing appearance_invalid.
     const { reading, fontCjk, fontLatin, ...rest } = defaultAppearance
-    const migratedStored={version:1,storeId:state.storeId,value:{...rest,fontLatin,fontCjk,reading,layout:'island',palette:'pine'},legacy:{embedded:legacy},receipts:[]}
+    const migratedStored={version:1,storeId:state.storeId,value:{...rest,fontLatin,fontCjk,reading,layout:'island',palette:'lilac'},legacy:{embedded:legacy},receipts:[]}
     await writeFile(file,JSON.stringify(migratedStored));const migrated=new SharedAppearance(f.dir)
-    assert.equal((await migrated.connect('embedded',{legacy})).value?.layout,'soft');await migrated.close()
+    const loaded=(await migrated.connect('embedded',{legacy})).value
+    assert.equal(loaded?.layout,'soft');assert.equal(loaded?.palette,'native');await migrated.close()
   }finally{await f.close()}
 })
 
@@ -85,7 +86,7 @@ test('clients converge bidirectionally, retain pending failures, merge remote fi
   try{
     two.start('standalone',((path,body,signal)=>{if(fail&&path==='/appearance/update')return Promise.reject(Error('offline'));return api(path,body,signal)}) as Api,async()=>{})
     await until(()=>two.getStatus()==='waiting');one.start('embedded',transport(f.store,'embedded','one'),async()=>{})
-    await until(()=>one.getStatus()==='saved'&&two.getSnapshot().palette==='lilac')
+    await until(()=>one.getStatus()==='saved'&&two.getSnapshot().palette==='berry')
     one.set({layout:'soft'});await until(()=>two.getSnapshot().layout==='soft')
     two.set({size:20});await until(()=>one.getSnapshot().size===20)
     fail=true;two.set({palette:'pine'});await until(()=>two.getStatus()==='error');assert.equal(two.getSnapshot().palette,'pine')

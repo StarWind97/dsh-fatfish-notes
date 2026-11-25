@@ -14,12 +14,13 @@ export const conversationNotesCss = `
 .conversation-note-row strong{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .conversation-note-row strong svg{margin-inline-end:4px;vertical-align:-2px;color:var(--accent)}
 .conversation-note-row p{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:6px 0}
-.conversation-detail-bar{display:flex;align-items:stretch;gap:4px;min-height:36px;padding:0 6px;background:var(--shelf);border-bottom:1px solid var(--rule);flex:none}
-.conversation-detail-back{align-self:center;width:28px;height:28px;padding:0!important;justify-content:center;flex:none}
-.conversation-detail-tabs{flex:1;min-width:0;display:flex;align-items:stretch}
-.conversation-detail-tabs>.paper-note-tabs{flex:1;padding:3px 2px 0;border-bottom:0;background:transparent}
-.conversation-detail-tools{display:flex;align-items:center;gap:2px;flex:none}
+.conversation-top-bar{display:flex;align-items:stretch;gap:4px;min-height:37px;padding:0 6px 0 4px;background:var(--shelf);border-bottom:1px solid var(--rule);flex:none}
+.conversation-top-tabs{flex:1;min-width:0;display:flex;align-items:stretch}
+.conversation-top-tabs>.paper-note-tabs{flex:1;padding:4px 2px 0;border-bottom:0;background:transparent}
+.conversation-top-tools{display:flex;align-items:center;gap:2px;flex:none}
+.conversation-top-tools button{width:28px;height:28px;padding:0!important;justify-content:center}
 .conversation-notes .paper-doc-head{padding:5px 12px;margin:0}
+.conversation-notes .paper-doc-head .paper-back{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0!important;margin-inline-end:2px;flex:none}
 .conversation-note-row small{font-size:11px;color:var(--muted)}
 .conversation-notes-foot,.conversation-empty{font-size:12px;color:var(--muted);padding:16px}
 .conversation-notes .paper-detail{min-width:0;min-height:0;flex:1;display:flex;flex-direction:column}
@@ -29,7 +30,6 @@ export const conversationNotesCss = `
 
 export const conversationBrowseCss = `
 .conversation-notes{position:relative}
-.conversation-notes .paper-doc-head .paper-back{display:none}
 .conversation-notes-tabs{padding-top:12px;flex-wrap:wrap;flex:none}
 .conversation-notes-tabs [aria-pressed=true]{color:var(--accent)}
 .conversation-search-area{flex:0 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;padding:1px 12px 0}

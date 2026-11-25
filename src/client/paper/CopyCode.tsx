@@ -12,5 +12,5 @@ export function CopyCode({value,t}:{value:string;t:T}){
   React.useEffect(()=>()=>clearTimeout(timer.current),[])
   const label=t(result==='copied'?'documentCopied':result==='failed'?'documentCopyFailed':'documentCopyCode')
   async function copy(){clearTimeout(timer.current);try{await copyCode(value);setResult('copied')}catch{setResult('failed')}timer.current=setTimeout(()=>setResult('ready'),2200)}
-  return <button className="paper-copy-code" title={label} aria-label={label} onClick={()=>void copy()}>{result==='copied'?<Check size={14}/>:<Copy size={14}/>}<span role="status">{result==='ready'?'':label}</span></button>
+  return <button type="button" className="paper-copy-code" data-state={result} title={label} aria-label={label} onClick={()=>void copy()}>{result==='copied'?<Check size={14} aria-hidden="true"/>:<Copy size={14} aria-hidden="true"/>}{result!=='ready'&&<span role="status">{label}</span>}</button>
 }

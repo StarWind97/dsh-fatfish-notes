@@ -7,6 +7,7 @@ export const captureOptionsCss = `
 .capture-save>header{display:grid;grid-template-columns:minmax(0,1fr) auto}
 .capture-save>header h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .capture-save>header .paper-dialog-actions{flex-wrap:nowrap;white-space:nowrap}
+.capture-save>header .capture-header-pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--chrome,var(--shelf));color:var(--muted);font-size:12px;line-height:1.3;margin-right:4px}
 .capture-save>header .capture-layout-icon{display:none}
 .capture-save .capture-save-panel{position:static;inset:auto;width:100%;flex:1;min-height:0;max-height:none;border:0;border-radius:0;z-index:auto}
 .capture-save [hidden]{display:none!important}
@@ -24,8 +25,9 @@ export const captureOptionsCss = `
 .capture-save-summary>button{justify-self:end}
 .capture-save .capture-return{background:var(--selected)}
 .capture-save .capture-file-hint{margin:0 0 8px;color:var(--muted);font-size:12px}
-.capture-save .capture-save-foot{justify-content:flex-end;flex-wrap:wrap;padding:12px 20px;background:var(--base)}
+.capture-save .capture-save-foot{justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:12px 20px;background:var(--base)}
 .capture-save .capture-save-foot span{margin-right:auto}
+.capture-save .capture-foot-hint{font-size:12px;color:var(--muted)}
 .capture-save .capture-turns{margin-top:0}
 .capture-save .capture-turn-line button{min-width:0}
 .capture-save .capture-column-scroll{min-height:0;max-height:42dvh;overflow:auto;overscroll-behavior:contain}
@@ -41,6 +43,9 @@ export const captureOptionsCss = `
   .capture-save-expanded .capture-column-scroll{flex:1;max-height:none}
   .capture-save-expanded .capture-save-details{overflow:auto;overscroll-behavior:contain}
 }
+@media(max-width:760px){
+  .capture-save>header .capture-header-pill{display:none}
+}
 @media(max-width:520px){
   .paper-dialog.capture-save{--paper-dialog-inline-inset:12px}
   .capture-save>header{padding-inline:8px;gap:4px}
@@ -48,6 +53,7 @@ export const captureOptionsCss = `
   .capture-save>header button{box-sizing:border-box;width:32px;min-height:32px;padding:0;justify-content:center}
   .capture-save>header .capture-layout-label{display:none}
   .capture-save>header .capture-layout-icon{display:block}
+  .capture-save .capture-foot-hint{display:none}
   .capture-save :is(.capture-save-range,.capture-save-files,.capture-save-details,.capture-save-review-body,.capture-save-foot){padding-left:12px;padding-right:12px}
   .capture-save-summary{grid-template-columns:minmax(0,1fr)}
 }

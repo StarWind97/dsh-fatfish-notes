@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Maximize2, Minimize2, RotateCcw } from 'lucide-react'
-import { ATTACHMENT_WARNING } from '../contracts/notes.js'
+import { ATTACHMENT_WARNING, type CaptureMaterial } from '../contracts/notes.js'
 import { materialsFor } from '../notes/capture-materials.js'
 import { CaptureMaterialList, captureMaterialAvailable } from './CaptureMaterials.js'
 import { CaptureMetadata } from './CaptureMetadata.js'
@@ -86,15 +86,22 @@ export function CaptureOptions({ state, selection, bridge, t }: {
   }
   function close() {
     if (review) finishReview(false)
-    else bridge.showDetail(false)
+    else if (state.anchorMessageId) bridge.showDetail(false)
+    else bridge.close()
   }
 
+  const previewUrl = React.useCallback((material: CaptureMaterial) =>
+    `/dsh-fatfish-notes/notes/capture-preview?sessionId=${encodeURIComponent(state.sessionId)}&throughSeq=${selection.cut.throughSeq}&materialId=${encodeURIComponent(material.id)}`,
+  [state.sessionId, selection.cut.throughSeq])
+
   const turns = () => <CaptureTurnList selection={selection} selected={selected} anchorMessageId={state.anchorMessageId} toggle={toggle} t={t}/>
-  const files = () => <CaptureMaterialList materials={materials} selected={selectedFiles} allowLarge={allowLarge} onSelect={chooseFiles} onLarge={approveLarge} t={t}/>
+  const files = () => <CaptureMaterialList materials={materials} selected={selectedFiles} allowLarge={allowLarge} onSelect={chooseFiles} onLarge={approveLarge} previewUrl={previewUrl} t={t}/>
   const layoutLabel = t(expanded?'captureLayoutCompact':'captureLayoutExpand')
   const autoLabel = t('captureLayoutAuto')
   const LayoutIcon = expanded ? Minimize2 : Maximize2
+  const headerStats = materials.length ? `${rangeLabel} · ${fileLabel}` : rangeLabel
   const headerActions = !review && <>
+    <span className="capture-header-pill" aria-live="polite">{headerStats}</span>
     {layout!==null && <button type="button" aria-label={autoLabel} title={autoLabel} onClick={()=>setLayout(null)}>
       <span className="capture-layout-label">{autoLabel}</span>
       <RotateCcw className="capture-layout-icon" size={17} aria-hidden="true"/>
@@ -150,9 +157,11 @@ export function CaptureOptions({ state, selection, bridge, t }: {
         {review ? <><span aria-live="polite">{review.kind==='range'?rangeLabel:fileLabel}</span>
           <button type="button" onClick={()=>finishReview(false)}>{t('cancel')}</button>
           <button type="button" style={notesStyles.button} className="notes-primary" onClick={()=>finishReview(true)}>{t('captureApply')}</button></>
-          : <button type="button" className="notes-primary" style={notesStyles.button}
+          : <><span className="capture-foot-hint">{t('captureFooterHint')}</span>
+          <button type="button" onClick={()=>bridge.close()}>{t('cancel')}</button>
+          <button type="button" className="notes-primary" style={notesStyles.button}
             disabled={!committed.size||!bookValid||state.suggesting||!state.metadata?.title.trim()||needsLarge&&!allowLarge}
-            onClick={()=>void bridge.save()}>{t('noteCaptureReply')}</button>}
+            onClick={()=>void bridge.save()}>{t('noteCaptureReply')}</button></>}
       </footer>
     </div>
   </PaperDialog>

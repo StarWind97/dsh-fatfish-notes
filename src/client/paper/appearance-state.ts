@@ -3,31 +3,21 @@ export * from '../../domain/appearance.js'
 
 const accent: Record<Appearance['palette'], [string, string]> = {
   berry: ['#91318e', '#d877d5'],
-  native: ['#4176e6', '#7aaaff'],
-  pine: ['#176753', '#5eceae'],
-  clearblue: ['#285dce', '#7aaaff'],
-  amber: ['#8c5a2b', '#e2b073'],
-  lilac: ['#70529b', '#bfa3e8'],
-  mint: ['#276b60', '#70cbb9'],
-  blue: ['#3b6483', '#8ab8dc'],
-  rose: ['#98465f', '#e69ab1'],
-  graphite: ['#465463', '#b0bfce'],
-  inkwhite: ['#303b4c', '#c1cfdf'],
+  native: ['#3b6fe0', '#7aaaff'],
+  pine: ['#146c56', '#52cfa9'],
+  amber: ['#9e5a1e', '#e6b16c'],
+  rose: ['#b5385c', '#ef8ba6'],
+  graphite: ['#333d4b', '#c4cdd8'],
 }
 
 /** Three visual dots [primary, secondary/tint, surface] for settings swatches. */
 export const paletteSwatches: Record<Appearance['palette'], [string, string, string]> = {
-  berry: ['#A337A0', '#529849', '#faf5fa'],
-  native: ['#4176e6', '#7aaaff', '#f5f7fb'],
-  pine: ['#176753', '#5eceae', '#f2f8f6'],
-  clearblue: ['#285dce', '#7aaaff', '#f3f7fe'],
-  amber: ['#8c5a2b', '#e2b073', '#faf5ec'],
-  lilac: ['#70529b', '#bfa3e8', '#f7f4fb'],
-  mint: ['#276b60', '#70cbb9', '#f2f9f7'],
-  blue: ['#3b6483', '#8ab8dc', '#f3f7fa'],
-  rose: ['#98465f', '#e69ab1', '#fbf4f6'],
-  graphite: ['#465463', '#b0bfce', '#f5f6f8'],
-  inkwhite: ['#303b4c', '#c1cfdf', '#f6f7f9'],
+  berry: ['#A337A0', '#529849', '#f7eaf7'],
+  native: ['#3b6fe0', '#8cb4fb', '#edf3fe'],
+  pine: ['#146c56', '#52cfa9', '#e8f7f1'],
+  amber: ['#9e5a1e', '#dfb074', '#f9efe0'],
+  rose: ['#b5385c', '#ea9cb2', '#fae9ee'],
+  graphite: ['#333d4b', '#8e9bab', '#eceff3'],
 }
 
 export type AppearanceColors = {

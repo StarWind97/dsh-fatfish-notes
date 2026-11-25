@@ -1129,6 +1129,18 @@ export declare const dictionaries: {
         quickSwitchCmdSync: string;
         quickSwitchCmdClass: string;
         quickSwitchCmdSettings: string;
+        notesNewShort: string;
+        findRecentShort: string;
+        appearanceLayoutsHint: string;
+        appearancePaletteHint: string;
+        appearanceColorsHint: string;
+        appearancePaletteBerryDesc: string;
+        appearancePaletteNativeDesc: string;
+        appearancePalettePineDesc: string;
+        appearancePaletteAmberDesc: string;
+        appearancePaletteRoseDesc: string;
+        appearancePaletteGraphiteDesc: string;
+        captureFooterHint: string;
     };
     en: {
         classMergeHeading: string;
@@ -2253,6 +2265,18 @@ export declare const dictionaries: {
         quickSwitchCmdSync: string;
         quickSwitchCmdClass: string;
         quickSwitchCmdSettings: string;
+        notesNewShort: string;
+        findRecentShort: string;
+        appearanceLayoutsHint: string;
+        appearancePaletteHint: string;
+        appearanceColorsHint: string;
+        appearancePaletteBerryDesc: string;
+        appearancePaletteNativeDesc: string;
+        appearancePalettePineDesc: string;
+        appearancePaletteAmberDesc: string;
+        appearancePaletteRoseDesc: string;
+        appearancePaletteGraphiteDesc: string;
+        captureFooterHint: string;
     };
 };
 export declare function resolveLanguage(locale: string | undefined): Language;

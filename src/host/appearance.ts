@@ -1,7 +1,7 @@
 import {readFile,writeFile,rename,mkdir,rm} from 'node:fs/promises'
 import {join} from 'node:path'
 import {randomUUID} from 'node:crypto'
-import {appearanceValue,migrateLayout,parseAppearance,type Appearance} from '../domain/appearance.js'
+import {appearanceValue,migrateLayout,migratePalette,parseAppearance,type Appearance} from '../domain/appearance.js'
 import type {AppearanceState} from '../contracts/appearance.js'
 import type {WindowSurface,WindowTheme} from '../contracts/workspace.js'
 import {NotebookError} from '../domain/errors.js'
@@ -37,7 +37,11 @@ export class SharedAppearance {
       let storedValue = v.value as Record<string, unknown> | null
       if (storedValue !== null) {
         if (typeof storedValue !== 'object' || Array.isArray(storedValue)) throw invalid()
-        const migrated: Record<string, unknown> = { ...storedValue, ...(typeof storedValue.layout === 'string' ? { layout: migrateLayout(storedValue.layout) } : {}) }
+        const migrated: Record<string, unknown> = {
+          ...storedValue,
+          ...(typeof storedValue.layout === 'string' ? { layout: migrateLayout(storedValue.layout) } : {}),
+          ...(typeof storedValue.palette === 'string' ? { palette: migratePalette(storedValue.palette) } : {}),
+        }
         const normalized = appearanceValue(migrated)
         const expectedKeys = Object.keys(normalized) as (keyof Appearance)[]
         const same =

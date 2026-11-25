@@ -120,6 +120,10 @@ export declare class NotesApplication {
         materials?: import("../contracts/notes.js").CaptureMaterial[];
         ok: true;
     }>;
+    capturePreview(input: unknown, signal?: AbortSignal): Promise<{
+        bytes: Buffer;
+        mediaType: import("../contracts/media.js").ImageMediaType;
+    }>;
     suggest(input: unknown, signal?: AbortSignal, language?: Language): Promise<{
         ok: true;
         metadata: import("../contracts/notes.js").NoteStageResult;

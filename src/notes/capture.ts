@@ -11,7 +11,7 @@ import { NOTE_LIMITS } from './types.js'
 import { missing, utf8 } from './files.js'
 import { createNoteRevision, materializeNote, validateNoteRevision } from './revisions.js'
 import { ulid } from '../domain/id.js'
-import { validateBodyAssets } from './assets.js'
+import { validateAsset, validateBodyAssets } from './assets.js'
 import { NotebookError } from '../domain/errors.js'
 import {translator,type Language,type T} from '../domain/localization.js'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -96,7 +96,14 @@ function markTextOnlyImages(source: CaptureSource,t:T): void {
  * persisted before pagination. Retrying never selects a newer tail or note ID. */
 export class NoteCaptureService {
   private tail: Promise<unknown> = Promise.resolve()
+  private previewSnapshots = new Map<string, CaptureRead>()
   constructor(readonly repository: NoteRepository, private readonly conversation: CaptureConversation) {}
+  private cachePreview(sessionId: string, throughSeq: number, transcript: CaptureRead) {
+    const key = `${sessionId}:${throughSeq}`
+    this.previewSnapshots.delete(key)
+    this.previewSnapshots.set(key, transcript)
+    while (this.previewSnapshots.size > 8) this.previewSnapshots.delete(this.previewSnapshots.keys().next().value!)
+  }
   capture(input: unknown, signal: AbortSignal = new AbortController().signal,progress?:(value:CaptureProgress)=>void,t:T=translator('zh')): Promise<CaptureResult> {
     const request = validateCaptureRequest(input)
     const result = this.tail.catch(() => {}).then(() => this.perform(request, signal,progress,t.language))
@@ -105,8 +112,49 @@ export class NoteCaptureService {
   async selection(input: CaptureSelectionRequest, signal: AbortSignal = new AbortController().signal,t:T=translator('zh')): Promise<CaptureSelection> {
     const sessionId = identifier(input.sessionId), cut = await this.conversation.open(sessionId, signal)
     const transcript = await this.conversation.read(sessionId, cut, signal,t)
+    this.cachePreview(sessionId, cut.throughSeq, transcript)
     const selected = input.anchorMessageId ? selectMessages(transcript.messages, { scope: 'turn', anchorMessageId: identifier(input.anchorMessageId) }) : transcript.messages
     return { messages: transcript.messages, complete: transcript.complete, issues: transcript.issues, ...(transcript.materials?{materials:transcript.materials}:{}), ...(transcript.sessionTitle?{sessionTitle:transcript.sessionTitle}:{}), cut, defaultMessageIds: selected.map(m => m.id) }
+  }
+  async preview(input: unknown, signal: AbortSignal = new AbortController().signal): Promise<{ bytes: Buffer; mediaType: ImageMediaType }> {
+    signal.throwIfAborted()
+    const v = object(input)
+    const sessionId = identifier(v.sessionId), materialId = identifier(v.materialId)
+    const throughSeq = Number(v.throughSeq)
+    if (!Number.isSafeInteger(throughSeq) || throughSeq < -1) fail('capture_request')
+    const key = `${sessionId}:${throughSeq}`
+    let transcript = this.previewSnapshots.get(key)
+    if (!transcript) {
+      transcript = await this.conversation.read(sessionId, { throughSeq, capturedAt: new Date().toISOString(), isSeeded: false }, signal)
+      this.cachePreview(sessionId, throughSeq, transcript)
+    }
+    const material = transcript.materials?.find(m => m.id === materialId)
+    if (!material || material.kind !== 'image' || !material.available || material.bytes === null || material.bytes > NOTE_LIMITS.image) {
+      throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+    }
+    if (material.imageId) {
+      const ref = transcript.imageReferences?.get(material.imageId)
+      if (!ref) throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+      try {
+        return await this.conversation.attachment(sessionId, material.imageId, ref.mediaType, signal, ref)
+      } catch (error) {
+        if (signal.aborted) throw error
+        throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+      }
+    }
+    const matRef = transcript.materialReferences?.get(material.id)
+    if (!matRef || !this.conversation.material) throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+    const ext = material.name.split('.').at(-1)?.toLowerCase()
+    const mediaType: ImageMediaType | undefined = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'gif' ? 'image/gif' : ext === 'webp' ? 'image/webp' : undefined
+    if (!mediaType) throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+    try {
+      const bytes = await this.conversation.material(sessionId, material, matRef, signal)
+      validateAsset(bytes, mediaType)
+      return { bytes, mediaType }
+    } catch (error) {
+      if (signal.aborted) throw error
+      throw new NotebookError('capture_attachment', '图片预览不可用', 404)
+    }
   }
   private async perform(request: CaptureRequest, signal: AbortSignal,progress:((value:CaptureProgress)=>void)|undefined,language:Language): Promise<CaptureResult> {
     signal.throwIfAborted()

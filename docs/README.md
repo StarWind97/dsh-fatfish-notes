@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（P0+P1+P2 共五批）及隔离 DSH 双端实机验收，已合回 `main` 待体验（未发版）。** 修复摘要双竖线、顶栏切页跳动与概览双语链接；精简为 `soft`/`outline`/`tree` 三套布局并自动迁移旧版配置；新增 `berry`（莓紫春芽）推荐色板与中性炭黑深色分层，统一概览色板与现代表单/分段控件；空目录自动隐藏、会话侧栏阅读态 2 层瘦身、转存弹窗自适应高度；新增 `Ctrl+K` / `Cmd+K` 快速切换面板与 `@layer` 单例样式注入，并拆分四个大模块。实机拦下并修复旧版 `appearance.json` 键序校验、`RowMenu` 重复样式节点、分段控件与布局卡片对齐等 5 处问题；439/439 全量回归、弹窗尺寸检查、`npm run test:sidebar`、官方 DSH `0.2.2-rc.5` 隔离 Web 与 Windows 桌面 273 文件实装及 22 张浅深双语实拍、指定私库 `StarWind97/dsh-community-private-test` 真实新建/深色代码/宽窗目录/双向同步/回收站清理闭环均已通过。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
+- 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（含首轮 P0+P1+P2 与[二轮原型逐项对齐整改](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md#六二轮原型逐项对齐整改2026-11-25)）及隔离 DSH 双端实机验收，已合回 `main` 待体验（未发版）。** 首轮完成三套布局精简、炭黑深色分层、现代设置页与分段控件、空目录收起、快速切换面板、`@layer` 单例样式与四大模块拆分；二轮逐项对齐原型与交互细节：快速切换改用 `Alt+K` 避开 DSH 会话搜索冲突、色板精简为 6 套高区分度双行卡片（旧色板自动重置为 `native`）、代码块新增独立顶栏与高对比度 `✓ 已复制` 反馈、主色 `+ 新建` 与单行列表工具栏、会话侧栏统一顶栏实现 `0 px` 零跳动切换、转存弹窗通过 `GET /notes/capture-preview`（官方 `@deepseek-ai/dsh-attachment` + 既有安全栅栏）支持真实图片 `48 × 36` 缩略图与底部「取消」按钮。440/440 全量回归、弹窗尺寸检查、`npm run test:sidebar`、官方 DSH `0.2.2-rc.5` 隔离 Web 与 Windows 桌面双端实装、26 张浅深双语实拍核对及指定私库 `StarWind97/dsh-community-private-test` 同步闭环均已通过。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
 - 2026-11-23 **0.12.0 已正式发布，市场双语详情已验收。** 市场中文和英文页都已显示新版正文、配图及图解入口。两页共用的公开安装包与通过隔离桌面和 Web 验收的候选摘要一致。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0) · [发布与市场验证](releases/0.12.0/review.zh.md#发布与市场)
 
@@ -37,6 +37,7 @@
 
 | 任务 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- |
+| （当前无进行中任务） | — | 二轮原型对齐整改已合回 `main` 并留待体验 |
 
 按[多会话协作约定](../AGENTS.md#多会话协作)维护本表。根据工作区差异和专项记录核对实际进度。
 

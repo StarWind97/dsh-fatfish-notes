@@ -27,7 +27,7 @@ import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
 import type {ImagePresentation} from './paper/image-presentation.js'
 
-export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlineSession,onNoteLink,onReturn,onPurge,onTrashed,referenceAction,onDownloadNotice}:{jump?:{noteId:string;query:string;hit:SearchHit}|null;finishJump?:()=>void;onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;onTrashed:(note:NoteSelection)=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
+export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlineSession,onNoteLink,onBack,onReturn,onPurge,onTrashed,referenceAction,onDownloadNotice}:{jump?:{noteId:string;query:string;hit:SearchHit}|null;finishJump?:()=>void;onDownloadNotice:(visible:boolean)=>void;referenceAction?:NoteAction;onNoteLink:(id:string)=>void;onBack?:()=>void;onReturn:(()=>void)|undefined;onPurge:()=>void;onTrashed:(note:NoteSelection)=>void;controller:NotesController;state:NotesState;t:T;onTagClick:(tag:string)=>void;outlineSession:React.MutableRefObject<OutlineSession>}) {
   const mode=state.editing?'edit':'read',materialsId=useId()
   const appearance=useAppearance(),[materialsOpen,setMaterialsOpen]=useState(appearance.pinned),[referenceCount,setReferenceCount]=useState<number|null>(null),[supplementTarget,setSupplementTarget]=useState<HTMLDivElement|null>(null)
   const materialSet=state.draft?supplementMaterials(state.draft):null,materialCount=(materialSet?.assetIds.length??0)+(materialSet?.attachmentIds.length??0)
@@ -141,9 +141,9 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
   if(referenceAction&&note&&!sourceOpen&&!state.editing&&draft.status==='active')actions.push(referenceAction)
   if(!sourceOpen && editable) {
     if(state.editing) actions.push(
-      {label:t('paperSave'),icon:Check,disabled:state.composing,run:()=>complete.current?.()},
+      {label:t('paperSave'),icon:Check,primary:true,disabled:state.composing,run:()=>complete.current?.()},
       {label:t('cancel'),icon:RotateCcw,disabled:state.composing||controller.importing,run:()=>{if(controller.editChanged)setCancelOpen(true);else void controller.cancelEdits()}})
-    else actions.push({label:t('notesEdit'),icon:Pencil,run:()=>edit()})
+    else actions.push({label:t('notesEdit'),icon:Pencil,primary:true,run:()=>edit()})
   }
   if(note && !sourceOpen && !state.editing) actions.push(
     {label:t('notesExport'),icon:Download,run:()=>{onDownloadNotice(false);setPanel('export')}},
@@ -155,7 +155,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
     ...(draft.status==='trashed'?[{label:t('notesRestore'),icon:RotateCcw,secondary:true,disabled:state.loadingNote||state.operation||state.saving||!!state.conflict,run:()=>void move(false)}]:[]))
   return <div className="paper-document" data-loading={state.loadingNote} aria-busy={state.loadingNote} data-material-position={appearance.materials} data-material-open={materialsOpen&&!sourceOpen} data-material-pinned={appearance.pinned} data-right-style={appearance.rightStyle} data-outline={outline.open&&!sourceOpen?(outline.wide?'pinned':'floating'):'closed'}
     onKeyDown={e=>{if(e.key==='Escape'&&!e.defaultPrevented&&outline.open&&!sourceOpen&&!(e.target as HTMLElement).closest('dialog')){e.preventDefault();outline.close()}}}>
-    <header className="paper-doc-head"><div className="paper-command-row"><div className="paper-command-lead"><span className="paper-book"><button className="paper-back" aria-label={t('notesBack')} onClick={()=>void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/><span>{book}</span></span>
+    <header className="paper-doc-head"><div className="paper-command-row"><div className="paper-command-lead"><span className="paper-book"><button className="paper-back" title={t('notesBack')} aria-label={t('notesBack')} onClick={()=>onBack?onBack():void controller.back()}><ArrowLeft size={16}/></button><Notebook size={15}/><span>{book}</span></span>
       {note?.current.sourceId&&<nav className="paper-views paper-segmented paper-segmented-sm" aria-label={t('paperViews')}>
         <button aria-pressed={!sourceOpen} onClick={()=>showSource(false)}>{t('paperBody')}</button>
         <button aria-pressed={sourceOpen} onClick={()=>showSource(true)}>{t('notesSource')}</button></nav>}

@@ -19,6 +19,7 @@ import {paperCss} from './paper/style.js'
 import {useStyleSheet} from './styles/inject.js'
 import {AppearanceStyle,useAppearanceProps,AppearanceScope} from './paper/appearance.js'
 import {useNoteTabs} from './paper/NoteTabs.js'
+import {conversationListTabId} from './paper/note-tabs.js'
 import {conversationBrowseCss,conversationNotesCss,referenceListCss} from './conversation-style.js'
 import {ConversationSidebarHeader} from './ConversationSidebarHeader.js'
 export {conversationNotesCss} from './conversation-style.js'
@@ -279,7 +280,7 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     {removed&&<p role="status" className="conversation-message">{t('sessionRemoved')}</p>}
     {error&&<p role="alert" className="conversation-message">{t('sessionOperationFailed')}</p>}
     {undo&&<TransientNotice t={t} identity={sessionId+undo} message={t('sessionUnlinked')} close={()=>setUndo(null)} busy={linking.size>0} paused={error} action={()=>void restore()}/> }
-    {showDetail?<div className="paper-detail"><NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} referenceAction={{label:t('paperQuote'),ariaLabel:t('referenceTitle'),title:t('referenceTooltip'),icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
+    {showDetail?<div className="paper-detail"><NoteEditor jump={jump} finishJump={finishJump} onDownloadNotice={actions.setDownloadNotice} onTrashed={actions.offerUndo} onBack={()=>void noteTabs.session.select(conversationListTabId)} referenceAction={{label:t('paperQuote'),ariaLabel:t('referenceTitle'),title:t('referenceTooltip'),icon:MessageSquarePlus,compact:true,disabled:!reference.enabled,run:()=>state.note&&reference.open([{noteId:state.note.noteId,title:state.note.current.title}])}} key={state.noteId} controller={controller} state={state} t={t} onTagClick={()=>{}} outlineSession={outline} onNoteLink={id=>void open(id)} onReturn={undefined} onPurge={()=>{}}/></div>:<>
 
       <nav className="conversation-notes-tabs" aria-label={t('sessionNotes')}>
         {tabs.map(key=><button key={key} aria-pressed={group===key} onClick={()=>switchGroup(key)}>

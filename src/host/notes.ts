@@ -105,6 +105,9 @@ export class NotesApplication {
     const v = object(input), request: CaptureSelectionRequest = { sessionId: text(v.sessionId, 512), ...(v.anchorMessageId === undefined ? {} : { anchorMessageId: text(v.anchorMessageId, 512) }) }
     return this.run(async active => ({ ok: true as const, ...await this.captureService.selection(request, active,translator(language)) }), signal)
   }
+  capturePreview(input: unknown, signal?: AbortSignal) {
+    return this.run(active => this.captureService.preview(input, active), signal)
+  }
   suggest(input: unknown, signal?: AbortSignal,language:Language='zh') {
     return this.run(async active => {
       const timeout = AbortSignal.timeout(180_000)

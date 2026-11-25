@@ -18,7 +18,7 @@ import type {SettingsCategory} from './SettingsTabs.js'
 import { FeedbackLink, feedbackCss } from './FeedbackLink.js'
 import { notesStyles as s, notesCss } from './notes-style.js'
 import {BrandMark} from './Brand.js'
-import { ChevronDown, SquarePen, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin , Moon, Sun, Search } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, ArrowLeft, PanelLeftOpen, Star, Pin, Moon, Sun, Search } from 'lucide-react'
 import {QuickSwitcher} from './QuickSwitcher.js'
 import {notebookSync} from './notebook-sync.js'
 import {useStyleSheet} from './styles/inject.js'
@@ -210,7 +210,7 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
     if(option==='manage'){clearTimeout(timer.current);void openClassification(false);return}
     chooseNotebook(option==='all'?undefined:option)
   }}><option value="all">{t('paperAll')}</option>{activeBooks.map(book=><option key={book.notebookId} value={book.notebookId}>{notebookTitle(book,t)}{book.isDefault?` · ${t('notesDefaultBadge')}`:''}</option>)}<option value="manage">{t('notesManageBooks')}…</option></select><ChevronDown size={14}/></label>}
-      {!inTrash&&<span className="paper-new-actions"><button title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><SquarePen size={17}/></button></span>}</div>
+      {!inTrash&&<span className="paper-new-actions"><button type="button" className="paper-new-btn" title={t('notesNew')} aria-label={t('notesNew')} disabled={state.loadingNote||state.saving||state.operation||(state.loadingList&&!state.items.length)} onClick={()=>void create()}><Plus size={15} aria-hidden="true"/><span className="paper-new-label">{t('notesNewShort')}</span></button></span>}</div>
     <SearchControls controller={controller} filter={state.filter} query={query} expanded={state.section==='notes'&&filtersOpen} t={t}
       onQuery={search} onExpanded={setFiltersOpen} onFacets={setFacets} manage={()=>void openClassification(true)}>
       <div className="paper-list-tools" data-selecting={selection.selecting}>
@@ -243,7 +243,8 @@ function NotesPageView({ controller, t, surface, workspace, onToggleDshTheme }: 
   useStyleSheet('classification', classificationCss, 'components')
   useEffect(()=>{
     const onKey=(event:KeyboardEvent)=>{
-      if(event.isComposing||!(event.ctrlKey||event.metaKey)||event.altKey||event.shiftKey||event.key.toLowerCase()!=='k')return
+      if(event.isComposing||!event.altKey||event.ctrlKey||event.metaKey||event.shiftKey)return
+      if(event.code!=='KeyK'&&event.key.toLowerCase()!=='k')return
       if(document.querySelector('dialog[open]'))return
       event.preventDefault()
       setQuickOpen(open=>!open)

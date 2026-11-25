@@ -8,6 +8,7 @@ import {
   layouts,
   layoutDescriptions,
   palettes,
+  paletteDescriptions,
   paletteSwatches,
   type Appearance,
   type AppearanceColors,
@@ -315,6 +316,7 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
           <section className="appearance-card" aria-label={t('appearanceLayouts')}>
             <header className="appearance-card-head">
               <h3>{t('appearanceLayouts')}</h3>
+              <small>{t('appearanceLayoutsHint')}</small>
             </header>
             <div className="appearance-layouts">
               {(Object.entries(layouts) as [keyof typeof layouts, LocaleKey][]).map(([key, label]) => (
@@ -341,6 +343,7 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
           <section className="appearance-card" aria-label={t('appearancePalette')}>
             <header className="appearance-card-head">
               <h3>{t('appearancePalette')}</h3>
+              <small>{t('appearancePaletteHint')}</small>
             </header>
             <div className="appearance-palettes" role="group" aria-label={t('appearancePalette')}>
               {(Object.entries(palettes) as [keyof typeof palettes, LocaleKey][]).map(([key, label]) => {
@@ -358,7 +361,10 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
                       <i style={{ background: c2 }} />
                       <i style={{ background: c3 }} />
                     </span>
-                    <span>{t(label)}</span>
+                    <span className="palette-card-text">
+                      <strong>{t(label)}</strong>
+                      <small>{t(paletteDescriptions[key])}</small>
+                    </span>
                   </button>
                 )
               })}
@@ -368,6 +374,7 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
           <section className="appearance-card" aria-label={t('appearanceColors')}>
             <header className="appearance-card-head">
               <h3>{t('appearanceColors')}</h3>
+              <small>{t('appearanceColorsHint')}</small>
             </header>
             <div className="appearance-fields">
               {!theme.locked &&

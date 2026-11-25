@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Ellipsis, type LucideIcon } from 'lucide-react'
 import type { T } from '../locale.js'
 
-export interface NoteAction { label:string; icon:LucideIcon; run:()=>void; secondary?:boolean; disabled?:boolean; menuOnly?:boolean; title?:string; ariaLabel?:string; compact?:boolean }
+export interface NoteAction { label:string; icon:LucideIcon; run:()=>void; secondary?:boolean; primary?:boolean; disabled?:boolean; menuOnly?:boolean; title?:string; ariaLabel?:string; compact?:boolean }
 export function NoteActions({actions,t,children}:{actions:NoteAction[]; t:T;children?:React.ReactNode}) {
   const [open,setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null)
@@ -17,7 +17,7 @@ export function NoteActions({actions,t,children}:{actions:NoteAction[]; t:T;chil
   function button(action:NoteAction,menu=false) {
     const Icon = action.icon
     return <button key={action.label} role={menu?'menuitem':undefined} title={action.title} aria-label={action.ariaLabel} data-compact={action.compact||undefined}
-      className={!menu && action.secondary?'paper-secondary':undefined} disabled={action.disabled}
+      className={!menu ? (action.primary?'paper-action-primary':action.secondary?'paper-secondary':undefined) : undefined} disabled={action.disabled}
       onClick={()=>{if(menu){setOpen(false);trigger.current?.focus()}action.run()}}><Icon size={15}/><span className="paper-action-label">{action.label}</span></button>
   }
   return <div className="paper-actions" ref={root} onBlur={e=>{if(e.relatedTarget&&!e.currentTarget.contains(e.relatedTarget))setOpen(false)}}

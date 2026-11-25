@@ -302,7 +302,7 @@ export const quickSwitcherCss = `
 .paper-cmd-trigger{display:inline-flex;align-items:center;gap:7px;height:29px;padding:0 9px;border:1px solid var(--rule);border-radius:8px;background:var(--shelf);color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap}
 .paper-cmd-trigger:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--rule));color:var(--ink);background:var(--selected)}
 .paper-cmd-kbd{font-family:var(--font-mono,Consolas,monospace);font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--paper);border:1px solid var(--rule);color:var(--muted)}
-@container paper (max-width:960px){.paper-cmd-trigger-label,.paper-cmd-kbd{display:none}.paper-cmd-trigger{padding:0 7px}}
+@container paper (max-width:1080px){.paper-cmd-trigger-label,.paper-cmd-kbd{display:none}.paper-cmd-trigger{padding:0 7px}}
 .paper-cmd-backdrop{position:fixed;inset:0;z-index:90;background:#10121670;backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:min(12vh,96px) 16px 24px}
 .paper-cmd-modal{width:min(580px,100%);max-height:min(72dvh,520px);display:flex;flex-direction:column;background:var(--overlay,var(--paper));color:var(--ink);border:1px solid var(--rule);border-radius:14px;box-shadow:0 24px 64px #0005;overflow:hidden}
 .paper-cmd-input-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--rule);color:var(--muted)}
