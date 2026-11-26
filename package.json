@@ -154,6 +154,7 @@
     "build": "tsx scripts/build.ts",
     "test": "tsx scripts/test.ts",
     "test:sidebar": "node test/browser/run-search-sidebar.cjs",
+    "verify:candidate": "python -X utf8 -B scripts/verify-candidate.py",
     "typecheck": "tsc -p tsconfig.test.json && tsx scripts/build.ts --typecheck && tsc -p tsconfig.client.json",
     "check": "npm run typecheck"
   },

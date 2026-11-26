@@ -58,6 +58,7 @@
   "$hash  dsh-fatfish-notes.tgz" | Set-Content -Encoding ascii dist/release-<版本>/dsh-fatfish-notes.tgz.sha256
   ```
   - 记录冻结提交号、完整 SHA-256、精确字节数、总文件数，校验 `dsh-fatfish-notes.tgz` 与 `dsh-fatfish-notes-<版本>.tgz` 逐字节一致，且包内文件集合与冻结工作区匹配 `package.json#files`（无遗漏、无多余、无敏感文件）。
+  - 从项目根目录运行 `npm run verify:candidate -- dist/release-<版本>`（需要 Python 3.8+ 的 `python` 命令及可写的临时目录）。脚本核对两份包和校验文件，用 npm 离线预览冻结工作区的打包清单，并逐文件比对内容。默认使用当前工作区，核验历史包时用 `--workspace <对应冻结目录>`。更换候选时追加 `--previous <上一枚候选.tgz>`，报告中的新旧差异供判断复测范围。
 - **重打包与证据承接规则**：
   - 每次更换候选都须列出新旧包完整 SHA-256 与逐成员差异清单。
   - 若**仅修改 `README*.md`** 且所有 `lib/`、`locale/`、`assets/handbook/`、`package.json` 及依赖逐字节一致，可沿用前包的交互、性能与私库同步证据，但仍须重装全部隔离资料、核验完整文件集合与 SHA-256，并在最终摘要下至少补一次桌面/Web 启动与读回冒烟，在验收记录中写清「前包实测、最终包重装等价及最终包冒烟范围」。
@@ -71,6 +72,7 @@
   - `.dsh-home/pure-001/bilingual-20261122/runtime/web`（`--profile web`）
   - `.dsh-home/pure-001/bilingual-20261122/runtime/desktop`（`--profile desktop`）
 - 逐处比对已安装 `node_modules/dsh-fatfish-notes` 与最终候选包的**完整文件集合与内容 SHA-256**，明确核查缺失文件、多余文件与内容差异三类均为 `0`。
+  在上述核验命令后为每处实装追加一个 `--installed <插件安装目录>`，例如 `--installed .dsh-home/pure-001/release12-web/profiles/web/node_modules/dsh-fatfish-notes`。命令列出各处差异。工作区、包或实装核验失败时返回非零退出码。
 
 ### 4. 实拍更新与原尺寸 / 展示宽度双尺度目视核对
 - 从已安装候选按场景、尺寸、浅深色与语种分别拍摄需更新的公开实拍（`assets/screenshots/<版本>/{zh,en}/`）与图解实拍（`docs/images/user-guide/`），同步 `screenshots.json` 与 `assets/screenshots/<版本>/README.md`。
