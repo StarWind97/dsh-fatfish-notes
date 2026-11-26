@@ -8,7 +8,7 @@
 
 DSH 入口、会话笔记入口和笔记顶栏使用小鱼，原入口名称与操作保持。进入「设置 → 帮助」可看到鱼形、肥鱼笔记与 Fatfish Notes 的完整组合，会随当前视图切换深浅色并适配窄窗口。手册书本、设置齿轮等功能图标保留。
 
-实际体验双击 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，使用原独立测试资料；日常 DSH 不会因此自动更新；实际发布与市场状态见[发布记录](releases/0.9.0/review.zh.md)。详情见[品牌接入交付](plans/2026-11-16-brand-logo-results.zh.md)。
+实际体验双击 [Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)，使用原独立测试资料；日常 DSH 不会因此自动更新；当前版本的实测与发布状态见[开发入口](README.md#当前状态)与 [0.13.0 验收记录](releases/0.13.0/review.zh.md)；品牌图标首次接入的历史记录见[品牌接入交付](plans/2026-11-16-brand-logo-results.zh.md)与 [0.9.0 发布记录](releases/0.9.0/review.zh.md)。
 
 ## 用户手册
 

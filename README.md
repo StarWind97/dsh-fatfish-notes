@@ -13,7 +13,7 @@
 
 > 肥鱼笔记 **0.13.0** 声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.13.0/release-notes.md)和[验证记录](docs/releases/0.13.0/review.zh.md)。
 
-![新版阅读工作台与列表工具栏，支持胶囊标签、3px 选中竖条和 Alt+K 快速切换](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/zh/01-image.png)
+![新版阅读工作台，展示主色 + 新建、全部/收藏/最近分段、3px 选中竖条、胶囊标签与阅读标签栏](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/zh/01-image.png)
 
 ## 从会话到笔记
 

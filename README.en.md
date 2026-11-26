@@ -13,7 +13,7 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 
 > Fatfish Notes **0.13.0** declares support for DSH `>=0.2.2-rc.3 <0.2.3-0`. See the [release notes](docs/releases/0.13.0/release-notes.md) and [verification record](docs/releases/0.13.0/review.zh.md).
 
-![Refreshed reading workspace with pill tags, active accent stripe, single-row list tools and Alt+K quick switcher](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/en/01-image.png)
+![Refreshed reading workspace showing + New, All / Favorites / Recent list tabs, active accent stripe, pill tags and reading tabs](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/en/01-image.png)
 
 ## From conversations to notes
 
