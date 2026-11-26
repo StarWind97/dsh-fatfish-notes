@@ -9,7 +9,7 @@ This handbook has three chapters. You can edit, move or delete them like any oth
 ## Write your first note
 
 1. Click **+ New** at the top of the note list, enter a title, then type or paste Markdown in the body.
-2. Use the toolbar for headings, lists, links, tables and code blocks. While editing, click **Edit properties** below the title whenever you want to change the notebook or add tags and a summary.
+2. Use the toolbar for headings, lists, links, tables and code blocks. While editing, click **Edit details** below the title whenever you want to change the notebook or add tags and a summary.
 3. Your draft is saved locally. Click **Done editing** to save it as a note.
 
 > Saving and syncing happen separately. You can keep editing while offline. Saved notes sync when the connection returns.

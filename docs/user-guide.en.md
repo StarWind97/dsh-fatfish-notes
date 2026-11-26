@@ -26,7 +26,7 @@ To give the current conversation the contents of a note, open it in the sidebar 
 
 ## Write and find notes
 
-Click **+ New** at the top of the note list, or open a note and click **Edit**. Write or paste Markdown directly in the body, expand **Edit properties** below the title whenever you need to change the notebook, tags or summary, and click **Done editing** to finish.
+Click **+ New** at the top of the note list, or open a note and click **Edit**. Write or paste Markdown directly in the body, expand **Edit details** below the title whenever you need to change the notebook, tags or summary, and click **Done editing** to finish.
 
 Switch between **All**, **Favorites** and **Recent** in the list toolbar (**Recent** follows notes opened in this local browser), or search your whole library or a single notebook by text or attachment name. In the main view or separate window, press **Alt+K** (**⌥K** on macOS) or click the top-bar quick switcher to search titles, body text, attachment names, notebooks, all tags and common actions in one place. Reading tabs let you move between several notes and **+** opens the overview.
 

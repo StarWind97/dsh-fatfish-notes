@@ -68,7 +68,7 @@ test('English and Chinese handbook editions coexist and open their own linked co
   assert.equal(en.noteId,repeat.noteId)
   assert.equal(repeat.created,false)
   assert.equal((await repo.list()).items.length,6)
-  assert.match((await repo.get(en.noteId!)).current.body,/Edit properties[\s\S]*Alt\+K/)
+  assert.match((await repo.get(en.noteId!)).current.body,/Edit details[\s\S]*Done editing[\s\S]*Alt\+K/)
   const materials=await repo.get(handbookId(0,'materials',6,'en'))
   assert.match(materials.current.body,/Save a conversation[\s\S]*thumbnails/)
   assert.match((await repo.get(handbookId(0,'deliver',6,'en'))).current.body,/collapses automatically[\s\S]*Settings → Help/)

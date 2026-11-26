@@ -19,7 +19,7 @@ Keep useful conversations as Markdown notes. Read, edit and reference them besid
 
 - **Save a conversation**: Save a turn, selected messages or an entire conversation. Wide windows adapt to content height and show turns, live image thumbnails and files, and note details side by side. Start with the conversation title and optionally use the selected text to suggest a title, summary and tags. [Illustrated capture guide](docs/user-guide.en.md#save-a-conversation)
 - **Use beside a conversation**: A unified top bar switches between the note list and reading view without vertical jump. Open linked notes or search the whole library, create, edit and link notes, or add reading instructions for a note copy to the composer for review before sending.
-- **Write and organize in place**: Edit Markdown directly, expand the **Edit properties** drawer under the title when you want to adjust notebook, tags or summary, and paste or drop files. Standalone images display inline by default; mixed drops appear as download links, and images can switch modes anytime.
+- **Write and organize in place**: Edit Markdown directly, expand **Edit details** under the title when you want to adjust notebook, tags or summary, and paste or drop files. Standalone images display inline by default; mixed drops appear as download links, and images can switch modes anytime.
 - **Unified search and quick switching**: Use the same search, filters and **All / Favorites / Recent** segmented control across the main view, separate window and sidebar. Press **Alt+K** (**⌥K** on macOS) in the main view or separate window to search titles, body text, attachment names, notebooks, tags and common actions in one place.
 - **Organize your library**: Use **Organize → Tags** to preview affected notes before renaming, merging or removing a tag. Organize with favorites, pins, note links, bulk actions and version history. [Illustrated guide to tag management](docs/user-guide.en.md#organize-your-library)
 - **Read your way**: Keep several notes open in reading tabs, drag to reorder, and use **+** to open the overview. Share three layouts (Soft cards, Structured split, Notebook tree), six distinct palettes (including Berry sprout), neutral charcoal dark surfaces, fonts and code highlighting between the main view and separate window. Empty outlines collapse automatically, and the sidebar follows DSH's light or dark theme.
@@ -34,7 +34,7 @@ Keep code snippets, rounded tables, files and related notes together for the nex
 
 ## Installation and upgrade
 
-Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.13.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0).
+Download the [latest stable plugin package, `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz). Versioned downloads and checksums are on the [0.13.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0); for rollback to the previous public release, see the [0.12.0 release page](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0).
 
 Start DSH once to initialize its profile, then quit it. Install a matching package using its actual path:
 

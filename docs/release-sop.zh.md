@@ -54,6 +54,8 @@
   New-Item -ItemType Directory -Force dist/release-<版本> | Out-Null
   npm pack --ignore-scripts --cache .npm-cache --pack-destination dist/release-<版本>
   Copy-Item -Force dist/release-<版本>/dsh-fatfish-notes-<版本>.tgz dist/release-<版本>/dsh-fatfish-notes.tgz
+  $hash = (Get-FileHash -Algorithm SHA256 dist/release-<版本>/dsh-fatfish-notes.tgz).Hash.ToLower()
+  "$hash  dsh-fatfish-notes.tgz" | Set-Content -Encoding ascii dist/release-<版本>/dsh-fatfish-notes.tgz.sha256
   ```
   - 记录冻结提交号、完整 SHA-256、精确字节数、总文件数，校验 `dsh-fatfish-notes.tgz` 与 `dsh-fatfish-notes-<版本>.tgz` 逐字节一致，且包内文件集合与冻结工作区匹配 `package.json#files`（无遗漏、无多余、无敏感文件）。
 - **重打包与证据承接规则**：

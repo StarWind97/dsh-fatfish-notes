@@ -34,7 +34,7 @@
 
 ## 安装与升级
 
-下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.13.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)。新版资料需由相应版本的插件读写。
+下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.13.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)；如需回退上一公开版，见 [0.12.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0)。新版资料需由相应版本的插件读写。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 

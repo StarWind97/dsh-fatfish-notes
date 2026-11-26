@@ -83,8 +83,10 @@ export function QuickSwitcher({
   const [tags, setTags] = useState<TagEntry[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const itemRefs = useRef(new Map<string, HTMLButtonElement>())
-  const pendingScrollIdRef = useRef<string | null>(null)
+  const pendingScrollModeRef = useRef<'active' | 'first' | null>(null)
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null)
   const openerRef = useRef<HTMLElement | null>(null)
 
   useIsoLayoutEffect(() => {
@@ -93,13 +95,15 @@ export function QuickSwitcher({
     setQuery('')
     setActiveId(null)
     setSearchResponse(null)
-    pendingScrollIdRef.current = null
+    pendingScrollModeRef.current = null
+    lastPointerRef.current = null
     inputRef.current?.focus()
     return () => {
       setQuery('')
       setActiveId(null)
       setSearchResponse(null)
-      pendingScrollIdRef.current = null
+      pendingScrollModeRef.current = null
+      lastPointerRef.current = null
       openerRef.current?.focus?.({ preventScroll: true })
     }
   }, [open])
@@ -235,7 +239,9 @@ export function QuickSwitcher({
     const activeEl = document.activeElement as HTMLElement | null
     if (modal && (!activeEl || !modal.contains(activeEl))) {
       inputRef.current?.focus()
+      pendingScrollModeRef.current = 'first'
       setActiveId(filtered[0]?.id ?? null)
+      setScrollTick(n => n + 1)
       return
     }
     if (activeEl?.dataset.itemId && modal?.contains(activeEl)) {
@@ -243,15 +249,24 @@ export function QuickSwitcher({
       return
     }
     if (activeId !== null && !filtered.some(item => item.id === activeId)) {
+      pendingScrollModeRef.current = 'first'
       setActiveId(filtered[0]?.id ?? null)
+      setScrollTick(n => n + 1)
     }
   }, [open, filtered])
 
   useIsoLayoutEffect(() => {
-    if (!open || !resolvedActiveId || pendingScrollIdRef.current !== resolvedActiveId) return
-    pendingScrollIdRef.current = null
-    itemRefs.current.get(resolvedActiveId)?.scrollIntoView?.({ block: 'nearest' })
-  }, [open, resolvedActiveId, scrollTick])
+    if (!open) return
+    const mode = pendingScrollModeRef.current
+    if (!mode) return
+    pendingScrollModeRef.current = null
+    if (mode === 'first' || activeIndex === 0) {
+      if (listRef.current) listRef.current.scrollTop = 0
+      if (resolvedActiveId) itemRefs.current.get(resolvedActiveId)?.scrollIntoView?.({ block: 'nearest' })
+    } else if (resolvedActiveId) {
+      itemRefs.current.get(resolvedActiveId)?.scrollIntoView?.({ block: 'nearest' })
+    }
+  }, [open, resolvedActiveId, scrollTick, filtered])
 
   if (!open) return null
 
@@ -313,20 +328,21 @@ export function QuickSwitcher({
             onChange={e => {
               setQuery(e.target.value)
               setActiveId(null)
-              pendingScrollIdRef.current = null
+              pendingScrollModeRef.current = 'first'
+              setScrollTick(n => n + 1)
             }}
             onKeyDown={e => {
               if (e.nativeEvent.isComposing) return
               if (e.key === 'ArrowDown' && filtered.length) {
                 e.preventDefault()
                 const next = filtered[(activeIndex + 1) % filtered.length]!
-                pendingScrollIdRef.current = next.id
+                pendingScrollModeRef.current = 'active'
                 setActiveId(next.id)
                 setScrollTick(n => n + 1)
               } else if (e.key === 'ArrowUp' && filtered.length) {
                 e.preventDefault()
                 const next = filtered[(activeIndex - 1 + filtered.length) % filtered.length]!
-                pendingScrollIdRef.current = next.id
+                pendingScrollModeRef.current = 'active'
                 setActiveId(next.id)
                 setScrollTick(n => n + 1)
               } else if (e.key === 'Enter' && activeIndex >= 0 && filtered[activeIndex]) {
@@ -339,7 +355,7 @@ export function QuickSwitcher({
             {t('paperClose')}
           </button>
         </div>
-        <div className="paper-cmd-list" role="listbox" aria-label={t('quickSwitchTitle')}>
+        <div ref={listRef} className="paper-cmd-list" role="listbox" aria-label={t('quickSwitchTitle')}>
           {!filtered.length ? (
             <p className="paper-cmd-empty">{t('quickSwitchEmpty')}</p>
           ) : (
@@ -360,8 +376,14 @@ export function QuickSwitcher({
                     aria-selected={isActive}
                     className="paper-cmd-item"
                     data-active={isActive}
-                    onMouseEnter={() => {
-                      pendingScrollIdRef.current = null
+                    onPointerMove={e => {
+                      if (e.pointerType !== 'mouse') return
+                      const prev = lastPointerRef.current
+                      if (prev && prev.x === e.clientX && prev.y === e.clientY) return
+                      lastPointerRef.current = { x: e.clientX, y: e.clientY }
+                      const focused = document.activeElement as HTMLElement | null
+                      if (focused?.dataset.itemId && modalRef.current?.contains(focused)) return
+                      pendingScrollModeRef.current = null
                       setActiveId(item.id)
                     }}
                     onFocus={() => setActiveId(item.id)}
@@ -397,7 +419,7 @@ export const quickSwitcherCss = `
 .paper-cmd-list{overflow:auto;overscroll-behavior:contain;padding:8px;min-height:0;flex:1}
 .paper-cmd-group{font-size:11px;font-weight:650;color:var(--muted);padding:8px 10px 4px;letter-spacing:.03em}
 .paper-cmd-item{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:var(--ink);text-align:start;font-size:13px;cursor:pointer}
-.paper-cmd-item[data-active=true],.paper-cmd-item:hover{background:var(--selected);color:var(--accent)}
+.paper-cmd-item[data-active=true]{background:var(--selected);color:var(--accent)}
 .paper-cmd-lead{display:inline-flex;align-items:center;gap:8px;min-width:0}.paper-cmd-lead span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.paper-cmd-lead svg{flex:none;opacity:.75}
 .paper-cmd-item small{flex:none;color:var(--muted);font-size:11.5px}
 .paper-cmd-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:13px;margin:0}
