@@ -1,6 +1,6 @@
-# 肥鱼笔记 0.13.0 候选验收记录
+# 肥鱼笔记 0.13.0 候选验收与发布记录
 
-2026-11-26，`0.13.0` 候选完成二轮独立复核整改（`r3`）及定向补证（在同步空闲 `idle / pending=false` 资料补测被动双窗口自动刷新、按实际证据精确校准实机冒烟表表述、清理隔离资料遗留试验笔记、登记 1 px 指针回入 P3 后续项）。全程保持最终候选包 `r3`（`3721bc47...`）零字节未变。本轮停在阶段一且**尚未提交 Git**，以洁净未提交工作区与最终候选 `r3` 交由 Codex 独立复核。[发版规划与整改记录](../../plans/2026-11-26-release-0130.zh.md) · [中英文版本说明](release-notes.md) · [发版 SOP](../../release-sop.zh.md)
+2026-11-26，`0.13.0` 候选完成二轮独立复核整改（`r3`）、定向补证与 Codex 阶段一终审通过后，已于北京时间 `17:38` 正式公开 GitHub Release `v0.13.0`（标签指向发布提交 `efa638acfeca9c3431dcc304d3e5931897820265`，固定名安装包 SHA-256 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`），版本入口与 `latest` 两条匿名公开下载及 `.sha256` 校验全部通过。插件市场上游条目无需 PR，首次实页核查因定时构建尚未重跑仍显示 `0.12.0` 旧缓存（固定安装入口已取得 `0.13.0`），待市场重建后补验中英文新版页面。[发版规划与整改记录](../../plans/2026-11-26-release-0130.zh.md) · [中英文版本说明](release-notes.md) · [发版 SOP](../../release-sop.zh.md) · [GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)
 
 ---
 
@@ -143,12 +143,30 @@
   - 未在 macOS、Linux、高 DPI 物理缩放或 DSH `0.2.3-alpha.2` 上实机运行（macOS `⌥K` 仅有源码逻辑依据，无物理键盘实测）；
   - 本轮独立窗口通过直接宿主端点 URL 在无头 Chromium 中启动验证，未额外实测通过桌面主界面「独立窗口」按钮原生拉起窗口的窗口壳层链路；
   - 双语离线演示资料未发起真实 AI 模型建议请求；
-  - 本轮按明确授权边界**未执行 `git commit`**，且所有阶段二操作（`git push`、创建/推送 `v0.13.0` 标签、创建 GitHub Release、公开链接匿名下载校验、插件市场双语实页复核）**均尚未执行**，等待 Codex 独立复核与用户批准。
+  - 插件市场 `awesome-dsh-plugin.com` 在 `v0.13.0` 发布时尚未触发新一轮定时重建，中英文详情页新版正文与 `0.13.0` 截图待市场重建后补验（见下文[发布与市场](#发布与市场)）。
 - **已明确登记为非阻塞后续迭代项（本轮不改代码）**：
   - **P3 · `QuickSwitcher` 1 px 指针回入原坐标边界（及触笔悬停）**：输入框保焦时指针停在某结果左边缘 → 移至左侧列表内边距 1 CSS px → 按 `↓` 选中下一项 → 精准移回原坐标且不再向项内移动时，因坐标仅在结果按钮 `onPointerMove` 内记录，未触发新选，按 `Enter` 仍打开键盘选中项（再向项内移 1 px 或直接点击均正常；另 `pointerType === 'mouse'` 会忽略触笔悬停，笔尖点按正常）。后续在列表级记录真实指针离开并区分同坐标合成事件，同时保留已聚焦按钮键盘优先。
   - `test/quick-switcher.test.ts` 的样式注册扫描改用 TypeScript AST 解析导入符号与动态调用；
   - `lib/client.js` 与 `lib/standalone.js` 中 `code-worker.ts` 虚拟模块 esbuild 注释带本机构建根目录绝对路径改为稳定相对标识。
 - **隔离体验入口与证据目录**：
   - 桌面隔离体验脚本：`D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`（指向已安装最终候选 `3721bc47...` 的 `.dsh-home/pure-001/release12-desktop`）。
-  - 最终候选包与校验文件：`D:\DSH-Workspace\dsh-github-notebook\dist\release-0130-r3\`；前序对照候选：`dist\release-0130-r2\` 与 `dist\release-0130\`；本轮实测收据与日志：`D:\DSH-Workspace\dsh-github-notebook\output\playwright\release-0130-r3\`（含 `passive-refresh-idle-sync.json` 与 `cleanup-leftover-note.json`）。
+  - 最终候选包与校验文件：`D:\DSH-Workspace\dsh-github-notebook\dist\release-0130-r3\`（含公开下载核验副本 `publication/`）；前序对照候选：`dist\release-0130-r2\` 与 `dist\release-0130\`；本轮实测收据与日志：`D:\DSH-Workspace\dsh-github-notebook\output\playwright\release-0130-r3\`（含 `passive-refresh-idle-sync.json`、`cleanup-leftover-note.json` 与 `public-download-verify.json`）。
   - 所有自建验收进程均已关闭，日常 DSH 资料未改动。
+
+---
+
+## 发布与市场
+
+- **正式发布（2026-11-26 17:38:44 北京时间 / `09:38:44Z`）**：
+  - 仅提交经 Codex 终审的 15 个工作区文件，发布提交完整 SHA：`efa638acfeca9c3431dcc304d3e5931897820265`，已推送至 `origin/main`；
+  - 创建并推送附注标签 `v0.13.0`（标签对象 `5bfd2fb6fac40d7fc18cad482836ce89971e6435`，指向发布提交 `efa638acfeca9c3431dcc304d3e5931897820265`）；
+  - 使用转换好 `v0.13.0` 绝对链接的中英文版本说明创建 GitHub Release 草稿，仅上传 `dsh-fatfish-notes.tgz`（`18,261,474` 字节，GitHub 记录摘要 `sha256:3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`）与 `dsh-fatfish-notes.tgz.sha256`（`89` 字节，GitHub 记录摘要 `sha256:ccf5bb7fe19de1637ec2529afce0dab44b2defca8ba13b0b0e64964bdcb8da81`），核对全部一致后公开并设为 Latest。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)
+- **双入口匿名公开下载校验（2026-11-26 17:39 北京时间，收据：`output/playwright/release-0130-r3/public-download-verify.json`）**：
+  - 版本入口匿名下载：[v0.13.0/dsh-fatfish-notes.tgz](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.13.0/dsh-fatfish-notes.tgz) → `18,261,474` 字节、`279` 文件、包内 `dsh-fatfish-notes@0.13.0`，SHA-256 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`（通过）；
+  - 最新版入口匿名下载：[latest/download/dsh-fatfish-notes.tgz](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz) → `18,261,474` 字节、`279` 文件、包内 `dsh-fatfish-notes@0.13.0`，SHA-256 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`（通过）；
+  - 两条公开 `.sha256` 匿名下载内容均为 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a  dsh-fatfish-notes.tgz`（通过）；
+  - GitHub `main` 分支中英文 README（含 `0.13.0` 截图路径、`Edit details` 与 `v0.12.0` 回退链接）及 `assets/screenshots/0.13.0/{zh,en}/` 8 张实拍均已核对在线可见。[中文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.md) · [英文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.en.md)
+- **插件市场元数据与首轮实页观测（2026-11-26 17:41 北京时间，待重建后补验）**：
+  - 上游条目 [StarWind97__dsh-fatfish-notes.yml](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml) 的中英文描述、分类、图标与固定安装入口（`releases/latest/download/dsh-fatfish-notes.tgz`）均无变化，**无需提交市场 PR**；
+  - 实际访问[英文详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)、[中文详情页](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/)并核查 [plugins.json](https://awesome-dsh-plugin.com/plugins.json)：两页与目录 JSON 均**仍展示上一次定时构建（`build-site.yml` run `45742690005`，北京时间 `2026-11-26 10:28–14:23`）缓存的 `0.12.0` 正文（八套布局 / 十种配色）与 4 张 `0.12.0` 截图**；两页共用的预构建安装命令指向 `releases/latest/download/dsh-fatfish-notes.tgz`（已匿名验证为 `0.13.0`），图解主链接指向 `HEAD` 主分支文档；
+  - 上游 `build-site.yml` 每日 `02:23 UTC`（北京时间 `10:23`）定时重建或随上游新合并触发。**市场双语实页暂记为“待市场重建后补验”，待看到 `0.13.0` 新版正文与 8 张新实拍生效后再补记完成。**
