@@ -136,14 +136,17 @@ test('upgrade replays legacy appearance patches in order and other windows see l
       for(const bad of [{layout:'bogus'},{layout:'toString'},{palette:'bogus'}]){
         await assert.rejects(f.store.update(patch(storeId,bad)),{code:'appearance_invalid'})
       }
-      const badDisk=disk(legacy)
-      badDisk.setItem(appearanceKey+'.pending',JSON.stringify({storeId,queue:[{operationId:font,patch:{layout:'toString',palette:'bogus'}}]}))
-      const badClient=new AppearancePreferences(badDisk);let badCode=''
-      const badBase=transport(f.store,'embedded','bad-client')
-      try{
-        badClient.start('embedded',(async(path,body,signal)=>{try{return await badBase(path,body,signal)}catch(e:unknown){badCode=(e as {code?:string}).code??'';throw e}}) as Api,async()=>{})
-        await until(()=>badClient.getStatus()==='error'&&badCode==='appearance_invalid')
-      }finally{badClient.stop()}
+      for(const [label,badPatch] of [['illegal layout',{layout:'toString'}],['unknown palette',{palette:'bogus'}]] as const){
+        const badDisk=disk(legacy)
+        badDisk.setItem(appearanceKey+'.pending',JSON.stringify({storeId,queue:[{operationId:randomUUID(),patch:badPatch}]}))
+        const badClient=new AppearancePreferences(badDisk);let badCode=''
+        const badBase=transport(f.store,'embedded',`bad-client-${label}`)
+        try{
+          badClient.start('embedded',(async(path,body,signal)=>{try{return await badBase(path,body,signal)}catch(e:unknown){badCode=(e as {code?:string}).code??'';throw e}}) as Api,async()=>{})
+          await until(()=>badClient.getStatus()==='error'&&badCode==='appearance_invalid')
+        }finally{badClient.stop()}
+      }
+      void font
     }finally{reloaded.stop()}
   }finally{other.stop();await f.close()}
 })

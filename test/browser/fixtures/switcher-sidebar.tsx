@@ -12,26 +12,70 @@ import type { Api } from '../../../src/client/api.js'
 import type { NoteListItem } from '../../../src/contracts/notes.js'
 
 const t = translator('en')
-const results: NoteListItem[] = ['Alpha','Beta'].map((title,i) => ({
-  noteId: String(i+1), title, notebookId: null, summary: '', tags: [], status: 'active',
+const makeNote = (id: string, title: string): NoteListItem => ({
+  noteId: id, title, notebookId: null, summary: '', tags: [], status: 'active',
   savedAt: '', heads: [], pinned: false, conflicted: false,
-}))
+})
+const results: NoteListItem[] = [
+  makeNote('1', 'Alpha'),
+  makeNote('2', 'Beta'),
+  ...Array.from({ length: 24 }, (_, i) => makeNote(`item-${i + 1}`, `Item ${String(i + 1).padStart(2, '0')} crowd`)),
+]
+const lateGamma = makeNote('3', 'pairkey Gamma')
+const lateCrowdTop = makeNote('crowd-top', 'crowd-top')
 const tags = Array.from({ length: 61 }, (_, i) => ({ tag: 'tag-' + i, count: 1 }))
+
 export const requests: string[] = []
-export let finishSlow: (() => void) | undefined
+const resolvers = new Map<string, () => void>()
+export function finishQuery(query: string) {
+  const fn = resolvers.get(query)
+  if (!fn) throw new Error(`No pending resolver for query "${query}"`)
+  resolvers.delete(query)
+  fn()
+}
+export function finishSlow() { finishQuery('slow') }
+
+const waitFor = (query: string) => new Promise<void>(resolve => { resolvers.set(query, resolve) })
+
 const search: Api = (async (path, body) => {
   if (path === '/notes/catalog') return { ok: true, tags }
   const { query } = body as { query: string }
   requests.push(query)
-  if (query === 'slow') await new Promise<void>(resolve => { finishSlow = resolve })
-  if (query === 'budget.xlsx') return { ok: true, items: [results[1]] }
-  return { ok: true, items: ['slow','body-only','Alpha'].includes(query) ? [results[0]] : [] }
+  if (query === 'slow') {
+    await waitFor('slow')
+    return { ok: true, items: [results[0]!] }
+  }
+  if (query === 'pairkey') {
+    await waitFor('pairkey')
+    // Late body match inserts pairkey Gamma at top, shifting Alpha & Beta down.
+    return { ok: true, items: [lateGamma, results[0]!, results[1]!] }
+  }
+  if (query === 'reorder') {
+    await waitFor('reorder')
+    // Same-count reorder: swap Beta before Alpha with equal match count.
+    return { ok: true, items: [results[1]!, results[0]!] }
+  }
+  if (query === 'crowd') {
+    await waitFor('crowd')
+    // Late exact-prefix/higher-ranked match pushes item-24 out of the 24-item slice.
+    return { ok: true, items: [lateCrowdTop] }
+  }
+  if (query === 'budget.xlsx') return { ok: true, items: [results[1]!] }
+  return { ok: true, items: ['body-only', 'Alpha'].includes(query) ? [results[0]!] : [] }
 }) as Api
+
 const controller = new NotesController(search)
-const state = { ...emptyNotesState(), items: results }
+const initialItems: NoteListItem[] = [
+  { ...results[0]!, summary: 'pairkey reorder' },
+  { ...results[1]!, summary: 'pairkey reorder' },
+  ...results.slice(2),
+]
+const state = { ...emptyNotesState(), items: initialItems }
 const bridge = new NoteCaptureBridge()
 const nothing = () => {}
 export const actions: string[] = []
+export function clearActions() { actions.length = 0 }
+
 function Switcher() {
   const [open, setOpen] = React.useState(false)
   return <><button id="open" onClick={() => setOpen(true)}>Open</button>

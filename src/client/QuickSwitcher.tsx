@@ -77,23 +77,29 @@ export function QuickSwitcher({
 }) {
   useStyleSheet('quick-switcher', quickSwitcherCss, 'components')
   const [query, setQuery] = useState('')
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [scrollTick, setScrollTick] = useState(0)
   const [searchResponse, setSearchResponse] = useState<{ query: string; items: NoteListItem[] } | null>(null)
   const [tags, setTags] = useState<TagEntry[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef(new Map<string, HTMLButtonElement>())
+  const pendingScrollIdRef = useRef<string | null>(null)
   const openerRef = useRef<HTMLElement | null>(null)
 
   useIsoLayoutEffect(() => {
     if (!open) return
     openerRef.current = document.activeElement as HTMLElement | null
     setQuery('')
-    setActiveIndex(0)
+    setActiveId(null)
     setSearchResponse(null)
+    pendingScrollIdRef.current = null
     inputRef.current?.focus()
     return () => {
       setQuery('')
-      setActiveIndex(0)
+      setActiveId(null)
       setSearchResponse(null)
+      pendingScrollIdRef.current = null
       openerRef.current?.focus?.({ preventScroll: true })
     }
   }, [open])
@@ -213,7 +219,39 @@ export function QuickSwitcher({
   }, [currentResponse, state.overview, state.items, books, tags, bookMap, t, onClose, onOpenNote, onOpenBook, onFilterTag, onCreate, onToggleTheme, onSync, onNavigate])
 
   const filtered = useMemo(() => filterQuickItems(allItems, query, 24), [allItems, query])
-  useEffect(() => setActiveIndex(0), [query, filtered.length])
+  const activeIndex = useMemo(() => {
+    if (!filtered.length) return -1
+    if (activeId !== null) {
+      const idx = filtered.findIndex(item => item.id === activeId)
+      if (idx >= 0) return idx
+    }
+    return 0
+  }, [filtered, activeId])
+  const resolvedActiveId = activeIndex >= 0 ? filtered[activeIndex]!.id : null
+
+  useIsoLayoutEffect(() => {
+    if (!open) return
+    const modal = modalRef.current
+    const activeEl = document.activeElement as HTMLElement | null
+    if (modal && (!activeEl || !modal.contains(activeEl))) {
+      inputRef.current?.focus()
+      setActiveId(filtered[0]?.id ?? null)
+      return
+    }
+    if (activeEl?.dataset.itemId && modal?.contains(activeEl)) {
+      if (activeEl.dataset.itemId !== activeId) setActiveId(activeEl.dataset.itemId)
+      return
+    }
+    if (activeId !== null && !filtered.some(item => item.id === activeId)) {
+      setActiveId(filtered[0]?.id ?? null)
+    }
+  }, [open, filtered])
+
+  useIsoLayoutEffect(() => {
+    if (!open || !resolvedActiveId || pendingScrollIdRef.current !== resolvedActiveId) return
+    pendingScrollIdRef.current = null
+    itemRefs.current.get(resolvedActiveId)?.scrollIntoView?.({ block: 'nearest' })
+  }, [open, resolvedActiveId, scrollTick])
 
   if (!open) return null
 
@@ -246,6 +284,7 @@ export function QuickSwitcher({
       }}
     >
       <div
+        ref={modalRef}
         className="paper-cmd-modal"
         role="dialog"
         aria-modal="true"
@@ -271,16 +310,26 @@ export function QuickSwitcher({
             aria-label={t('quickSwitchPlaceholder')}
             placeholder={t('quickSwitchPlaceholder')}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => {
+              setQuery(e.target.value)
+              setActiveId(null)
+              pendingScrollIdRef.current = null
+            }}
             onKeyDown={e => {
               if (e.nativeEvent.isComposing) return
-              if (e.key === 'ArrowDown') {
+              if (e.key === 'ArrowDown' && filtered.length) {
                 e.preventDefault()
-                setActiveIndex(i => (filtered.length ? (i + 1) % filtered.length : 0))
-              } else if (e.key === 'ArrowUp') {
+                const next = filtered[(activeIndex + 1) % filtered.length]!
+                pendingScrollIdRef.current = next.id
+                setActiveId(next.id)
+                setScrollTick(n => n + 1)
+              } else if (e.key === 'ArrowUp' && filtered.length) {
                 e.preventDefault()
-                setActiveIndex(i => (filtered.length ? (i - 1 + filtered.length) % filtered.length : 0))
-              } else if (e.key === 'Enter' && filtered[activeIndex]) {
+                const next = filtered[(activeIndex - 1 + filtered.length) % filtered.length]!
+                pendingScrollIdRef.current = next.id
+                setActiveId(next.id)
+                setScrollTick(n => n + 1)
+              } else if (e.key === 'Enter' && activeIndex >= 0 && filtered[activeIndex]) {
                 e.preventDefault()
                 filtered[activeIndex]!.run()
               }
@@ -296,17 +345,26 @@ export function QuickSwitcher({
           ) : (
             filtered.map((item, idx) => {
               const showGroup = idx === 0 || filtered[idx - 1]?.group !== item.group
+              const isActive = item.id === resolvedActiveId
               return (
                 <React.Fragment key={item.id}>
                   {showGroup && <div className="paper-cmd-group">{groupLabel(item.group)}</div>}
                   <button
+                    ref={el => {
+                      if (el) itemRefs.current.set(item.id, el)
+                      else itemRefs.current.delete(item.id)
+                    }}
                     type="button"
                     role="option"
-                    aria-selected={idx === activeIndex}
+                    data-item-id={item.id}
+                    aria-selected={isActive}
                     className="paper-cmd-item"
-                    data-active={idx === activeIndex}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onFocus={() => setActiveIndex(idx)}
+                    data-active={isActive}
+                    onMouseEnter={() => {
+                      pendingScrollIdRef.current = null
+                      setActiveId(item.id)
+                    }}
+                    onFocus={() => setActiveId(item.id)}
                     onClick={item.run}
                   >
                     <span className="paper-cmd-lead">

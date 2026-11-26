@@ -111,7 +111,10 @@ test('singleton stylesheet manager deduplicates mounts with @layer and cleans up
   }
 })
 
-test('every client stylesheet registration uses a unique css binding per layer and id', () => {
+// Lightweight regex sanity check for single-quoted direct stylesheet registrations in src/client/.
+// Dynamic keys, imported aliases, complex expressions, and cross-module same-identifier collisions
+// are outside this regex scan (tracked for a future TypeScript AST check).
+test('direct literal client stylesheet registrations map each layer and id to one css expression', () => {
   const walk = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
       const full = join(dir, entry.name)
