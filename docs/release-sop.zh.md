@@ -49,6 +49,7 @@
   - `node test/browser/check-switcher-sidebar.mjs`
   - `node --import tsx test/browser/check-dialog-sizes.mjs`
 - **说明**：`test/localization.test.ts` 负责校验证书级词表完整、无硬编码可见文案及 README/英文图解图片路径配对，**不等同于**验证全部正文相对链接、页内锚点或图注语义一致性；正文链接、锚点与图文语义须单独核查。
+- **反例自查与表述克制**：涉及界面交互或异步逻辑改动时，冻结前不仅测顺畅路径，须主动用打断与边界场景自查（如操作中途后台数据返回、长列表滚动后再改条件、键盘与鼠标同时存在、重复操作或取消）；验收表与文字结论须与脚本或人工实际检查的步骤 1:1 对应，不写超出实测范围的总结。
 - 准备独立输出目录 `dist/release-<版本>`（保留上一枚候选便于独立复核对照），打包带版本名归档，复制出逐字节一致的固定名 `dsh-fatfish-notes.tgz` 并生成校验文件 `dsh-fatfish-notes.tgz.sha256`：
   ```powershell
   New-Item -ItemType Directory -Force dist/release-<版本> | Out-Null
@@ -110,7 +111,7 @@
 - 关闭全部自建验收进程，按隔离资料路径复核无残留隔离 DSH 进程。
 - 将冻结提交号、包路径、SHA-256、字节数、文件数、宿主实查记录、工程与浏览器回归、四组合验收、升级与手册、性能表、私库同步、实拍双尺度核对、未覆盖边界与隔离体验入口（[Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)）完整写入 `docs/releases/<版本>/review.zh.md` 与当版规划文档，明确区分**「本包实测」「沿用前包证据」「尚未验证」**。
 - 在 [docs/README.md](README.md#进行中的任务) **保留「待独立复核 / 待阶段二发布确认」条目**（待阶段二全部完成后再清理）。
-- 提交本地干净变更（**不推送远端、不打正式标签、不创建 Release 草稿或正式版、不改动市场**），核对本轮发布提交是否已推送（不假设远端 `origin/main` 必须停在上一公开版），输出标准 5 项交接摘要等待独立复核与用户批准阶段二。
+- 提交本地干净变更（**不推送远端、不打正式标签、不创建 Release 草稿或正式版、不改动市场**），核对本轮发布提交是否已推送（不假设远端 `origin/main` 必须停在上一公开版），输出标准 5 项交接摘要并**附上隔离体验脚本 `scripts/Open-Fatfish-Notes.cmd` 的绝对路径**，等待独立复核与用户批准阶段二。
 
 ---
 
@@ -127,7 +128,7 @@
    - 检查 GitHub 主分支中英文 README 及截图展示正常；
    - **市场更新决策**：核对上游 `awesome-dsh-plugin` 条目元数据（描述、截图清单、安装入口、兼容声明等）是否需要修改；仅当元数据有变化时提交市场 PR，否则沿用既有条目等待定时构建。
    - 市场构建完成后，实际访问[肥鱼笔记市场详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)并切换中英文，核对两语正文、配图、图解链接及固定安装入口（若市场尚未定时重建，先记录状态待重建后补验）。
-4. **交付记录**：将发布提交号、GitHub 发布页、市场详情页及匿名下载校验结果补写进 `docs/releases/<版本>/review.zh.md` 与 `docs/README.md`，清理 [进行中的任务](README.md#进行中的任务)，并在回复中分别列出 GitHub 发布页与市场详情页。
+4. **交付记录**：将发布提交号、GitHub 发布页、市场详情页及匿名下载校验结果补写进 `docs/releases/<版本>/review.zh.md` 与 `docs/README.md`，清理 [进行中的任务](README.md#进行中的任务)（市场尚未重建时可暂留重建补验一条），并在回复中分别列出 **GitHub 发布页、市场详情页与本机隔离体验脚本 `scripts/Open-Fatfish-Notes.cmd` 的绝对路径**。
 
 ---
 

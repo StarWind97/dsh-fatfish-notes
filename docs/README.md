@@ -72,6 +72,6 @@
 
 - 桌面隔离体验入口：[Open-Fatfish-Notes.cmd](../scripts/Open-Fatfish-Notes.cmd)（打开 `release12-desktop` 隔离体验资料）。
 - 侧栏查找浏览器回归：`npm run test:sidebar`，详见[浏览器回归说明](../test/browser/README.md#会话侧栏查找)（在独立 worktree 中支持自动回退定位主目录 `.dsh-home/pure-001`，也可通过 `FATFISH_QA_ROOT` 指定）。
-- 每轮功能更新后由 Agent 提供体验脚本的绝对路径，必要时直接打开窗口；下一轮更新前主动核对隔离窗口、保存与传输状态，决定是否关闭并重开。纯文档讨论无需重启。具体边界见[体验窗口交付约定](plans/2026-11-11-stage-e-follow-up.zh.md#体验窗口交付约定用户已确认)。
+- 每轮开发、重构或发版结束后，由 Agent 在交付回复中直接提供体验脚本的绝对路径（如 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`），必要时直接打开窗口；下一轮更新前主动核对隔离窗口、保存与传输状态，决定是否关闭并重开。纯文档讨论无需重启。具体边界见[体验窗口交付约定](plans/2026-11-11-stage-e-follow-up.zh.md#体验窗口交付约定用户已确认)。
 - 历史验证图册、证据和备份保留在 `output/playwright/` 与 `.dsh-home/pure-001/`，均由 Git 忽略。普通桌面启动的 GitHub 账号需在实际宿主核对，不能仅凭 Agent 终端或沙箱环境的登录状态判断。
 - 早期 0.5–0.9 与 E 阶段的历史交付和体验快照已归档至[历史交付与评审归档](history.zh.md)。
