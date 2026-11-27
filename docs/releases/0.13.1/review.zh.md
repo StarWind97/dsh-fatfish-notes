@@ -1,4 +1,4 @@
-# 肥鱼笔记 0.13.1 候选验收记录
+# 肥鱼笔记 0.13.1 发布与验收记录
 
 - [发版规划](../../plans/2026-11-27-release-0131.zh.md) · [双语发布说明](release-notes.md) · [发版 SOP](../../release-sop.zh.md)
 - 本轮在 `codex/release-0131` 准备候选，分支基线为 `13bed47ef1d6a368c520970ef24654bd41a4716a`。上一公开版为 [0.13.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)。
@@ -129,3 +129,11 @@ Windows DSH `0.2.2-rc.5` 隔离 Web 实装冻结候选后连接指定私库。�
 ## 候选交接
 
 冻结候选的独立复核与补验已完成。双语测试资料已恢复中文浅色及原有代码偏好，验收窗口关闭，四处插件写锁与对应的 .acquire 文件和两处 Electron 锁共十个路径均无残留。修订后的 520 px 原生窄窗字重已完成双语复测。用户已批准通过发版复核后直接发布。隔离桌面入口装有本候选，使用 `release12-desktop` 及配套 `release12-shell`。[Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)
+
+## 发布与市场
+
+- 北京时间 2026-11-28 02:43:12 正式公开并设为 GitHub Latest。发布提交 `518f7ffb4485a84728a4f297cdf76202179e984e` 已合入并推送至 `main`。附注标签 `v0.13.1` 的标签对象 `0bc80011cb15ae954cb775e697d89818288d5a93` 指向该提交。冻结提交之后只补充说明和验收文档。发布前再次核对 npm、官方 GitHub 和 Windows 更新源，Windows 实测宿主仍为 `0.2.2-rc.5`。记录见 `output/playwright/release-0131-publication/official-dsh-preflight.json`。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.1)
+- 草稿仅上传固定名安装包及 SHA-256 文件。GitHub 返回的两个摘要分别与本地冻结包和校验文件一致。发布后从版本入口及 Latest 分别匿名下载两个文件，两份安装包均为 18,265,036 字节、279 个文件，包内版本为 `0.13.1`，SHA-256 为 `7365e9a8311c1ed803607beab26158b25eb326520e36c182c13052deabb92419`。两个校验文件均为 89 字节且内容与冻结包匹配。记录见 `output/playwright/release-0131-publication/public-downloads-verified.json`。[版本安装包](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.13.1/dsh-fatfish-notes.tgz) · [最新版安装包](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz) · [版本校验文件](https://github.com/StarWind97/dsh-fatfish-notes/releases/download/v0.13.1/dsh-fatfish-notes.tgz.sha256)
+- GitHub `main` 的中英文 README 渲染均已核对，两语各有五张截图及对应图解链接。十个线上截图对象与仓库相同，两种语言的代码阅读和代码设置图均采用本版实拍。正式发布说明中的 8 处链接均为 GitHub 绝对地址。记录见 `output/playwright/release-0131-publication/github-readme-verified.json`。[中文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.md) · [英文 README](https://github.com/StarWind97/dsh-fatfish-notes/blob/main/README.en.md)
+- 北京时间 2026-11-28 02:44:49 实查市场中英文详情均为 HTTP 200。页面仍显示 `0.13.0` 正文和各四张配图，图解各自链接对应语言。两页及市场 `plugins.json` 的安装入口均为已验证下载到 `0.13.1` 的 GitHub Latest 固定地址。上游条目沿用现有安装位置。记录见 `output/playwright/release-0131-publication/market-after-publication.json` 与同目录 `market-listing-verified.json`。[中文市场页](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/) · [英文市场页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [市场条目](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml) · [市场公开目录](https://awesome-dsh-plugin.com/plugins.json)
+- 市场上游最近构建在本版公开前已结束，结果为失败。市场中英文正文和新增配图待下一次成功重建后核对。市场网页目录收录本插件的 GitHub 安装地址。市场另设的 format 1 索引目前只导出带 npm 版本的条目，本插件通过 GitHub 安装包发布。宿主内出现可更新提示的时机未用日常资料实测。[市场构建](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/actions/runs/46035749542) · [format 1 生成逻辑](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/scripts/lib/market-index.mjs)

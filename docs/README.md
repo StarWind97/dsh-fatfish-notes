@@ -2,7 +2,9 @@
 
 ## 当前状态
 
-- 2026-11-26 **0.13.0 已正式发布 GitHub Release（版本入口与 `latest` 匿名下载均已校验通过；插件市场中英文页面待下次定时重建后补验）。** 发布提交 `efa638acfeca9c3431dcc304d3e5931897820265`，标签 `v0.13.0`，公开安装包 SHA-256 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`（279 文件，`18,261,474` 字节），涵盖工作台审美与架构改版、三布局六配色、`Alt+K` 快捷切换、随包手册 v6 及九项+三轮独立审查修复。市场上游元数据无需 PR，当前页面仍显示 `14:23` 旧缓存 `0.12.0` 正文与旧图，但固定安装入口已取得 `0.13.0`。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0) · [发布与验收记录](releases/0.13.0/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/) · [发版规划](plans/2026-11-26-release-0130.zh.md)
+- 2026-11-28 **0.13.1 已正式发布并设为 GitHub Latest。** 发布提交 `518f7ffb4485a84728a4f297cdf76202179e984e`，标签 `v0.13.1`。两个公开入口均已匿名校验为同一枚冻结包。新版提供独立代码显示卡片、窄窗字重折行和空列表操作调整。市场安装链接已取得本版，两语详情仍显示上一版图文。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.1) · [验收与发布记录](releases/0.13.1/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/)
+
+- 2026-11-26 **0.13.0 已正式发布。** 0.13.1 发布前已补验市场中英文正文、图解和各四张 0.13.0 配图。更早的工作台、三布局六配色、`Alt+K` 与手册 v6 验收见对应记录。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0) · [发布与市场记录](releases/0.13.0/review.zh.md#发布与市场)
 
 - 2026-11-25 **已完成[UI 审美与前端/核心架构综合改进](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md)（首轮 P0+P1+P2、[二轮原型逐项对齐](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md#六二轮原型逐项对齐整改2026-11-25)与[三轮原型收尾与交互精修](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md#七三轮原型收尾与交互精修2026-11-25)）及隔离 DSH 双端实机验收，已合回 `main` 待体验（未发版）。** 三轮累计完成三套布局精简、6 套高区分度双行色板与炭黑深色分层、现代设置页与分段控件（含绿点已同步状态）、圆角外框 Markdown 表格、选中行 `3 px` 左竖条、胶囊标签、`Alt+K` 全局快速切换、代码块独立顶栏与高对比度 `✓ 已复制` 胶囊、主色 `+ 新建` 与 `28 px` 零像素对齐列表工具栏（去除重复笔记本后缀、轻边框无箭头排序选择器）、编辑态属性单行摘要 + 按需展开抽屉（`B4-B`）、首次接入/重置三步 Stepper 向导、反馈入口收回帮助页、会话侧栏 `0 px` 零跳动切换、转存弹窗 `GET /notes/capture-preview` 真实缩略图 + 底部「取消」+ 选中轮次高亮、以及全量 `useStyleSheet` `@layer` 单例注入（主应用与弹窗内 `0` 行内 `<style>`）。440/440 全量回归、弹窗尺寸检查、`npm run test:sidebar`、官方 DSH `0.2.2-rc.5` 隔离 Web 与 Windows 桌面双端实装（每端 16 张浅深双语实拍 + 全部原子 DOM/CSS 断言）及指定私库同步闭环均已通过。[实施与验收记录](plans/2026-11-25-ui-aesthetic-and-arch-refresh.zh.md) · [隔离体验](../scripts/Open-Fatfish-Notes.cmd)
 
@@ -21,8 +23,7 @@
 
 | 任务 | 负责智能体 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- | --- |
-| [0.13.1 发版候选](plans/2026-11-27-release-0131.zh.md) | Codex | `codex/release-0131`，独立 worktree | 520 px 桌面窄窗字重折行已实装验证。冻结候选位于 `dist/release-0.13.1-narrow/`，独立复核与联网补验已完成。用户批准进入正式发布。[验收记录](releases/0.13.1/review.zh.md)。 |
-| [0.13.0 插件市场重建后双语详情页补验](releases/0.13.0/review.zh.md#发布与市场) | Antigravity | `main`，主目录；仅涉及市场上线后只读核验与补记 `docs/releases/0.13.0/review.zh.md` / `docs/README.md` | `v0.13.0` GitHub Release 与双入口匿名下载已完成；市场上游无需 PR，当前页面仍缓存 `0.12.0`，待 `awesome-dsh-plugin` 下次重建后补验中英文新版页面并清理本条目。 |
+| [0.13.1 插件市场详情页补验](releases/0.13.1/review.zh.md#发布与市场) | Codex | `main`，市场公开页面 | 固定安装入口已取得 0.13.1。最新构建失败，两语页面仍展示 0.13.0 图文，待市场成功重建后核对正文和新版配图。 |
 
 按[多智能体与多会话协作约定](../AGENTS.md#多智能体与多会话协作)维护本表。根据工作区差异、`git worktree list` 和专项记录核对实际进度。
 

@@ -170,3 +170,4 @@
   - 上游条目 [StarWind97__dsh-fatfish-notes.yml](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/blob/main/data/plugins/StarWind97__dsh-fatfish-notes.yml) 的中英文描述、分类、图标与固定安装入口（`releases/latest/download/dsh-fatfish-notes.tgz`）均无变化，**无需提交市场 PR**；
   - 实际访问[英文详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)、[中文详情页](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/)并核查 [plugins.json](https://awesome-dsh-plugin.com/plugins.json)：两页与目录 JSON 均**仍展示上一次定时构建（`build-site.yml` run `45742690005`，北京时间 `2026-11-26 10:28–14:23`）缓存的 `0.12.0` 正文（八套布局 / 十种配色）与 4 张 `0.12.0` 截图**；两页共用的预构建安装命令指向 `releases/latest/download/dsh-fatfish-notes.tgz`（已匿名验证为 `0.13.0`），图解主链接指向 `HEAD` 主分支文档；
   - 上游 `build-site.yml` 每日 `02:23 UTC`（北京时间 `10:23`）定时重建或随上游新合并触发。**市场双语实页暂记为“待市场重建后补验”，待看到 `0.13.0` 新版正文与 8 张新实拍生效后再补记完成。**
+- 2026-11-28 补验完成。在 0.13.1 发布前，市场中英文详情均已显示 0.13.0 正文、各四张本语言截图及本语言图解入口。0.13.1 公开后的安装地址和市场后续状态见[下一版记录](../0.13.1/review.zh.md#发布与市场)。
