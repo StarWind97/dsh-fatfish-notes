@@ -41,7 +41,7 @@
 - 桌面和 Web 两语均从真实会话转存入口测得对话框宽窗 1280 px 三栏、窄窗 556 px 紧凑布局。确认两张有效缩略图、取消后再打开保存、读回转存笔记及两份图片。Web 两语还验证了侧栏搜索有结果时选择，改为零结果后可查看已选并退出；退出后保留零结果状态。见 `flows-desktop-export-receipt.json`、`flows-web-capture-receipt.json` 与 `flows-web-first-receipt.json`。
 - Desktop 与 Web 两语都在编辑、阅读及历史预览中实测对应代码字形。Chromium 记录块级和行内代码确有内置 Cascadia Code 字形参与渲染。
 - Desktop 与 Web 两语都在主列表验证了从有结果到零结果隐藏多选、移走最后一个匹配项后仍能撤销、回收站筛空后隐藏清空入口。有结果时可以打开清空确认并取消。四个组合的独立阅读窗口也验证了零结果隐藏多选。两端的会话侧栏两语均验证了搜索后保留已选及退出。独立窗口在隔离浏览器中连接宿主提供的实际页面。记录为 `flows-desktop/receipt.json`、`flows-web/receipt.json`、`flows-desktop-selection-receipt.json` 和 `flows-web-capture-receipt.json`。
-- 实机 Web 检查 `Alt+K` 打开、`Esc` 退出和重复呼出。键盘选中与重新打开时清空搜索分别有独立浏览器回归覆盖，仍待补齐双端双语的安装环境交互记录。
+- 桌面与 Web 两语的实装 `Alt+K` 均通过。实测 `Esc` 退出、再次打开自动聚焦且搜索清空、按 `Enter` 打开所选演示笔记，未捕获页面异常为 0。见 `quick-web/receipt.json` 与 `quick-desktop/receipt.json`。
 - 桌面与 Web 两种语言均读到实际生成的 ZIP 和 PNG，四份 ZIP 均含两份附件。见 `flows-desktop-export-receipt.json` 与 `flows-web-export-receipt.json`。
 
 | 宿主 | 语言 | ZIP 字节 | PNG 像素 | PNG 字节 |
@@ -82,6 +82,8 @@
 | 保存后自动刷新 | 长文测试笔记，主窗口与独立窗口 | 主窗口点击保存至独立窗口显示新增文本 | 2,043 ms | 1,997／2,553 ms |
 
 每个动作的首样本为本次序列第一次，热测为后续五次。原始样本和清理状态见 `offline-ui-performance.json`，脚本为 `offline-ui-performance.cjs`。长文测试笔记已清理。当前数据仅列当版观测值。
+
+联网隔离 Web 的只读补验已启动实际笔记页面。起始同步状态为 `syncing`、`pending: false`。在随后的 40 秒观察内仍未取得空闲状态，未生成该条件下的性能样本。见 `idle-ui-performance-probe.json`。
 
 ## 候选交接
 
