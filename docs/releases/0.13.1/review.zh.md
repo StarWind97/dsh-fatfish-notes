@@ -3,7 +3,25 @@
 - [发版规划](../../plans/2026-11-27-release-0131.zh.md) · [双语发布说明](release-notes.md) · [发版 SOP](../../release-sop.zh.md)
 - 本轮在 `codex/release-0131` 准备候选，分支基线为 `13bed47ef1d6a368c520970ef24654bd41a4716a`。上一公开版为 [0.13.0](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)。
 
-## 候选包与实装
+## 三档字重折行后的候选
+
+- 当前复核使用 `dist/release-0.13.1-narrow/dsh-fatfish-notes.tgz`。固定名与带版本名的 `dsh-fatfish-notes-0.13.1.tgz` 逐字节一致，都是 279 个文件、18,265,036 字节。SHA-256 为 `7365e9a8311c1ed803607beab26158b25eb326520e36c182c13052deabb92419`。
+- 与折行前 `55338b322b6e21d03cc5987f72e152f818924a0d3eeaf567bd6953276a22755f` 的候选比较，成员差异只有 `lib/client.js` 和 `lib/standalone.js`。调整限于字重按钮组，由按钮内容所需宽度决定分行。字号按钮仍在一行。首轮生成的 `lib/onboarding/cli.js` 出现四处换行差异，按等价的 LF 检出重建后与前包逐字节一致。
+- 使用官方 CLI 重装 `release12-desktop`、`release12-web` 和固定双语桌面、Web 四处隔离资料。`release12-web` 沿用原有 pnpm 10 与本机缓存。`verify:candidate` 核对四处均为 279 个文件，缺失、多余、内容差异均为 0。记录见 `output/playwright/release-0131-narrow/final-candidate-and-installs.log`。
+- `npm run typecheck`、`npm run build`、`npm test` 的 448 项全量回归、三个独立浏览器检查与实装 `npm run test:sidebar` 通过。实装侧栏结果位于 `output/playwright/search-sidebar/run-XBIcIO/`。
+
+| 实装页面 | 桌面原生或浏览器宽度 | 中英文结果 |
+| --- | --- | --- |
+| Windows Desktop，DSH 左栏展开 | 520 × 760，内容宽 240 px | 三档字重各一行，三个字号在同一行，按钮及完整文字在卡片和视口内 |
+| Windows Desktop，DSH 左栏展开 | 600 × 760 | 字重按两行排列，较宽设置页及拉宽后一行 |
+| Web | 240 × 760 浏览器视口 | 内容宽 240 px，三档字重各一行，按钮及完整文字在卡片和视口内 |
+| Web | 520 × 760 浏览器视口及拉宽后 | 字重和字号各组仍为一行 |
+
+四种宿主和语言组合都逐档实测 300、400、500。鼠标切换前两档，从中档按 `Tab` 转至最后一档并按 `Enter` 可切换到 500。预览的实际字重与选中值一致。未捕获页面异常为 0，恢复了原字重、双语资料的简体中文及桌面侧栏状态。原生桌面截图和逐项结果见 `output/playwright/release-0131-narrow/desktop-{zh,en}-narrow.png`、`narrow-desktop.json` 和 `narrow-web.json`。
+
+下面保留折行前候选的广泛验证。两个新旧包只在界面构建成员中有上述差异。私库双向修订、升级、离线性能沿用前包记录。同步空闲条件下的性能仍待复测。
+
+## 折行前候选的包与实装
 
 - 固定名 `dist/release-0.13.1/dsh-fatfish-notes.tgz` 和带版本名的 `dsh-fatfish-notes-0.13.1.tgz` 逐字节一致，附绑定固定名的 `.sha256` 文件。279 个成员，18,264,931 字节，SHA-256 为 `55338b322b6e21d03cc5987f72e152f818924a0d3eeaf567bd6953276a22755f`。
 - 上一公开包有 279 个文件，18,261,474 字节，SHA-256 为 `3721bc47b789d3c0cfecc261bd5589f0447bd2d504c3bfbdcfcdb6aeccb0012a`。与本包比较仅内容调整 9 项，分别为 `README.md`、`README.en.md`、`lib/client.js`、`lib/standalone.js`、`lib/domain/localization.d.ts`、`lib/import-worker.js`、`locale/zh.json`、`locale/en.json`、`package.json`。
@@ -51,9 +69,9 @@
 | Web | 简体中文 | 4,194,593 | 788 × 794 | 117,545 |
 | Web | English | 4,194,612 | 788 × 824 | 116,347 |
 
-### 待处理的窄窗问题
+### 折行前的窄窗复现
 
-在 Windows DSH `0.2.2-rc.5` 原生窗口设为 520 × 760、保持 DSH 左侧栏打开，以英文检查代码显示卡片。插件区域宽 240 px，卡片宽 180 px。`Medium · 500` 按钮右缘超出卡片约 80 px，超出窗口约 45 px。另两档字重和三档字号均在窗口内。使用 `desktop-minimum-code-pane.json` 的原生窗口与页面坐标作为证据。脚本抓图超时。本轮停在现有候选，窄卡片内的字重排布调整待批准。
+在 Windows DSH `0.2.2-rc.5` 原生窗口设为 520 × 760、保持 DSH 左侧栏打开，以英文检查代码显示卡片。插件区域宽 240 px，卡片宽 180 px。`Medium · 500` 按钮右缘超出卡片约 80 px，超出窗口约 45 px。另两档字重和三档字号均在窗口内。原生窗口与页面坐标记录见 `desktop-minimum-code-pane.json`。后续在同一安装包上补拍左栏展开及收起的对照图。
 
 ## 指定私库双向同步
 
@@ -87,4 +105,4 @@
 
 ## 候选交接
 
-候选在本地分支留待独立复核。双语测试资料已恢复中文浅色及原有代码偏好，验收窗口关闭，四处插件写锁与对应的 .acquire 文件和两处 Electron 锁共十个路径均无残留。520 px 原生窄窗问题待决定修复范围。正式发布待阶段二确认。隔离桌面入口装有本候选，使用 `release12-desktop` 及配套 `release12-shell`。[Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)
+候选在本地分支留待独立复核。双语测试资料已恢复中文浅色及原有代码偏好，验收窗口关闭，四处插件写锁与对应的 .acquire 文件和两处 Electron 锁共十个路径均无残留。修订后的 520 px 原生窄窗字重已完成双语复测。正式发布待阶段二确认。隔离桌面入口装有本候选，使用 `release12-desktop` 及配套 `release12-shell`。[Open-Fatfish-Notes.cmd](../../../scripts/Open-Fatfish-Notes.cmd)

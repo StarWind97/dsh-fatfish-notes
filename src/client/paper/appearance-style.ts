@@ -77,6 +77,8 @@ export const appearanceCss=layoutThemesCss+`
 .palette-dots{display:inline-flex;align-items:center;flex:none}.palette-dots i{width:15px;height:15px;border-radius:50%;border:2px solid var(--paper);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 16%,transparent);display:block}.palette-dots i+i{margin-left:-5px}
 .paper-segmented{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:3px;border-radius:9px;background:color-mix(in srgb,var(--shelf) 70%,var(--rule));border:1px solid var(--rule);gap:2px}
 .paper-segmented button{border:0;background:transparent;padding:5px 10px;border-radius:6px;font-size:12.5px;color:var(--muted);font-weight:500;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-align:center;transition:background .15s,color .15s,box-shadow .15s}
+.paper-segmented.appearance-code-weights{display:flex;flex-wrap:wrap}
+.paper-segmented.appearance-code-weights>button{flex:1;max-width:100%}
 .paper-segmented button:hover{color:var(--ink)}
 .paper-segmented button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:650;box-shadow:0 1px 3px #00000018}
 .paper-segmented-sm{display:inline-flex;align-items:center;background:color-mix(in srgb,var(--shelf) 72%,var(--rule));padding:2px;border-radius:7px;height:28px;box-sizing:border-box}.paper-segmented-sm button{padding:0 7px;font-size:11.5px;height:22px;line-height:22px}.paper-segmented-sm button[aria-pressed=true]{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px #00000016}

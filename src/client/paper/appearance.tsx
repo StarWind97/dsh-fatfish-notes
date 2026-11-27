@@ -318,11 +318,18 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
     )
   }
 
-  function segmented(label: string, current: string, options: Record<string, string>, onSelect: (id: string) => void) {
+  function segmented(
+    label: string,
+    current: string,
+    options: Record<string, string>,
+    onSelect: (id: string) => void,
+    extraClass?: string,
+  ) {
+    const className = extraClass ? `paper-segmented ${extraClass}` : 'paper-segmented'
     return (
       <div className="appearance-field">
         <span className="appearance-field-label">{label}</span>
-        <div className="paper-segmented" role="group" aria-label={label}>
+        <div className={className} role="group" aria-label={label}>
           {Object.entries(options).map(([id, name]) => (
             <button key={id} type="button" aria-pressed={current === id} onClick={() => onSelect(id)}>
               {name}
@@ -478,6 +485,7 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
                   500: t('appearanceCodeWeightMedium'),
                 },
                 id => setAppearance({ codeWeight: Number(id) as Appearance['codeWeight'] }),
+                'appearance-code-weights',
               )}
               {segmented(
                 t('appearanceCodeSize'),
