@@ -324,8 +324,101 @@ try {
   assert.deepEqual(await slots(true, true), { browse: 'flex', base: true })
   assert.deepEqual(await slots(false, true), { browse: null, base: true })
   assert.deepEqual(await slots(false, false), { browse: null, base: false })
+
+  // 13. Empty-list multi-select visibility in ConversationNotes (sidebar) and NoteBatch (main/standalone).
+  const head = 'a'.repeat(64)
+  const bookId = '01K00000000000000000000000'
+  const browseNotes = [
+    { noteId: '01K00000000000000000000001', heads: [head], title: 'Alpha Note', summary: 'first', tags: [], notebookId: bookId, status: 'active', savedAt: '2026-11-27T00:00:00Z', conflicted: false, sessionRelation: null },
+    { noteId: '01K00000000000000000000002', heads: [head], title: 'Beta Note', summary: 'second', tags: [], notebookId: bookId, status: 'active', savedAt: '2026-11-27T00:00:00Z', conflicted: false, sessionRelation: null },
+  ]
+  await page.route('**/dsh-fatfish-notes/**', async route => {
+    const url = new URL(route.request().url())
+    const path = url.pathname.replace(/^\/dsh-fatfish-notes/, '')
+    const raw = route.request().postData()
+    const body = raw ? JSON.parse(raw) : {}
+    const ok = data => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, ...data }) })
+    if (path === '/workspace/register' || path === '/workspace/state') {
+      return ok({ serviceEpoch: 'e1', changeSeq: 1, available: false, owned: null, handoff: null, repositoryId: 1 })
+    }
+    if (path === '/notes/session-context') return ok({ workspace: null, notebookId: null })
+    if (path === '/notes/notebooks') {
+      return ok({ notebooks: [{ notebookId: bookId, heads: [head], current: { version: 1, notebookId: bookId, title: 'Default', status: 'active', recordedAt: '2026-11-27T00:00:00Z', parents: [], revision: head }, conflicts: [], isDefault: true, noteCount: 2 }] })
+    }
+    if (path === '/notes/catalog') return ok({ tags: [] })
+    if (path === '/notes') {
+      if (body.relation === 'linked') return ok({ items: [], cursor: null })
+      const q = String(body.query ?? '').trim().toLowerCase()
+      const items = q ? browseNotes.filter(n => n.title.toLowerCase().includes(q)) : browseNotes
+      return ok({ items, cursor: null })
+    }
+    return route.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false}' })
+  })
+
+  await page.evaluate(() => fixture.mountVisibleSidebar())
+  const sidebar = page.locator('.conversation-notes')
+  await sidebar.locator('.conversation-empty').waitFor()
+  // Empty linked tab: neither selection bar nor Select button should render.
+  assert.equal(await sidebar.locator('.conversation-selection-bar').count(), 0)
+  assert.equal(await sidebar.getByRole('button', { name: 'Select notes', exact: true }).count(), 0)
+
+  // Switch to Find notes with 2 matching notes: status + Select button appear.
+  await sidebar.getByRole('button', { name: 'Find notes', exact: true }).click()
+  await sidebar.locator('.conversation-note-row').first().waitFor()
+  assert.equal(await sidebar.locator('.conversation-selection-bar').count(), 1)
+  assert.equal(await sidebar.getByRole('button', { name: 'Select notes', exact: true }).count(), 1)
+
+  // Narrow Find notes to 0 hits: status remains visible while Select button hides.
+  const findBox = sidebar.getByRole('searchbox')
+  await findBox.fill('no-such-note-xyz')
+  await sidebar.locator('.conversation-empty').waitFor()
+  assert.equal(await sidebar.locator('.conversation-selection-bar .paper-search-status').count(), 1)
+  assert.equal(await sidebar.getByRole('button', { name: 'Select notes', exact: true }).count(), 0)
+
+  // Clear query -> Select button returns; enter multi-select, check a note, switch back to empty Linked notes tab.
+  await findBox.fill('')
+  await sidebar.locator('.conversation-note-row').first().waitFor()
+  await sidebar.getByRole('button', { name: 'Select notes', exact: true }).click()
+  await sidebar.getByRole('checkbox').first().check()
+  await sidebar.getByRole('button', { name: 'Linked notes', exact: true }).click()
+  await sidebar.locator('.conversation-empty').waitFor()
+  // Active cross-tab selection keeps the selection bar and Exit selection accessible.
+  assert.equal(await sidebar.locator('.conversation-selection-bar[data-selecting=true]').count(), 1)
+  await sidebar.getByRole('button', { name: 'Exit selection', exact: true }).click()
+  assert.equal(await sidebar.locator('.conversation-selection-bar').count(), 0)
+
+  // Main/standalone NoteBatch: empty active & empty trash hide .paper-batch; trashing last note hides Select but keeps Undo toast.
+  await page.evaluate(() => fixture.mountBatchHarness('empty'))
+  await page.locator('[data-batch-harness]').waitFor()
+  assert.equal(await page.locator('.paper-batch').count(), 0)
+  await page.locator('#switch-trash').click()
+  await settleFrames()
+  assert.equal(await page.locator('.paper-batch').count(), 0)
+
+  await page.evaluate(() => fixture.mountBatchHarness('one-trashed'))
+  await page.locator('[data-batch-rows] span').waitFor()
+  assert.equal(await page.getByRole('button', { name: 'Select notes', exact: true }).count(), 1)
+  assert.equal(await page.getByRole('button', { name: 'Empty trash', exact: true }).count(), 1)
+
+  await page.evaluate(() => fixture.mountBatchHarness('one-active'))
+  await page.locator('[data-batch-rows] span').waitFor()
+  assert.equal(await page.getByRole('button', { name: 'Select notes', exact: true }).count(), 1)
+  await page.getByRole('button', { name: 'Select notes', exact: true }).click()
+  await page.locator('[data-batch-rows] input[type=checkbox]').check()
+  await page.getByRole('button', { name: 'Move to trash', exact: true }).click()
+  const confirmDialog = page.getByRole('dialog', { name: 'Move to trash', exact: true })
+  await confirmDialog.getByRole('button', { name: 'Move to trash', exact: true }).click()
+  await page.waitForFunction(() => document.querySelectorAll('[data-batch-rows] span').length === 0)
+  // List is now empty: Select button is gone, but Undo toast stays visible inside .paper-batch.
+  assert.equal(await page.getByRole('button', { name: 'Select notes', exact: true }).count(), 0)
+  const undoBtn = page.locator('.paper-batch').getByRole('button', { name: 'Undo', exact: true })
+  await undoBtn.waitFor()
+  await undoBtn.click()
+  await page.locator('[data-batch-rows] span').waitFor()
+  assert.equal(await page.getByRole('button', { name: 'Select notes', exact: true }).count(), 1)
+
   assert.deepEqual(errors, [])
-  console.log('Switcher search, mixed pointer/keyboard focus alignment, scroll visibility and sidebar/overlay mount orders passed.')
+  console.log('Switcher search, mixed pointer/keyboard focus alignment, scroll visibility, sidebar/overlay mount orders, and empty-list selection controls passed.')
 } finally {
   await browser.close()
 }

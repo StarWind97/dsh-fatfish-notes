@@ -265,6 +265,8 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
     </div>
     <footer><button type="button" onClick={()=>{setBooksOpen(false);setSetup('new')}}><Plus size={15}/>{t('notesNewNotebook')}</button></footer>
   </nav>
+  const showFindStatus=group==='find'&&(!filterMatches||!state.listError)
+  const canSelect=filterMatches&&!state.listError&&state.items.length>0
   useStyleSheet('notes-base', notesCss, 'base')
   useStyleSheet('paper-base', paperCss, 'layout')
   useStyleSheet('organization', organizationCss, 'components')
@@ -309,12 +311,12 @@ function ConversationNotesView({sessionId,useSession,useTabInfo,inputActions,use
       </div>}
       {group==='workspace'&&mapped&&<div className="conversation-workspace-title"><strong title={bookTitle(mapped)}>{bookTitle(mapped)}</strong><button title={t('notesNew')} aria-label={t('sidebarCreateInWorkspace')} disabled={!!removed||state.operation} onClick={()=>void create(mapped)}><SquarePen size={16}/></button><button title={t('workspaceBookSettings')} aria-label={t('workspaceBookSettings')} onClick={()=>setSetup('workspace')}><Settings size={16}/></button><button title={t('bookExport')} aria-label={t('bookExport')} onClick={()=>actions.exportBook(mapped)}><Download size={16}/></button></div>}
       {contextFailed&&<small role="status" className="conversation-message">{t('sessionContextFailed')}</small>}
-      <div className="conversation-selection-bar" data-find={group==='find'} data-selecting={selecting}>
-        {group==='find'&&(!filterMatches||!state.listError)&&<SearchResultStatus count={state.items.length} more={!!state.cursor}
+      {(selecting||showFindStatus||canSelect)&&<div className="conversation-selection-bar" data-find={group==='find'} data-selecting={selecting}>
+        {showFindStatus&&<SearchResultStatus count={state.items.length} more={!!state.cursor}
           loading={!filterMatches||state.loadingList} t={t}
           {...(selectedBook&&{onAll:()=>selectBook(null)})}/>}
-        {selecting?<><strong>{t('sidebarSelectedCount',{count:chosen.length})}</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>{t('sidebarReviewSelected')}</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>{t('sidebarReferenceSelected')}</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>{t('sidebarClearSelection')}</button><button onClick={exitSelection}>{t('sidebarExitSelection')}</button></>:<button aria-label={t('sidebarSelectNotes')} disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>{t('batchSelect')}</button>}
-      </div>
+        {selecting?<><strong>{t('sidebarSelectedCount',{count:chosen.length})}</strong><button disabled={!chosen.length} onClick={()=>setShowChosen(true)}>{t('sidebarReviewSelected')}</button><button disabled={!chosen.length||!reference.enabled} onClick={()=>reference.open(chosen)}><MessageSquarePlus size={14}/>{t('sidebarReferenceSelected')}</button><button disabled={!chosen.length} onClick={()=>setChosen([])}>{t('sidebarClearSelection')}</button><button onClick={exitSelection}>{t('sidebarExitSelection')}</button></>:canSelect&&<button aria-label={t('sidebarSelectNotes')} disabled={!!removed} onClick={()=>setSelecting(true)}><ListChecks size={15}/>{t('batchSelect')}</button>}
+      </div>}
       <div className="conversation-browse" style={{'--conversation-books-width':railWidth+'px'} as React.CSSProperties}
         data-browser={group==='find'} data-book-rail={showBookRail}>
         {showBookRail&&<>

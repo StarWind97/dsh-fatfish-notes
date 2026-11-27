@@ -5,7 +5,8 @@ import { QuickSwitcher } from '../../../src/client/QuickSwitcher.js'
 import { ConversationNotes } from '../../../src/client/ConversationNotes.js'
 import { NoteCaptureOverlay } from '../../../src/client/NoteCapture.js'
 import { NoteCaptureBridge } from '../../../src/client/note-capture-bridge.js'
-import { NotesController } from '../../../src/client/notes-controller.js'
+import { useNoteSelection } from '../../../src/client/NoteBatch.js'
+import { NotesController, type NotesState } from '../../../src/client/notes-controller.js'
 import { emptyNotesState } from '../../../src/client/notes-controller-helpers.js'
 import { translator } from '../../../src/domain/localization.js'
 import type { Api } from '../../../src/client/api.js'
@@ -94,4 +95,89 @@ export function mountSlots(sidebar: boolean, overlay: boolean) {
     {sidebar && <ConversationNotes {...slot} bridge={bridge} t={t}/>}
     {overlay && <NoteCaptureOverlay sessionId="fixture" bridge={bridge} t={t}/>}
   </>))
+}
+
+const visibleSlot = {
+  sessionId: 'fixture-empty-select',
+  useTabInfo: () => ({ tab: { id: 'visible-sidebar', visible: true } }),
+  useSession: () => false,
+  useInput: () => null,
+  inputActions: { insertText: () => {}, setValue: () => {}, getValue: () => '' },
+} as unknown as React.ComponentProps<typeof ConversationNotes>
+export function mountVisibleSidebar() {
+  flushSync(() => root.render(<ConversationNotes {...visibleSlot} bridge={bridge} t={t}/>))
+}
+
+function BatchHarness({ initial }: { initial: { active: NoteListItem[]; trashed: NoteListItem[]; status: 'active' | 'trashed' } }) {
+  const store = React.useRef({ active: [...initial.active], trashed: [...initial.trashed] })
+  const [status, setStatus] = React.useState<'active' | 'trashed'>(initial.status)
+  const batchController = React.useMemo(() => {
+    const api: Api = (async (path, body) => {
+      if (path === '/notes/notebooks') return { ok: true, notebooks: [] }
+      if (path === '/notes') {
+        const filter = (body ?? {}) as { status?: 'active' | 'trashed' }
+        const items = filter.status === 'trashed' ? store.current.trashed : store.current.active
+        return { ok: true, items: [...items], cursor: null }
+      }
+      if (path === '/notes/batch') {
+        const req = body as { action: 'trash' | 'restore' | 'purge'; notes: Array<{ noteId: string }> }
+        const ids = new Set(req.notes.map(n => n.noteId))
+        if (req.action === 'trash') {
+          const moved = store.current.active.filter(n => ids.has(n.noteId)).map(n => ({ ...n, status: 'trashed' as const }))
+          store.current.active = store.current.active.filter(n => !ids.has(n.noteId))
+          store.current.trashed = [...moved, ...store.current.trashed]
+        } else if (req.action === 'restore') {
+          const moved = store.current.trashed.filter(n => ids.has(n.noteId)).map(n => ({ ...n, status: 'active' as const }))
+          store.current.trashed = store.current.trashed.filter(n => !ids.has(n.noteId))
+          store.current.active = [...moved, ...store.current.active]
+        } else {
+          store.current.trashed = store.current.trashed.filter(n => !ids.has(n.noteId))
+        }
+        return { ok: true, completed: [...ids] }
+      }
+      return { ok: true }
+    }) as Api
+    return new NotesController(api)
+  }, [])
+  const batchState = React.useSyncExternalStore(batchController.subscribe, batchController.getSnapshot)
+  React.useEffect(() => {
+    void batchController.filter(status === 'trashed' ? { status: 'trashed' } : {})
+  }, [batchController, status])
+  const selection = useNoteSelection(batchController, batchState, t)
+  return <div className="paper-app" data-batch-harness>
+    {selection.dialog}
+    <div className="paper-list-tools" data-selecting={selection.selecting}>
+      <button id="switch-active" type="button" onClick={() => setStatus('active')}>Active</button>
+      <button id="switch-trash" type="button" onClick={() => setStatus('trashed')}>Trash</button>
+      {selection.controls}
+    </div>
+    <div data-batch-rows>
+      {batchState.items.map(item => (
+        <label key={item.noteId}>
+          {selection.selecting && <input type="checkbox" checked={selection.selected.some(n => n.noteId === item.noteId)} onChange={() => selection.toggle(item)}/>}
+          <span>{item.title}</span>
+        </label>
+      ))}
+    </div>
+  </div>
+}
+
+export function mountBatchHarness(mode: 'empty' | 'one-active' | 'one-trashed') {
+  const note: NoteListItem = {
+    noteId: '01K00000000000000000000011',
+    heads: ['a'.repeat(64)],
+    title: 'Solo Note',
+    summary: '',
+    tags: [],
+    notebookId: null,
+    status: mode === 'one-trashed' ? 'trashed' : 'active',
+    savedAt: '2026-11-27T00:00:00Z',
+    conflicted: false,
+  }
+  const initial = {
+    active: mode === 'one-active' ? [note] : [],
+    trashed: mode === 'one-trashed' ? [note] : [],
+    status: (mode === 'one-trashed' ? 'trashed' : 'active') as 'active' | 'trashed',
+  }
+  flushSync(() => root.render(<BatchHarness key={mode} initial={initial}/>))
 }
