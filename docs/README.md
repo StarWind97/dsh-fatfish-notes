@@ -21,7 +21,7 @@
 
 | 任务 | 负责智能体 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- | --- |
-| [0.13.1 发版候选](plans/2026-11-27-release-0131.zh.md) | Codex | `codex/release-0131`，独立 worktree | 已获批准备候选，正在更新双语图文并验证。 |
+| [0.13.1 发版候选](plans/2026-11-27-release-0131.zh.md) | Codex | `codex/release-0131`，独立 worktree | 已冻结本地候选。520 px 桌面窄窗问题待决定修复范围，候选待独立复核及阶段二确认。[验收记录](releases/0.13.1/review.zh.md)。 |
 | [0.13.0 插件市场重建后双语详情页补验](releases/0.13.0/review.zh.md#发布与市场) | Antigravity | `main`，主目录；仅涉及市场上线后只读核验与补记 `docs/releases/0.13.0/review.zh.md` / `docs/README.md` | `v0.13.0` GitHub Release 与双入口匿名下载已完成；市场上游无需 PR，当前页面仍缓存 `0.12.0`，待 `awesome-dsh-plugin` 下次重建后补验中英文新版页面并清理本条目。 |
 
 按[多智能体与多会话协作约定](../AGENTS.md#多智能体与多会话协作)维护本表。根据工作区差异、`git worktree list` 和专项记录核对实际进度。
