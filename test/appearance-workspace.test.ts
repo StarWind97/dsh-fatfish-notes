@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {appearanceValue,parseAppearance,defaultAppearance,appearanceColors,palettes} from '../src/client/paper/appearance-state.js'
+import {appearanceCss} from '../src/client/paper/appearance-style.js'
 import {codeLanguage,highlightAllowed,searchedTokens} from '../src/client/paper/code-highlight.js'
 import {NotebookPages} from '../src/client/paper/notebook-pages.js'
 import {NotesController} from '../src/client/notes-controller.js'
@@ -27,6 +28,11 @@ test('native standard palette consumes host semantic roles; explicit contrasts r
     assert.notEqual(day.paper,night.paper);assert.notEqual(day.ink,day.paper);assert.notEqual(night.ink,night.paper)
   }
   assert.notEqual(appearanceColors(defaultAppearance,false).selected,appearanceColors({...defaultAppearance,contrast:'strong'},false).selected)
+})
+test('appearance styles apply Cascadia Code across fenced blocks, inline code, editor inline code and history dialogs',()=>{
+  assert.match(appearanceCss,/:is\(\.paper-app\[data-layout\],\.paper-dialog\[data-layout\]\) \.paper-code pre,[^}]*font-family:"Cascadia Code"/)
+  assert.match(appearanceCss,/:is\(\.paper-app\[data-layout\],\.paper-dialog\[data-layout\]\) \.note-markdown :not\(pre\)>code\{[^}]*font-family:"Cascadia Code"/)
+  assert.match(appearanceCss,/\.paper-app\[data-layout\] \.paper-writing \.paper-InlineCode\{[^}]*font-family:"Cascadia Code"/)
 })
 test('legacy fixed light/dark preferences reopen following DSH without losing layout, fonts or materials',()=>{
   const chosen=appearanceValue({...defaultAppearance,layout:'soft',palette:'pine',fontCjk:'kai',fontLatin:'georgia',materials:'right',codeWeight:300})

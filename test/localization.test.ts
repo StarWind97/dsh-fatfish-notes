@@ -58,15 +58,17 @@ test('capture, appearance, help and the independent window use the effective lan
   const localized=(t:typeof en)=>[
     renderToStaticMarkup(createElement(CaptureMetadata,{bridge,state,t})),
     renderToStaticMarkup(createElement(AppearanceFields,{group:'appearance',t})),
+    renderToStaticMarkup(createElement(AppearanceFields,{group:'reading',t})),
     renderToStaticMarkup(createElement(HandbookHelp,{t})),
     renderToStaticMarkup(createElement(BrandSignature,{t})),
   ].join('\n')
   try{
     const english=localized(en)
-    for(const word of ['Note details','Generating suggestions','Palette','Pine green','Open user handbook'])assert.ok(english.includes(word),word)
+    for(const word of ['Note details','Generating suggestions','Palette','Pine green','Reading typography','Code display','Bundled Cascadia Code','Light · 300','Regular · 400','Medium · 500','Open user handbook'])assert.ok(english.includes(word),word)
     assert.doesNotMatch(english,hasHan)
     assert.match(english,/fatfish-signature-text.*Fatfish Notes/)
-    assert.match(localized(zh),/笔记信息/)
+    const chinese=localized(zh)
+    for(const word of ['笔记信息','正文排版与字体','代码显示','内置 Cascadia Code','Light · 300','Regular · 400','Medium · 500'])assert.ok(chinese.includes(word),word)
     const bootstrap=(await standaloneAsset('/','en'))?.content.toString()
     assert.match(bootstrap??'',/<html lang="en">/)
     assert.match(bootstrap??'',/Connecting to the note library/)

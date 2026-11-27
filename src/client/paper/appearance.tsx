@@ -209,18 +209,51 @@ function FontPreview({ t }: { t: T }) {
     <>
       <div
         className="appearance-font-preview"
-        style={{ fontFamily: readingFonts(value, getComputedStyle(document.body).fontFamily), fontSize: value.size, lineHeight: value.leading }}
+        style={{ fontFamily: readingFonts(value, typeof document === 'undefined' ? '' : getComputedStyle(document.body).fontFamily), fontSize: value.size, lineHeight: value.leading }}
       >
         {t('appearanceFontExample')}
       </div>
       {!!missing.length && <p>{t('appearanceFontMissing', { fonts: new Intl.ListFormat(t.language).format(missing) })}</p>}
-      <p>{t('appearanceFontNote')}</p>
     </>
   )
 }
 
+const codeWeightNames: Record<Appearance['codeWeight'], string> = {
+  300: 'Light',
+  400: 'Regular',
+  500: 'Medium',
+}
+
+function CodePreview({ t }: { t: T }) {
+  const value = useAppearance()
+  const lines = [
+    t('appearanceCodePreviewComment'),
+    t('appearanceCodePreviewLine1'),
+    t('appearanceCodePreviewLine2'),
+  ]
+  return (
+    <div className="paper-code appearance-code-preview" role="region" aria-label={t('appearanceCodePreviewLabel')}>
+      <div className="paper-code-head">
+        <span className="paper-code-label">{t('appearanceCodePreviewLang')}</span>
+        <span className="appearance-code-meta">
+          {t('appearanceCodePreviewMeta', { weight: codeWeightNames[value.codeWeight], size: value.codeSize })}
+        </span>
+      </div>
+      <pre>
+        <code>
+          {lines.map((line, index) => (
+            <span className="paper-code-line" key={index}>
+              {line}
+            </span>
+          ))}
+        </code>
+      </pre>
+    </div>
+  )
+}
+
 export function AppearanceStyle() {
-  useStyleSheet('code-font', codeFontCss, 'base')
+  useStyleSheet('code-font', codeFontCss)
   useStyleSheet('appearance', appearanceCss, 'themes')
   return null
 }
@@ -403,34 +436,64 @@ export function AppearanceFields({ group, t }: { group: 'appearance' | 'reading'
       )}
 
       {group === 'reading' && (
-        <section className="appearance-card" aria-label={t('appearanceTextCode')}>
-          <header className="appearance-card-head">
-            <h3>{t('appearanceTextCode')}</h3>
-          </header>
-          <div className="appearance-fields">
-            {segmented(
-              t('appearanceReadingPreset'),
-              value.reading,
-              { modern: t('appearanceModern'), book: t('appearanceBook'), mixed: t('appearanceMixed') },
-              id => setAppearance({ reading: id as Appearance['reading'] }),
-            )}
-            {select('fontCjk', t('appearanceCjkFont'), labels(cjkFonts))}
-            {select('fontLatin', t('appearanceLatinFont'), labels(latinFonts))}
-            {select('size', t('appearanceTextSize'), { 16: '16 px', 17: '17 px', 18: '18 px', 20: '20 px' })}
-            {select('leading', t('appearanceLeading'), {
-              '1.65': t('appearanceLeadingCompact'),
-              '1.8': t('appearanceLeadingComfort'),
-              '2': t('appearanceLeadingLoose'),
-            })}
-            {select('codeWeight', t('appearanceCodeWeight'), { 300: '300', 400: '400', 500: '500' })}
-            {select('codeSize', t('appearanceCodeSize'), { 12: '12 px', 14: '14 px', 16: '16 px' })}
-          </div>
-          <div className="appearance-checks">
-            {check('codeWrap', t('appearanceCodeWrap'))}
-            {check('codeLines', t('appearanceCodeLines'))}
-          </div>
-          <FontPreview t={t} />
-        </section>
+        <>
+          <section className="appearance-card" aria-label={t('appearanceReadingCard')}>
+            <header className="appearance-card-head">
+              <h3>{t('appearanceReadingCard')}</h3>
+              <small>{t('appearanceReadingCardHint')}</small>
+            </header>
+            <div className="appearance-reading-preset">
+              {segmented(
+                t('appearanceReadingPreset'),
+                value.reading,
+                { modern: t('appearanceModern'), book: t('appearanceBook'), mixed: t('appearanceMixed') },
+                id => setAppearance({ reading: id as Appearance['reading'] }),
+              )}
+            </div>
+            <div className="appearance-fields">
+              {select('fontCjk', t('appearanceCjkFont'), labels(cjkFonts))}
+              {select('fontLatin', t('appearanceLatinFont'), labels(latinFonts))}
+              {select('size', t('appearanceTextSize'), { 16: '16 px', 17: '17 px', 18: '18 px', 20: '20 px' })}
+              {select('leading', t('appearanceLeading'), {
+                '1.65': t('appearanceLeadingCompact'),
+                '1.8': t('appearanceLeadingComfort'),
+                '2': t('appearanceLeadingLoose'),
+              })}
+            </div>
+            <FontPreview t={t} />
+          </section>
+
+          <section className="appearance-card" aria-label={t('appearanceCodeCard')}>
+            <header className="appearance-card-head">
+              <h3>{t('appearanceCodeCard')}</h3>
+              <small className="appearance-code-badge">{t('appearanceCodeCardHint')}</small>
+            </header>
+            <div className="appearance-code-fields">
+              {segmented(
+                t('appearanceCodeWeight'),
+                String(value.codeWeight),
+                {
+                  300: t('appearanceCodeWeightLight'),
+                  400: t('appearanceCodeWeightRegular'),
+                  500: t('appearanceCodeWeightMedium'),
+                },
+                id => setAppearance({ codeWeight: Number(id) as Appearance['codeWeight'] }),
+              )}
+              {segmented(
+                t('appearanceCodeSize'),
+                String(value.codeSize),
+                { 12: '12 px', 14: '14 px', 16: '16 px' },
+                id => setAppearance({ codeSize: Number(id) as Appearance['codeSize'] }),
+              )}
+            </div>
+            <div className="appearance-checks">
+              {check('codeWrap', t('appearanceCodeWrap'))}
+              {check('codeLines', t('appearanceCodeLines'))}
+            </div>
+            <CodePreview t={t} />
+            <p className="appearance-hint">{t('appearanceFontNote')}</p>
+          </section>
+        </>
       )}
 
       {group === 'workspace' && (

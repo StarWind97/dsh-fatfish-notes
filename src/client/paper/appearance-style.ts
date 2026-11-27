@@ -15,13 +15,14 @@ export const appearanceCss=layoutThemesCss+`
 .paper-app[data-layout] .paper-reading p{margin:.8em 0}.paper-app[data-layout] .paper-reading li+li{margin-top:.25em}
 .paper-app[data-layout] .paper-reading a{color:var(--accent);text-underline-offset:3px}
 .paper-app[data-layout] .paper-summary{background:var(--summary-bg,var(--shelf))}
-.paper-app[data-layout] .paper-code pre,.paper-app[data-layout] .paper-code code{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);line-height:1.65;tab-size:4;font-variant-ligatures:none}
-.paper-app[data-layout] .paper-code{border:1px solid var(--rule);border-radius:10px;background:var(--code-bg,var(--shelf));margin:1em 0;padding:0;overflow:hidden}
-.paper-app[data-layout] .paper-code>pre{background:transparent;margin:0!important;padding:12px 16px 14px!important;white-space:pre;overflow:auto;overflow-wrap:normal;border-radius:0}
-.paper-app[data-code-wrap=true] .paper-code>pre{white-space:pre-wrap;overflow-wrap:anywhere}
+:is(.paper-app[data-layout],.paper-dialog[data-layout]) .paper-code pre,:is(.paper-app[data-layout],.paper-dialog[data-layout]) .paper-code code{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);line-height:1.65;tab-size:4;font-variant-ligatures:none}
+:is(.paper-app[data-layout],.paper-dialog[data-layout]) .paper-code{border:1px solid var(--rule);border-radius:10px;background:var(--code-bg,var(--shelf));margin:1em 0;padding:0;overflow:hidden}
+:is(.paper-app[data-layout],.paper-dialog[data-layout]) .paper-code>pre{background:transparent;margin:0!important;padding:12px 16px 14px!important;white-space:pre;overflow:auto;overflow-wrap:normal;border-radius:0}
+:is(.paper-app[data-code-wrap=true],.paper-dialog[data-code-wrap=true]) .paper-code>pre{white-space:pre-wrap;overflow-wrap:anywhere}
+:is(.paper-app[data-layout],.paper-dialog[data-layout]) .note-markdown :not(pre)>code{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:.88em;font-weight:var(--code-weight);font-variant-ligatures:none;padding:.12em .38em;border-radius:5px;background:var(--code-bg,var(--shelf));border:1px solid color-mix(in srgb,var(--rule) 78%,transparent);overflow-wrap:anywhere}
 .paper-code-label{font:600 11.5px/1.4 "Cascadia Code",Consolas,"Segoe UI",sans-serif;color:var(--muted);letter-spacing:.02em}
 .paper-code span.paper-code-line{display:block;min-height:1.65em;font:inherit;background:transparent;border-radius:0}.paper-code-line:empty:after{content:' '}
-.paper-app[data-code-lines=true] .paper-code code{counter-reset:code-line}.paper-app[data-code-lines=true] .paper-code-line:before{counter-increment:code-line;content:counter(code-line);display:inline-block;width:3.5ch;padding-right:1.5ch;text-align:right;color:var(--muted);opacity:.65;user-select:none}
+:is(.paper-app[data-code-lines=true],.paper-dialog[data-code-lines=true]) .paper-code code{counter-reset:code-line}:is(.paper-app[data-code-lines=true],.paper-dialog[data-code-lines=true]) .paper-code-line:before{counter-increment:code-line;content:counter(code-line);display:inline-block;width:3.5ch;padding-right:1.5ch;text-align:right;color:var(--muted);opacity:.65;user-select:none}
 .paper-app[data-layout] .paper-other{background:var(--paper);padding:24px!important}
 .paper-note-tabs{position:relative;display:flex;align-items:stretch;flex:none;min-width:0;background:var(--shelf);border-bottom:1px solid var(--rule);padding:4px 8px 0;gap:4px}
 .paper-list>.paper-note-tabs{margin-bottom:8px}
@@ -50,7 +51,13 @@ export const appearanceCss=layoutThemesCss+`
 .appearance-settings{max-width:980px;margin:0 auto 32px;font:14px/1.6 "Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink);display:grid;gap:16px}
 .appearance-settings>header{display:flex;align-items:center;justify-content:space-between;gap:12px}.appearance-settings h2{font-size:24px;margin:0}.appearance-settings p{color:var(--muted);margin:6px 0 0}
 .appearance-card{border:1px solid var(--rule);border-radius:12px;background:var(--shelf);padding:16px 18px;display:grid;gap:14px;min-width:0}
-.appearance-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}.appearance-card-head h3{margin:0;font-size:14.5px;font-weight:650;color:var(--ink)}.appearance-card-head small{font-size:12px;color:var(--muted)}
+.appearance-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.appearance-card-head h3{margin:0;font-size:14.5px;font-weight:650;color:var(--ink)}.appearance-card-head small{font-size:12px;color:var(--muted)}
+.appearance-code-badge{font-family:"Cascadia Code",Consolas,monospace;font-size:11.5px!important;font-weight:600;color:var(--accent)!important;background:var(--selected);border:1px solid color-mix(in srgb,var(--accent) 26%,var(--rule));padding:2px 9px;border-radius:999px;line-height:1.4}
+.appearance-reading-preset{display:grid;max-width:460px}
+.appearance-code-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+.appearance-code-meta{font:500 11px/1.4 "Cascadia Code",Consolas,"Segoe UI",sans-serif;color:var(--muted)}
+.appearance-code-preview{margin:2px 0 0!important}
+.appearance-hint{font-size:12.5px;color:var(--muted);margin:0}
 .appearance-font-preview{padding:16px;margin-top:4px;background:var(--paper);border:1px solid var(--rule);border-radius:10px}
 .appearance-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px}
 .appearance-field{display:flex;flex-direction:column;gap:6px;min-width:0}.appearance-field>span,.appearance-field-label{font-size:12.5px;font-weight:600;color:var(--muted)}
@@ -76,7 +83,9 @@ export const appearanceCss=layoutThemesCss+`
 .appearance-checks{display:flex;flex-wrap:wrap;gap:18px}.appearance-check{display:flex;align-items:center;gap:7px}.appearance-check input{width:16px;height:16px}
 .paper-dialog[data-layout]{--base:var(--paper);font:14px/1.6 "Segoe UI Variable","Segoe UI","Microsoft YaHei",sans-serif}.paper-dialog[data-layout] button{background:transparent}.paper-dialog[data-layout] .paper-primary{background:var(--accent);color:var(--on-accent,white)}
 .paper-image-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:14px}.paper-export-dialog .paper-material-choices{max-height:230px;overflow:auto}.paper-dialog[data-layout] :is(select,input,textarea){border-color:var(--rule);background:var(--input);color:var(--ink)}
-.paper-app[data-layout] .paper-writing .cm-line.paper-code-line{font-family:"Cascadia Code",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);tab-size:4}
+.paper-app[data-layout] .paper-writing .cm-line.paper-code-line{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);font-variant-ligatures:none;tab-size:4}
+.paper-app[data-layout] .paper-writing .paper-InlineCode{font-family:"Cascadia Code","Cascadia Mono",Consolas,monospace;font-size:var(--code-size);font-weight:var(--code-weight);font-variant-ligatures:none;padding:1px 4px;border-radius:4px;background:var(--code-bg,var(--shelf))}
+@container paper (max-width:440px){:is(.appearance-code-fields,.appearance-reading-preset) .paper-segmented button{padding:5px 6px;font-size:11.5px}}
 @container paper (max-width:560px){.paper-app[data-layout] .paper-leaf{padding-inline:18px}.paper-app[data-layout] .paper-leaf h1{font-size:25px}.paper-app[data-layout] .paper-other{padding:16px!important}}
 .paper-document-tools{display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px!important}.paper-document-tools>button{justify-self:end}.paper-status-materials{justify-self:center}.paper-materials-toggle{display:inline-flex;align-items:center;gap:12px!important;white-space:nowrap}.paper-materials-toggle>span{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}.paper-materials-toggle [data-empty=true]{color:var(--muted)}
 @container document (max-width:440px){.paper-shortcuts-label{display:none}.paper-document-tools{padding-inline:10px!important}.paper-materials-toggle{gap:8px!important}}
