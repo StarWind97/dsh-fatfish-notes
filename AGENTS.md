@@ -56,7 +56,7 @@ Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改�
   - **保留并确认**：任务中止但留有未合并代码、工作区不干净、存在待留证据、用户要求先在分支体验，或非本任务创建的 worktree，一律保留现场并向用户确认。
 - **任务追踪与进度维护**：活跃并行任务的实时状态以 `git worktree list`（当前分支与目录）以及各任务独立的专项规划文档（`docs/plans/`）为单一事实来源。普通并行写入任务开工前不再跑回主目录改写[进行中的任务](docs/README.md#进行中的任务)，避免弄脏主目录或在合回时于同一张表产生合并冲突；[进行中的任务](docs/README.md#进行中的任务)仅用于记录跨会话长期挂起或待补验事项（如发版后等待外部平台重建），并在合回 `main` 时顺手维护。
 - **串行合回与共享互斥资源**：各独立 worktree 内的代码修改、构建、单测与无头组件回归可完全并行；整合合回主目录 `main` 须逐个分支串行进行，合回前核对主目录干净，若主目录确有他人未提交改动则先保留并暂缓合回，不覆盖他人文件或混编共享 `lib/`。项目内的隔离 DSH 资料（`.dsh-home/pure-001/`）与指定私有测试仓库属于共享互斥资源，真实宿主安装验收与私库同步回归须按顺序串行执行；任务表为空不足以证明共享资料空闲，安装候选包到回归结束期间须确认无正在运行的隔离 DSH 进程并由同一任务连续占用。
-- **标准交接摘要**：多智能体间不共享聊天记忆。每轮暂停、交接或交付时，明确说明 5 项：**当前分支与提交号、改动范围、已执行验证与结果、未覆盖边界/剩余风险、下一步建议**；凡涉及开发、重构或发版的交付回复，还须直接附上**本机隔离体验入口的绝对路径**（当前为 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`，并说明其当前安装版本与隔离资料归属；纯文档讨论或只读调研可注明无界面变更、无需重启）。
+- **标准交接摘要**：多智能体间不共享聊天记忆。每轮暂停、交接或交付时，明确说明 5 项：**当前分支与提交号、改动范围、已执行验证与结果、未覆盖边界/剩余风险、下一步建议**；凡涉及开发、重构或发版的交付回复，还须自动启动最新隔离体验窗口，并同时附上**本机隔离体验入口的可点击 `file://` 文件链接与绝对路径**（如 `[Open-Fatfish-Notes.cmd](file:///d:/DSH-Workspace/dsh-github-notebook/scripts/Open-Fatfish-Notes.cmd)` 与 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`，并说明其当前安装版本与隔离资料归属；纯文档讨论或只读调研可注明无界面变更、无需启动/重启）。
 
 ## 分支与提交
 
@@ -66,7 +66,7 @@ Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改�
 - 提交采用英文类型前缀加中文摘要，如 `feat: 支持笔记摘要建议`。正文以中文写明范围、原因及实际验证。
 - 首次发布前的历史重建为一次性整理。此后正常保留开发历史，需要回退时优先新增回退提交。强推、再次重写历史、仓库之外的删除（按[多智能体与多会话协作](#多智能体与多会话协作)受控回收自建已合并 worktree 除外）和对外发布需另行明确授权。
 - 正式发版和插件市场更新都在用户明确提出并允许后进行。GitHub Release 每版提供一份固定名称的安装包 `dsh-fatfish-notes.tgz` 和校验文件。市场使用最新版下载链接，指定版本使用该版本发布页的下载链接。
-- 每次发版交付分别列出本版的 GitHub 发布页、[肥鱼笔记市场详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)，以及本机隔离体验入口的绝对路径（当前为 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`）。
+- 每次发版交付分别列出本版的 GitHub 发布页、[肥鱼笔记市场详情页](https://awesome-dsh-plugin.com/p/StarWind97/dsh-fatfish-notes/)，自动启动最新隔离体验窗口，并同时给出本机隔离体验入口的可点击 `file://` 文件链接与绝对路径（如 `[Open-Fatfish-Notes.cmd](file:///d:/DSH-Workspace/dsh-github-notebook/scripts/Open-Fatfish-Notes.cmd)` 与 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`）。
 
 ## 验证范围
 
@@ -117,7 +117,7 @@ Host、客户端和测试使用 TypeScript；`lib/` 是构建产物，不手改�
 
 仅在当前步骤确实需要用户及时操作或确认时暂停并提示用户（使用当前工具的原生确认/通知机制或在对话中明确说明，不强依赖系统弹窗），例如扫码、验证码、必要审批，或必须短时使用依赖系统焦点的键鼠输入。需要让出键鼠时，先说明原因、预计占用时间并等用户确认，操作结束后明确通知已可继续使用。
 
-真实测试只使用项目内 `.dsh-home/pure-001/` 的独立 Web/Desktop 资料与指定私有测试仓库 `StarWind97/dsh-community-private-test`。不要修改日常 DSH 资料。日常资料里的插件只通过插件市场自动更新，手动安装和体验指引只针对隔离资料。普通桌面启动的 GitHub 账号状态需在实际宿主核对，不能仅凭 Agent 终端或沙箱环境中的登录状态判断。记录真实、模拟及未覆盖的边界。测试结束关闭自建后台进程，在每轮开发、重构或发版的交付回复中直接给出可重新启动的隔离体验入口绝对路径（当前为 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`），且必须确保其对应的 `release12-desktop` 隔离资料已安装本轮最新提交产物、开箱即用；**严禁把仍装旧包的体验入口交给用户并反问「如需体验再帮你装」**（仅纯文档改动，或用户明确要求先停在分支评审不合回时除外）。
+真实测试只使用项目内 `.dsh-home/pure-001/` 的独立 Web/Desktop 资料与指定私有测试仓库 `StarWind97/dsh-community-private-test`。不要修改日常 DSH 资料。日常资料里的插件只通过插件市场自动更新，手动安装和体验指引只针对隔离资料。普通桌面启动的 GitHub 账号状态需在实际宿主核对，不能仅凭 Agent 终端或沙箱环境中的登录状态判断。记录真实、模拟及未覆盖的边界。自动化与 CDP 测试结束关闭自建测试后台进程；凡涉及界面、客户端、文案样式、宿主可见行为的开发/重构或发版交付（合回 `main` 并完成隔离实装与真机验收后），须确保 `release12-desktop` 已安装本轮最新提交产物、**主动执行 `scripts\Open-Fatfish-Notes.cmd` 自动打开本机隔离体验窗口**，并在交付回复中**同时给出体验脚本的可点击 `file://` 文件链接与绝对路径**（如 `[Open-Fatfish-Notes.cmd](file:///d:/DSH-Workspace/dsh-github-notebook/scripts/Open-Fatfish-Notes.cmd)` 与 `D:\DSH-Workspace\dsh-github-notebook\scripts\Open-Fatfish-Notes.cmd`）；**严禁把仍装旧包的体验入口交给用户并反问「如需体验再帮你装」**（仅纯文档改动，或用户明确要求先停在分支评审不合回时除外）。
 
 用户于 2026-11-15 明确授权：基于测试资料启动的窗口可随时关闭或重启，无需再次询问；用户不会在其中存放重要数据。执行前核对测试资料归属，按需做基本保存、同步检查；此授权不适用于日常 DSH、其他工作窗口或清空测试资料。
 
