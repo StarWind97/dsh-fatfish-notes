@@ -1,6 +1,6 @@
 # 肥鱼笔记使用说明
 
-[English](user-guide.en.md) · 适用 **0.13.0**（[版本说明](releases/0.13.0/release-notes.md)）
+[English](user-guide.en.md) · 适用 **0.13.1**（[版本说明](releases/0.13.1/release-notes.md)）
 
 肥鱼笔记跟随 DSH 的界面语言。可以在 DSH「设置 → 通用设置 → 语言」切换简体中文和英文。笔记和会话原文采用其原有语言。
 
@@ -8,7 +8,7 @@
 
 ![DSH 会话实拍。会话标题栏靠右可见小鱼入口，已完成回答下方提供「保存到笔记」，右侧为打开后的「会话笔记」侧栏。](images/user-guide/conversation-entries.png)
 
-[保存问答](#保存会话里的问答) · [边聊边用笔记](#在会话侧栏使用笔记) · [主界面](#写笔记与找笔记) · [整理标签](#整理笔记本与标签) · [首次设置](#首次设置) · [保存与同步](#保存与同步) · [导出](#导出与迁移)
+[保存问答](#保存会话里的问答) · [边聊边用笔记](#在会话侧栏使用笔记) · [主界面](#写笔记与找笔记) · [阅读与代码](#阅读与代码) · [整理标签](#整理笔记本与标签) · [首次设置](#首次设置) · [保存与同步](#保存与同步) · [导出](#导出与迁移)
 
 ## 保存会话里的问答
 
@@ -39,6 +39,12 @@
 ![新版列表工具栏与筛选面板：主色 + 新建、全部/收藏/最近分段控件、标签筛选与附件名命中](images/user-guide/workspace-map.png)
 
 常常在几篇笔记之间来回看时，可以用阅读标签切换和拖动排序。标签栏末尾的「+」会打开概览，从最近打开或最近修改的笔记继续阅读。
+
+## 阅读与代码
+
+打开「设置 → 阅读与代码」，在「正文排版与字体」调整阅读排版。在「代码显示」切换内置 Cascadia Code 的字重、字号、折行和行号，预览会立即跟着变化。
+
+![代码显示设置展示内置 Cascadia Code、字重和字号选项、折行、行号及实时代码预览](../assets/screenshots/0.13.1/zh/05-code-display.png)
 
 ## 整理笔记本与标签
 
@@ -93,4 +99,4 @@
 
 [图片与附件](user-guide-reference.zh.md#图片正文文件与补充附件) · [导入与整库导出](user-guide-reference.zh.md#导入整库导出与附件) · [笔记本管理](user-guide-reference.zh.md#笔记本管理) · [标签管理](user-guide-reference.zh.md#标签管理) · [回收站](user-guide-reference.zh.md#多选和清空回收站) · [会话侧栏设置](user-guide-reference.zh.md#工作区笔记本设置与取消操作)
 
-适用 **0.13.0**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.13.0/release-notes.md)。使用 0.12.0 时，可查看 [0.12.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.12.0/docs/user-guide.zh.md)。
+适用 **0.13.1**。见 [详细操作参考](user-guide-reference.zh.md) 和 [版本说明](releases/0.13.1/release-notes.md)。使用 0.13.0 时，可查看 [0.13.0 使用说明](https://github.com/StarWind97/dsh-fatfish-notes/blob/v0.13.0/docs/user-guide.zh.md)。

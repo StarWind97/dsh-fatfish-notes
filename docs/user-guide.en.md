@@ -1,12 +1,12 @@
 # Fatfish Notes illustrated guide
 
-[简体中文](user-guide.zh.md) · Applies to **0.13.0** ([Release notes](releases/0.13.0/release-notes.md))
+[简体中文](user-guide.zh.md) · Applies to **0.13.1** ([Release notes](releases/0.13.1/release-notes.md))
 
 Fatfish Notes follows the language selected in DSH. Use **Settings → General → Language** in DSH to switch between English and Simplified Chinese. Your own notes and saved conversation text keep their original language.
 
 ![A conversation on the left and the saved note in the unified-header sidebar on the right](../assets/screenshots/0.13.0/en/02-conversation.png)
 
-[Save a conversation](#save-a-conversation) · [Use notes beside a conversation](#use-notes-beside-a-conversation) · [Write and find notes](#write-and-find-notes) · [Organize your library](#organize-your-library) · [Set up your library](#set-up-your-library) · [Save and sync](#save-and-sync) · [Export and move notes](#export-and-move-notes)
+[Save a conversation](#save-a-conversation) · [Use notes beside a conversation](#use-notes-beside-a-conversation) · [Write and find notes](#write-and-find-notes) · [Organize your library](#organize-your-library) · [Set up your library](#set-up-your-library) · [Reading and code](#reading-and-code) · [Save and sync](#save-and-sync) · [Export and move notes](#export-and-move-notes)
 
 ## Save a conversation
 
@@ -52,6 +52,12 @@ Use **Settings → Appearance** to choose among three layouts (Soft cards, Struc
 
 ![Refreshed appearance settings with three layout cards, six palette cards, segmented controls and sync status](../assets/screenshots/0.13.0/en/04-settings.png)
 
+## Reading and code
+
+Open **Settings → Reading and code** to adjust text in **Reading typography**. In **Code display**, choose a weight and size for the bundled Cascadia Code font, and turn wrapping and line numbers on or off. The preview updates as you change each setting.
+
+![Code display settings show bundled Cascadia Code, weight and size options, wrapping, line numbers and a live preview](../assets/screenshots/0.13.1/en/05-code-display.png)
+
 ## Save and sync
 
 | Status | Meaning |
@@ -68,4 +74,4 @@ Click **Export** in a note. Choose Markdown for editable text, PDF for paginated
 
 For other operations including separate windows, keyboard navigation, data recovery and file handling, see the [detailed reference](user-guide-reference.en.md).
 
-Applies to **0.13.0**. [Release notes](releases/0.13.0/release-notes.md).
+Applies to **0.13.1**. [Release notes](releases/0.13.1/release-notes.md).

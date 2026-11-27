@@ -11,7 +11,7 @@
 
 把值得留下的会话整理成自己的笔记，在会话旁阅读、修改和复用。笔记保存在本机，通过自己的 GitHub 私有仓库同步。
 
-> 肥鱼笔记 **0.13.0** 声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.13.0/release-notes.md)和[验证记录](docs/releases/0.13.0/review.zh.md)。
+> 肥鱼笔记 **0.13.1** 声明支持 DSH `>=0.2.2-rc.3 <0.2.3-0`。见[版本说明](docs/releases/0.13.1/release-notes.md)和[验证记录](docs/releases/0.13.1/review.zh.md)。
 
 ![新版阅读工作台，展示主色 + 新建、全部/收藏/最近分段、3px 选中竖条、胶囊标签与阅读标签栏](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/zh/01-image.png)
 
@@ -30,11 +30,11 @@
 
 代码片段、圆角结果表格、文件与关联笔记也可以一起保存，便于下次查找和复用。
 
-![炭黑深色阅读中的独立顶栏代码块、圆角表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/zh/03-code.png)
+![炭黑深色阅读中的独立顶栏代码块、圆角表格和文件链接](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.1/zh/03-code.png)
 
 ## 安装与升级
 
-下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.13.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)；如需回退上一公开版，见 [0.12.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.12.0)。新版资料需由相应版本的插件读写。
+下载[最新正式安装包 `dsh-fatfish-notes.tgz`](https://github.com/StarWind97/dsh-fatfish-notes/releases/latest/download/dsh-fatfish-notes.tgz)。指定版本与校验文件见 [0.13.1 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.1)；如需回退上一公开版，见 [0.13.0 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0)。新版资料需由相应版本的插件读写。
 
 取得与宿主匹配的插件包后，先打开一次 DSH 完成初始化，再完全退出 DSH。在终端执行，替换为实际文件路径：
 
@@ -44,7 +44,7 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 重新打开 DSH，在左侧进入「肥鱼笔记」。Web 使用者将 `desktop` 换成自己的 profile 名称。若找不到 `dsh`，使用 DSH 安装目录下 `resources\runtime\cli\bin\dsh.cmd` 的完整路径。
 
-0.10.0–0.12.0 用户可以在现有 DSH 资料中直接安装 0.13.0，重启后沿用原私库、笔记与已有手册修订，旧版已退役的布局和配色（含待同步队列）会自动平滑迁移。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
+0.10.0–0.13.0 用户可以在现有 DSH 资料中直接安装 0.13.1，重启后沿用原私库、笔记与已有手册修订，旧版已退役的布局和配色（含待同步队列）会自动平滑迁移。升级前完成同步，关闭独立窗口及 DSH，备份本机笔记资料夹和 `DSH_HOME/fatfish-notes`。**从 0.8.0 升级时，同一私库各端须一起升级宿主与插件。** v3/v4 资料需要新版插件，回退需要配套宿主及升级前备份。旧模板和已编辑的手册继续作为笔记保留。
 
 ## 开始使用
 
@@ -60,9 +60,13 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 ![新版外观设置展示三套布局卡片、六套配色卡片、分段控件与同步状态](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.0/zh/04-settings.png)
 
+在「设置 → 阅读与代码」可实时预览内置 Cascadia Code 的字号、字重、折行和行号。
+
+![代码显示设置展示内置 Cascadia Code、字重和字号选项、折行、行号及实时代码预览](https://raw.githubusercontent.com/StarWind97/dsh-fatfish-notes/main/assets/screenshots/0.13.1/zh/05-code-display.png)
+
 ## 使用边界
 
-- 桌面和 Web 的实测范围见 [0.13.0 验证记录](docs/releases/0.13.0/review.zh.md)。
+- 桌面和 Web 的实测范围见 [0.13.1 验证记录](docs/releases/0.13.1/review.zh.md)。
 - 独立窗口使用 Windows 上已安装的 Chrome 或 Edge，依赖 DSH 保持运行。
 - 外观偏好在同一 DSH 内共享。笔记主界面顶栏切换并保存 DSH 明暗，独立窗口的明暗切换只影响本次视图。收藏、置顶和笔记本顺序随私库同步。
 - 引用不会自动发送，也尚未登记到宿主原生附件栏。AI 只在转存时可选生成标题、摘要和标签，正文由用户编辑。
@@ -71,4 +75,4 @@ dsh plugin --profile desktop add "D:\Downloads\dsh-fatfish-notes.tgz"
 
 问题与建议可从「设置 → 帮助 → 问题与建议」或直接通过 [Issues](https://github.com/StarWind97/dsh-fatfish-notes/issues) 提交，请附系统、DSH/插件版本及复现步骤，不要提供凭据或私人笔记。
 
-开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。截图来自实际界面，使用演示笔记与编排会话。[取景记录](assets/screenshots/0.13.0/README.md)
+开发见[开发入口](docs/README.md)、[项目约定](AGENTS.md)与[产品设计](docs/notes-design.zh.md)。代码采用 [MIT](LICENSE)，字体及第三方依赖见[授权说明](THIRD_PARTY_NOTICES.md)。截图来自实际界面，使用演示笔记与编排会话。[取景记录](assets/screenshots/0.13.1/README.md)

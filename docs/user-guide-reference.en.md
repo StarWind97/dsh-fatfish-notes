@@ -1,12 +1,12 @@
 # Fatfish Notes detailed reference
 
-[Illustrated guide](user-guide.en.md) · [简体中文](user-guide-reference.zh.md) · Applies to **0.13.0** ([Release notes](releases/0.13.0/release-notes.md))
+[Illustrated guide](user-guide.en.md) · [简体中文](user-guide-reference.zh.md) · Applies to **0.13.1** ([Release notes](releases/0.13.1/release-notes.md))
 
 ## Installation, upgrade and removal
 
 Use the package for your DSH version. [Installation and upgrade instructions](../README.en.md#installation-and-upgrade).
 
-Finish syncing and close DSH and separate note windows before upgrading. Back up the local note folder and `DSH_HOME/fatfish-notes`. Open 0.13.0 in the same DSH profile to continue using your existing library; retired layouts and palettes in shared preferences, local cache and pending queues migrate automatically, and existing edited handbooks stay intact. A downgrade requires a compatible host and a pre-upgrade backup.
+Finish syncing and close DSH and separate note windows before upgrading. Back up the local note folder and `DSH_HOME/fatfish-notes`. Open 0.13.1 in the same DSH profile to continue using your existing library; retired layouts and palettes in shared preferences, local cache and pending queues migrate automatically, and existing edited handbooks stay intact. A downgrade requires a compatible host and a pre-upgrade backup.
 
 To remove the plugin, remove it from the profile where you installed it. Keep a backup of your library and the private repository if you want to use the notes again.
 
@@ -48,7 +48,7 @@ Use **Organize → Notebooks** to create, rename, reorder or remove notebooks. S
 
 Use **Organize → Tags** to choose an existing tag and preview a rename, merge or removal. Review counts and note previews before confirming. A change to a tag affects classification and keeps the note contents.
 
-Use selection mode for bulk actions and **Trash** to restore removed notes. A permanent deletion removes active copies and unused attached files from the application. Prior commits may still retain content in Git history.
+Use **Select notes** for bulk actions when the list has results. You can undo a move to **Trash** even after removing the last note in the list. If a filter leaves no results in Trash, clear it to bring back **Empty trash**. The confirmation shows the total number of notes in Trash. A permanent deletion removes active copies and unused attached files from the application. Prior commits may still retain content in Git history.
 
 ## Images, inline files and supplemental files
 
@@ -58,7 +58,7 @@ Keep additional materials below or beside the body in **Supplemental files**. Th
 
 ## Conversation sidebar and workspaces
 
-Use **Conversation notes** in the conversation header. The sidebar shares a unified top bar between list and reading views so switching causes no vertical jump. Saved notes are linked to their source conversation automatically. Search to find another note and use its menu to link or unlink it. A workspace notebook is the suggested destination for new notes and captures in that workspace.
+Use **Conversation notes** in the conversation header. The sidebar shares a unified top bar between list and reading views so switching causes no vertical jump. Saved notes are linked to their source conversation automatically. Search to find another note and use its menu to link or unlink it. A workspace notebook is the suggested destination for new notes and captures in that workspace. If you switch to an empty group while choosing notes, you can still review your selection or exit selection mode.
 
 In **Save options**, expanded wide dialogs adapt to content height, display live thumbnails for available images, highlight selected turns and provide a bottom **Cancel** button alongside **Save to notes**.
 
