@@ -42,7 +42,7 @@ When the same note is being edited in another window, use the editing handoff to
 
 Use the **All / Favorites / Recent** segmented control or search words and attachment names. Use a notebook, tag, date or attachment filter for a narrower result. Clicking a text match jumps to its place in the note. In the main view or separate window, press **Alt+K** (**⌥K** on macOS) or click the top-bar quick switcher to search titles, body text, attachment names, notebooks, the full tag catalog and common actions using keyboard navigation. Star frequently used notes for **Favorites**, pin important notes, and use the reading tabs to move between open notes.
 
-When editing a note, notebook, tags and summary start collapsed under the title; click **Edit details** to expand them in place without shifting the body unexpectedly.
+When editing a note, notebook, tags and summary start collapsed under the title; click **Edit details** to expand them in place without shifting the body unexpectedly. The summary field grows as text wraps. Drag the lower-right corner to make it taller or shorter, and scroll inside the field when the text exceeds its height.
 
 Use **Organize → Notebooks** to create, rename, reorder or remove notebooks. Set a global default for new notes. A conversation workspace can have a different default. When removing a notebook, review the choice to move notes to the default notebook or move them to **Trash**.
 

@@ -22,6 +22,7 @@ import type { T } from './locale.js'
 import { NoteActions, type NoteAction } from './paper/NoteActions.js'
 import { TrashAction } from './paper/TrashAction.js'
 import { NoteExport } from './NoteExport.js'
+import { SummaryEditor } from './paper/SummaryEditor.js'
 import { PaperWriting,type UndoSnapshot } from './paper/PaperWriting.js'
 import { ChapterOutline } from './paper/ChapterOutline.js'
 import { useOutline, type WritingNavigation, type OutlineSession } from './paper/use-outline.js'
@@ -185,7 +186,7 @@ export function NoteEditor({jump,finishJump,controller,state,t,onTagClick,outlin
             <button type="submit" className="paper-tag-add" title={t('notesAddTag')} aria-label={t('notesAddTag')} disabled={!editable||!tag.trim()||state.composing}><Plus size={16}/></button>
           </form></div>{editable&&<TagSuggestions value={tag} selected={draft.tags} choose={value=>{controller.update({tags:[...new Set([...draft.tags,value])]});setTag('')}} t={t}/>}</div>
       </aside>
-      <section className="paper-summary" aria-label={t('notesSummary')}><label><span>{t('notesSummary')}</span><textarea disabled={!editable} aria-label={t('notesSummary')} rows={2} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/></label></section>
+      <SummaryEditor label={t('notesSummary')} disabled={!editable} value={draft.summary} placeholder={t('paperSummaryHint')} onCompositionStart={()=>controller.composition(true)} onCompositionEnd={()=>controller.composition(false)} onChange={e=>controller.update({summary:e.target.value})}/>
     </div>}
     {!state.editing&&<ReadingSummary summary={draft.summary} t={t} query={state.filter.query}/>}
     {draft.status==='trashed'&&<p className="paper-notice">{t('linkTrashed')}</p>}
