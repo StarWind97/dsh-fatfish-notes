@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 2026-11-28 **0.13.1 已正式发布并设为 GitHub Latest。** 发布提交 `518f7ffb4485a84728a4f297cdf76202179e984e`，标签 `v0.13.1`。两个公开入口均已匿名校验为同一枚冻结包。新版提供独立代码显示卡片、窄窗字重折行和空列表操作调整。市场安装链接已取得本版，两语详情仍显示上一版图文。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.1) · [验收与发布记录](releases/0.13.1/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/)
+- 2026-11-28 **0.13.1 已正式发布并设为 GitHub Latest。** 发布提交 `518f7ffb4485a84728a4f297cdf76202179e984e`，标签 `v0.13.1`。两个公开入口均已匿名校验为同一枚冻结包。新版提供独立代码显示卡片、窄窗字重折行和空列表操作调整。市场两语详情已更新至本版，正文、配图及安装地址已复核。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.1) · [验收与发布记录](releases/0.13.1/review.zh.md#发布与市场) · [市场详情](https://awesome-dsh-plugin.com/zh/p/StarWind97/dsh-fatfish-notes/)
 
 - 2026-11-26 **0.13.0 已正式发布。** 0.13.1 发布前已补验市场中英文正文、图解和各四张 0.13.0 配图。更早的工作台、三布局六配色、`Alt+K` 与手册 v6 验收见对应记录。[GitHub 发布页](https://github.com/StarWind97/dsh-fatfish-notes/releases/tag/v0.13.0) · [发布与市场记录](releases/0.13.0/review.zh.md#发布与市场)
 
@@ -23,7 +23,7 @@
 
 | 任务 | 负责智能体 | 分支、目录与涉及范围 | 进度与下一步 |
 | --- | --- | --- | --- |
-| [0.13.1 插件市场详情页补验](releases/0.13.1/review.zh.md#发布与市场) | Codex | `main`，市场公开页面 | 固定安装入口已取得 0.13.1。最新构建失败，两语页面仍展示 0.13.0 图文，待市场成功重建后核对正文和新版配图。 |
+| [0.13.1 市场图解网页复测](releases/0.13.1/review.zh.md#市场重建后复核) | Codex | `main`，GitHub 公开图解 | 市场双语图文及安装包验证完成。从市场打开两语图解网页时返回 HTTP 503，两语源文件可取，待复测网页是否恢复。 |
 
 按[多智能体与多会话协作约定](../AGENTS.md#多智能体与多会话协作)维护本表。根据工作区差异、`git worktree list` 和专项记录核对实际进度。
 
